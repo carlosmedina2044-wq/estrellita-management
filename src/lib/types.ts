@@ -229,6 +229,7 @@ export type SupplyAutomationInput = {
   lifespanUnit?: LifespanUnit;
   orderByDate?: string;
   linkedDutyIds?: string[];
+  preferredRetailer?: RetailerId | string;
 };
 
 export type Completion = {

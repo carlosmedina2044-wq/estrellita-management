@@ -1,9 +1,9 @@
-import { WHOLE_HOME_ID } from "@/lib/home-model";
+import { userRooms, WHOLE_HOME_ID } from "@/lib/home-model";
 import { applyDutySave } from "@/lib/household-update";
-import { deriveOrderByDate } from "@/lib/supply";
+import { DEFAULT_LEAD_TIME_DAYS, deriveOrderByDate } from "@/lib/supply";
 import { toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
-import type { AssetType, Duty, Household, LifespanUnit, RoomType } from "@/lib/types";
+import type { AssetType, Duty, Household, LifespanUnit, RetailerId, RoomType } from "@/lib/types";
 
 export type RestockWalkVariant = { id: string; label: string };
 
@@ -27,7 +27,46 @@ export type RestockWalkItem = {
   defaultOn?: boolean | ((household: RestockWalkContext) => boolean);
 };
 
-export type RestockPick = { id: string; variant?: string };
+export type CatalogRestockPick = { id: string; variant?: string };
+
+export type CustomRestockItem = {
+  itemName: string;
+  sku?: string;
+  roomId: string;
+  intervalMonths: 1 | 3 | 6 | 12;
+  retailer?: RetailerId | string;
+  group: RestockWalkGroup;
+};
+
+export type CustomRestockPick = { id: `custom:${string}`; custom: CustomRestockItem };
+
+export type RestockPick = CatalogRestockPick | CustomRestockPick;
+
+export function isCustomRestockPick(pick: RestockPick): pick is CustomRestockPick {
+  return "custom" in pick;
+}
+
+export function newCustomPick(item: CustomRestockItem): CustomRestockPick {
+  return { id: `custom:${crypto.randomUUID()}`, custom: item };
+}
+
+export function cadenceForInterval(intervalMonths: 1 | 3 | 6 | 12): {
+  frequency: Duty["frequency"];
+  lifespanValue: number;
+  lifespanUnit: LifespanUnit;
+  dutyPrefix: "Restock" | "Replace";
+} {
+  if (intervalMonths === 1) {
+    return { frequency: "monthly", lifespanValue: 1, lifespanUnit: "months", dutyPrefix: "Restock" };
+  }
+  if (intervalMonths === 3) {
+    return { frequency: "quarterly", lifespanValue: 3, lifespanUnit: "months", dutyPrefix: "Restock" };
+  }
+  if (intervalMonths === 6) {
+    return { frequency: "monthly", lifespanValue: 6, lifespanUnit: "months", dutyPrefix: "Replace" };
+  }
+  return { frequency: "yearly", lifespanValue: 12, lifespanUnit: "months", dutyPrefix: "Replace" };
+}
 
 export const RESTOCK_WALK_GROUPS: { id: RestockWalkGroup; label: string }[] = [
   { id: "kitchen", label: "Kitchen" },
@@ -40,6 +79,29 @@ export const RESTOCK_WALK_GROUPS: { id: RestockWalkGroup; label: string }[] = [
 
 function hasAsset(household: RestockWalkContext, type: AssetType): boolean {
   return household.assets.some((asset) => normalizeAssetType(asset.type) === type);
+}
+
+export function defaultRoomForGroup(
+  household: Pick<Household, "rooms">,
+  group: RestockWalkGroup,
+): string {
+  const whole = household.rooms.find((room) => room.system === "whole-home");
+  if (group === "whole-home") return whole?.id ?? WHOLE_HOME_ID;
+  if (group === "outside") {
+    return household.rooms.find((room) => room.system === "exterior")?.id ?? whole?.id ?? WHOLE_HOME_ID;
+  }
+  const type =
+    group === "kitchen"
+      ? "kitchen"
+      : group === "laundry"
+        ? "laundry"
+        : group === "living"
+          ? "living"
+          : group === "bath"
+            ? "bathroom"
+            : undefined;
+  const match = type ? household.rooms.find((room) => room.type === type && !room.system) : undefined;
+  return match?.id ?? userRooms(household)[0]?.id ?? whole?.id ?? WHOLE_HOME_ID;
 }
 
 export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
@@ -252,6 +314,7 @@ export const SAMPLE_RESTOCK_PICKS: RestockPick[] = [
 
 export function picksMissingSize(picks: RestockPick[]): RestockWalkItem[] {
   return picks.flatMap((pick) => {
+    if (isCustomRestockPick(pick)) return [];
     const item = RESTOCK_WALK_CATALOG.find((entry) => entry.id === pick.id);
     if (!item?.variants?.length) return [];
     if (pick.variant?.trim()) return [];
@@ -281,9 +344,63 @@ function targetFor(household: Household, item: RestockWalkItem): { room: string;
   return { room: whole?.id ?? WHOLE_HOME_ID, nodeId: whole?.id ?? WHOLE_HOME_ID, nodeType: "home" };
 }
 
-function alreadyTracked(household: Household, item: RestockWalkItem): boolean {
-  const needle = item.itemName.toLowerCase();
+function alreadyTrackedName(household: Household, itemName: string): boolean {
+  const needle = trackedBaseName(itemName);
   return household.supplyAutomations.some((entry) => trackedBaseName(entry.itemName) === needle);
+}
+
+function alreadyTracked(household: Household, item: RestockWalkItem): boolean {
+  return alreadyTrackedName(household, item.itemName);
+}
+
+function applyCustomPick(household: Household, pick: CustomRestockPick, now: Date): Household {
+  const custom = pick.custom;
+  const itemName = custom.itemName.trim();
+  if (!itemName || alreadyTrackedName(household, itemName)) return household;
+  const cadence = cadenceForInterval(custom.intervalMonths);
+  const room = household.rooms.find((entry) => entry.id === custom.roomId);
+  const whole = household.rooms.find((entry) => entry.system === "whole-home");
+  const roomId = room?.id ?? whole?.id ?? WHOLE_HOME_ID;
+  const nodeType: Duty["nodeType"] = room?.system === "whole-home" ? "home" : "room";
+  const today = toISODate(now);
+  const variant = custom.sku?.trim();
+  const dutyTitle = `${cadence.dutyPrefix} ${itemName}`;
+  const existing = household.duties.find((duty) => duty.title === dutyTitle && !duty.archived);
+  const orderByDate = deriveOrderByDate(today, cadence.lifespanValue, cadence.lifespanUnit);
+  return applyDutySave(
+    household,
+    {
+      title: existing?.title ?? dutyTitle,
+      notes: existing?.notes ?? "",
+      room: existing?.room ?? roomId,
+      nodeId: existing?.nodeId ?? roomId,
+      nodeType: existing?.nodeType ?? nodeType,
+      audience: existing?.audience ?? "me",
+      effort: existing?.effort ?? "small",
+      frequency: existing?.frequency ?? cadence.frequency,
+      kind: "replacement",
+      weekday: existing?.weekday ?? 6,
+      monthDay: existing?.monthDay ?? 1,
+      dueDate: existing?.dueDate ?? today,
+      priority: existing?.priority ?? "medium",
+      origin: existing?.origin ?? "user",
+      id: existing?.id,
+      supplyAutomation: {
+        itemName,
+        sku: variant ?? "",
+        sizeSpec: variant || undefined,
+        leadTimeDays: DEFAULT_LEAD_TIME_DAYS,
+        onHand: 1,
+        qtyPerOrder: 1,
+        lifespanValue: cadence.lifespanValue,
+        lifespanUnit: cadence.lifespanUnit,
+        installedAt: today,
+        orderByDate,
+        preferredRetailer: custom.retailer,
+      },
+    },
+    now,
+  );
 }
 
 /** Seeds Restock from a short “walk your house” catalog so day one isn’t empty. */
@@ -291,6 +408,10 @@ export function applyRestockPicks(household: Household, picks: RestockPick[], no
   let next = household;
   const today = toISODate(now);
   for (const pick of picks) {
+    if (isCustomRestockPick(pick)) {
+      next = applyCustomPick(next, pick, now);
+      continue;
+    }
     const item = RESTOCK_WALK_CATALOG.find((entry) => entry.id === pick.id);
     if (!item) continue;
     if (item.when && !item.when(next)) continue;

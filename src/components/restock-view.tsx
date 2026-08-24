@@ -4,11 +4,19 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Package } from "lucide-react";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
+import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { Button } from "@/components/ui/button";
 import { roomName } from "@/lib/home-model";
-import { SAMPLE_RESTOCK_PICKS, defaultWalkPicks, type RestockPick } from "@/lib/onboarding/restock-walk";
+import {
+  SAMPLE_RESTOCK_PICKS,
+  defaultWalkPicks,
+  newCustomPick,
+  type CustomRestockPick,
+  type RestockPick,
+  type RestockWalkGroup,
+} from "@/lib/onboarding/restock-walk";
 import { groupRestock, restockPlacement, usedWhere, type RestockFlowHandlers } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import type { AppNavigateTarget, Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
@@ -35,6 +43,9 @@ export function RestockView({
   const [stockedOpen, setStockedOpen] = useState(false);
   const [walking, setWalking] = useState(false);
   const [walkPicks, setWalkPicks] = useState<RestockPick[]>(SAMPLE_RESTOCK_PICKS);
+  const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
+  const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
+  const [quickAdd, setQuickAdd] = useState(false);
   const createGuard = useSheetOpenGuard();
   const groups = useMemo(
     () => groupRestock(household.supplyAutomations, household),
@@ -75,7 +86,21 @@ export function RestockView({
               <p className="text-[17px] font-medium">Walk your house</p>
               <p className="mt-1 text-sm text-muted-foreground">Pick the filters and batteries you actually buy.</p>
               <div className="mt-3">
-                <RestockWalkPicker picks={walkPicks} onChange={setWalkPicks} context={household} />
+                <RestockWalkPicker
+                  picks={walkPicks}
+                  onChange={setWalkPicks}
+                  context={household}
+                  onAddCustom={(group) => {
+                    setEditingCustom(null);
+                    setQuickAdd(false);
+                    setAddGroup(group);
+                  }}
+                  onEditCustom={(pick) => {
+                    setEditingCustom(pick);
+                    setQuickAdd(false);
+                    setAddGroup(pick.custom.group);
+                  }}
+                />
               </div>
               <div className="mt-3 flex gap-2">
                 <Button variant="secondary" className="h-11 flex-1" onClick={() => setWalking(false)}>
@@ -194,9 +219,49 @@ export function RestockView({
         ) : null}
       </section>
 
-      <Button className="h-12 rounded-full" onClick={() => createGuard.tryOpen(() => setCreating(true))}>
-        Add item
+      <Button className="h-12 rounded-full" onClick={() => createGuard.tryOpen(() => {
+        setEditingCustom(null);
+        setAddGroup("whole-home");
+        setQuickAdd(true);
+      })}>
+        Quick add
       </Button>
+
+      <RestockWalkAddSheet
+        open={addGroup !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            createGuard.markClosed();
+            setAddGroup(null);
+            setEditingCustom(null);
+            setQuickAdd(false);
+          }
+        }}
+        group={addGroup ?? "whole-home"}
+        household={household}
+        initial={editingCustom?.custom}
+        onSave={(item) => {
+          const pick = editingCustom ? { ...editingCustom, custom: item } : newCustomPick(item);
+          if (walking && !quickAdd) {
+            setWalkPicks((current) =>
+              editingCustom ? current.map((entry) => (entry.id === pick.id ? pick : entry)) : [...current, pick],
+            );
+            return;
+          }
+          onWalkHouse?.([pick]);
+        }}
+        onMoreOptions={
+          quickAdd
+            ? () => {
+                createGuard.markClosed();
+                setAddGroup(null);
+                setEditingCustom(null);
+                setQuickAdd(false);
+                setCreating(true);
+              }
+            : undefined
+        }
+      />
 
       <ConsumableForm
         open={creating || Boolean(editingDuty)}

@@ -76,7 +76,7 @@ test("HVAC filter is defaultOn with no size; pool chlorine follows hasPool", () 
   const house = seededHousehold();
   const defaults = defaultWalkPicks(house);
   const hvac = defaults.find((pick) => pick.id === "hvac-filter");
-  assert.ok(hvac);
+  assert.ok(hvac && !("custom" in hvac));
   assert.equal(hvac.variant, undefined);
   assert.equal(
     visibleWalkItems(house).some((item) => item.id === "pool-chlorine"),
@@ -87,7 +87,7 @@ test("HVAC filter is defaultOn with no size; pool chlorine follows hasPool", () 
     attributes: { ...house.attributes, hasPool: true },
   });
   assert.ok(visibleWalkItems(poolHouse).some((item) => item.id === "pool-chlorine"));
-  assert.ok(defaultWalkPicks(poolHouse).some((pick) => pick.id === "pool-chlorine" && pick.variant == null));
+  assert.ok(defaultWalkPicks(poolHouse).some((pick) => pick.id === "pool-chlorine" && !("custom" in pick)));
   assert.equal(
     visibleWalkItems({ attributes: { ...house.attributes, hasPool: false }, assets: house.assets }).some(
       (item) => item.id === "pool-chlorine",
@@ -127,4 +127,51 @@ test("picksMissingSize lists checked catalog items that still need a size", () =
     missing.map((item) => item.id),
     ["hvac-filter"],
   );
+});
+
+test("custom walk pick seeds Restock in the chosen room with user origin", () => {
+  const household = seededHousehold();
+  const garage = household.rooms.find((room) => room.type === "garage" && !room.system);
+  assert.ok(garage);
+  const next = applyRestockPicks(
+    household,
+    [
+      {
+        id: "custom:salt",
+        custom: {
+          itemName: "Water softener salt",
+          sku: "40 lb",
+          roomId: garage.id,
+          intervalMonths: 1,
+          retailer: "walmart",
+          group: "whole-home",
+        },
+      },
+    ],
+    new Date(2026, 5, 1),
+  );
+  const item = next.supplyAutomations.find((entry) => entry.itemName === "Water softener salt");
+  const duty = next.duties.find((entry) => entry.id === item?.dutyId);
+  assert.ok(item);
+  assert.equal(item.sku, "40 lb");
+  assert.equal(item.sizeSpec, "40 lb");
+  assert.equal(item.preferredRetailer, "walmart");
+  assert.equal(item.leadTimeDays, 14);
+  assert.equal(item.room, garage.id);
+  assert.equal(duty?.title, "Restock Water softener salt");
+  assert.equal(duty?.origin, "user");
+  assert.equal(duty?.frequency, "monthly");
+  const twice = applyRestockPicks(next, [
+    {
+      id: "custom:salt-2",
+      custom: {
+        itemName: "Water softener salt",
+        sku: "40 lb",
+        roomId: garage.id,
+        intervalMonths: 1,
+        group: "whole-home",
+      },
+    },
+  ]);
+  assert.equal(twice.supplyAutomations.filter((entry) => entry.itemName === "Water softener salt").length, 1);
 });

@@ -4,7 +4,9 @@ import { useState } from "react";
 import {
   RESTOCK_WALK_GROUPS,
   catalogItemForSupply,
+  isCustomRestockPick,
   visibleWalkItems,
+  type CustomRestockPick,
   type RestockPick,
   type RestockWalkContext,
   type RestockWalkGroup,
@@ -19,6 +21,7 @@ export function RestockWalkPicker({
   sizeWarning = false,
   onSkipSizes,
   onAddCustom,
+  onEditCustom,
 }: {
   picks: RestockPick[];
   onChange: (picks: RestockPick[]) => void;
@@ -27,19 +30,23 @@ export function RestockWalkPicker({
   sizeWarning?: boolean;
   onSkipSizes?: () => void;
   onAddCustom?: (group: RestockWalkGroup) => void;
+  onEditCustom?: (pick: CustomRestockPick) => void;
 }) {
   const [typingId, setTypingId] = useState<string | null>(null);
   const visible = visibleWalkItems(context);
   const missing = sizeWarning
     ? picks.flatMap((pick) => {
+        if (isCustomRestockPick(pick)) return [];
         const item = visible.find((entry) => entry.id === pick.id);
         if (!item?.variants?.length || pick.variant?.trim()) return [];
         return [item.itemName];
       })
     : [];
 
-  function selected(id: string) {
-    return picks.find((item) => item.id === id);
+  function catalogPick(id: string) {
+    const pick = picks.find((item) => item.id === id);
+    if (!pick || isCustomRestockPick(pick)) return undefined;
+    return pick;
   }
 
   function isTracked(itemName: string) {
@@ -48,7 +55,7 @@ export function RestockWalkPicker({
   }
 
   function toggle(id: string) {
-    const current = selected(id);
+    const current = picks.find((item) => item.id === id);
     if (current) {
       if (typingId === id) setTypingId(null);
       onChange(picks.filter((item) => item.id !== id));
@@ -77,13 +84,16 @@ export function RestockWalkPicker({
 
       {RESTOCK_WALK_GROUPS.map((group) => {
         const items = visible.filter((item) => item.group === group.id);
-        if (items.length === 0 && !onAddCustom && group.id !== "bath") return null;
+        const custom = picks.filter(
+          (pick): pick is CustomRestockPick => isCustomRestockPick(pick) && pick.custom.group === group.id,
+        );
+        if (items.length === 0 && custom.length === 0 && !onAddCustom && group.id !== "bath") return null;
         return (
           <section key={group.id}>
             <h2 className="mb-2 px-1 text-[13px] font-medium text-muted-foreground">{group.label}</h2>
             <div className="grid gap-2">
               {items.map((item) => {
-                const pick = selected(item.id);
+                const pick = catalogPick(item.id);
                 const tracked = isTracked(item.itemName);
                 const chipLabels = item.variants?.map((variant) => variant.label) ?? [];
                 const typed = Boolean(pick?.variant && !chipLabels.includes(pick.variant));
@@ -153,6 +163,33 @@ export function RestockWalkPicker({
                   </div>
                 );
               })}
+              {custom.map((pick) => (
+                <div key={pick.id} className="rounded-2xl bg-card px-3 py-3">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked
+                      onChange={() => toggle(pick.id)}
+                      className="mt-1 size-5 accent-primary"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[17px] font-medium">{pick.custom.itemName}</span>
+                      {pick.custom.sku ? (
+                        <span className="mt-0.5 block text-[13px] text-muted-foreground">{pick.custom.sku}</span>
+                      ) : null}
+                    </span>
+                  </label>
+                  {onEditCustom ? (
+                    <button
+                      type="button"
+                      className="mt-2 pl-8 text-[13px] font-medium text-brand"
+                      onClick={() => onEditCustom(pick)}
+                    >
+                      Edit
+                    </button>
+                  ) : null}
+                </div>
+              ))}
               {onAddCustom ? (
                 <button
                   type="button"

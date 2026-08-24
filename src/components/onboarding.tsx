@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BrandLockup } from "@/components/brand-logo";
+import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,15 @@ import {
   type OnboardingAnswers,
 } from "@/lib/onboarding/generate";
 import { ADD_ROOM_TYPES, nextRoomKey, roomTemplateFor, type RoomChoice } from "@/lib/onboarding/rooms";
-import { defaultWalkPicks, picksMissingSize, SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
+import {
+  defaultWalkPicks,
+  newCustomPick,
+  picksMissingSize,
+  SAMPLE_RESTOCK_PICKS,
+  type CustomRestockPick,
+  type RestockPick,
+  type RestockWalkGroup,
+} from "@/lib/onboarding/restock-walk";
 import { RETAILER_CHIPS } from "@/lib/retailer";
 import { geocodeUsZip } from "@/lib/weather/client";
 import type { HomeAttributes, HomeLocation, HomeType, RetailerId, Tenure } from "@/lib/types";
@@ -50,6 +59,8 @@ export function Onboarding({
   const [sizeBanner, setSizeBanner] = useState(false);
   const [preferredRetailers, setPreferredRetailers] = useState<RetailerId[]>([]);
   const [walkContext, setWalkContext] = useState(() => generateHomeFromAnswers(sampleHomeAnswers()));
+  const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
+  const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
 
   const location: HomeLocation = {
     postalCode: postalCode || undefined,
@@ -432,6 +443,37 @@ export function Onboarding({
               context={walkContext}
               sizeWarning={sizeBanner}
               onSkipSizes={() => setWalkPhase("stores")}
+              onAddCustom={(group) => {
+                setEditingCustom(null);
+                setAddGroup(group);
+              }}
+              onEditCustom={(pick) => {
+                setEditingCustom(pick);
+                setAddGroup(pick.custom.group);
+              }}
+            />
+            <RestockWalkAddSheet
+              open={addGroup !== null}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setAddGroup(null);
+                  setEditingCustom(null);
+                }
+              }}
+              group={addGroup ?? "whole-home"}
+              household={walkContext}
+              initial={editingCustom?.custom}
+              onSave={(item) => {
+                setRestockPicks((current) => {
+                  if (editingCustom) {
+                    return current.map((pick) =>
+                      pick.id === editingCustom.id ? { ...editingCustom, custom: item } : pick,
+                    );
+                  }
+                  return [...current, newCustomPick(item)];
+                });
+                setSizeBanner(false);
+              }}
             />
             <div className="mt-auto flex gap-3 pt-6">
               <Button
