@@ -15,10 +15,12 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 
 - [ ] Fresh install: Onboarding → Set up my home → climate payoff (if ZIP) → Walk your house → Today list in under 5 minutes.
 - [ ] Fresh install: Use a sample home → Today list immediately; Restock has starter consumables.
-- [ ] Face ID lock: background the app for > lock-after, return, verify prompt; cancel prompt → still locked. Confirm this is a UI gate (household is not shown) — Keychain is not biometric-bound.
-- [ ] Settings → Require Face ID → Off → no prompt on relaunch.
+- [ ] App lock: background the app for > lock-after, return, verify prompt; cancel prompt → still locked. Confirm this is a UI gate (household is not shown) — Keychain is not biometric-bound. Lock screen and Settings toggle name the method this phone actually has (Face ID, Touch ID, or passcode).
+- [ ] Settings → Require Face ID / Touch ID / passcode → Off → no prompt on relaunch.
 - [ ] Settings → Back up my home → create file → Erase all data → Restore from that file → home returns.
-- [ ] Hand phone to cleaner → Hand phone back → Face ID required.
+- [ ] Hand phone to cleaner → Hand phone back → owner verification required (label matches the device method).
+- [ ] Touch ID device (SE): Settings toggle reads "Require Touch ID"; lock screen and cleaner handback say Touch ID.
+- [ ] Passcode-only device (biometrics unenrolled): Settings toggle reads "Require passcode to open"; unlock is the system passcode sheet.
 - [ ] Add a consumable → Allow notifications → confirm a pending reminder exists in the schedule (Settings shows "Allowed").
 - [ ] Restock → Order → SFSafariViewController opens (not the app WebView); Done returns to the app.
 - [ ] Share a retailer link from Safari to Cuidala → "Save this product" sheet; share a non-retailer link → nothing happens.

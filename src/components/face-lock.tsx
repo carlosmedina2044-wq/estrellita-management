@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { BrandLockup } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { verifyDeviceOwner } from "@/lib/native/biometrics";
+import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 
 /**
  * App lock. Resolves only when the system confirms Face ID / Touch ID / passcode.
  * If verification fails or is cancelled the app stays locked; there is no bypass.
  */
-export function FaceLock({ onUnlocked }: { onUnlocked: () => void }) {
+export function FaceLock({ method, onUnlocked }: { method: LockMethod; onUnlocked: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -35,9 +36,7 @@ export function FaceLock({ onUnlocked }: { onUnlocked: () => void }) {
         <BrandLockup size="md" />
       </div>
       <h1 className="ui-heading mt-10 text-[22px] font-semibold tracking-tight">Locked</h1>
-      <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-        Use Face ID, Touch ID, or your passcode to open today’s list.
-      </p>
+      <p className="mt-2 max-w-xs text-sm text-muted-foreground">{lockMethodLabel(method).prompt}</p>
       <Button className="mt-8 h-14 w-full max-w-xs" disabled={busy} onClick={() => void unlock()}>
         {busy ? "Waiting…" : "Unlock"}
       </Button>

@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 import type { Household, RestockDigestSettings } from "@/lib/types";
 import { BrandLockup, BrandMark } from "@/components/brand-logo";
 import { BackupPanel } from "@/components/backup-panel";
@@ -36,6 +37,7 @@ export function HomeView({
   onExportBackup,
   onImportBackup,
   canLock,
+  lockMethod,
   restockDigest,
   onUpdateDigest,
 }: {
@@ -50,6 +52,7 @@ export function HomeView({
   onExportBackup?: (passphrase: string) => Promise<string>;
   onImportBackup?: (raw: string, passphrase: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   canLock: boolean;
+  lockMethod: LockMethod;
   restockDigest?: RestockDigestSettings;
   onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
 }) {
@@ -180,7 +183,7 @@ export function HomeView({
       ) : null}
 
       <div className="rounded-2xl bg-card p-4">
-        <p className="font-medium">Require Face ID</p>
+        <p className="font-medium">{lockMethodLabel(lockMethod).toggle}</p>
         <p className="mt-1 text-xs text-muted-foreground">
           {canLock
             ? "Locks the home screen on launch and after the app has been in the background. This is an app lock, not a second encryption layer — anyone with this iPhone’s passcode can still open Cuidala."

@@ -23,7 +23,7 @@ import { extractSharedUrl } from "@/lib/retailer";
 import { groupRestock } from "@/lib/restock";
 import { applyPostalCode } from "@/lib/climate";
 import { next90DaysSpend, roomsWithNearReplacement } from "@/lib/forecast";
-import { biometricsAvailable, verifyDeviceOwner } from "@/lib/native/biometrics";
+import { detectLockMethod, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
@@ -66,7 +66,8 @@ export function AppShell() {
   // Start locked; unlock only after the device reports no biometric/passcode
   // capability or the user passes the system prompt.
   const [locked, setLocked] = useState(true);
-  const [canLock, setCanLock] = useState<boolean | null>(null);
+  const [lockMethod, setLockMethod] = useState<LockMethod | null>(null);
+  const canLock = lockMethod === null ? null : lockMethod !== "none";
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [roomOpen, setRoomOpen] = useState<string | null>(null);
@@ -80,10 +81,10 @@ export function AppShell() {
 
   useEffect(() => {
     let cancelled = false;
-    void biometricsAvailable().then((available) => {
+    void detectLockMethod().then((method) => {
       if (cancelled) return;
-      setCanLock(available);
-      if (!available) setLocked(false);
+      setLockMethod(method);
+      if (method === "none") setLocked(false);
     });
     return () => {
       cancelled = true;
@@ -235,7 +236,7 @@ export function AppShell() {
   }
 
   if (locked && household.lockSettings.requireFaceId && canLock) {
-    return <FaceLock onUnlocked={() => setLocked(false)} />;
+    return <FaceLock method={lockMethod ?? "none"} onUnlocked={() => setLocked(false)} />;
   }
 
   if (household.mode === "cleaner") {
@@ -243,6 +244,7 @@ export function AppShell() {
       <CleanerVisit
         household={forCleanerSession(household)}
         ownerCheck={canLock === true}
+        lockMethod={lockMethod ?? "none"}
         onComplete={completeDuty}
         onUndo={undoCompletion}
         onEndVisit={async () => {
@@ -374,6 +376,7 @@ export function AppShell() {
             onExportBackup={exportBackup}
             onImportBackup={importBackup}
             canLock={canLock === true}
+            lockMethod={lockMethod ?? "none"}
             restockDigest={household.restockDigest}
             onUpdateDigest={updateRestockDigest}
           />

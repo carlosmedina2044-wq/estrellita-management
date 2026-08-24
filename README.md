@@ -59,7 +59,7 @@ In Xcode:
 
 ## Web shell
 
-`npm run dev` and a hosted copy of `out/` exist for development and for the privacy-policy URL. On the web there is no Keychain: the encryption key is kept in `localStorage`, notifications are the browser API, and Face ID lock is unavailable. It is not a supported end-user surface.
+`npm run dev` and a hosted copy of `out/` exist for development and for the privacy-policy URL. On the web there is no Keychain: the encryption key is kept in `localStorage`, notifications are the browser API, and the app lock is unavailable. It is not a supported end-user surface.
 
 ## Security posture
 

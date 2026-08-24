@@ -7,19 +7,22 @@ import { HomeMapView } from "@/components/home-map-view";
 import { Button } from "@/components/ui/button";
 import { isOverdueFor, todaysOpenDuties } from "@/lib/duties";
 import { roomById } from "@/lib/home-model";
+import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 import type { Duty, Household } from "@/lib/types";
 import { toast } from "sonner";
 
 export function CleanerVisit({
   household,
   ownerCheck,
+  lockMethod,
   onComplete,
   onUndo,
   onEndVisit,
 }: {
   household: Household;
-  /** True when the device can confirm the owner (Face ID / passcode) before exiting. */
+  /** True when the device can confirm the owner before exiting. */
   ownerCheck: boolean;
+  lockMethod: LockMethod;
   onComplete: (dutyId: string) => void;
   onUndo: (dutyId: string) => void;
   onEndVisit: () => boolean | Promise<boolean>;
@@ -99,7 +102,9 @@ export function CleanerVisit({
 
       <Button variant="secondary" className="mt-auto h-12" disabled={busy} onClick={() => void finish()}>
         <Lock className="size-4" />
-        {ownerCheck ? "Hand phone back (Face ID)" : "Hand phone back"}
+        {ownerCheck
+          ? `Hand phone back (${lockMethod === "passcode" ? "passcode" : lockMethodLabel(lockMethod).noun})`
+          : "Hand phone back"}
       </Button>
 
     </div>
