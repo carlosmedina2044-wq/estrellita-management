@@ -60,6 +60,7 @@ export function ConsumableForm({
   onOpenChange,
   onSave,
   onDelete,
+  focusField,
   ...restock
 }: {
   open: boolean;
@@ -70,6 +71,7 @@ export function ConsumableForm({
   onOpenChange: (open: boolean) => void;
   onSave: (input: DutyDraft) => void;
   onDelete?: (id: string) => void;
+  focusField?: "sizeSpec";
 } & RestockFlowHandlers) {
   const [draft, setDraft] = useState<Draft>(emptyDraft(defaultRoom));
   const [formError, setFormError] = useState<string | null>(null);
@@ -131,6 +133,7 @@ export function ConsumableForm({
         id: automation?.id,
         itemName,
         sizeSpec: draft.sizeSpec.trim() || undefined,
+        sku: automation?.sku?.trim() || draft.sizeSpec.trim() || "",
         leadTimeDays: Math.min(90, Math.max(0, Number(draft.leadTimeDays) || DEFAULT_LEAD_TIME_DAYS)),
         onHand: Math.max(0, Number(draft.onHand) || 0),
         reorderAt: Math.min(99, Math.max(0, Math.round(Number(draft.reorderAt)) || 0)),
@@ -159,7 +162,7 @@ export function ConsumableForm({
               onChange={(event) => setDraft((current) => ({ ...current, itemName: event.target.value }))}
               placeholder="HVAC filter"
               className="h-12"
-              autoFocus={!automation}
+              autoFocus={!automation && focusField !== "sizeSpec"}
             />
           </Field>
           <Field label="Size or spec">
@@ -169,6 +172,7 @@ export function ConsumableForm({
               placeholder={sizePlaceholder(draft.itemName)}
               maxLength={40}
               className="h-12"
+              autoFocus={focusField === "sizeSpec"}
             />
           </Field>
           <Field label="Where you order it">

@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Package } from "lucide-react";
+import { ChevronDown, MoreHorizontal, Package } from "lucide-react";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { roomName } from "@/lib/home-model";
 import {
   SAMPLE_RESTOCK_PICKS,
+  catalogItemForSupply,
   defaultWalkPicks,
   newCustomPick,
   type CustomRestockPick,
@@ -46,6 +48,8 @@ export function RestockView({
   const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
   const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
   const [quickAdd, setQuickAdd] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [focusSize, setFocusSize] = useState(false);
   const createGuard = useSheetOpenGuard();
   const groups = useMemo(
     () => groupRestock(household.supplyAutomations, household),
@@ -55,10 +59,16 @@ export function RestockView({
     ? household.supplyAutomations.find((item) => item.dutyId === editingDuty.id || item.linkedDutyIds.includes(editingDuty.id)) ?? null
     : null;
 
-  function openItem(item: SupplyAutomation) {
+  function openItem(item: SupplyAutomation, opts?: { size?: boolean }) {
     const duty = household.duties.find((entry) => item.dutyId === entry.id || item.linkedDutyIds.includes(entry.id));
+    setFocusSize(Boolean(opts?.size));
     if (duty) setEditingDuty(duty);
     else setCreating(true);
+  }
+
+  function startWalk() {
+    setWalkPicks(defaultWalkPicks(household));
+    setWalking(true);
   }
 
   useEffect(() => {
@@ -73,69 +83,93 @@ export function RestockView({
     <div className="flex flex-col gap-5">
       <header className="pt-1">
         <p className="text-sm text-muted-foreground">{household.householdName}</p>
-        <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Restock</h1>
+        <div className="flex items-start justify-between gap-3">
+          <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Restock</h1>
+          {household.supplyAutomations.length > 0 && onWalkHouse ? (
+            <button
+              type="button"
+              className="mt-1 grid size-10 place-items-center rounded-full bg-secondary"
+              aria-label="More"
+              onClick={() => setMenuOpen(true)}
+            >
+              <MoreHorizontal className="size-5" />
+            </button>
+          ) : null}
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           Knows what is running out and when to order it. One tap to any retailer — you check out there.
         </p>
       </header>
 
-      {household.supplyAutomations.length === 0 ? (
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <SheetContent side="bottom" className="gap-0">
+          <SheetHeader>
+            <SheetTitle>Restock</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-12 w-full"
+              onClick={() => {
+                setMenuOpen(false);
+                startWalk();
+              }}
+            >
+              Walk your house again
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {walking ? (
         <div className="rounded-2xl bg-card px-4 py-5">
-          {walking ? (
-            <>
-              <p className="text-[17px] font-medium">Walk your house</p>
-              <p className="mt-1 text-sm text-muted-foreground">Pick the filters and batteries you actually buy.</p>
-              <div className="mt-3">
-                <RestockWalkPicker
-                  picks={walkPicks}
-                  onChange={setWalkPicks}
-                  context={household}
-                  onAddCustom={(group) => {
-                    setEditingCustom(null);
-                    setQuickAdd(false);
-                    setAddGroup(group);
-                  }}
-                  onEditCustom={(pick) => {
-                    setEditingCustom(pick);
-                    setQuickAdd(false);
-                    setAddGroup(pick.custom.group);
-                  }}
-                />
-              </div>
-              <div className="mt-3 flex gap-2">
-                <Button variant="secondary" className="h-11 flex-1" onClick={() => setWalking(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  className="h-11 flex-1"
-                  onClick={() => {
-                    onWalkHouse?.(walkPicks);
-                    setWalking(false);
-                  }}
-                >
-                  Add to Restock
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="text-[17px] font-medium">Restock is empty</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Walk the house once — HVAC filter, water filter, smoke-detector batteries — and this tab stays useful.
-              </p>
-              {onWalkHouse ? (
-                <Button
-                  className="mt-3 h-11 w-full"
-                  onClick={() => {
-                    setWalkPicks(defaultWalkPicks(household));
-                    setWalking(true);
-                  }}
-                >
-                  Walk your house
-                </Button>
-              ) : null}
-            </>
-          )}
+          <p className="text-[17px] font-medium">Walk your house</p>
+          <p className="mt-1 text-sm text-muted-foreground">Pick the filters and batteries you actually buy.</p>
+          <div className="mt-3">
+            <RestockWalkPicker
+              picks={walkPicks}
+              onChange={setWalkPicks}
+              context={household}
+              trackedNames={household.supplyAutomations.map((item) => item.itemName)}
+              onAddCustom={(group) => {
+                setEditingCustom(null);
+                setQuickAdd(false);
+                setAddGroup(group);
+              }}
+              onEditCustom={(pick) => {
+                setEditingCustom(pick);
+                setQuickAdd(false);
+                setAddGroup(pick.custom.group);
+              }}
+            />
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button variant="secondary" className="h-11 flex-1" onClick={() => setWalking(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="h-11 flex-1"
+              onClick={() => {
+                onWalkHouse?.(walkPicks);
+                setWalking(false);
+              }}
+            >
+              Add to Restock
+            </Button>
+          </div>
+        </div>
+      ) : household.supplyAutomations.length === 0 ? (
+        <div className="rounded-2xl bg-card px-4 py-5">
+          <p className="text-[17px] font-medium">Restock is empty</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Walk the house once — HVAC filter, water filter, smoke-detector batteries — and this tab stays useful.
+          </p>
+          {onWalkHouse ? (
+            <Button className="mt-3 h-11 w-full" onClick={startWalk}>
+              Walk your house
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
@@ -147,6 +181,7 @@ export function RestockView({
               household={household}
               item={item}
               onOpen={() => openItem(item)}
+              onAddSize={() => openItem(item, { size: true })}
               autoReceive={focus?.action === "receive" && focus.itemId === item.id}
               {...restock}
             />
@@ -164,6 +199,7 @@ export function RestockView({
               household={household}
               item={item}
               onOpen={() => openItem(item)}
+              onAddSize={() => openItem(item, { size: true })}
               autoReceive={focus?.action === "receive" && focus.itemId === item.id}
               {...restock}
             />
@@ -181,6 +217,7 @@ export function RestockView({
               household={household}
               item={item}
               onOpen={() => openItem(item)}
+              onAddSize={() => openItem(item, { size: true })}
               {...restock}
             />
           ))
@@ -211,6 +248,7 @@ export function RestockView({
                   household={household}
                   item={item}
                   onOpen={() => openItem(item)}
+              onAddSize={() => openItem(item, { size: true })}
                   {...restock}
                 />
               ))
@@ -274,10 +312,12 @@ export function RestockView({
             createGuard.markClosed();
             setCreating(false);
             setEditingDuty(null);
+            setFocusSize(false);
           }
         }}
         onSave={onSaveDuty}
         onDelete={onDeleteDuty}
+        focusField={focusSize ? "sizeSpec" : undefined}
         {...restock}
       />
     </div>
@@ -310,16 +350,20 @@ function RestockRow({
   household,
   item,
   onOpen,
+  onAddSize,
   autoReceive,
   ...restock
 }: {
   household: Household;
   item: SupplyAutomation;
   onOpen: () => void;
+  onAddSize?: () => void;
   autoReceive?: boolean;
 } & RestockFlowHandlers) {
   const where = usedWhere(item, household) || roomName(household, item.room);
   const placement = restockPlacement(item, household);
+  const catalog = catalogItemForSupply(item);
+  const needsSize = Boolean(catalog?.variants?.length && !item.sku.trim());
   return (
     <div id={`restock-item-${item.id}`} className="ui-group-row w-full px-4 py-3">
       <button type="button" className="w-full text-left" onClick={onOpen}>
@@ -338,11 +382,16 @@ function RestockRow({
           </span>
         </span>
       </button>
+      {needsSize && onAddSize ? (
+        <button type="button" className="mt-1 pl-7 text-[13px] font-medium text-brand" onClick={onAddSize}>
+          Add size
+        </button>
+      ) : null}
       <div className="mt-2 pl-7">
         <RestockOrderButton
           item={item}
           household={household}
-          onAddSize={onOpen}
+          onAddSize={onAddSize ?? onOpen}
           autoReceive={autoReceive}
           {...restockButtonProps(item, restock)}
         />
