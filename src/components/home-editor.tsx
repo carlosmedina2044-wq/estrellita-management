@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,9 +29,13 @@ import type { AssetType, HomeFloor, Household, RoomType } from "@/lib/types";
 export function HomeEditor({
   household,
   onChange,
+  focusAssetId,
+  onFocusHandled,
 }: {
   household: Household;
   onChange: (next: Household) => void;
+  focusAssetId?: string;
+  onFocusHandled?: () => void;
 }) {
   const [floorName, setFloorName] = useState("");
   const [roomType, setRoomType] = useState<RoomType>("bedroom");
@@ -46,6 +50,12 @@ export function HomeEditor({
   const [assetWarranty, setAssetWarranty] = useState("");
   const roomHints = suggestionsForRoom(roomType);
   const assetHints = suggestionsForAsset(assetType);
+
+  useEffect(() => {
+    if (!focusAssetId) return;
+    document.getElementById(`home-asset-${focusAssetId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    onFocusHandled?.();
+  }, [focusAssetId, onFocusHandled]);
 
   const floors = floorsInOrder(household);
 
@@ -335,7 +345,7 @@ export function HomeEditor({
             const badge = warrantyBadgeLabel(asset);
             const room = household.rooms.find((item) => item.id === asset.roomId);
             return (
-              <section key={asset.id} className="rounded-2xl bg-white p-4">
+              <section key={asset.id} id={`home-asset-${asset.id}`} className="rounded-2xl bg-white p-4">
                 <p className="font-medium">{asset.name}</p>
                 <p className="mt-0.5 text-[13px] text-muted-foreground">
                   {room?.name ?? "Home"}

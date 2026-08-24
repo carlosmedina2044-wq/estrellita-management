@@ -250,6 +250,16 @@ export function groupRestock(
   return groups;
 }
 
+export function orderNowCostCaption(items: SupplyAutomation[]): string | null {
+  const priced = items
+    .map((item) => item.lastPaidPrice ?? item.unitCost)
+    .filter((value): value is number => value != null && Number.isFinite(value) && value > 0);
+  if (priced.length === 0) return null;
+  const total = Math.round(priced.reduce((sum, value) => sum + value, 0));
+  const label = `~$${total.toLocaleString()}`;
+  return priced.length < items.length ? `at least ${label}` : label;
+}
+
 export function digestCandidates(
   items: SupplyAutomation[],
   household: Pick<Household, "duties" | "completions">,

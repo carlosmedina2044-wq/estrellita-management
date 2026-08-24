@@ -40,6 +40,8 @@ export function HomeView({
   lockMethod,
   restockDigest,
   onUpdateDigest,
+  focusAssetId,
+  onFocusHandled,
 }: {
   household: Household;
   onUpdate: (
@@ -55,6 +57,8 @@ export function HomeView({
   lockMethod: LockMethod;
   restockDigest?: RestockDigestSettings;
   onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
+  focusAssetId?: string;
+  onFocusHandled?: () => void;
 }) {
   const [home, setHome] = useState(household.householdName);
   const [owner, setOwner] = useState(household.ownerName);
@@ -219,7 +223,14 @@ export function HomeView({
         </div>
       </div>
 
-      {onChangeTree ? <HomeEditor household={household} onChange={onChangeTree} /> : null}
+      {onChangeTree ? (
+        <HomeEditor
+          household={household}
+          onChange={onChangeTree}
+          focusAssetId={focusAssetId}
+          onFocusHandled={onFocusHandled}
+        />
+      ) : null}
 
       <Button className="h-12" onClick={save}>
         Save

@@ -316,4 +316,6 @@ export type AppNavigateTarget = {
   section?: "ordered" | "order_now" | "coming_up" | "stocked";
   itemId?: string;
   action?: "receive";
+  assetId?: string;
+  dutyId?: string;
 };

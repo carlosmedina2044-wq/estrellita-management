@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { buildForecast } from "@/lib/forecast";
-import type { Household } from "@/lib/types";
+import { buildForecast, enteredPriceTotal, forecastSourceTag, type ForecastItem } from "@/lib/forecast";
+import type { AppNavigateTarget, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function monthLabel(key: string) {
@@ -13,20 +13,67 @@ function monthLabel(key: string) {
   return new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
+function targetFor(item: ForecastItem): AppNavigateTarget | null {
+  if (item.kind === "consumable" && item.automationId) {
+    return { tab: "restock", itemId: item.automationId };
+  }
+  if (item.kind === "replacement" && item.assetId) {
+    return { tab: "settings", assetId: item.assetId };
+  }
+  if (item.kind === "task" && item.dutyId) {
+    return { tab: "today", dutyId: item.dutyId };
+  }
+  return null;
+}
+
+function ForecastLine({
+  item,
+  extra,
+  onNavigate,
+}: {
+  item: ForecastItem;
+  extra?: string;
+  onNavigate?: (target: AppNavigateTarget) => void;
+}) {
+  const target = targetFor(item);
+  const body = (
+    <>
+      <span className="font-medium">{item.label}</span>
+      <span className="block text-muted-foreground">
+        ${item.cost.low.toLocaleString()}–${item.cost.high.toLocaleString()}
+        {extra ? ` · ${extra}` : ""}
+      </span>
+      <span className="block text-[12px] text-muted-foreground">{forecastSourceTag(item.source)}</span>
+    </>
+  );
+  if (!target || !onNavigate) {
+    return <div className="text-sm leading-5">{body}</div>;
+  }
+  return (
+    <button type="button" className="w-full text-left text-sm leading-5" onClick={() => onNavigate(target)}>
+      {body}
+    </button>
+  );
+}
+
 export function BudgetView({
   household,
   onReplace,
   onUpdateAsset,
+  onNavigate,
 }: {
   household: Household;
   onReplace: (assetId: string) => void;
   onUpdateAsset: (assetId: string, patch: { installDate?: string; replacementCostEstimate?: number }) => void;
+  onNavigate?: (target: AppNavigateTarget) => void;
 }) {
   const [horizon, setHorizon] = useState<12 | 24 | 36>(12);
   const [openMonth, setOpenMonth] = useState<string | null>(null);
   const forecast = useMemo(() => buildForecast(household, horizon), [household, horizon]);
   const max = Math.max(1, ...forecast.monthly.map((month) => month.total));
   const selected = forecast.monthly.find((month) => month.month === openMonth);
+  const empty = forecast.totals.total === 0 && forecast.missingData.length === 0;
+  const entered = enteredPriceTotal(forecast);
 
   function exportCsv() {
     const rows = [
@@ -53,6 +100,26 @@ export function BudgetView({
     URL.revokeObjectURL(url);
   }
 
+  if (empty) {
+    return (
+      <div className="flex min-w-0 flex-col gap-5 pb-8">
+        <header>
+          <p className="text-sm text-muted-foreground">Maintenance forecast</p>
+          <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Budget</h1>
+        </header>
+        <section className="rounded-2xl bg-white px-4 py-5">
+          <p className="font-medium">Nothing priced yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Add a date or cost on Home so we can estimate upkeep and replacements.
+          </p>
+          <Button className="mt-4 h-11 w-full" onClick={() => onNavigate?.({ tab: "home" })}>
+            Go to Home
+          </Button>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-5 pb-8">
       <header>
@@ -65,6 +132,11 @@ export function BudgetView({
           Suggested monthly set-aside so you’re ready for upkeep and replacements over the next {horizon}{" "}
           months. About ${Math.round(forecast.totals.total).toLocaleString()} in that window.
         </p>
+        {entered > 0 ? (
+          <p className="mt-2 text-sm leading-5 text-muted-foreground">
+            About ${Math.round(entered).toLocaleString()} of this is based on prices you’ve entered.
+          </p>
+        ) : null}
       </header>
 
       <div>
@@ -122,9 +194,17 @@ export function BudgetView({
             );
           })}
         </div>
-        <p className="px-4 pb-3 text-sm text-muted-foreground">
-          Each bar is a month — tap one to see what’s due. Blue is regular upkeep. Amber is replacements.
-        </p>
+        <p className="px-4 pb-1 text-sm text-muted-foreground">Tap a month to see what’s due.</p>
+        <div className="flex items-center gap-4 px-4 pb-3 text-[13px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-2.5 rounded-sm bg-primary" aria-hidden />
+            Upkeep
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="size-2.5 rounded-sm bg-[#ff9f0a]" aria-hidden />
+            Replacements
+          </span>
+        </div>
       </section>
 
       {selected ? (
@@ -138,12 +218,10 @@ export function BudgetView({
           ) : (
             <ul className="mt-3 grid gap-3">
               {selected.items.map((item) => (
-                <li key={`${item.label}-${item.month}-${item.nodeId}`} className="text-sm leading-5">
-                  <span className="font-medium">{item.label}</span>
-                  <span className="block text-muted-foreground">
-                    ${item.cost.low.toLocaleString()}–${item.cost.high.toLocaleString()}
-                    {item.source === "lastPaid" ? " · based on what you paid." : ""}
-                  </span>
+                <li
+                  key={`${item.kind}-${item.automationId ?? item.dutyId ?? item.assetId ?? item.nodeId}-${item.month}-${item.label}`}
+                >
+                  <ForecastLine item={item} onNavigate={onNavigate} />
                 </li>
               ))}
             </ul>
@@ -163,12 +241,11 @@ export function BudgetView({
               const room = household.rooms.find((entry) => entry.id === asset?.roomId);
               return (
                 <li key={`${item.assetId}-${item.month}`} className="rounded-2xl bg-white px-4 py-4">
-                  <p className="font-medium">{item.label}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {monthLabel(item.month)}
-                    {room ? ` · ${room.name}` : ""} · ${item.cost.low.toLocaleString()}–$
-                    {item.cost.high.toLocaleString()}
-                  </p>
+                  <ForecastLine
+                    item={item}
+                    extra={`${monthLabel(item.month)}${room ? ` · ${room.name}` : ""}`}
+                    onNavigate={onNavigate}
+                  />
                   {item.assetId ? (
                     <div className="mt-3">
                       <Button variant="secondary" className="h-11 w-full" onClick={() => onReplace(item.assetId!)}>

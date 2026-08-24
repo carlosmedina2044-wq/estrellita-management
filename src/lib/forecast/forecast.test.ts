@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildForecast, conditionFactor, installDateFromAge, roundUpTo } from "@/lib/forecast";
+import {
+  buildForecast,
+  conditionFactor,
+  enteredPriceTotal,
+  forecastSourceTag,
+  installDateFromAge,
+  roundUpTo,
+} from "@/lib/forecast";
 import type { HomeAsset, Household } from "@/lib/types";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 
@@ -68,6 +75,7 @@ test("36-month forecast places end-of-life and set-aside", () => {
   assert.ok(hvac);
   assert.equal(hvac.cost.mid, 7500);
   assert.equal(hvac.source, "user");
+  assert.ok(enteredPriceTotal(result) > 0);
 });
 
 test("overdue replacement lands in month 1", () => {
@@ -115,6 +123,7 @@ test("catalog ranges used when user did not enter a price", () => {
   assert.ok(item.cost.high > item.cost.low);
   assert.equal(item.source, "catalog");
   assert.equal(item.confidence, "low");
+  assert.equal(enteredPriceTotal(buildForecast(home, 24, now)), 0);
 });
 
 test("age helper derives an install date", () => {
@@ -166,8 +175,12 @@ test("forecast uses blended actual cost instead of the estimate", () => {
   const estimatedItem = estimated.monthly.flatMap((month) => month.items).find((item) => item.label === "Replace filter");
   const actualItem = withActual.monthly.flatMap((month) => month.items).find((item) => item.label === "Replace filter");
   assert.equal(estimatedItem?.cost.mid, 40);
+  assert.equal(estimatedItem?.dutyId, "duty-cost");
+  assert.equal(forecastSourceTag(estimatedItem!.source), "Your estimate");
   assert.equal(actualItem?.cost.mid, 24.99);
   assert.equal(actualItem?.source, "lastPaid");
+  assert.equal(forecastSourceTag(actualItem!.source), "Paid");
+  assert.equal(forecastSourceTag("catalog"), "Typical");
   assert.ok(withActual.totals.total < estimated.totals.total);
 });
 
@@ -273,6 +286,8 @@ test("stocked restock item is not charged this month; overdue empty stock is", (
   assert.equal(thisMonth.length, 0);
   assert.equal(nextMonth.length, 1);
   assert.equal(nextMonth[0]?.cost.mid, 18);
+  assert.equal(nextMonth[0]?.automationId, "auto-runway");
+  assert.equal(nextMonth[0]?.source, "catalog");
 
   const overdue = household({
     duties: [{ ...dutyNext, id: "duty-over", dueDate: "2026-07-01", frequency: "quarterly" }],

@@ -20,6 +20,8 @@ export type ForecastItem = {
   source: ForecastSource;
   overdue?: boolean;
   assetId?: string;
+  automationId?: string;
+  dutyId?: string;
 };
 
 export type ForecastMonth = {
@@ -46,6 +48,21 @@ export type ForecastResult = {
 };
 
 export const BIG_TICKET_THRESHOLD = 500;
+
+export function forecastSourceTag(source: ForecastSource): "Paid" | "Your estimate" | "Typical" {
+  if (source === "lastPaid") return "Paid";
+  if (source === "user") return "Your estimate";
+  return "Typical";
+}
+
+export function enteredPriceTotal(forecast: ForecastResult): number {
+  return forecast.monthly.reduce(
+    (sum, month) =>
+      sum +
+      month.items.reduce((inner, item) => (item.source === "catalog" ? inner : inner + item.cost.mid), 0),
+    0,
+  );
+}
 
 const CONDITION_FACTOR: Record<string, number> = {
   good: 1,
@@ -221,6 +238,7 @@ export function buildForecast(
         cost: singleCost(unitPrice),
         confidence: automation.lastPaidPrice != null ? "high" : "medium",
         source,
+        automationId: automation.id,
       };
       const bucket = byMonth.get(month);
       if (bucket) {
@@ -268,6 +286,7 @@ export function buildForecast(
             cost: singleCost(cost),
             confidence: blended.source === "actual" ? "high" : "medium",
             source,
+            dutyId: duty.id,
           };
           const bucket = byMonth.get(month);
           if (bucket) {
@@ -292,6 +311,7 @@ export function buildForecast(
         cost: singleCost(cost),
         confidence: blended.source === "actual" ? "high" : "medium",
         source,
+        dutyId: duty.id,
       };
       const bucket = byMonth.get(month);
       if (bucket) {

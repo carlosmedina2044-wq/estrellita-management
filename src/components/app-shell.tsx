@@ -75,7 +75,11 @@ export function AppShell() {
     setNav(target);
   }, []);
   const handleFocusHandled = useCallback(() => {
-    setNav((current) => (current ? { ...current, action: undefined } : null));
+    setNav((current) =>
+      current
+        ? { tab: current.tab, section: current.section, itemId: current.itemId }
+        : null,
+    );
   }, []);
   // Start locked; unlock only after the device reports no biometric/passcode
   // capability or the user passes the system prompt.
@@ -313,6 +317,8 @@ export function AppShell() {
             {...restockHandlers}
             onOpenRestock={() => navigate({ tab: "restock" })}
             onNavigate={navigate}
+            focus={tab === "today" ? nav : null}
+            onFocusHandled={handleFocusHandled}
           />
         ) : null}
         {tab === "restock" ? (
@@ -380,6 +386,7 @@ export function AppShell() {
                 assets: current.assets.map((asset) => (asset.id === assetId ? { ...asset, ...patch } : asset)),
               }))
             }
+            onNavigate={navigate}
           />
         ) : null}
         {tab === "seasonal" ? (
@@ -410,6 +417,8 @@ export function AppShell() {
             lockMethod={lockMethod ?? "none"}
             restockDigest={household.restockDigest}
             onUpdateDigest={updateRestockDigest}
+            focusAssetId={tab === "settings" ? nav?.assetId : undefined}
+            onFocusHandled={handleFocusHandled}
           />
         ) : null}
       </main>

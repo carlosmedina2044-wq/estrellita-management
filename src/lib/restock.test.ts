@@ -10,6 +10,7 @@ import {
   digestCandidates,
   groupRestock,
   markConsumableOrdered,
+  orderNowCostCaption,
   neverCameConsumable,
   observedLeadTimeDays,
   partStatusForDuty,
@@ -387,4 +388,13 @@ test("replacement duties show part, arriving, order-first, and install-today chi
     partStatusForDuty(change, { ...house, supplyAutomations: [item({ onHand: 0 })] }, now)?.kind,
     "order_first",
   );
+});
+
+test("order now tile sums known prices and prefixes at least when some are missing", () => {
+  assert.equal(orderNowCostCaption([item({ unitCost: 18 }), item({ id: "s2", lastPaidPrice: 30 })]), "~$48");
+  assert.equal(
+    orderNowCostCaption([item({ unitCost: 18 }), item({ id: "s2" })]),
+    "at least ~$18",
+  );
+  assert.equal(orderNowCostCaption([item()]), null);
 });

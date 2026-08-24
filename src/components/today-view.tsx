@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Map, Share2, UserRound } from "lucide-react";
 import { BrandMark, BrandLockup } from "@/components/brand-logo";
 import { DayCalendar } from "@/components/day-calendar";
@@ -29,7 +29,7 @@ import {
 import { homeSummary } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
-import { groupRestock, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
+import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -56,6 +56,8 @@ export function TodayView({
   onChangeTree,
   onOpenRestock,
   onNavigate,
+  focus,
+  onFocusHandled,
   ...restockHandlers
 }: {
   household: Household;
@@ -73,6 +75,8 @@ export function TodayView({
   onChangeTree?: (next: Household) => void;
   onOpenRestock?: () => void;
   onNavigate?: (target: AppNavigateTarget) => void;
+  focus?: AppNavigateTarget | null;
+  onFocusHandled?: () => void;
 } & RestockFlowHandlers) {
   const now = new Date();
   const [filter, setFilter] = useState<Audience | "all">("all");
@@ -90,6 +94,17 @@ export function TodayView({
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const createGuard = useSheetOpenGuard();
+  const restockGroups = useMemo(
+    () => groupRestock(household.supplyAutomations, household, now),
+    [household],
+  );
+
+  useEffect(() => {
+    if (!focus?.dutyId) return;
+    const duty = household.duties.find((entry) => entry.id === focus.dutyId);
+    if (duty) setEditing(duty);
+    onFocusHandled?.();
+  }, [focus, household.duties, onFocusHandled]);
 
   const viewingCalendar = calendarDay !== null;
   const viewDate = calendarDay ?? now;
@@ -234,6 +249,7 @@ export function TodayView({
         overdue={summary.overdue}
         dueToday={summary.dueToday}
         orderNow={summary.orderNow}
+        orderNowCost={orderNowCostCaption(restockGroups.order_now)}
         arriving={summary.arriving}
         onOverdue={() => {
           setOnlyOverdue(true);
@@ -545,6 +561,7 @@ function AttentionTiles({
   overdue,
   dueToday,
   orderNow,
+  orderNowCost,
   arriving,
   onOverdue,
   onDueToday,
@@ -555,6 +572,7 @@ function AttentionTiles({
   overdue: number;
   dueToday: number;
   orderNow: number;
+  orderNowCost: string | null;
   arriving: number;
   onOverdue: () => void;
   onDueToday: () => void;
@@ -586,6 +604,7 @@ function AttentionTiles({
           key: "order",
           count: orderNow,
           label: "to order",
+          costLine: orderNowCost,
           onClick: onOrder,
           className: "border-[#ff9f0a]/40 bg-[#ff9f0a]/10",
         }
@@ -626,7 +645,9 @@ function AttentionTiles({
           className={cn("rounded-2xl border px-4 py-3 text-left", tile.className)}
         >
           <p className="ui-heading text-[28px] font-semibold leading-none">{tile.count}</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">{tile.label}</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            {"costLine" in tile && tile.costLine ? tile.costLine : tile.label}
+          </p>
         </button>
       ))}
     </div>
