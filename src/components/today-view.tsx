@@ -29,7 +29,7 @@ import {
 import { homeSummary } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
-import { groupRestock, type RestockFlowHandlers } from "@/lib/restock";
+import { groupRestock, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -87,6 +87,7 @@ export function TodayView({
   const [weekExpanded, setWeekExpanded] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
+  const [orderItemId, setOrderItemId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const createGuard = useSheetOpenGuard();
 
@@ -143,9 +144,45 @@ export function TodayView({
     if (result === "failed") toast.error("Couldn't share the list");
   }
 
+  function dutyRow(
+    duty: Duty,
+    extra: { done?: boolean; overdue?: boolean } = {},
+  ) {
+    const chip = extra.done ? null : partStatusForDuty(duty, household, now);
+    return (
+      <DutyRow
+        duty={duty}
+        household={household}
+        now={viewDate}
+        done={extra.done}
+        overdue={extra.overdue}
+        partChip={chip}
+        onPartChip={
+          chip?.kind === "order_first"
+            ? () => {
+                const item = household.supplyAutomations.find(
+                  (entry) => entry.dutyId === duty.id || entry.linkedDutyIds.includes(duty.id),
+                );
+                if (item) setOrderItemId(item.id);
+              }
+            : undefined
+        }
+        missingPartHint={chip?.kind === "order_first"}
+        onToggle={() => toggle(duty, Boolean(extra.done))}
+        onOpen={() => setEditing(duty)}
+      />
+    );
+  }
+
   const weekOpen = openDutiesInScope(household, "weekly", now, filter);
   const restock = groupRestock(household.supplyAutomations, household, now);
-  const restockItems = [...restock.ordered, ...restock.order_now];
+  const restockItems = [...restock.ordered, ...restock.order_now].slice(0, 3);
+  const restockHeader = restock.order_now.length > 0 ? "Order now" : "On the way";
+  const showRestock = restock.order_now.length + restock.ordered.length > 0;
+  const hasCleaner = household.cleanerName.trim().length > 0;
+  const orderItem = orderItemId
+    ? household.supplyAutomations.find((item) => item.id === orderItemId) ?? null
+    : null;
   const costPrompts = onRecordCost
     ? household.completions.filter((item) => {
         const match = household.duties.find((duty) => duty.id === item.dutyId);
@@ -260,7 +297,7 @@ export function TodayView({
       ) : null}
 
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        {(["all", "me", "cleaner"] as const).map((item) => (
+        {(hasCleaner ? (["all", "me", "cleaner"] as const) : (["all", "me"] as const)).map((item) => (
           <button
             key={item}
             type="button"
@@ -288,34 +325,73 @@ export function TodayView({
         </section>
       ) : null}
 
+      {household.supplyAutomations.length === 0 ? (
+        <section className="rounded-2xl bg-white px-4 py-4">
+          <p className="text-[13px] font-medium text-muted-foreground">Restock</p>
+          <p className="ui-heading mt-1 text-[22px] font-semibold">Track a filter or battery</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            We’ll remind you when to order so it arrives before you run out. Checkout happens on the retailer’s site.
+          </p>
+          <Button className="mt-4 h-11" onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}>
+            Track a filter or battery
+          </Button>
+        </section>
+      ) : showRestock ? (
+        <section className="rounded-2xl bg-white px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-medium">{restockHeader}</p>
+            {onOpenRestock ? (
+              <button type="button" className="text-[13px] font-medium text-primary" onClick={onOpenRestock}>
+                See all
+              </button>
+            ) : null}
+          </div>
+          <ul className="mt-3 grid gap-3">
+            {restockItems.map((item) => (
+              <li key={item.id} className="grid gap-2">
+                <button
+                  type="button"
+                  className="text-left"
+                  onClick={() => {
+                    const duty = household.duties.find(
+                      (entry) => entry.id === item.dutyId || item.linkedDutyIds.includes(entry.id),
+                    );
+                    if (duty) setEditing(duty);
+                  }}
+                >
+                  <span className="block text-[15px] font-medium">
+                    <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
+                  </span>
+                  <span className="text-[13px] text-muted-foreground">
+                    <OrderByLine item={item} household={household} />
+                  </span>
+                </button>
+                <RestockOrderButton
+                  item={item}
+                  household={household}
+                  compact
+                  {...restockButtonProps(item, restockHandlers)}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {listed.length === 0 && doneOnDay.length === 0 && costPrompts.length === 0 ? (
         <EmptyToday onAdd={() => createGuard.tryOpen(() => setCreating(true))} calendar={viewingCalendar} />
       ) : (
         <div ref={listRef} className="ui-group">
           {listed.map((duty) => (
             <div key={duty.id} className="ui-group-row">
-              <DutyRow
-                duty={duty}
-                household={household}
-                now={viewDate}
-                overdue={isOverdueFor(duty, household, now)}
-                onToggle={() => toggle(duty, false)}
-                onOpen={() => setEditing(duty)}
-              />
+              {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
             </div>
           ))}
           {doneOnDay.map((duty) => {
             const prompt = costPrompts.find((item) => item.dutyId === duty.id);
             return (
             <div key={duty.id} className="ui-group-row">
-              <DutyRow
-                duty={duty}
-                household={household}
-                now={viewDate}
-                done
-                onToggle={() => toggle(duty, true)}
-                onOpen={() => setEditing(duty)}
-              />
+              {dutyRow(duty, { done: true })}
               {prompt && onRecordCost ? (
                 <div className="px-4 pb-3">
                   <CostPrompt
@@ -335,14 +411,7 @@ export function TodayView({
               if (!duty) return null;
               return (
                 <div key={prompt.id} className="ui-group-row">
-                  <DutyRow
-                    duty={duty}
-                    household={household}
-                    now={viewDate}
-                    done
-                    onToggle={() => toggle(duty, true)}
-                    onOpen={() => setEditing(duty)}
-                  />
+                  {dutyRow(duty, { done: true })}
                   {onRecordCost ? (
                     <div className="px-4 pb-3">
                       <CostPrompt
@@ -370,77 +439,11 @@ export function TodayView({
         <div className="ui-group">
           {weekOpen.map((duty) => (
             <div key={duty.id} className="ui-group-row">
-              <DutyRow duty={duty} household={household} now={now} onToggle={() => toggle(duty, false)} onOpen={() => setEditing(duty)} />
+              {dutyRow(duty)}
             </div>
           ))}
         </div>
       ) : null}
-
-      {household.supplyAutomations.length === 0 ? (
-        <section className="rounded-2xl bg-white px-4 py-4">
-          <p className="text-[13px] font-medium text-muted-foreground">Restock</p>
-          <p className="ui-heading mt-1 text-[22px] font-semibold">Track a filter or battery</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We’ll remind you when to order so it arrives before you run out. Checkout happens on the retailer’s site.
-          </p>
-          <Button className="mt-4 h-11" onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}>
-            Track a filter or battery
-          </Button>
-        </section>
-      ) : (
-        <section className="rounded-2xl bg-white px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-          <p className="font-medium">Order today</p>
-            <div className="flex items-center gap-3">
-              {onOpenRestock ? (
-                <button type="button" className="text-[13px] font-medium text-primary" onClick={onOpenRestock}>
-                  See all
-                </button>
-              ) : null}
-              <button
-                type="button"
-                className="text-[13px] font-medium text-primary"
-                onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}
-              >
-                Add item
-              </button>
-            </div>
-          </div>
-          {restockItems.length === 0 ? (
-            <p className="mt-1 text-sm text-muted-foreground">Nothing to order. We’ll remind you before you run out.</p>
-          ) : (
-            <ul className="mt-3 grid gap-3">
-              {restockItems.map((item) => (
-                <li key={item.id} className="grid gap-2">
-                  <button
-                    type="button"
-                    className="text-left"
-                    onClick={() => {
-                      const duty = household.duties.find(
-                        (entry) => entry.id === item.dutyId || item.linkedDutyIds.includes(entry.id),
-                      );
-                      if (duty) setEditing(duty);
-                    }}
-                  >
-                    <span className="block text-[15px] font-medium">
-                      <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
-                    </span>
-                    <span className="text-[13px] text-muted-foreground">
-                      <OrderByLine item={item} household={household} />
-                    </span>
-                  </button>
-                  <RestockOrderButton
-                    item={item}
-                    household={household}
-                    compact
-                    {...restockButtonProps(item, restockHandlers)}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      )}
 
       <div className="grid grid-cols-2 gap-2">
         <Button variant="secondary" className="h-12 rounded-full" onClick={() => (onOpenHome ? onOpenHome() : setHouseOpen(true))}>
@@ -452,10 +455,25 @@ export function TodayView({
           Share list
         </Button>
       </div>
-      <Button variant="secondary" className="h-12 rounded-full" onClick={onStartCleanerVisit}>
-        <UserRound className="size-4" />
-        Hand to cleaner
-      </Button>
+      {hasCleaner ? (
+        <Button variant="secondary" className="h-12 rounded-full" onClick={onStartCleanerVisit}>
+          <UserRound className="size-4" />
+          Hand to cleaner
+        </Button>
+      ) : null}
+
+      {orderItem ? (
+        <RestockOrderButton
+          item={orderItem}
+          household={household}
+          className="hidden"
+          autoPicker
+          onPickerOpenChange={(open) => {
+            if (!open) setOrderItemId(null);
+          }}
+          {...restockButtonProps(orderItem, restockHandlers)}
+        />
+      ) : null}
 
       <HouseMapSheet
         open={houseOpen}

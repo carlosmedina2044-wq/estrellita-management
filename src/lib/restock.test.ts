@@ -12,6 +12,7 @@ import {
   markConsumableOrdered,
   neverCameConsumable,
   observedLeadTimeDays,
+  partStatusForDuty,
   receiveConsumable,
   restockPlacement,
   runwayFor,
@@ -354,4 +355,36 @@ test("undo-order clears in-flight state and keeps the preferred store", () => {
   assert.equal(undone.orderedAt, undefined);
   assert.equal(undone.preferredRetailer, "target");
   assert.equal(changeArrivalDate(ordered, "2026-08-30").expectedArrivalDate, "2026-08-30");
+});
+
+test("replacement duties show part, arriving, order-first, and install-today chips", () => {
+  const change = duty({
+    id: "d1",
+    title: "Change HVAC filter",
+    kind: "replacement",
+    frequency: "once",
+    dueDate: "2026-08-23",
+  });
+  const far = duty({
+    id: "d1",
+    title: "Change HVAC filter",
+    kind: "replacement",
+    frequency: "once",
+    dueDate: "2026-12-01",
+  });
+  const house = { duties: [change], completions: [] };
+  assert.equal(
+    partStatusForDuty(change, { ...house, supplyAutomations: [item({ onHand: 1 })] }, now)?.kind,
+    "install_today",
+  );
+  assert.equal(
+    partStatusForDuty(far, { duties: [far], completions: [], supplyAutomations: [item({ onHand: 1 })] }, now)?.kind,
+    "part_on_hand",
+  );
+  const ordered = markConsumableOrdered(item({ onHand: 0 }), { expectedArrivalDate: "2026-08-25", qty: 1 }, now);
+  assert.equal(partStatusForDuty(change, { ...house, supplyAutomations: [ordered] }, now)?.kind, "arriving");
+  assert.equal(
+    partStatusForDuty(change, { ...house, supplyAutomations: [item({ onHand: 0 })] }, now)?.kind,
+    "order_first",
+  );
 });

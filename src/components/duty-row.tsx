@@ -13,6 +13,9 @@ export function DutyRow({
   done,
   overdue,
   upcoming,
+  partChip,
+  onPartChip,
+  missingPartHint,
   onToggle,
   onOpen,
 }: {
@@ -22,12 +25,17 @@ export function DutyRow({
   done?: boolean;
   overdue?: boolean;
   upcoming?: boolean;
+  partChip?: { kind: string; label: string } | null;
+  onPartChip?: () => void;
+  missingPartHint?: boolean;
   onToggle: () => void;
   onOpen?: () => void;
 }) {
-  const subtitle = household
-    ? dutySubtitle(duty, household.completions, now, installedAtFor(household, duty.id), household)
-    : dutySubtitle(duty);
+  const subtitle = missingPartHint
+    ? "No part on hand — order first or mark done if you already have it."
+    : household
+      ? dutySubtitle(duty, household.completions, now, installedAtFor(household, duty.id), household)
+      : dutySubtitle(duty);
 
   return (
     <div className={cn("flex items-stretch bg-transparent px-2 py-1", done && "opacity-60")}>
@@ -75,6 +83,19 @@ export function DutyRow({
                 Upcoming
               </Badge>
             ) : null}
+            {partChip && !done && partChip.kind !== "order_first" ? (
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "h-5 rounded-full px-1.5 text-[10px] font-medium",
+                  partChip.kind === "install_today" || partChip.kind === "part_on_hand"
+                    ? "border-[#34c759]/40 bg-[#34c759]/15"
+                    : "text-muted-foreground",
+                )}
+              >
+                {partChip.label}
+              </Badge>
+            ) : null}
           </span>
           <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{subtitle}</span>
           {duty.notes.trim() ? (
@@ -82,6 +103,20 @@ export function DutyRow({
           ) : null}
         </span>
       </button>
+      {partChip && !done && partChip.kind === "order_first" ? (
+        <button
+          type="button"
+          onClick={onPartChip}
+          className="self-center pr-3"
+        >
+          <Badge
+            variant="secondary"
+            className="h-5 rounded-full border-[#ff9f0a]/40 bg-[#ff9f0a]/15 px-1.5 text-[10px] font-medium text-foreground"
+          >
+            {partChip.label}
+          </Badge>
+        </button>
+      ) : null}
     </div>
   );
 }

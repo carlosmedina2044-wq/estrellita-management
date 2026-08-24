@@ -1,6 +1,7 @@
 import { audienceLabel, frequencyLabel } from "@/lib/constants";
 import { roomName } from "@/lib/home-model";
 import {
+  addDays,
   addCalendarMonths,
   addCalendarYears,
   daysInMonth,
@@ -184,6 +185,34 @@ export function sortDuties(duties: Duty[], household?: Pick<Household, "rooms">)
   });
 }
 
+export function isInstallTodayDuty(
+  duty: Duty,
+  household: Pick<Household, "supplyAutomations" | "completions">,
+  now = new Date(),
+): boolean {
+  if (duty.kind !== "replacement") return false;
+  const item = household.supplyAutomations.find(
+    (entry) => entry.dutyId === duty.id || entry.linkedDutyIds.includes(duty.id),
+  );
+  if (!item || item.onHand <= 0) return false;
+  if (item.state === "ordered" || item.orderInFlight) return false;
+  const installedAt = item.installedAt ?? null;
+  if (isOverdue(duty, household.completions, now, installedAt)) return true;
+  const next = nextDueDate(duty, household.completions, now, installedAt);
+  if (!next) return false;
+  return startOfDay(next) <= startOfDay(addDays(now, 7));
+}
+
+function pinInstallToday(
+  duties: Duty[],
+  household: Household,
+  now: Date,
+): Duty[] {
+  return [...duties].sort(
+    (a, b) => Number(isInstallTodayDuty(b, household, now)) - Number(isInstallTodayDuty(a, household, now)),
+  );
+}
+
 export function matchesAudience(duty: Duty, audience: Audience | "all"): boolean {
   if (audience === "all") return true;
   if (audience === "me") return duty.audience === "me" || duty.audience === "anyone";
@@ -196,16 +225,20 @@ export function todaysOpenDuties(
   now = new Date(),
   audience: Audience | "all" = "all",
 ): Duty[] {
-  return sortDuties(
-    household.duties.filter((duty) => {
-      if (!matchesAudience(duty, audience)) return false;
-      const installedAt = installedAtFor(household, duty.id);
-      return (
-        isDueToday(duty, household.completions, now, installedAt) ||
-        isOverdue(duty, household.completions, now, installedAt)
-      );
-    }),
+  return pinInstallToday(
+    sortDuties(
+      household.duties.filter((duty) => {
+        if (!matchesAudience(duty, audience)) return false;
+        const installedAt = installedAtFor(household, duty.id);
+        return (
+          isDueToday(duty, household.completions, now, installedAt) ||
+          isOverdue(duty, household.completions, now, installedAt)
+        );
+      }),
+      household,
+    ),
     household,
+    now,
   );
 }
 
@@ -267,17 +300,21 @@ export function openDutiesInScope(
 ): Duty[] {
   if (scope === "daily") return todaysOpenDuties(household, now, audience);
   const range = rangeForScope(scope, now);
-  return sortDuties(
-    household.duties.filter((duty) => {
-      if (!matchesAudience(duty, audience)) return false;
-      const installedAt = installedAtFor(household, duty.id);
-      if (isDoneThisPeriod(duty, household.completions, now, installedAt)) return false;
-      return (
-        isScheduledInRange(duty, range.start, range.end, household.completions, installedAt) ||
-        isOverdue(duty, household.completions, now, installedAt)
-      );
-    }),
+  return pinInstallToday(
+    sortDuties(
+      household.duties.filter((duty) => {
+        if (!matchesAudience(duty, audience)) return false;
+        const installedAt = installedAtFor(household, duty.id);
+        if (isDoneThisPeriod(duty, household.completions, now, installedAt)) return false;
+        return (
+          isScheduledInRange(duty, range.start, range.end, household.completions, installedAt) ||
+          isOverdue(duty, household.completions, now, installedAt)
+        );
+      }),
+      household,
+    ),
     household,
+    now,
   );
 }
 

@@ -1,5 +1,5 @@
 import { addCalendarMonths, addCalendarYears, addDays, parseISODate, startOfDay, toISODate } from "@/lib/dates";
-import { isDoneThisPeriod, lastCompletion, nextDueDate } from "@/lib/duties";
+import { isDoneThisPeriod, isOverdue, lastCompletion, nextDueDate } from "@/lib/duties";
 import { retailerUrlFor } from "@/lib/retailer";
 import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, leadTimeDaysFor } from "@/lib/supply";
 import type { Completion, Duty, Household, SupplyAutomation } from "@/lib/types";
@@ -38,6 +38,40 @@ export function consumableForDuty(
   dutyId: string,
 ): SupplyAutomation | undefined {
   return items.find((item) => linkedDutyIdsFor(item).includes(dutyId));
+}
+
+export type PartStatus = {
+  kind: "part_on_hand" | "arriving" | "order_first" | "install_today";
+  label: string;
+};
+
+export function partStatusForDuty(
+  duty: Duty,
+  household: Pick<Household, "duties" | "completions" | "supplyAutomations">,
+  now = new Date(),
+): PartStatus | null {
+  if (duty.kind !== "replacement") return null;
+  const item = consumableForDuty(household.supplyAutomations, duty.id);
+  if (!item) return null;
+  const placement = restockPlacement(item, household, now);
+  if (placement.bucket === "ordered") {
+    const day = item.expectedArrivalDate
+      ? new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(new Date(parseISODate(item.expectedArrivalDate)))
+      : "";
+    return { kind: "arriving", label: day ? `Arriving ${day}` : "Arriving" };
+  }
+  if (item.onHand <= 0 && placement.bucket === "order_now") {
+    return { kind: "order_first", label: "Order first" };
+  }
+  if (item.onHand > 0) {
+    const installedAt = item.installedAt ?? null;
+    const overdue = isOverdue(duty, household.completions, now, installedAt);
+    const next = nextDueDate(duty, household.completions, now, installedAt);
+    const dueSoon = Boolean(next) && startOfDay(next!) <= startOfDay(addDays(now, 7));
+    if (overdue || dueSoon) return { kind: "install_today", label: "Install today" };
+    return { kind: "part_on_hand", label: "Part on hand" };
+  }
+  return null;
 }
 
 export function normalizeConsumable(item: SupplyAutomation): SupplyAutomation {
