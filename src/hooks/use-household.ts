@@ -29,13 +29,17 @@ import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import { requestNotifyPermission } from "@/lib/notifications";
 import { rememberRetailerLink } from "@/lib/retailer";
 import {
+  applyLearnedLeadTime,
+  changeArrivalDate,
   consumeLinkedUnit,
   defaultConsumableFields,
   linkedDutyIdsFor,
   markConsumableOrdered,
+  neverCameConsumable,
   receiveConsumable,
   restoreLinkedUnit,
   saveRetailerLink,
+  stillWaitingConsumable,
   type MarkOrderedDetails,
 } from "@/lib/restock";
 import type { RestockDigestSettings } from "@/lib/types";
@@ -148,7 +152,7 @@ export function useHousehold() {
   );
 
   const markSupplyOrdered = useCallback(
-    (id: string, details?: MarkOrderedDetails) => {
+    (id: string, details: MarkOrderedDetails) => {
       update((current) => ({
         ...current,
         supplyAutomations: current.supplyAutomations.map((item) =>
@@ -195,6 +199,56 @@ export function useHousehold() {
         ...current,
         supplyAutomations: current.supplyAutomations.map((item) =>
           item.id === id ? { ...item, preferredRetailer: value } : item,
+        ),
+      }));
+    },
+    [update],
+  );
+
+  const stillWaitingSupply = useCallback(
+    (id: string) => {
+      update((current) => ({
+        ...current,
+        supplyAutomations: current.supplyAutomations.map((item) =>
+          item.id === id ? stillWaitingConsumable(item) : item,
+        ),
+      }));
+    },
+    [update],
+  );
+
+  const neverCameSupply = useCallback(
+    (id: string) => {
+      update((current) => ({
+        ...current,
+        supplyAutomations: current.supplyAutomations.map((item) =>
+          item.id === id ? neverCameConsumable(item) : item,
+        ),
+      }));
+    },
+    [update],
+  );
+
+  const changeSupplyArrival = useCallback(
+    (id: string, expectedArrivalDate: string) => {
+      const date = expectedArrivalDate.trim();
+      if (!date) return;
+      update((current) => ({
+        ...current,
+        supplyAutomations: current.supplyAutomations.map((item) =>
+          item.id === id ? changeArrivalDate(item, date) : item,
+        ),
+      }));
+    },
+    [update],
+  );
+
+  const applySupplyLeadTime = useCallback(
+    (id: string, days: number) => {
+      update((current) => ({
+        ...current,
+        supplyAutomations: current.supplyAutomations.map((item) =>
+          item.id === id ? applyLearnedLeadTime(item, days) : item,
         ),
       }));
     },
@@ -532,6 +586,10 @@ export function useHousehold() {
     markSupplyReceived,
     saveSupplyLink,
     preferSupplyRetailer,
+    stillWaitingSupply,
+    neverCameSupply,
+    changeSupplyArrival,
+    applySupplyLeadTime,
     attachSharedLink,
     updateRestockDigest,
     deleteDuty,

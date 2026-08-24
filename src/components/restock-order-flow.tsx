@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Ellipsis } from "lucide-react";
 import { toast } from "sonner";
 import { RetailerPickerSheet } from "@/components/retailer-picker-sheet";
 import {
@@ -28,9 +29,12 @@ import { RETAILER_CHIPS } from "@/lib/retailer";
 import {
   ARRIVAL_OFFSETS,
   closestArrivalOffset,
+  observedLeadTimeDays,
   reorderAtFor,
   restockPlacement,
+  shouldOfferLeadTime,
   type MarkOrderedDetails,
+  type RestockFlowHandlers,
 } from "@/lib/restock";
 import { leadTimeDaysFor } from "@/lib/supply";
 import type { Household, SupplyAutomation } from "@/lib/types";
@@ -39,6 +43,29 @@ import { cn } from "@/lib/utils";
 const LOOKING_MS = 30 * 60 * 1000;
 const lookingUntil = new Map<string, number>();
 
+export function restockButtonProps(item: SupplyAutomation, handlers: RestockFlowHandlers) {
+  return {
+    onOrdered: handlers.onMarkOrdered
+      ? (details: MarkOrderedDetails) => handlers.onMarkOrdered?.(item.id, details)
+      : undefined,
+    onReceived: handlers.onMarkReceived
+      ? (qty: number, paid?: number) => handlers.onMarkReceived?.(item.id, qty, paid)
+      : undefined,
+    onSaveLink: handlers.onSaveLink ? (url: string) => handlers.onSaveLink?.(item.id, url) : undefined,
+    onPreferRetailer: handlers.onPreferRetailer
+      ? (retailer: string) => handlers.onPreferRetailer?.(item.id, retailer)
+      : undefined,
+    onStillWaiting: handlers.onStillWaiting ? () => handlers.onStillWaiting?.(item.id) : undefined,
+    onNeverCame: handlers.onNeverCame ? () => handlers.onNeverCame?.(item.id) : undefined,
+    onChangeArrival: handlers.onChangeArrival
+      ? (date: string) => handlers.onChangeArrival?.(item.id, date)
+      : undefined,
+    onApplyLeadTime: handlers.onApplyLeadTime
+      ? (days: number) => handlers.onApplyLeadTime?.(item.id, days)
+      : undefined,
+  };
+}
+
 export function RestockOrderButton({
   item,
   household,
@@ -46,6 +73,10 @@ export function RestockOrderButton({
   onReceived,
   onSaveLink,
   onPreferRetailer,
+  onStillWaiting,
+  onNeverCame,
+  onChangeArrival,
+  onApplyLeadTime,
   onAddSize,
   className,
   compact,
@@ -56,6 +87,10 @@ export function RestockOrderButton({
   onReceived?: (qty: number, paid?: number) => void;
   onSaveLink?: (url: string) => void;
   onPreferRetailer?: (retailer: string) => void;
+  onStillWaiting?: () => void;
+  onNeverCame?: () => void;
+  onChangeArrival?: (date: string) => void;
+  onApplyLeadTime?: (days: number) => void;
   onAddSize?: () => void;
   className?: string;
   compact?: boolean;
@@ -63,6 +98,8 @@ export function RestockOrderButton({
   const [picker, setPicker] = useState(false);
   const [ask, setAsk] = useState(false);
   const [receive, setReceive] = useState(false);
+  const [overflow, setOverflow] = useState(false);
+  const [changeDate, setChangeDate] = useState(false);
   const [waitingResume, setWaitingResume] = useState(false);
   const [qtyDraft, setQtyDraft] = useState(String(item.qtyPerOrder || 1));
   const [pendingRetailer, setPendingRetailer] = useState<string | undefined>();
@@ -85,6 +122,21 @@ export function RestockOrderButton({
     if (until > Date.now()) return;
     rememberRetailer(retailer);
     setAsk(true);
+  }
+
+  function finishReceive(qty: number, paid?: number) {
+    const observed = observedLeadTimeDays(item);
+    const lead = leadTimeDaysFor(item);
+    onReceived?.(qty, paid);
+    if (observed != null && shouldOfferLeadTime(lead, observed) && onApplyLeadTime) {
+      toast.message(`Took ${observed} days, not ${lead} — use ${observed} next time?`, {
+        duration: 10_000,
+        action: {
+          label: `Use ${observed}`,
+          onClick: () => onApplyLeadTime(observed),
+        },
+      });
+    }
   }
 
   useEffect(() => {
@@ -118,25 +170,112 @@ export function RestockOrderButton({
     };
   }, [waitingResume, item.id]);
 
-  if (arriving) {
+  const receiveDialog = (
+    <ReceiveDialog
+      open={receive}
+      qty={qtyDraft}
+      onQty={setQtyDraft}
+      suggestedCost={suggestedCost}
+      onOpenChange={setReceive}
+      onConfirm={finishReceive}
+    />
+  );
+
+  if (placement.nudgeArrive) {
     return (
       <div className="grid gap-2">
-        <p className="text-[13px] text-muted-foreground">
-          {arrivalLine(item)}
-        </p>
+        <p className="text-[13px] text-muted-foreground">Did it arrive?</p>
         {onReceived ? (
           <Button type="button" className={className ?? "h-10"} onClick={() => setReceive(true)}>
             Received
           </Button>
         ) : null}
-        <ReceiveDialog
-          open={receive}
-          qty={qtyDraft}
-          onQty={setQtyDraft}
-          suggestedCost={suggestedCost}
-          onOpenChange={setReceive}
-          onConfirm={(qty, paid) => onReceived?.(qty, paid)}
-        />
+        {onStillWaiting ? (
+          <Button type="button" variant="secondary" className="h-10" onClick={onStillWaiting}>
+            Still waiting
+          </Button>
+        ) : null}
+        {onNeverCame ? (
+          <Button type="button" variant="ghost" className="h-10" onClick={onNeverCame}>
+            Never came
+          </Button>
+        ) : null}
+        {receiveDialog}
+      </div>
+    );
+  }
+
+  if (arriving) {
+    return (
+      <div className="grid gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-[13px] text-muted-foreground">{arrivalLine(item)}</p>
+          {onChangeArrival || onNeverCame ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              aria-label="More"
+              onClick={() => setOverflow(true)}
+            >
+              <Ellipsis className="size-4" />
+            </Button>
+          ) : null}
+        </div>
+        {onReceived ? (
+          <Button type="button" className={className ?? "h-10"} onClick={() => setReceive(true)}>
+            Received
+          </Button>
+        ) : null}
+        {receiveDialog}
+        <Sheet open={overflow} onOpenChange={setOverflow}>
+          <SheetContent side="bottom" className="gap-0">
+            <SheetHeader>
+              <SheetTitle>On the way</SheetTitle>
+              <SheetDescription>{item.itemName}</SheetDescription>
+            </SheetHeader>
+            <div className="grid gap-2 px-4 pb-4">
+              {onChangeArrival ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-12"
+                  onClick={() => {
+                    setOverflow(false);
+                    setChangeDate(true);
+                  }}
+                >
+                  Change date
+                </Button>
+              ) : null}
+              {onNeverCame ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-12"
+                  onClick={() => {
+                    setOverflow(false);
+                    onNeverCame();
+                  }}
+                >
+                  Didn’t order after all
+                </Button>
+              ) : null}
+            </div>
+          </SheetContent>
+        </Sheet>
+        {onChangeArrival ? (
+          <ChangeDateSheet
+            open={changeDate}
+            item={item}
+            onOpenChange={setChangeDate}
+            onConfirm={(date) => {
+              onChangeArrival(date);
+              setChangeDate(false);
+            }}
+          />
+        ) : null}
       </div>
     );
   }
@@ -146,14 +285,6 @@ export function RestockOrderButton({
       <Button type="button" className={className ?? (compact ? "h-12" : "h-10")} onClick={() => setPicker(true)}>
         Order
       </Button>
-      {placement.nudgeArrive ? (
-        <p className="mt-2 text-[13px] text-muted-foreground">Did it arrive?</p>
-      ) : null}
-      {placement.nudgeArrive && onReceived ? (
-        <Button type="button" variant="secondary" className="mt-2 h-10" onClick={() => setReceive(true)}>
-          Received
-        </Button>
-      ) : null}
 
       <RetailerPickerSheet
         open={picker}
@@ -188,14 +319,7 @@ export function RestockOrderButton({
           toast.success("Marked ordered", { description: item.itemName });
         }}
       />
-      <ReceiveDialog
-        open={receive}
-        qty={qtyDraft}
-        onQty={setQtyDraft}
-        suggestedCost={suggestedCost}
-        onOpenChange={setReceive}
-        onConfirm={(qty, paid) => onReceived?.(qty, paid)}
-      />
+      {receiveDialog}
     </>
   );
 }
@@ -250,11 +374,7 @@ function OrderConfirmSheet({
               </SheetDescription>
             </SheetHeader>
             <div className="grid gap-2 px-4 pb-4">
-              <Button
-                type="button"
-                className="h-12"
-                onClick={() => setStep("b")}
-              >
+              <Button type="button" className="h-12" onClick={() => setStep("b")}>
                 Yes, ordered
               </Button>
               <Button type="button" variant="secondary" className="h-12" onClick={() => onOpenChange(false)}>
@@ -272,40 +392,12 @@ function OrderConfirmSheet({
               <SheetDescription>We’ll go quiet until then and check in the day after.</SheetDescription>
             </SheetHeader>
             <div className="grid gap-4 px-4 pb-4">
-              <div className="flex flex-wrap gap-1.5">
-                {ARRIVAL_OFFSETS.map((option) => (
-                  <Button
-                    key={option.id}
-                    type="button"
-                    size="sm"
-                    variant={offset === option.days ? "default" : "secondary"}
-                    className={cn("h-8 rounded-full")}
-                    onClick={() => {
-                      setOffset(option.days);
-                      setDateDraft(toISODate(addDays(new Date(), option.days)));
-                    }}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={offset === "date" ? "default" : "secondary"}
-                  className="h-8 rounded-full"
-                  onClick={() => setOffset("date")}
-                >
-                  Pick a date
-                </Button>
-              </div>
-              {offset === "date" ? (
-                <Input
-                  type="date"
-                  value={dateDraft}
-                  onChange={(event) => setDateDraft(event.target.value)}
-                  className="h-11"
-                />
-              ) : null}
+              <ArrivalChips
+                offset={offset}
+                dateDraft={dateDraft}
+                onOffset={setOffset}
+                onDate={setDateDraft}
+              />
               <div className="grid gap-1.5">
                 <p className="text-[13px] font-medium">How many?</p>
                 <div className="flex items-center gap-3">
@@ -346,6 +438,96 @@ function OrderConfirmSheet({
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function ChangeDateSheet({
+  open,
+  item,
+  onOpenChange,
+  onConfirm,
+}: {
+  open: boolean;
+  item: SupplyAutomation;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (date: string) => void;
+}) {
+  const defaultOffset = closestArrivalOffset(leadTimeDaysFor(item));
+  const [offset, setOffset] = useState<number | "date">(item.expectedArrivalDate ? "date" : defaultOffset);
+  const [dateDraft, setDateDraft] = useState(
+    () => item.expectedArrivalDate ?? toISODate(addDays(new Date(), defaultOffset)),
+  );
+  const resetKey = `${open}:${item.id}:${item.expectedArrivalDate ?? ""}`;
+  const [prevKey, setPrevKey] = useState(resetKey);
+  if (open && prevKey !== resetKey) {
+    setPrevKey(resetKey);
+    setOffset(item.expectedArrivalDate ? "date" : defaultOffset);
+    setDateDraft(item.expectedArrivalDate ?? toISODate(addDays(new Date(), defaultOffset)));
+  }
+
+  const arrivalDate = offset === "date" ? dateDraft : toISODate(addDays(new Date(), offset));
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="gap-0">
+        <SheetHeader>
+          <SheetTitle>When does it arrive?</SheetTitle>
+          <SheetDescription>{item.itemName}</SheetDescription>
+        </SheetHeader>
+        <div className="grid gap-4 px-4 pb-4">
+          <ArrivalChips offset={offset} dateDraft={dateDraft} onOffset={setOffset} onDate={setDateDraft} />
+          <Button type="button" className="h-12" onClick={() => onConfirm(arrivalDate)}>
+            Save date
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function ArrivalChips({
+  offset,
+  dateDraft,
+  onOffset,
+  onDate,
+}: {
+  offset: number | "date";
+  dateDraft: string;
+  onOffset: (value: number | "date") => void;
+  onDate: (value: string) => void;
+}) {
+  return (
+    <>
+      <div className="flex flex-wrap gap-1.5">
+        {ARRIVAL_OFFSETS.map((option) => (
+          <Button
+            key={option.id}
+            type="button"
+            size="sm"
+            variant={offset === option.days ? "default" : "secondary"}
+            className={cn("h-8 rounded-full")}
+            onClick={() => {
+              onOffset(option.days);
+              onDate(toISODate(addDays(new Date(), option.days)));
+            }}
+          >
+            {option.label}
+          </Button>
+        ))}
+        <Button
+          type="button"
+          size="sm"
+          variant={offset === "date" ? "default" : "secondary"}
+          className="h-8 rounded-full"
+          onClick={() => onOffset("date")}
+        >
+          Pick a date
+        </Button>
+      </div>
+      {offset === "date" ? (
+        <Input type="date" value={dateDraft} onChange={(event) => onDate(event.target.value)} className="h-11" />
+      ) : null}
+    </>
   );
 }
 

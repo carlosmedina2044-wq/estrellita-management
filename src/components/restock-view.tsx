@@ -5,11 +5,11 @@ import { ChevronDown, Package } from "lucide-react";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
-import { OrderByLine, RestockOrderButton } from "@/components/restock-order-flow";
+import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { Button } from "@/components/ui/button";
 import { roomName } from "@/lib/home-model";
 import { SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
-import { groupRestock, restockPlacement, usedWhere, type MarkOrderedDetails } from "@/lib/restock";
+import { groupRestock, restockPlacement, usedWhere, type RestockFlowHandlers } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import type { Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -18,21 +18,14 @@ export function RestockView({
   household,
   onSaveDuty,
   onDeleteDuty,
-  onMarkOrdered,
-  onMarkReceived,
-  onSaveLink,
-  onPreferRetailer,
   onWalkHouse,
+  ...restock
 }: {
   household: Household;
   onSaveDuty: (duty: DutyDraft) => void;
   onDeleteDuty: (id: string) => void;
-  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
-  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
-  onSaveLink?: (id: string, url: string) => void;
-  onPreferRetailer?: (id: string, retailer: string) => void;
   onWalkHouse?: (picks: RestockPick[]) => void;
-}) {
+} & RestockFlowHandlers) {
   const [creating, setCreating] = useState(false);
   const [editingDuty, setEditingDuty] = useState<Duty | null>(null);
   const [stockedOpen, setStockedOpen] = useState(false);
@@ -111,10 +104,7 @@ export function RestockView({
               household={household}
               item={item}
               onOpen={() => openItem(item)}
-              onMarkOrdered={onMarkOrdered}
-              onMarkReceived={onMarkReceived}
-              onSaveLink={onSaveLink}
-              onPreferRetailer={onPreferRetailer}
+              {...restock}
             />
           ))}
         </Section>
@@ -130,10 +120,7 @@ export function RestockView({
               household={household}
               item={item}
               onOpen={() => openItem(item)}
-              onMarkOrdered={onMarkOrdered}
-              onMarkReceived={onMarkReceived}
-              onSaveLink={onSaveLink}
-              onPreferRetailer={onPreferRetailer}
+              {...restock}
             />
           ))
         )}
@@ -149,10 +136,7 @@ export function RestockView({
               household={household}
               item={item}
               onOpen={() => openItem(item)}
-              onMarkOrdered={onMarkOrdered}
-              onMarkReceived={onMarkReceived}
-              onSaveLink={onSaveLink}
-              onPreferRetailer={onPreferRetailer}
+              {...restock}
             />
           ))
         )}
@@ -182,10 +166,7 @@ export function RestockView({
                   household={household}
                   item={item}
                   onOpen={() => openItem(item)}
-                  onMarkOrdered={onMarkOrdered}
-                  onMarkReceived={onMarkReceived}
-                  onSaveLink={onSaveLink}
-                  onPreferRetailer={onPreferRetailer}
+                  {...restock}
                 />
               ))
             )}
@@ -212,10 +193,7 @@ export function RestockView({
         }}
         onSave={onSaveDuty}
         onDelete={onDeleteDuty}
-        onMarkOrdered={onMarkOrdered}
-        onMarkReceived={onMarkReceived}
-        onSaveLink={onSaveLink}
-        onPreferRetailer={onPreferRetailer}
+        {...restock}
       />
     </div>
   );
@@ -245,19 +223,12 @@ function RestockRow({
   household,
   item,
   onOpen,
-  onMarkOrdered,
-  onMarkReceived,
-  onSaveLink,
-  onPreferRetailer,
+  ...restock
 }: {
   household: Household;
   item: SupplyAutomation;
   onOpen: () => void;
-  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
-  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
-  onSaveLink?: (id: string, url: string) => void;
-  onPreferRetailer?: (id: string, retailer: string) => void;
-}) {
+} & RestockFlowHandlers) {
   const where = usedWhere(item, household) || roomName(household, item.room);
   const placement = restockPlacement(item, household);
   return (
@@ -282,11 +253,8 @@ function RestockRow({
         <RestockOrderButton
           item={item}
           household={household}
-          onOrdered={onMarkOrdered ? (details) => onMarkOrdered(item.id, details) : undefined}
-              onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
-          onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
-          onPreferRetailer={onPreferRetailer ? (retailer) => onPreferRetailer(item.id, retailer) : undefined}
           onAddSize={onOpen}
+          {...restockButtonProps(item, restock)}
         />
       </div>
     </div>

@@ -43,6 +43,10 @@ export function AppShell() {
     markSupplyReceived,
     saveSupplyLink,
     preferSupplyRetailer,
+    stillWaitingSupply,
+    neverCameSupply,
+    changeSupplyArrival,
+    applySupplyLeadTime,
     attachSharedLink,
     updateRestockDigest,
     deleteDuty,
@@ -263,6 +267,16 @@ export function AppShell() {
   }
 
   const weather = weatherCaption(forecast, household.location);
+  const restockHandlers = {
+    onMarkOrdered: markSupplyOrdered,
+    onMarkReceived: markSupplyReceived,
+    onSaveLink: saveSupplyLink,
+    onPreferRetailer: preferSupplyRetailer,
+    onStillWaiting: stillWaitingSupply,
+    onNeverCame: neverCameSupply,
+    onChangeArrival: changeSupplyArrival,
+    onApplyLeadTime: applySupplyLeadTime,
+  };
 
   return (
     <div className="app-frame">
@@ -280,10 +294,7 @@ export function AppShell() {
             onDeleteDuty={deleteDuty}
             onStartCleanerVisit={startCleanerVisit}
             onOpenHome={() => setTab("home")}
-            onMarkOrdered={markSupplyOrdered}
-            onMarkReceived={markSupplyReceived}
-            onSaveLink={saveSupplyLink}
-            onPreferRetailer={preferSupplyRetailer}
+            {...restockHandlers}
             onOpenRestock={() => setTab("restock")}
           />
         ) : null}
@@ -292,10 +303,7 @@ export function AppShell() {
             household={household}
             onSaveDuty={saveDuty}
             onDeleteDuty={deleteDuty}
-            onMarkOrdered={markSupplyOrdered}
-            onMarkReceived={markSupplyReceived}
-            onSaveLink={saveSupplyLink}
-            onPreferRetailer={preferSupplyRetailer}
+            {...restockHandlers}
             onWalkHouse={applyRestockWalk}
           />
         ) : null}
@@ -339,10 +347,7 @@ export function AppShell() {
               onSaveDuty={saveDuty}
               onDeleteDuty={deleteDuty}
               onChangeTree={(next) => updateTree(() => next)}
-              onMarkOrdered={markSupplyOrdered}
-              onMarkReceived={markSupplyReceived}
-              onSaveLink={saveSupplyLink}
-              onPreferRetailer={preferSupplyRetailer}
+              {...restockHandlers}
             />
           </div>
         ) : null}

@@ -28,8 +28,8 @@ import { ASSET_TYPES, reorderRooms, roomById } from "@/lib/home-model";
 import { warrantyBadgeLabel } from "@/lib/warranty";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { ItemName } from "@/components/item-name";
-import { RestockOrderButton } from "@/components/restock-order-flow";
-import { restockPlacement, type MarkOrderedDetails } from "@/lib/restock";
+import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
+import { restockPlacement, type RestockFlowHandlers } from "@/lib/restock";
 import type { AssetType, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 
 export function HouseMapSheet({
@@ -44,10 +44,7 @@ export function HouseMapSheet({
   onReorderRooms,
   onChangeTree,
   initialSelected,
-  onMarkOrdered,
-  onMarkReceived,
-  onSaveLink,
-  onPreferRetailer,
+  ...restock
 }: {
   open: boolean;
   household: Household;
@@ -60,11 +57,7 @@ export function HouseMapSheet({
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
   initialSelected?: string | null;
-  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
-  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
-  onSaveLink?: (id: string, url: string) => void;
-  onPreferRetailer?: (id: string, retailer: string) => void;
-}) {
+} & RestockFlowHandlers) {
   const [selected, setSelected] = useState<string | null>(initialSelected ?? null);
   const [editing, setEditing] = useState<Duty | null>(null);
   const [creating, setCreating] = useState(false);
@@ -214,12 +207,7 @@ export function HouseMapSheet({
                             <RestockOrderButton
                               item={item}
                               household={household}
-                              onOrdered={onMarkOrdered ? (details) => onMarkOrdered(item.id, details) : undefined}
-                              onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
-                              onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
-                              onPreferRetailer={
-                                onPreferRetailer ? (retailer) => onPreferRetailer(item.id, retailer) : undefined
-                              }
+                              {...restockButtonProps(item, restock)}
                             />
                           </div>
                         </li>
@@ -327,10 +315,7 @@ export function HouseMapSheet({
         }}
         onSave={onSaveDuty}
         onDelete={onDeleteDuty}
-        onMarkOrdered={onMarkOrdered}
-        onMarkReceived={onMarkReceived}
-        onSaveLink={onSaveLink}
-        onPreferRetailer={onPreferRetailer}
+        {...restock}
       />
     </>
   );

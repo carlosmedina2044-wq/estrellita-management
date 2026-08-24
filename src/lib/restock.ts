@@ -1,7 +1,7 @@
 import { addCalendarMonths, addCalendarYears, addDays, parseISODate, startOfDay, toISODate } from "@/lib/dates";
 import { isDoneThisPeriod, lastCompletion, nextDueDate } from "@/lib/duties";
 import { retailerUrlFor } from "@/lib/retailer";
-import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, expectedArrivalFor, leadTimeDaysFor } from "@/lib/supply";
+import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, leadTimeDaysFor } from "@/lib/supply";
 import type { Completion, Duty, Household, SupplyAutomation } from "@/lib/types";
 
 export const DEFAULT_REORDER_AT = 0;
@@ -232,25 +232,21 @@ export function digestCandidates(
 
 export function markConsumableOrdered(
   item: SupplyAutomation,
-  detailsOrNow?: MarkOrderedDetails | Date,
+  details: MarkOrderedDetails,
   now = new Date(),
 ): SupplyAutomation {
   const current = normalizeConsumable(item);
-  const details = isMarkOrderedDetails(detailsOrNow) ? detailsOrNow : undefined;
-  const when = details ? now : detailsOrNow instanceof Date ? detailsOrNow : now;
-  const qty = details
-    ? Math.min(99, Math.max(1, Math.round(details.qty) || current.qtyPerOrder))
-    : current.qtyPerOrder;
+  const qty = Math.min(99, Math.max(1, Math.round(details.qty) || current.qtyPerOrder));
   return {
     ...current,
     state: "ordered",
     orderInFlight: true,
-    orderedAt: toISODate(when),
+    orderedAt: toISODate(now),
     orderedQty: qty,
     qtyPerOrder: qty,
     quantity: qty,
-    expectedArrivalDate: details?.expectedArrivalDate ?? expectedArrivalFor(when, leadTimeDaysFor(current)),
-    preferredRetailer: details?.retailer || current.preferredRetailer,
+    expectedArrivalDate: details.expectedArrivalDate,
+    preferredRetailer: details.retailer || current.preferredRetailer,
   };
 }
 
@@ -260,9 +256,16 @@ export type MarkOrderedDetails = {
   retailer?: string;
 };
 
-function isMarkOrderedDetails(value: unknown): value is MarkOrderedDetails {
-  return Boolean(value) && typeof value === "object" && !(value instanceof Date) && "expectedArrivalDate" in (value as object);
-}
+export type RestockFlowHandlers = {
+  onMarkOrdered?: (id: string, details: MarkOrderedDetails) => void;
+  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
+  onSaveLink?: (id: string, url: string) => void;
+  onPreferRetailer?: (id: string, retailer: string) => void;
+  onStillWaiting?: (id: string) => void;
+  onNeverCame?: (id: string) => void;
+  onChangeArrival?: (id: string, date: string) => void;
+  onApplyLeadTime?: (id: string, days: number) => void;
+};
 
 export const ARRIVAL_OFFSETS = [
   { id: "tomorrow", days: 1, label: "Tomorrow" },
@@ -279,9 +282,10 @@ export function closestArrivalOffset(leadTimeDays: number): number {
   return best;
 }
 
-export function receiveConsumable(item: SupplyAutomation, qty: number): SupplyAutomation {
+export function receiveConsumable(item: SupplyAutomation, qty: number, now = new Date()): SupplyAutomation {
   const current = normalizeConsumable(item);
   const amount = Math.max(1, Math.round(qty) || current.qtyPerOrder);
+  const observed = observedLeadTimeDays(current, now);
   return {
     ...current,
     onHand: current.onHand + amount,
@@ -290,6 +294,65 @@ export function receiveConsumable(item: SupplyAutomation, qty: number): SupplyAu
     state: "stocked",
     orderInFlight: false,
     expectedArrivalDate: null,
+    observedLeadTimeDays: observed ?? current.observedLeadTimeDays,
+    orderedAt: undefined,
+    orderedQty: undefined,
+  };
+}
+
+export function observedLeadTimeDays(
+  item: Pick<SupplyAutomation, "orderedAt">,
+  now = new Date(),
+): number | null {
+  if (!item.orderedAt) return null;
+  return Math.max(0, Math.round((startOfDay(now) - parseISODate(item.orderedAt)) / 86_400_000));
+}
+
+export function shouldOfferLeadTime(leadTimeDays: number, observed: number): boolean {
+  return Math.abs(observed - leadTimeDays) >= 3;
+}
+
+export function applyLearnedLeadTime(item: SupplyAutomation, days: number): SupplyAutomation {
+  const current = normalizeConsumable(item);
+  return { ...current, leadTimeDays: Math.min(90, Math.max(0, Math.round(days))) };
+}
+
+export function stillWaitingConsumable(item: SupplyAutomation, now = new Date()): SupplyAutomation {
+  const current = normalizeConsumable(item);
+  const today = toISODate(now);
+  const baseline =
+    current.expectedArrivalDate && current.expectedArrivalDate >= today ? current.expectedArrivalDate : today;
+  return {
+    ...current,
+    state: "ordered",
+    orderInFlight: true,
+    expectedArrivalDate: toISODate(addDays(dateFromISO(baseline), ARRIVAL_GRACE_DAYS)),
+  };
+}
+
+export function neverCameConsumable(item: SupplyAutomation): SupplyAutomation {
+  const current = normalizeConsumable(item);
+  return {
+    ...current,
+    state: "stocked",
+    orderInFlight: false,
+    expectedArrivalDate: null,
+    orderedAt: undefined,
+    orderedQty: undefined,
+  };
+}
+
+export function unmarkConsumableOrdered(item: SupplyAutomation): SupplyAutomation {
+  return neverCameConsumable(item);
+}
+
+export function changeArrivalDate(item: SupplyAutomation, expectedArrivalDate: string): SupplyAutomation {
+  const current = normalizeConsumable(item);
+  return {
+    ...current,
+    state: "ordered",
+    orderInFlight: true,
+    expectedArrivalDate,
   };
 }
 

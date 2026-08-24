@@ -1,15 +1,23 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { digestCopy, shouldSendDigest } from "@/lib/digest";
+import { expectedArrivalFor } from "@/lib/supply";
 import {
+  applyLearnedLeadTime,
+  changeArrivalDate,
   closestArrivalOffset,
   consumeLinkedUnit,
   digestCandidates,
   groupRestock,
   markConsumableOrdered,
+  neverCameConsumable,
+  observedLeadTimeDays,
   receiveConsumable,
   restockPlacement,
   runwayFor,
+  shouldOfferLeadTime,
+  stillWaitingConsumable,
+  unmarkConsumableOrdered,
 } from "@/lib/restock";
 import type { Duty, Household, SupplyAutomation } from "@/lib/types";
 
@@ -179,7 +187,11 @@ test("completing a linked task decrements on-hand and re-buckets", () => {
 });
 
 test("ordered stays out of Order now until arrival plus 3 days", () => {
-  const ordered = markConsumableOrdered(item({ onHand: 0 }), now);
+  const ordered = markConsumableOrdered(
+    item({ onHand: 0 }),
+    { expectedArrivalDate: expectedArrivalFor(now, 14), qty: 1 },
+    now,
+  );
   assert.equal(ordered.state, "ordered");
   assert.equal(ordered.expectedArrivalDate, "2026-09-06");
   assert.equal(ordered.orderedAt, "2026-08-23");
@@ -216,6 +228,7 @@ test("received adds qty to on-hand and returns to stocked", () => {
   });
   const ordered = markConsumableOrdered(
     item({ onHand: 0, qtyPerOrder: 2, dutyId: "d6", linkedDutyIds: ["d6"] }),
+    { expectedArrivalDate: expectedArrivalFor(now, 14), qty: 2 },
     now,
   );
   const received = receiveConsumable(ordered, 2);
@@ -295,4 +308,50 @@ test("digest candidates include order now and coming up within 7 days", () => {
   assert.ok(found.includes("s1"));
   assert.ok(found.includes("s2"));
   assert.equal(found.includes("s3"), false);
+});
+
+test("still waiting extends the arrival hold; never came returns to order now", () => {
+  const ordered = markConsumableOrdered(
+    item({ onHand: 0 }),
+    { expectedArrivalDate: "2026-08-25", qty: 1, retailer: "walmart" },
+    now,
+  );
+  const waiting = stillWaitingConsumable(ordered, new Date(2026, 7, 28));
+  assert.equal(waiting.expectedArrivalDate, "2026-08-31");
+  assert.equal(restockPlacement(waiting, household, new Date(2026, 7, 28)).bucket, "ordered");
+  const gone = neverCameConsumable(waiting);
+  assert.equal(gone.state, "stocked");
+  assert.equal(gone.expectedArrivalDate, null);
+  assert.equal(gone.orderedAt, undefined);
+  assert.equal(gone.preferredRetailer, "walmart");
+  assert.equal(restockPlacement(gone, household, now).bucket, "order_now");
+});
+
+test("observed lead time is receive minus orderedAt and can update leadTimeDays", () => {
+  const ordered = markConsumableOrdered(
+    item({ onHand: 0, leadTimeDays: 14 }),
+    { expectedArrivalDate: "2026-08-25", qty: 1 },
+    now,
+  );
+  const received = receiveConsumable(ordered, 1, new Date(2026, 7, 25));
+  assert.equal(observedLeadTimeDays(ordered, new Date(2026, 7, 25)), 2);
+  assert.equal(received.observedLeadTimeDays, 2);
+  assert.equal(received.orderedAt, undefined);
+  assert.equal(received.orderedQty, undefined);
+  assert.equal(shouldOfferLeadTime(14, 2), true);
+  assert.equal(shouldOfferLeadTime(14, 13), false);
+  assert.equal(applyLearnedLeadTime(received, 2).leadTimeDays, 2);
+});
+
+test("undo-order clears in-flight state and keeps the preferred store", () => {
+  const ordered = markConsumableOrdered(
+    item({ onHand: 0 }),
+    { expectedArrivalDate: "2026-08-25", qty: 1, retailer: "target" },
+    now,
+  );
+  const undone = unmarkConsumableOrdered(ordered);
+  assert.equal(undone.orderInFlight, false);
+  assert.equal(undone.orderedAt, undefined);
+  assert.equal(undone.preferredRetailer, "target");
+  assert.equal(changeArrivalDate(ordered, "2026-08-30").expectedArrivalDate, "2026-08-30");
 });
