@@ -8,7 +8,7 @@ import { isPlainObject, sanitizeText } from "@/lib/sanitize";
  */
 export const BACKUP_KIND = "cuidala-backup";
 export const BACKUP_AAD = "cuidala-backup-v1";
-export const BACKUP_ITERATIONS = 210_000;
+export const BACKUP_ITERATIONS = 600_000;
 export const BACKUP_MIN_PASSPHRASE = 8;
 
 export type BackupEnvelope = {
@@ -45,13 +45,13 @@ export function isBackupEnvelope(value: unknown): value is BackupEnvelope {
 }
 
 export function normalizePassphrase(value: string): string {
-  return sanitizeText(value, 128);
+  return sanitizeText(value.normalize("NFC"), 128);
 }
 
 export function passphraseError(value: string): string | null {
   const passphrase = normalizePassphrase(value);
   if (passphrase.length < BACKUP_MIN_PASSPHRASE) {
-    return `Use at least ${BACKUP_MIN_PASSPHRASE} characters.`;
+    return `Passphrases are at least ${BACKUP_MIN_PASSPHRASE} characters.`;
   }
   return null;
 }
@@ -67,19 +67,24 @@ async function deriveBackupKey(passphrase: string, salt: Uint8Array, iterations:
   return importRawKey(new Uint8Array(bits));
 }
 
-export async function sealBackup(plaintext: string, passphrase: string): Promise<string> {
+export async function sealBackup(
+  plaintext: string,
+  passphrase: string,
+  iterations: number = BACKUP_ITERATIONS,
+): Promise<string> {
   const cleaned = normalizePassphrase(passphrase);
   const error = passphraseError(cleaned);
   if (error) throw new Error(error);
+  const rounds = Number.isFinite(iterations) && iterations >= 100_000 ? Math.trunc(iterations) : BACKUP_ITERATIONS;
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await deriveBackupKey(cleaned, salt, BACKUP_ITERATIONS);
+  const key = await deriveBackupKey(cleaned, salt, rounds);
   const sealed = await encryptJson(key, plaintext, BACKUP_AAD);
   const envelope: BackupEnvelope = {
     v: 1,
     kind: BACKUP_KIND,
     alg: "A256GCM",
     kdf: "PBKDF2-SHA256",
-    iterations: BACKUP_ITERATIONS,
+    iterations: rounds,
     salt: bytesToB64(salt),
     iv: sealed.iv,
     ciphertext: sealed.ciphertext,
@@ -91,6 +96,8 @@ export async function sealBackup(plaintext: string, passphrase: string): Promise
 export async function openBackup(raw: string, passphrase: string): Promise<string> {
   const cleaned = normalizePassphrase(passphrase);
   if (!cleaned) throw new Error("Enter the passphrase for this backup.");
+  const short = passphraseError(cleaned);
+  if (short) throw new Error(short);
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);

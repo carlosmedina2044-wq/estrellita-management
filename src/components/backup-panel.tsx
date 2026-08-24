@@ -4,10 +4,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { passphraseError } from "@/lib/backup";
+import { passphraseError, normalizePassphrase } from "@/lib/backup";
 import { toISODate } from "@/lib/dates";
 import { isNative } from "@/lib/native/platform";
-import { shareText } from "@/lib/native/share";
+import { shareBackupFile, shareText } from "@/lib/native/share";
 
 export function BackupPanel({
   mode = "full",
@@ -38,8 +38,12 @@ export function BackupPanel({
       const json = await onExport(passphrase);
       const filename = `cuidala-home-${toISODate(new Date())}.json`;
       const offered = await offerBackupFile(json, filename);
-      if (offered === "failed") toast.error("Couldn’t share the backup file.");
-      else toast.success(offered === "downloaded" ? "Backup saved" : "Backup ready to save");
+      if (offered === "failed") {
+        toast.error("Couldn’t share the backup file.");
+        return;
+      }
+      if (offered === "cancelled") return;
+      toast.success(offered === "downloaded" ? "Backup saved" : "Backup file ready — save it to Files or iCloud Drive");
       setPassphrase("");
       setConfirm("");
     } catch (error) {
@@ -50,9 +54,13 @@ export function BackupPanel({
   }
 
   async function importFile(file: File) {
-    const error = passphraseError(passphrase) ?? (passphrase ? null : "Enter the passphrase for this backup.");
-    if (error && !passphrase) {
+    if (!normalizePassphrase(passphrase)) {
       toast.error("Enter the passphrase, then choose the file.");
+      return;
+    }
+    const error = passphraseError(passphrase);
+    if (error) {
+      toast.error(error);
       return;
     }
     setBusy(true);
@@ -123,8 +131,11 @@ export function BackupPanel({
   );
 }
 
-async function offerBackupFile(json: string, filename: string): Promise<"shared" | "downloaded" | "copied" | "failed"> {
-  if (isNative()) return shareText("Cuidala backup", json);
+async function offerBackupFile(
+  json: string,
+  filename: string,
+): Promise<"shared" | "downloaded" | "copied" | "cancelled" | "failed"> {
+  if (isNative()) return shareBackupFile(json, filename);
   try {
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);

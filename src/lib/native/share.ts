@@ -21,3 +21,33 @@ export async function shareText(title: string, text: string): Promise<"shared" |
     return "failed";
   }
 }
+
+/** Writes a JSON backup to a temp file and opens the iOS share sheet as a file, not text. */
+export async function shareBackupFile(
+  json: string,
+  filename: string,
+): Promise<"shared" | "cancelled" | "failed"> {
+  if (!isNative()) return "failed";
+  try {
+    const { Directory, Encoding, Filesystem } = await import("@capacitor/filesystem");
+    const { Share } = await import("@capacitor/share");
+    await Filesystem.writeFile({
+      path: filename,
+      data: json,
+      directory: Directory.Temporary,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    });
+    const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Temporary });
+    await Share.share({
+      title: "Cuidala backup",
+      files: [uri],
+      dialogTitle: "Save your Cuidala backup",
+    });
+    return "shared";
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/cancel/i.test(message)) return "cancelled";
+    return "failed";
+  }
+}

@@ -9,7 +9,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | App lock is a UI gate; vault key is not biometric-bound | MASVS-AUTH-2 | `face-lock.tsx` + `device-key.ts` | Documented in `RESIDUAL_RISKS.md`; Settings copy | VERIFIED (docs), NOT VERIFIED (device) |
 | Data never deleted on read failure | Data integrity | `hydrateHousehold` reports `corrupt`/`unavailable`/`key-mismatch`, never removes | `src/lib/storage/vault.test.ts` persist-retry; LoadFailed UI requires explicit erase | VERIFIED (persist retry), NOT VERIFIED (corrupt path UI) |
 | New-phone restore without Keychain key is distinguishable | Data integrity | Envelope parses, decrypt fails → `key-mismatch` | Code path; LoadFailed offers backup import | NOT VERIFIED (manual) |
-| Encrypted portable backup (PBKDF2 + AES-GCM) | MASVS-CRYPTO-2 | `src/lib/backup.ts` | `src/lib/backup.test.ts` round-trip, wrong passphrase | VERIFIED |
+| Encrypted portable backup (PBKDF2-HMAC-SHA256 600k + AES-GCM, NFC passphrase) | MASVS-CRYPTO-2 | `src/lib/backup.ts`; native share writes a temp file via `@capacitor/filesystem` | `src/lib/backup.test.ts` round-trip, 210k legacy, NFC, wrong passphrase | VERIFIED |
 | Legacy pre-release data migrated, PIN/account fields dropped | — | `parseStored`/`migrateHousehold` | `src/lib/storage.test.ts` | VERIFIED |
 | No personal or address-specific data in the bundle | Privacy | `src/lib/house.ts` generic; personal room map removed | `storage.test.ts` asserts generic fallback | VERIFIED |
 | App lock (Face ID / Touch ID / passcode) fails closed | MASVS-AUTH-2 | `src/components/face-lock.tsx`, `src/lib/native/biometrics.ts` | Manual on device; plugin ≥ 8.3.6 (GHSA-vx5f-vmr6-32wf fixed) | NOT VERIFIED (manual) |
