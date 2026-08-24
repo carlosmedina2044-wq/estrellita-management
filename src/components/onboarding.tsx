@@ -2,12 +2,17 @@
 
 import { useState } from "react";
 import { BrandLockup } from "@/components/brand-logo";
+import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { climatePayoff } from "@/lib/climate-payoff";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
-import { sampleHomeAnswers, type OnboardingAnswers } from "@/lib/onboarding/generate";
+import { DEFAULT_ATTRIBUTES } from "@/lib/household-defaults";
+import { defaultFeatures, sampleHomeAnswers, type OnboardingAnswers } from "@/lib/onboarding/generate";
 import { ADD_ROOM_TYPES, nextRoomKey, roomTemplateFor, type RoomChoice } from "@/lib/onboarding/rooms";
-import type { HomeType } from "@/lib/types";
+import { SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
+import { geocodeUsZip } from "@/lib/weather/client";
+import type { HomeAttributes, HomeLocation, HomeType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function Onboarding({
@@ -22,13 +27,16 @@ export function Onboarding({
   const [postalCode, setPostalCode] = useState("");
   const [lat, setLat] = useState<number | undefined>();
   const [lng, setLng] = useState<number | undefined>();
+  const [placeName, setPlaceName] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [zipError, setZipError] = useState("");
+  const [restockPicks, setRestockPicks] = useState<RestockPick[]>(SAMPLE_RESTOCK_PICKS);
 
-  const location = {
+  const location: HomeLocation = {
     postalCode: postalCode || undefined,
     lat,
     lng,
+    placeName,
     climateZone: deriveClimate({ postalCode, lat, lng }),
   };
   const answers: OnboardingAnswers = {
@@ -36,8 +44,11 @@ export function Onboarding({
     location,
     nickname: "Home",
     rooms,
+    restockPicks,
   };
-  const progress = step / 3;
+  const lastStep = 5;
+  const progress = step / lastStep;
+  const preview = climatePayoff(location, attributesForPreview(homeType, location));
 
   function go(next: number) {
     setStep(next);
@@ -74,27 +85,70 @@ export function Onboarding({
     setAdding(false);
   }
 
+  function afterLocation(nextLocation: HomeLocation) {
+    const resolved = {
+      ...answers,
+      location: { ...nextLocation, climateZone: deriveClimate(nextLocation) },
+    };
+    if (nextLocation.postalCode || (nextLocation.lat != null && nextLocation.lng != null)) {
+      go(4);
+      return resolved;
+    }
+    go(5);
+    return resolved;
+  }
+
   async function requestLocation() {
     if (!navigator.geolocation) {
-      await finish(answers);
+      afterLocation(location);
       return;
     }
+    setBusy(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const nextLat = roundCoord(position.coords.latitude);
         const nextLng = roundCoord(position.coords.longitude);
         setLat(nextLat);
         setLng(nextLng);
-        void finish({
-          ...answers,
-          location: { ...location, lat: nextLat, lng: nextLng, climateZone: deriveClimate({ postalCode, lat: nextLat, lng: nextLng }) },
-        });
+        setBusy(false);
+        afterLocation({ ...location, lat: nextLat, lng: nextLng, climateZone: deriveClimate({ postalCode, lat: nextLat, lng: nextLng }) });
       },
       () => {
-        void finish(answers);
+        setBusy(false);
+        afterLocation(location);
       },
       { enableHighAccuracy: false, timeout: 8000 },
     );
+  }
+
+  async function continueFromZip() {
+    const zip = normalizeUsZip(postalCode);
+    if (zip && !isValidUsZip(zip)) {
+      setZipError("Enter a 5-digit US ZIP, or skip.");
+      return;
+    }
+    if (!zip) {
+      afterLocation({ ...location, postalCode: undefined });
+      return;
+    }
+    setBusy(true);
+    const coords = await geocodeUsZip(zip);
+    setBusy(false);
+    if (coords) {
+      setLat(coords.lat);
+      setLng(coords.lng);
+      setPlaceName(coords.placeName);
+      afterLocation({
+        ...location,
+        postalCode: zip,
+        lat: coords.lat,
+        lng: coords.lng,
+        placeName: coords.placeName,
+        climateZone: deriveClimate({ postalCode: zip, lat: coords.lat, lng: coords.lng }),
+      });
+      return;
+    }
+    afterLocation({ ...location, postalCode: zip });
   }
 
   return (
@@ -117,17 +171,18 @@ export function Onboarding({
             <Button className="h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
               Set up my home
             </Button>
-            <button
-              type="button"
-              className="mt-4 text-[13px] font-medium text-brand"
+            <Button
+              variant="secondary"
+              className="mt-3 h-14 w-full text-base"
               disabled={busy}
               onClick={() => void finish(sampleHomeAnswers())}
             >
               Use a sample home instead
-            </button>
+            </Button>
             <p className="mt-auto pt-8 text-[12px] leading-5 text-muted-foreground">
               Cuidala keeps your home data on this iPhone, encrypted. No account, no server copy.
-              See Settings for the privacy policy.
+              iCloud backup restores the encrypted home but not the key — make a backup in Settings before
+              you switch phones. See Settings for the privacy policy.
             </p>
           </Screen>
         ) : null}
@@ -211,8 +266,10 @@ export function Onboarding({
         {step === 3 ? (
           <Screen
             title="Where is it?"
-            copy="ZIP is only for weather and seasonal tasks. Skip if you want chores now."
-            onSkip={() => void finish(answers)}
+            copy="ZIP is only for weather and seasonal tasks. We’ll show what that climate means for your house next."
+            onSkip={() => {
+              afterLocation({ ...location, postalCode: undefined });
+            }}
           >
             <Button className="h-14 w-full" disabled={busy} onClick={() => void requestLocation()}>
               Allow location
@@ -231,28 +288,65 @@ export function Onboarding({
               aria-label="ZIP code"
             />
             {zipError ? <p className="mt-2 text-sm text-destructive">{zipError}</p> : null}
-            <Button
-              className="mt-6 h-14 w-full"
-              disabled={busy}
-              onClick={() => {
-                const zip = normalizeUsZip(postalCode);
-                if (zip && !isValidUsZip(zip)) {
-                  setZipError("Enter a 5-digit US ZIP, or skip.");
-                  return;
-                }
-                void finish({
-                  ...answers,
-                  location: { ...location, postalCode: zip || undefined },
-                });
-              }}
-            >
-              Show me my chores
+            <Button className="mt-6 h-14 w-full" disabled={busy} onClick={() => void continueFromZip()}>
+              Continue
             </Button>
+          </Screen>
+        ) : null}
+
+        {step === 4 ? (
+          <Screen
+            title={preview.headline}
+            copy="Here’s what this climate means for your house. These jobs show up on Seasonal when they’re due."
+          >
+            <ul className="grid gap-2">
+              {preview.beats.map((beat) => (
+                <li key={beat} className="rounded-2xl bg-card px-4 py-3 text-[15px] leading-5">
+                  {beat}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-[12px] leading-5 text-muted-foreground">
+              This home lives only on this iPhone. Before you switch phones, make an encrypted backup in Settings.
+            </p>
+            <div className="mt-auto flex gap-3 pt-6">
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(3)}>
+                Back
+              </Button>
+              <Button className="h-14 flex-1" onClick={() => go(5)}>
+                Continue
+              </Button>
+            </div>
+          </Screen>
+        ) : null}
+
+        {step === 5 ? (
+          <Screen
+            title="Walk your house"
+            copy="Tap what you actually buy. Restock will track order-by dates so you’re not hunting sizes later."
+          >
+            <RestockWalkPicker picks={restockPicks} onChange={setRestockPicks} />
+            <div className="mt-auto flex gap-3 pt-6">
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(location.postalCode || location.lat != null ? 4 : 3)}>
+                Back
+              </Button>
+              <Button className="h-14 flex-1" disabled={busy} onClick={() => void finish({ ...answers, restockPicks })}>
+                Show me my chores
+              </Button>
+            </div>
           </Screen>
         ) : null}
       </div>
     </div>
   );
+}
+
+function attributesForPreview(homeType: HomeType, location: HomeLocation): HomeAttributes {
+  const features = defaultFeatures(homeType, location);
+  return {
+    ...DEFAULT_ATTRIBUTES,
+    ...Object.fromEntries(features.map((id) => [id, true])),
+  };
 }
 
 function Screen({

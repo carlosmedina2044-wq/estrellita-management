@@ -48,7 +48,7 @@ export function climateFromPostalCode(postalCode: string): ClimateZone | undefin
 export function applyPostalCode(
   current: HomeLocation,
   postalCode: string,
-  coords?: { lat: number; lng: number },
+  coords?: { lat: number; lng: number; placeName?: string },
 ): HomeLocation {
   const zip = normalizeUsZip(postalCode);
   const lat = coords?.lat ?? current.lat;
@@ -59,6 +59,7 @@ export function applyPostalCode(
     ...(typeof lat === "number" && typeof lng === "number"
       ? { lat: roundCoord(lat), lng: roundCoord(lng) }
       : {}),
+    ...(coords?.placeName ? { placeName: coords.placeName } : {}),
   };
   next.climateZone = deriveClimate({ ...next, climateZone: undefined });
   return next;

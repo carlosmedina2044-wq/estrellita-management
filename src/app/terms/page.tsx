@@ -23,8 +23,9 @@ export default function TermsPage() {
         is not a party to those transactions and receives no commission or data from them.
       </p>
       <p>
-        Your data lives on your device. Keep a device backup if you want to preserve it; Cuidala cannot recover
-        data from a lost or erased device.
+        Your data lives on your device. An iCloud device backup restores the encrypted home but not the Keychain
+        key. Use <em>Settings → Back up my home</em> to save an encrypted file you control before you switch phones.
+        Cuidala cannot recover data from a lost device or a forgotten backup passphrase.
       </p>
       <p>
         The app is provided “as is” without warranty of any kind. To the extent permitted by law, Cuidala’s

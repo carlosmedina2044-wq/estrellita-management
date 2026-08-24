@@ -13,10 +13,11 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 
 ## Pre-release device checks (manual, every TestFlight build)
 
-- [ ] Fresh install: Onboarding → Set up my home → Today list in under 3 minutes.
-- [ ] Fresh install: Use a sample home → Today list immediately.
-- [ ] Face ID lock: background the app for > lock-after, return, verify prompt; cancel prompt → still locked.
+- [ ] Fresh install: Onboarding → Set up my home → climate payoff (if ZIP) → Walk your house → Today list in under 5 minutes.
+- [ ] Fresh install: Use a sample home → Today list immediately; Restock has starter consumables.
+- [ ] Face ID lock: background the app for > lock-after, return, verify prompt; cancel prompt → still locked. Confirm this is a UI gate (household is not shown) — Keychain is not biometric-bound.
 - [ ] Settings → Require Face ID → Off → no prompt on relaunch.
+- [ ] Settings → Back up my home → create file → Erase all data → Restore from that file → home returns.
 - [ ] Hand phone to cleaner → Hand phone back → Face ID required.
 - [ ] Add a consumable → Allow notifications → confirm a pending reminder exists in the schedule (Settings shows "Allowed").
 - [ ] Restock → Order → SFSafariViewController opens (not the app WebView); Done returns to the app.
@@ -24,7 +25,9 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Settings → Erase all data → relaunch → onboarding; no residual data.
 - [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
 - [ ] Privacy policy and Terms open from Settings.
+- [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy still Data Not Collected + coarse location.
+- [ ] iPad: layout is not a stretched phone column; tab bar remains usable in landscape.
 
 ## Changelog
 
-- 2026-08 — Pre-release. Removed server/auth code; moved to local-first architecture.
+- 2026-08 — Review follow-up: lint gate, Open-Meteo geocoding, encrypted export/import, Face ID residual-risk wording, restock walk-through, iPad layout.

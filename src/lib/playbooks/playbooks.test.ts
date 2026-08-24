@@ -101,3 +101,19 @@ test("freeze trigger creates tasks once and respects cooldown", () => {
   assert.equal(again.duties.length, 0);
   assert.equal(onCooldown(freeze, first.fires, now), true);
 });
+
+test("firing twice with the same weatherFires state appends nothing", () => {
+  const forecast: WeatherForecast = {
+    fetchedAt: "2026-01-01T00:00:00.000Z",
+    days: [
+      { date: "2026-01-01", tempMinF: 25, tempMaxF: 40, windMph: 5, precipIn: 0 },
+      { date: "2026-01-02", tempMinF: 24, tempMaxF: 38, windMph: 5, precipIn: 0 },
+    ],
+  };
+  const now = new Date(2026, 0, 1);
+  const first = evaluateTriggers(home(), forecast, now);
+  assert.ok(first.fires.length > 0);
+  const second = evaluateTriggers(home({ weatherFires: first.fires }), forecast, now);
+  assert.equal(second.duties.length, 0);
+  assert.equal(second.fires.length, 0);
+});

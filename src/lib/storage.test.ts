@@ -104,3 +104,13 @@ test("keeps an explicit empty installedAt and household saved retailer links", (
   assert.equal(household.savedRetailerLinks[0]?.url, "https://ebay.com/itm/99");
   assert.equal(household.savedRetailerLinks[0]?.useCount, 2);
 });
+
+test("keeps a geocoded place name on location", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      location: { postalCode: "85701", placeName: "Tucson", climateZone: "hot-arid" },
+    }),
+  );
+  assert.equal(household.location.placeName, "Tucson");
+});

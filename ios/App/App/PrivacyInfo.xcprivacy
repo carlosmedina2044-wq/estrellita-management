@@ -4,8 +4,8 @@
 <dict>
   <!--
     Cuidala has no accounts and no first-party server. The only data that
-    leaves the device is a rounded coordinate (or ZIP) sent to public weather
-    APIs with no identifier attached. That is "Coarse Location", not linked to
+    leaves the device is a rounded coordinate (or ZIP) sent to Open-Meteo
+    with no identifier attached. That is "Coarse Location", not linked to
     identity and not used for tracking. Everything else stays on device and is
     not "collected" in the App Store Connect sense.
   -->

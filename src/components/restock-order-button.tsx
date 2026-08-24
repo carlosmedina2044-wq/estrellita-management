@@ -63,7 +63,7 @@ export function RestockOrderButton({
     setAsk(true);
   }
 
-  function useEntry(saveUrl: string, openUrl: string) {
+  function applyEntry(saveUrl: string, openUrl: string) {
     setLinkDraft(saveUrl);
     onSaveLink?.(saveUrl);
     void openHref(openUrl);
@@ -122,13 +122,13 @@ export function RestockOrderButton({
               size="sm"
               variant="secondary"
               className="h-8 max-w-full rounded-full"
-              onClick={() => useEntry(entry.url, entry.url)}
+              onClick={() => applyEntry(entry.url, entry.url)}
             >
               <span className="truncate">{savedRetailerLabel(entry.url)}</span>
             </Button>
           ))}
         </div>
-        <CustomStoreSearch itemName={item.itemName} onSearch={useEntry} />
+        <CustomStoreSearch itemName={item.itemName} onSearch={applyEntry} />
       </div>
       )}
       {placement.nudgeArrive ? (
@@ -145,7 +145,7 @@ export function RestockOrderButton({
           <AlertDialogHeader>
             <AlertDialogTitle>Did you order it?</AlertDialogTitle>
             <AlertDialogDescription>
-              {item.itemName}. Yes sets expected arrival and hides it from Order now until it should be here.
+              {item.itemName}. If you ordered it, we’ll hide this until it should arrive.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {onSaveLink ? (

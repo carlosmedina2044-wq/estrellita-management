@@ -2,9 +2,11 @@
 
 Home maintenance for iPhone: rooms, chores, the filters and batteries you need to reorder, a maintenance budget forecast, and seasonal / weather-driven checklists.
 
-**Local-first.** There are no accounts and no Cuidala servers. Everything lives on the device, encrypted at rest (AES-256-GCM) with a key held in the iOS Keychain. Face ID / Touch ID / passcode lock is enforced by the system prompt and fails closed. The only network calls are to two public weather endpoints, sent a coordinate rounded to ~1 km with no identifier.
+**Local-first.** There are no accounts and no Cuidala servers. Everything lives on the device, encrypted at rest (AES-256-GCM) with a key held in the iOS Keychain. Face ID / Touch ID / passcode is required before the home is shown and fails closed — that lock is an app-level UI gate, not a second encryption layer on the Keychain item (see `docs/RESIDUAL_RISKS.md`). The only network calls are to Open-Meteo (forecast + ZIP geocoding), sent a coordinate rounded to ~1 km or a ZIP, with no identifier.
 
 The UI is a Next.js app exported to static files and packaged by Capacitor into a native iOS shell. No remote code is loaded.
+
+**No account. No cloud. Yours.**
 
 ## Develop
 
@@ -31,14 +33,25 @@ npm run cap:ios                   # open in Xcode; set Team
 In Xcode:
 - Signing & Capabilities: your team; bundle id `com.cuidala.app`.
 - Add capability **Push Notifications** is *not* needed (local notifications only).
-- Deployment target iOS 15.0 or later.
+- Deployment target iOS 15.0 or later. Required device capability is **arm64**.
 - Archive → Distribute → App Store Connect.
 
 ## App Store Connect notes
 
+- **Price:** one-time purchase, $9.99. No in-app purchases, no subscription, no account. Core chores, Restock, and Seasonal ship in the binary; adding StoreKit later would be a new review cycle.
 - **App Privacy:** Data Not Collected except *Coarse Location → App Functionality, not linked to identity*. Matches `PrivacyInfo.xcprivacy`.
 - **Privacy policy URL:** host `out/privacy/` (e.g. on Vercel) and use that URL; the same policy is reachable in-app at Settings → Privacy policy.
-- **Reviewer notes:** No sign-in. On first launch tap **Use a sample home instead** to reach the task list immediately. Restock's Order / Find it buttons open the retailer in an in-app Safari view; the app does not process purchases or store payment information.
+- **Listing copy:** lead with “No account. No cloud. Yours.”
+- **Reviewer notes:** This is a Capacitor/WKWebView app with native iOS capabilities, not a thin website wrapper:
+  - Face ID / Touch ID / device passcode lock (LocalAuthentication via native plugin); cancel stays locked.
+  - Keychain-held AES-256-GCM vault; encrypted portable backup in Settings.
+  - Local notifications (no push, no APNs).
+  - Share extension / URL handling for retailer links, allow-listed to known HTTPS hosts.
+  - Retailer pages open in SFSafariViewController, not the app WebView.
+  - Optional coarse location (rounded to ~1 km) for seasonal/weather tasks.
+  - No sign-in. On first launch tap **Use a sample home instead** to reach the task list immediately, with Restock already seeded.
+  - Restock’s Order / Find it buttons open the retailer in an in-app Safari view; the app does not process purchases or store payment information.
+  - iPad uses a wider layout (`preferredContentMode: recommended`); portrait and landscape are supported.
 - **Export compliance:** the app uses only Apple-provided encryption (`ITSAppUsesNonExemptEncryption = false`).
 - **Age rating:** 4+.
 

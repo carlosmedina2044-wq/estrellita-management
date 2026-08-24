@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, Package } from "lucide-react";
 import { ConsumableForm } from "@/components/consumable-form";
+import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { OrderByLine, RestockOrderButton } from "@/components/restock-order-button";
 import { Button } from "@/components/ui/button";
 import { roomName } from "@/lib/home-model";
+import { SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
 import { groupRestock, restockPlacement, usedWhere } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import type { Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
@@ -18,6 +20,7 @@ export function RestockView({
   onMarkOrdered,
   onMarkReceived,
   onSaveLink,
+  onWalkHouse,
 }: {
   household: Household;
   onSaveDuty: (duty: DutyDraft) => void;
@@ -25,10 +28,13 @@ export function RestockView({
   onMarkOrdered?: (id: string) => void;
   onMarkReceived?: (id: string, qty: number) => void;
   onSaveLink?: (id: string, url: string) => void;
+  onWalkHouse?: (picks: RestockPick[]) => void;
 }) {
   const [creating, setCreating] = useState(false);
   const [editingDuty, setEditingDuty] = useState<Duty | null>(null);
   const [stockedOpen, setStockedOpen] = useState(false);
+  const [walking, setWalking] = useState(false);
+  const [walkPicks, setWalkPicks] = useState<RestockPick[]>(SAMPLE_RESTOCK_PICKS);
   const createGuard = useSheetOpenGuard();
   const groups = useMemo(
     () => groupRestock(household.supplyAutomations, household),
@@ -53,6 +59,46 @@ export function RestockView({
           Knows what is running out and when to order it. One tap to any retailer — you check out there.
         </p>
       </header>
+
+      {household.supplyAutomations.length === 0 ? (
+        <div className="rounded-2xl bg-card px-4 py-5">
+          {walking ? (
+            <>
+              <p className="text-[17px] font-medium">Walk your house</p>
+              <p className="mt-1 text-sm text-muted-foreground">Pick the filters and batteries you actually buy.</p>
+              <div className="mt-3">
+                <RestockWalkPicker picks={walkPicks} onChange={setWalkPicks} />
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Button variant="secondary" className="h-11 flex-1" onClick={() => setWalking(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  className="h-11 flex-1"
+                  onClick={() => {
+                    onWalkHouse?.(walkPicks);
+                    setWalking(false);
+                  }}
+                >
+                  Add to Restock
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-[17px] font-medium">Restock is empty</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Walk the house once — HVAC filter, water filter, smoke-detector batteries — and this tab stays useful.
+              </p>
+              {onWalkHouse ? (
+                <Button className="mt-3 h-11 w-full" onClick={() => setWalking(true)}>
+                  Walk your house
+                </Button>
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : null}
 
       {groups.ordered.length > 0 ? (
         <Section title="On the way" count={groups.ordered.length}>

@@ -185,6 +185,9 @@ export function weatherCaption(
 ): { text: string; needsZip: boolean } {
   const today = forecast?.days[0];
   if (today) return { text: weatherLine(forecast), needsZip: false };
+  if (location.placeName && location.postalCode) {
+    return { text: `${location.placeName} · ZIP ${location.postalCode}`, needsZip: false };
+  }
   if (location.postalCode) {
     return {
       text: `${climateLabel(deriveClimate(location))} · ZIP ${location.postalCode}`,

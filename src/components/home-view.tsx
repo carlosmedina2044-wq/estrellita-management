@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Household, RestockDigestSettings } from "@/lib/types";
 import { BrandLockup, BrandMark } from "@/components/brand-logo";
+import { BackupPanel } from "@/components/backup-panel";
 import { ZipField } from "@/components/zip-prompt";
 import { climateLabel, deriveClimate } from "@/lib/climate";
 import { notifyPermission, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
@@ -32,6 +33,8 @@ export function HomeView({
   onStartCleanerVisit,
   onChangeTree,
   onErase,
+  onExportBackup,
+  onImportBackup,
   canLock,
   restockDigest,
   onUpdateDigest,
@@ -44,6 +47,8 @@ export function HomeView({
   onStartCleanerVisit: () => void;
   onChangeTree?: (next: Household) => void;
   onErase: () => Promise<void>;
+  onExportBackup?: (passphrase: string) => Promise<string>;
+  onImportBackup?: (raw: string, passphrase: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   canLock: boolean;
   restockDigest?: RestockDigestSettings;
   onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
@@ -97,6 +102,7 @@ export function HomeView({
       <Field label="ZIP (weather + climate)">
         {household.location.postalCode ? (
           <p className="text-sm text-muted-foreground">
+            {household.location.placeName ? `${household.location.placeName} · ` : ""}
             {climateLabel(deriveClimate(household.location))} · {household.location.postalCode}
           </p>
         ) : (
@@ -177,7 +183,7 @@ export function HomeView({
         <p className="font-medium">Require Face ID</p>
         <p className="mt-1 text-xs text-muted-foreground">
           {canLock
-            ? "Locks the app on launch and after it has been in the background. Uses Face ID, Touch ID, or your passcode."
+            ? "Locks the home screen on launch and after the app has been in the background. This is an app lock, not a second encryption layer — anyone with this iPhone’s passcode can still open Cuidala."
             : "Not available on this device. Face ID, Touch ID, or a passcode must be set up in iOS Settings."}
         </p>
         <button
@@ -220,11 +226,17 @@ export function HomeView({
         Hand phone to {household.cleanerName || "cleaner"}
       </Button>
 
+      {onImportBackup ? (
+        <BackupPanel mode={onExportBackup ? "full" : "import-only"} onExport={onExportBackup} onImport={onImportBackup} />
+      ) : null}
+
       <div className="rounded-2xl bg-card p-4">
         <p className="font-medium">Your data</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Everything Cuidala knows about your home is stored on this iPhone, encrypted with a key kept
-          in the device Keychain. There is no account and no server copy. Deleting the app deletes the data.
+          in the device Keychain. There is no account and no server copy. An iCloud device backup restores
+          the encrypted home but not that key — use Back up my home before you switch phones. Deleting the
+          app deletes the data.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-primary">
           <Link href="/privacy">Privacy policy</Link>

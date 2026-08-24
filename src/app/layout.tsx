@@ -7,7 +7,7 @@ import "./globals.css";
 // script-src keeps 'unsafe-inline' because Next.js static export emits inline
 // hydration bootstrap scripts whose hashes change per build. Compensating
 // controls: no third-party scripts, no HTML rendered from user input, and
-// connect-src pinned to the two weather endpoints (see docs/RESIDUAL_RISKS.md).
+// connect-src pinned to Open-Meteo forecast + geocoding (see docs/RESIDUAL_RISKS.md).
 const CSP = [
   "default-src 'self'",
   // next dev needs eval for React refresh; production/static export does not.
@@ -15,7 +15,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  "connect-src 'self' https://api.open-meteo.com https://api.zippopotam.us",
+  "connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com",
   "worker-src 'self'",
   "manifest-src 'self'",
   "object-src 'none'",

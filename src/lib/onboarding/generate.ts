@@ -6,6 +6,8 @@ import { defaultRoomName, systemRooms, WHOLE_HOME_ID } from "@/lib/home-model";
 import starterSeed from "@/lib/onboarding/starter-chores.json";
 import { matchingPlaybooks } from "@/lib/playbooks";
 import { sampleHomeRooms, type RoomChoice } from "@/lib/onboarding/rooms";
+import type { RestockPick } from "@/lib/onboarding/restock-walk";
+import { SAMPLE_RESTOCK_PICKS } from "@/lib/onboarding/restock-walk";
 import type {
   AgeBucket,
   AssetType,
@@ -76,6 +78,7 @@ export type OnboardingAnswers = {
   features?: FeatureKey[];
   ages?: Partial<Record<SystemKey, AgeBucket>>;
   rooms?: RoomChoice[];
+  restockPicks?: RestockPick[];
   notificationsAllowed?: boolean;
 };
 
@@ -156,6 +159,7 @@ export function sampleHomeAnswers(): OnboardingAnswers {
     nickname: "Sample home",
     rooms: sampleHomeRooms(),
     ages: {},
+    restockPicks: SAMPLE_RESTOCK_PICKS,
   };
 }
 

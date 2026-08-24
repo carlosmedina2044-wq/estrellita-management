@@ -9,7 +9,9 @@ const LEGACY_KEY_IDS = ["estrellita-device-key-v1"];
  *
  * iOS: stored in the Keychain by capacitor-secure-storage-plugin. The item is
  * device-scoped and protected by the device passcode; it is not included in
- * unencrypted backups and does not sync to iCloud Keychain.
+ * unencrypted backups and does not sync to iCloud Keychain. It is not wrapped
+ * in `kSecAccessControlBiometryCurrentSet`, so Face ID is an app-lock (UI gate)
+ * rather than a cryptographic unlock of the AES key. See docs/RESIDUAL_RISKS.md.
  *
  * Web (development only): stored in localStorage. The web build is a dev shell,
  * not a shipping surface, and this is documented in the README.

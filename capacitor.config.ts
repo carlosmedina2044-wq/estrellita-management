@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
   webDir: "out",
   ios: {
     contentInset: "automatic",
-    preferredContentMode: "mobile",
+    preferredContentMode: "recommended",
     limitsNavigationsToAppBoundDomains: true,
     scheme: "Cuidala",
   },

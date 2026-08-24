@@ -30,9 +30,8 @@ export default function PrivacyPage() {
       <ul className="list-disc space-y-1 pl-5">
         <li>
           <strong>Weather.</strong> If you add a ZIP code or allow location, the app sends coordinates rounded to two
-          decimal places (roughly 1 km) to Open-Meteo (open-meteo.com) to fetch a seven-day forecast. Your ZIP
-          may be sent to Zippopotam (zippopotam.us) to convert it to coordinates. No identifier is sent with
-          these requests.
+          decimal places (roughly 1 km) to Open-Meteo (open-meteo.com) for a seven-day forecast, and may send the ZIP
+          to Open-Meteo’s geocoding API to convert it to coordinates. No identifier is sent with these requests.
         </li>
         <li>
           <strong>Retailer links.</strong> When you tap Order or Find it, the retailer’s website opens in an in-app

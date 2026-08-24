@@ -45,7 +45,7 @@ export function CleanerVisit({
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col bg-background px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <div className="app-frame px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <header className="pt-1">
         <p className="text-sm text-muted-foreground">Cleaner visit</p>
         <h1 className="ui-heading text-[34px] font-semibold tracking-tight">

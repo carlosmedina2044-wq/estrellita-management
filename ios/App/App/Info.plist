@@ -49,7 +49,7 @@
 	<string>Main</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>armv7</string>
+		<string>arm64</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
@@ -75,7 +75,7 @@
 	<key>WKAppBoundDomains</key>
 	<array>
 		<string>api.open-meteo.com</string>
-		<string>api.zippopotam.us</string>
+		<string>geocoding-api.open-meteo.com</string>
 	</array>
 	<key>NSAppTransportSecurity</key>
 	<dict>

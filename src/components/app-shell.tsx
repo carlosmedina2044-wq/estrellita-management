@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Home, Leaf, Package, Settings, Sun, Wallet } from "lucide-react";
 import { BrandLockup } from "@/components/brand-logo";
+import { BackupPanel } from "@/components/backup-panel";
 import { BudgetView } from "@/components/budget-view";
 import { CleanerVisit } from "@/components/cleaner-visit";
 import { FaceLock } from "@/components/face-lock";
@@ -54,6 +55,9 @@ export function AppShell() {
     loadError,
     retryLoad,
     eraseEverything,
+    exportBackup,
+    importBackup,
+    applyRestockWalk,
     markAssetReplaced,
     acceptPlaybook,
     declinePlaybook,
@@ -127,23 +131,29 @@ export function AppShell() {
         if (!payload) throw new Error("Weather unavailable");
         setForecast(payload);
         setWeatherError(null);
-        const { duties, fires } = evaluateTriggers(household, payload);
         const needsCoords = (lat == null || lng == null) && zip;
-        updateTree((current) => ({
-          ...current,
-          duties:
-            duties.length > 0
-              ? [
-                  ...current.duties,
-                  ...duties.map((duty) => ({ ...duty, id: crypto.randomUUID(), createdAt: new Date().toISOString() })),
-                ]
-              : current.duties,
-          weatherFires: fires.length > 0 ? [...current.weatherFires, ...fires] : current.weatherFires,
-          weatherStatus: { lastSuccessAt: payload.fetchedAt, lastError: null },
-          location: needsCoords
-            ? applyPostalCode(current.location, zip, { lat: payload.lat, lng: payload.lng })
-            : current.location,
-        }));
+        updateTree((current) => {
+          const { duties, fires } = evaluateTriggers(current, payload);
+          return {
+            ...current,
+            duties:
+              duties.length > 0
+                ? [
+                    ...current.duties,
+                    ...duties.map((duty) => ({ ...duty, id: crypto.randomUUID(), createdAt: new Date().toISOString() })),
+                  ]
+                : current.duties,
+            weatherFires: fires.length > 0 ? [...current.weatherFires, ...fires] : current.weatherFires,
+            weatherStatus: { lastSuccessAt: payload.fetchedAt, lastError: null },
+            location: needsCoords
+              ? applyPostalCode(current.location, zip, {
+                  lat: payload.lat,
+                  lng: payload.lng,
+                  placeName: payload.placeName,
+                })
+              : current.location,
+          };
+        });
       } catch {
         if (cancelled) return;
         setWeatherError("Could not refresh weather");
@@ -211,6 +221,7 @@ export function AppShell() {
         reason={loadError.reason}
         onRetry={() => void retryLoad()}
         onStartFresh={() => void eraseEverything()}
+        onImport={importBackup}
       />
     );
   }
@@ -249,7 +260,7 @@ export function AppShell() {
   const weather = weatherCaption(forecast, household.location);
 
   return (
-    <div className="relative mx-auto flex min-h-dvh w-full max-w-lg flex-col overflow-x-hidden bg-background">
+    <div className="app-frame">
       <main className="app-shell-main min-w-0 flex-1 px-4 pt-[max(1.25rem,env(safe-area-inset-top))]">
         {tab === "today" ? (
           <TodayView
@@ -277,6 +288,7 @@ export function AppShell() {
             onMarkOrdered={markSupplyOrdered}
             onMarkReceived={markSupplyReceived}
             onSaveLink={saveSupplyLink}
+            onWalkHouse={applyRestockWalk}
           />
         ) : null}
         {tab === "home" ? (
@@ -285,7 +297,9 @@ export function AppShell() {
               <BrandLockup size="sm" />
               <h1 className="ui-heading mt-5 text-[34px] font-semibold tracking-tight">{household.householdName}</h1>
               <button type="button" className="mt-2 text-sm font-medium text-primary" onClick={() => setTab("budget")}>
-                Next 90 days: ~${Math.round(ninety).toLocaleString()}
+                {ninety > 0
+                  ? `Next 90 days: ~$${Math.round(ninety).toLocaleString()}`
+                  : "Budget: add costs to see the next 90 days"}
               </button>
             </header>
             <HomeMapView
@@ -357,6 +371,8 @@ export function AppShell() {
             onStartCleanerVisit={startCleanerVisit}
             onChangeTree={(next) => updateTree(() => next)}
             onErase={eraseEverything}
+            onExportBackup={exportBackup}
+            onImportBackup={importBackup}
             canLock={canLock === true}
             restockDigest={household.restockDigest}
             onUpdateDigest={updateRestockDigest}
@@ -378,7 +394,7 @@ export function AppShell() {
       />
 
       <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40">
-        <div className="pointer-events-auto mx-auto grid max-w-lg grid-cols-6 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-6 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
           <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
           <NavButton label="Home" icon={<Home className="size-5" />} active={tab === "home"} onClick={() => setTab("home")} />
           <NavButton
@@ -430,24 +446,32 @@ function LoadFailed({
   reason,
   onRetry,
   onStartFresh,
+  onImport,
 }: {
-  reason: "corrupt" | "unavailable";
+  reason: "corrupt" | "unavailable" | "key-mismatch";
   onRetry: () => void;
   onStartFresh: () => void;
+  onImport: (raw: string, passphrase: string) => Promise<{ ok: true } | { ok: false; error: string }>;
 }) {
+  const keyMismatch = reason === "key-mismatch";
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
       <BrandLockup size="sm" />
-      <h1 className="ui-heading mt-5 text-[28px] font-semibold tracking-tight">Couldn’t load the house</h1>
+      <h1 className="ui-heading mt-5 text-[28px] font-semibold tracking-tight">
+        {keyMismatch ? "This iPhone doesn’t have the key" : "Couldn’t load the house"}
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        {reason === "unavailable"
-          ? "Saved household data couldn’t be read right now. Try again, or erase this device’s copy and start over."
-          : "Saved household data on this device looks damaged. Nothing was overwritten. You can try again, or erase it and start over."}
+        {keyMismatch
+          ? "A restored iCloud backup includes the encrypted home but not the Keychain key. Restore from a Cuidala backup file, or erase this copy and start over."
+          : reason === "unavailable"
+            ? "Saved household data couldn’t be read right now. Try again, or erase this device’s copy and start over."
+            : "Saved household data on this device looks damaged. Nothing was overwritten. You can try again, restore a backup, or erase it and start over."}
       </p>
       <div className="mt-6 flex flex-col gap-2">
         <Button className="h-12" onClick={onRetry}>
           Try again
         </Button>
+        <BackupPanel mode="import-only" onImport={onImport} />
         <Button variant="secondary" className="h-12 text-destructive" onClick={onStartFresh}>
           Erase and start over
         </Button>

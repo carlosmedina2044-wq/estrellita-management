@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Capacitor copies the static export here; not source.
+    "ios/App/App/public/**",
   ]),
 ]);
 

@@ -44,7 +44,7 @@ export function isVaultEnvelope(value: unknown): value is VaultEnvelope {
 
 /** Older PBKDF2/PIN envelopes from pre-release builds. Never opened, never deleted. */
 export function isLegacyPinEnvelope(value: unknown): boolean {
-  return isPlainObject(value) && value.v === 1 && value.kdf === "PBKDF2-SHA256";
+  return isPlainObject(value) && value.v === 1 && value.kdf === "PBKDF2-SHA256" && value.kind !== "cuidala-backup";
 }
 
 function asBufferSource(bytes: Uint8Array): ArrayBuffer {
@@ -93,13 +93,14 @@ export async function encryptJson(
   };
 }
 
-export async function decryptJson(key: CryptoKey, envelope: VaultEnvelope): Promise<string> {
+export async function decryptJson(key: CryptoKey, envelope: VaultEnvelope, aad: string = VAULT_AAD): Promise<string> {
   const iv = asBufferSource(b64ToBytes(envelope.iv));
   const data = asBufferSource(b64ToBytes(envelope.ciphertext));
-  for (const aad of [VAULT_AAD, PREVIOUS_VAULT_AAD]) {
+  const candidates = aad === VAULT_AAD ? [VAULT_AAD, PREVIOUS_VAULT_AAD] : [aad];
+  for (const extra of candidates) {
     try {
       const opened = await crypto.subtle.decrypt(
-        { name: "AES-GCM", iv, additionalData: encoder.encode(aad) },
+        { name: "AES-GCM", iv, additionalData: encoder.encode(extra) },
         key,
         data,
       );

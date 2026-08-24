@@ -13,7 +13,7 @@
 <key>WKAppBoundDomains</key>
 <array>
   <string>api.open-meteo.com</string>
-  <string>api.zippopotam.us</string>
+  <string>geocoding-api.open-meteo.com</string>
 </array>
 <key>NSAppTransportSecurity</key>
 <dict>

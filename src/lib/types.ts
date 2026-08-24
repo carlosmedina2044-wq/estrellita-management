@@ -98,6 +98,7 @@ export type HomeLocation = {
   lat?: number;
   lng?: number;
   postalCode?: string;
+  placeName?: string;
   climateZone?: ClimateZone;
 };
 

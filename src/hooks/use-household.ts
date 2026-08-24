@@ -6,8 +6,10 @@ import { sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
 import {
   EMPTY_HOUSEHOLD,
   eraseHousehold,
+  exportHouseholdBackup,
   getHousehold,
   hydrateHousehold,
+  importHouseholdBackup,
   subscribeHousehold,
   updateHousehold,
   type HouseholdLoad,
@@ -19,6 +21,7 @@ import type { DutyDraft, Household } from "@/lib/types";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { generateHomeFromAnswers } from "@/lib/onboarding/generate";
+import { applyRestockPicks, type RestockPick } from "@/lib/onboarding/restock-walk";
 import { dutyFromPlaybookTask, PLAYBOOKS } from "@/lib/playbooks";
 import { addDays, toISODate } from "@/lib/dates";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
@@ -87,7 +90,7 @@ export function useHousehold() {
             ...dutyFromPlaybookTask(generated, playbook, task, toISODate(addDays(new Date(), 14))),
           })),
         );
-      update(() =>
+      const seeded = applyRestockPicks(
         withHouseholdDefaults({
           version: 7,
           householdName: sanitizeText(generated.householdName, TEXT_LIMITS.name) || "Home",
@@ -110,7 +113,9 @@ export function useHousehold() {
           supplyAutomations: [],
           restockDigest: { ...DEFAULT_RESTOCK_DIGEST },
         }),
+        input.answers.restockPicks ?? [],
       );
+      update(() => seeded);
       setHousehold(getHousehold());
     },
     [update],
@@ -455,6 +460,27 @@ export function useHousehold() {
     setHousehold(getHousehold());
   }, []);
 
+  const exportBackup = useCallback(async (passphrase: string) => {
+    return exportHouseholdBackup(passphrase);
+  }, []);
+
+  const importBackup = useCallback(async (raw: string, passphrase: string) => {
+    const result = await importHouseholdBackup(raw, passphrase);
+    if (result.ok) {
+      setLoadError(null);
+      setLegacyLockedVault(false);
+      setHousehold(getHousehold());
+    }
+    return result;
+  }, []);
+
+  const applyRestockWalk = useCallback(
+    (picks: RestockPick[]) => {
+      update((current) => applyRestockPicks(current, picks));
+    },
+    [update],
+  );
+
   const activeDuties = useMemo(
     () => household.duties.filter((duty) => !duty.archived),
     [household.duties],
@@ -486,5 +512,8 @@ export function useHousehold() {
     endCleanerVisit,
     retryLoad,
     eraseEverything,
+    exportBackup,
+    importBackup,
+    applyRestockWalk,
   };
 }
