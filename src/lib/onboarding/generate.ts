@@ -21,6 +21,7 @@ import type {
   HomeType,
   Household,
   RoomType,
+  RetailerId,
   Tenure,
 } from "@/lib/types";
 
@@ -81,6 +82,7 @@ export type OnboardingAnswers = {
   ages?: Partial<Record<SystemKey, AgeBucket>>;
   rooms?: RoomChoice[];
   restockPicks?: RestockPick[];
+  preferredRetailers?: RetailerId[];
   notificationsAllowed?: boolean;
 };
 
@@ -209,9 +211,13 @@ export function generateHomeFromAnswers(
     bathrooms: answers.bathrooms ?? sizeDefaults(answers.homeType).bathrooms,
   };
   const chosenRooms = answers.rooms?.filter((room) => room.enabled);
-  const features = answers.rooms
+  const inferred = answers.rooms
     ? inferFeaturesFromRooms(answers.homeType, answers.rooms, answers.location)
     : (answers.features ?? defaultFeatures(answers.homeType, answers.location));
+  const features: FeatureKey[] = [...inferred];
+  for (const extra of answers.features ?? []) {
+    if (!features.includes(extra)) features.push(extra);
+  }
   const ages = answers.ages ?? {};
 
   const floors: HomeFloor[] = Array.from({ length: size.floors }, (_, index) => ({

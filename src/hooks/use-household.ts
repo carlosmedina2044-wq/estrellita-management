@@ -126,6 +126,7 @@ export function useHousehold() {
               declinedTaskKeys: [],
             })),
           restockDigest: { ...DEFAULT_RESTOCK_DIGEST },
+          preferredRetailers: input.answers.preferredRetailers ?? [],
         }),
         input.answers.restockPicks ?? [],
       );

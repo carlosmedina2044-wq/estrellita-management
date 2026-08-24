@@ -99,3 +99,17 @@ test("apartment template starts with balcony off and no garage", () => {
   assert.equal(generated.attributes.hasGarage, false);
   assert.ok(generated.rooms.some((room) => room.type === "kitchen" && !room.system));
 });
+
+test("pool and evaporative cooler extras survive when rooms are also set", () => {
+  const generated = generateHomeFromAnswers({
+    homeType: "house",
+    location: {},
+    nickname: "Home",
+    rooms: roomTemplateFor("house"),
+    features: ["hasPool", "hasEvaporativeCooler"],
+  });
+  assert.equal(generated.attributes.hasPool, true);
+  assert.equal(generated.attributes.hasEvaporativeCooler, true);
+  assert.ok(generated.assets.some((asset) => asset.type === "pool_pump"));
+  assert.ok(generated.assets.some((asset) => asset.type === "evaporative_cooler"));
+});

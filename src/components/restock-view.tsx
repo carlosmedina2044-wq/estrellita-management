@@ -8,7 +8,7 @@ import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { Button } from "@/components/ui/button";
 import { roomName } from "@/lib/home-model";
-import { SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
+import { SAMPLE_RESTOCK_PICKS, defaultWalkPicks, type RestockPick } from "@/lib/onboarding/restock-walk";
 import { groupRestock, restockPlacement, usedWhere, type RestockFlowHandlers } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import type { AppNavigateTarget, Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
@@ -75,7 +75,7 @@ export function RestockView({
               <p className="text-[17px] font-medium">Walk your house</p>
               <p className="mt-1 text-sm text-muted-foreground">Pick the filters and batteries you actually buy.</p>
               <div className="mt-3">
-                <RestockWalkPicker picks={walkPicks} onChange={setWalkPicks} />
+                <RestockWalkPicker picks={walkPicks} onChange={setWalkPicks} context={household} />
               </div>
               <div className="mt-3 flex gap-2">
                 <Button variant="secondary" className="h-11 flex-1" onClick={() => setWalking(false)}>
@@ -99,7 +99,13 @@ export function RestockView({
                 Walk the house once — HVAC filter, water filter, smoke-detector batteries — and this tab stays useful.
               </p>
               {onWalkHouse ? (
-                <Button className="mt-3 h-11 w-full" onClick={() => setWalking(true)}>
+                <Button
+                  className="mt-3 h-11 w-full"
+                  onClick={() => {
+                    setWalkPicks(defaultWalkPicks(household));
+                    setWalking(true);
+                  }}
+                >
                   Walk your house
                 </Button>
               ) : null}

@@ -8,12 +8,25 @@ import { Input } from "@/components/ui/input";
 import { climatePayoff } from "@/lib/climate-payoff";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
 import { DEFAULT_ATTRIBUTES } from "@/lib/household-defaults";
-import { defaultFeatures, sampleHomeAnswers, type OnboardingAnswers } from "@/lib/onboarding/generate";
+import {
+  defaultFeatures,
+  generateHomeFromAnswers,
+  sampleHomeAnswers,
+  type FeatureKey,
+  type OnboardingAnswers,
+} from "@/lib/onboarding/generate";
 import { ADD_ROOM_TYPES, nextRoomKey, roomTemplateFor, type RoomChoice } from "@/lib/onboarding/rooms";
-import { SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
+import { defaultWalkPicks, picksMissingSize, SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
+import { RETAILER_CHIPS } from "@/lib/retailer";
 import { geocodeUsZip } from "@/lib/weather/client";
-import type { HomeAttributes, HomeLocation, HomeType, Tenure } from "@/lib/types";
+import type { HomeAttributes, HomeLocation, HomeType, RetailerId, Tenure } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const EXTRA_HOME_FEATURES: { id: FeatureKey; label: string }[] = [
+  { id: "hasPool", label: "Pool" },
+  { id: "hasEvaporativeCooler", label: "Evaporative cooler" },
+  { id: "hasWell", label: "Well" },
+];
 
 export function Onboarding({
   onComplete,
@@ -31,7 +44,12 @@ export function Onboarding({
   const [placeName, setPlaceName] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [zipError, setZipError] = useState("");
+  const [extraFeatures, setExtraFeatures] = useState<FeatureKey[]>([]);
   const [restockPicks, setRestockPicks] = useState<RestockPick[]>(SAMPLE_RESTOCK_PICKS);
+  const [walkPhase, setWalkPhase] = useState<"items" | "stores">("items");
+  const [sizeBanner, setSizeBanner] = useState(false);
+  const [preferredRetailers, setPreferredRetailers] = useState<RetailerId[]>([]);
+  const [walkContext, setWalkContext] = useState(() => generateHomeFromAnswers(sampleHomeAnswers()));
 
   const location: HomeLocation = {
     postalCode: postalCode || undefined,
@@ -46,7 +64,9 @@ export function Onboarding({
     location,
     nickname: "Home",
     rooms,
+    features: extraFeatures,
     restockPicks,
+    preferredRetailers,
   };
   const lastStep = 6;
   const progress = step / lastStep;
@@ -87,6 +107,22 @@ export function Onboarding({
     setAdding(false);
   }
 
+  function enterWalk() {
+    const preview = generateHomeFromAnswers({
+      homeType,
+      tenure,
+      location,
+      nickname: "Home",
+      rooms,
+      features: extraFeatures,
+    });
+    setWalkContext(preview);
+    setRestockPicks(defaultWalkPicks(preview));
+    setWalkPhase("items");
+    setSizeBanner(false);
+    go(6);
+  }
+
   function afterLocation(nextLocation: HomeLocation) {
     const resolved = {
       ...answers,
@@ -96,8 +132,23 @@ export function Onboarding({
       go(5);
       return resolved;
     }
-    go(6);
+    enterWalk();
     return resolved;
+  }
+
+  function continueFromWalk() {
+    const missing = picksMissingSize(restockPicks);
+    if (missing.length > 0 && !sizeBanner) {
+      setSizeBanner(true);
+      return;
+    }
+    setWalkPhase("stores");
+  }
+
+  function toggleRetailer(id: RetailerId) {
+    setPreferredRetailers((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+    );
   }
 
   async function requestLocation() {
@@ -272,6 +323,29 @@ export function Onboarding({
                 + Add room
               </button>
             )}
+            <p className="mt-6 text-[13px] font-medium text-muted-foreground">Also here</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {EXTRA_HOME_FEATURES.map((item) => {
+                const on = extraFeatures.includes(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={cn(
+                      "h-9 rounded-full px-3 text-[13px] font-medium",
+                      on ? "bg-primary text-primary-foreground" : "bg-secondary",
+                    )}
+                    onClick={() =>
+                      setExtraFeatures((current) =>
+                        on ? current.filter((id) => id !== item.id) : [...current, item.id],
+                      )
+                    }
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
             <div className="mt-auto flex gap-3 pt-6">
               <Button variant="secondary" className="h-14 flex-1" onClick={() => go(2)}>
                 Back
@@ -337,24 +411,77 @@ export function Onboarding({
               <Button variant="secondary" className="h-14 flex-1" onClick={() => go(4)}>
                 Back
               </Button>
-              <Button className="h-14 flex-1" onClick={() => go(6)}>
+              <Button className="h-14 flex-1" onClick={() => enterWalk()}>
                 Continue
               </Button>
             </div>
           </Screen>
         ) : null}
 
-        {step === 6 ? (
+        {step === 6 && walkPhase === "items" ? (
           <Screen
             title="Walk your house"
             copy="Tap what you actually buy. Restock will track order-by dates so you’re not hunting sizes later."
           >
-            <RestockWalkPicker picks={restockPicks} onChange={setRestockPicks} />
+            <RestockWalkPicker
+              picks={restockPicks}
+              onChange={(next) => {
+                setRestockPicks(next);
+                setSizeBanner(false);
+              }}
+              context={walkContext}
+              sizeWarning={sizeBanner}
+              onSkipSizes={() => setWalkPhase("stores")}
+            />
             <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(location.postalCode || location.lat != null ? 5 : 4)}>
+              <Button
+                variant="secondary"
+                className="h-14 flex-1"
+                onClick={() => go(location.postalCode || location.lat != null ? 5 : 4)}
+              >
                 Back
               </Button>
-              <Button className="h-14 flex-1" disabled={busy} onClick={() => void finish({ ...answers, restockPicks })}>
+              <Button className="h-14 flex-1" disabled={busy} onClick={continueFromWalk}>
+                Continue
+              </Button>
+            </div>
+          </Screen>
+        ) : null}
+
+        {step === 6 && walkPhase === "stores" ? (
+          <Screen
+            title="Where do you usually shop?"
+            copy="Order buttons open your stores first. You can change this any time."
+            onSkip={() => void finish({ ...answers, restockPicks, preferredRetailers: [] })}
+          >
+            <div className="flex flex-wrap gap-1.5">
+              {RETAILER_CHIPS.map((chip) => {
+                const index = preferredRetailers.indexOf(chip.id);
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    className={cn(
+                      "h-10 rounded-full px-3 text-[15px] font-medium",
+                      index >= 0 ? "bg-primary text-primary-foreground" : "bg-secondary",
+                    )}
+                    onClick={() => toggleRetailer(chip.id)}
+                  >
+                    {chip.label}
+                    {index >= 0 ? ` · ${index + 1}` : ""}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-auto flex gap-3 pt-6">
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => setWalkPhase("items")}>
+                Back
+              </Button>
+              <Button
+                className="h-14 flex-1"
+                disabled={busy}
+                onClick={() => void finish({ ...answers, restockPicks, preferredRetailers })}
+              >
                 Show me my chores
               </Button>
             </div>
