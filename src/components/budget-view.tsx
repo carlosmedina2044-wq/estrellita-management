@@ -1,273 +1,147 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
+import { toast } from "sonner";
+import { EmptyGuide } from "@/components/budget/empty-guide";
+import { FundHero } from "@/components/budget/hero";
+import { DeferSheet, FundSheet, LogPurchaseSheet, ViewOptionsSheet } from "@/components/budget/sheets";
+import { QuarterTimeline } from "@/components/budget/timeline";
+import { InsightsList, SpendingSection, UpcomingExpenses } from "@/components/budget/upcoming";
 import { Input } from "@/components/ui/input";
-import { buildForecast, enteredPriceTotal, forecastSourceTag, type ForecastItem } from "@/lib/forecast";
+import {
+  applyDeferAsset,
+  applyLogPurchase,
+  applySetBigTicketThreshold,
+  applySetHomeValue,
+  applySetMaintenanceFund,
+  budgetInsights,
+  fundHealth,
+  spendingSummary,
+} from "@/lib/budget";
+import { BIG_TICKET_THRESHOLD, buildForecast, formatCostRange, monthsUntil, type ForecastItem } from "@/lib/forecast";
+import { shareText } from "@/lib/native/share";
 import type { AppNavigateTarget, Household } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
-function monthLabel(key: string) {
-  const [year, month] = key.split("-").map(Number);
-  if (!year || !month) return key;
-  return new Date(year, month - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
-
-function targetFor(item: ForecastItem): AppNavigateTarget | null {
-  if (item.kind === "consumable" && item.automationId) {
-    return { tab: "restock", itemId: item.automationId };
-  }
-  if (item.kind === "replacement" && item.assetId) {
-    return { tab: "settings", assetId: item.assetId };
-  }
-  if (item.kind === "task" && item.dutyId) {
-    return { tab: "today", dutyId: item.dutyId };
-  }
-  return null;
-}
-
-function ForecastLine({
-  item,
-  extra,
-  onNavigate,
-}: {
-  item: ForecastItem;
-  extra?: string;
-  onNavigate?: (target: AppNavigateTarget) => void;
-}) {
-  const target = targetFor(item);
-  const body = (
-    <>
-      <span className="font-medium">{item.label}</span>
-      <span className="block text-muted-foreground">
-        ${item.cost.low.toLocaleString()}–${item.cost.high.toLocaleString()}
-        {extra ? ` · ${extra}` : ""}
-      </span>
-      <span className="block text-[12px] text-muted-foreground">{forecastSourceTag(item.source)}</span>
-    </>
-  );
-  if (!target || !onNavigate) {
-    return <div className="text-sm leading-5">{body}</div>;
-  }
-  return (
-    <button type="button" className="w-full text-left text-sm leading-5" onClick={() => onNavigate(target)}>
-      {body}
-    </button>
-  );
+function updateAsset(
+  household: Household,
+  assetId: string,
+  patch: { installDate?: string; replacementCostEstimate?: number },
+): Household {
+  return {
+    ...household,
+    assets: household.assets.map((asset) => (asset.id === assetId ? { ...asset, ...patch } : asset)),
+  };
 }
 
 export function BudgetView({
   household,
-  onReplace,
-  onUpdateAsset,
+  onChange,
   onNavigate,
 }: {
   household: Household;
-  onReplace: (assetId: string) => void;
-  onUpdateAsset: (assetId: string, patch: { installDate?: string; replacementCostEstimate?: number }) => void;
+  onChange: (updater: (current: Household) => Household) => void;
   onNavigate?: (target: AppNavigateTarget) => void;
 }) {
   const [horizon, setHorizon] = useState<12 | 24 | 36>(12);
-  const [openMonth, setOpenMonth] = useState<string | null>(null);
-  const forecast = useMemo(() => buildForecast(household, horizon), [household, horizon]);
-  const max = Math.max(1, ...forecast.monthly.map((month) => month.total));
-  const selected = forecast.monthly.find((month) => month.month === openMonth);
-  const empty = forecast.totals.total === 0 && forecast.missingData.length === 0;
-  const entered = enteredPriceTotal(forecast);
+  const [fundOpen, setFundOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [logItem, setLogItem] = useState<ForecastItem | null>(null);
+  const [deferItem, setDeferItem] = useState<ForecastItem | null>(null);
+  const threshold = household.bigTicketThreshold ?? BIG_TICKET_THRESHOLD;
+  const forecast = useMemo(
+    () => buildForecast(household, horizon, new Date(), { bigTicketThreshold: threshold }),
+    [household, horizon, threshold],
+  );
+  const forecast12 = useMemo(
+    () => (horizon === 12 ? forecast : buildForecast(household, 12, new Date(), { bigTicketThreshold: threshold })),
+    [forecast, household, horizon, threshold],
+  );
+  const health = useMemo(() => fundHealth(household, forecast12), [household, forecast12]);
+  const insights = useMemo(() => budgetInsights(household, forecast12), [household, forecast12]);
+  const spending = useMemo(
+    () => spendingSummary(household, { months: 6, plannedMonthly: forecast12.suggestedMonthlySetAside }),
+    [household, forecast12],
+  );
+  const empty = forecast.totals.total === 0;
+  const updated = household.maintenanceFund?.updatedAt
+    ? `Fund updated ${new Date(household.maintenanceFund.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+    : "Forecast updates as you log purchases";
 
-  function exportCsv() {
-    const rows = [
-      ["month", "kind", "label", "low", "mid", "high", "confidence", "source"],
-      ...forecast.monthly.flatMap((month) =>
-        month.items.map((item) => [
-          month.month,
-          item.kind,
-          item.label,
-          String(item.cost.low),
-          String(item.cost.mid),
-          String(item.cost.high),
-          item.confidence,
-          item.source,
-        ]),
-      ),
-    ];
-    const blob = new Blob([rows.map((row) => row.join(",")).join("\n")], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `cuidala-forecast-${horizon}m.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  if (empty) {
-    return (
-      <div className="flex min-w-0 flex-col gap-5 pb-8">
-        <header>
-          <p className="text-sm text-muted-foreground">Maintenance forecast</p>
-          <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Budget</h1>
-        </header>
-        <section className="rounded-2xl bg-white px-4 py-5">
-          <p className="font-medium">Nothing priced yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add a date or cost on Home so we can estimate upkeep and replacements.
-          </p>
-          <Button className="mt-4 h-11 w-full" onClick={() => onNavigate?.({ tab: "home" })}>
-            Go to Home
-          </Button>
-        </section>
-      </div>
-    );
+  async function shareSummary() {
+    const next = forecast.bigTicket[0];
+    const lines = [
+      "Cuidala home budget",
+      health.saved != null
+        ? `${health.saved.toLocaleString("en-US")} saved · ${health.needed12.toLocaleString("en-US")} needed in 12 months · ${health.coveragePct}% covered`
+        : `Suggested set-aside ${health.suggestedMonthly.toLocaleString("en-US")}/month`,
+      next
+        ? `Next big expense: ${next.label.replace(/ replacement$/i, "")} — ${monthsUntil(next.month) <= 0 ? "due now" : `~${monthsUntil(next.month)} months`} · ${formatCostRange(next.cost)}`
+        : null,
+    ].filter(Boolean);
+    const result = await shareText("Home budget", lines.join("\n"));
+    if (result === "copied") toast.success("Summary copied");
+    if (result === "failed") toast.error("Couldn’t share that");
   }
 
   return (
     <div className="flex min-w-0 flex-col gap-5 pb-8">
-      <header>
-        <p className="text-sm text-muted-foreground">Maintenance forecast</p>
-        <h1 className="ui-heading text-[34px] font-semibold tracking-tight">
-          ${forecast.suggestedMonthlySetAside.toLocaleString()}
-          <span className="ml-1 text-[17px] font-medium text-muted-foreground">/ month</span>
-        </h1>
-        <p className="mt-2 text-sm leading-5 text-muted-foreground">
-          Suggested monthly set-aside so you’re ready for upkeep and replacements over the next {horizon}{" "}
-          months. About ${Math.round(forecast.totals.total).toLocaleString()} in that window.
-        </p>
-        {entered > 0 ? (
-          <p className="mt-2 text-sm leading-5 text-muted-foreground">
-            About ${Math.round(entered).toLocaleString()} of this is based on prices you’ve entered.
-          </p>
-        ) : null}
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted-foreground">Home finances</p>
+          <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Budget</h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">{updated}</p>
+        </div>
+        <button
+          type="button"
+          className="flex size-11 items-center justify-center rounded-full text-foreground"
+          aria-label="View options"
+          onClick={() => setOptionsOpen(true)}
+        >
+          <MoreHorizontal className="size-5" />
+        </button>
       </header>
 
-      <div>
-        <p className="mb-2 text-[13px] font-medium text-muted-foreground">Look ahead</p>
-        <div className="flex rounded-full bg-secondary p-1">
-          {([12, 24, 36] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => {
-                setHorizon(item);
-                setOpenMonth(null);
-              }}
-              className={cn(
-                "h-11 min-h-11 flex-1 rounded-full text-[15px] font-medium",
-                horizon === item ? "bg-white shadow-sm" : "text-secondary-foreground",
-              )}
-            >
-              {item} months
-            </button>
-          ))}
-        </div>
-      </div>
+      {empty ? (
+        <EmptyGuide
+          assets={household.assets}
+          onUpdateAsset={(assetId, patch) => onChange((current) => updateAsset(current, assetId, patch))}
+          onGoHome={() => onNavigate?.({ tab: "home" })}
+        />
+      ) : (
+        <>
+          <FundHero health={health} onEditFund={() => setFundOpen(true)} />
+          <UpcomingExpenses
+            items={forecast.bigTicket}
+            assets={household.assets}
+            rooms={household.rooms}
+            onReplace={(item) => setLogItem(item)}
+            onDefer={(item) => setDeferItem(item)}
+          />
+          <InsightsList insights={insights} />
+          <QuarterTimeline
+            forecast={forecast}
+            onLogPurchase={(item) => setLogItem(item)}
+            onUpdateEstimate={(assetId, amount) =>
+              onChange((current) => updateAsset(current, assetId, { replacementCostEstimate: amount }))
+            }
+            onNavigate={onNavigate}
+          />
+          <SpendingSection
+            planned={spending.planned}
+            actual={spending.actual}
+            months={spending.months}
+            categories={spending.byCategory}
+            byMonth={spending.byMonth}
+          />
+        </>
+      )}
 
-      <section className="min-w-0 overflow-hidden rounded-2xl bg-white">
-        <div className="flex h-44 items-end gap-1 overflow-x-auto px-3 py-3">
-          {forecast.monthly.map((month) => {
-            const active = openMonth === month.month;
-            return (
-              <button
-                key={month.month}
-                type="button"
-                onClick={() => setOpenMonth(month.month === openMonth ? null : month.month)}
-                className={cn(
-                  "flex h-full min-w-3 flex-1 flex-col justify-end rounded-sm",
-                  active && "ring-2 ring-primary ring-offset-2",
-                )}
-                aria-label={`${monthLabel(month.month)} $${Math.round(month.total)}`}
-                aria-pressed={active}
-              >
-                <span
-                  className="flex w-full min-h-1 flex-col justify-end overflow-hidden rounded-sm"
-                  style={{ height: `${(month.total / max) * 100}%` }}
-                >
-                  <span
-                    className="w-full bg-[#ff9f0a]"
-                    style={{ height: `${month.total ? (month.replacements / month.total) * 100 : 0}%` }}
-                  />
-                  <span
-                    className="w-full bg-primary"
-                    style={{ height: `${month.total ? (month.recurring / month.total) * 100 : 0}%` }}
-                  />
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <p className="px-4 pb-1 text-sm text-muted-foreground">Tap a month to see what’s due.</p>
-        <div className="flex items-center gap-4 px-4 pb-3 text-[13px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm bg-primary" aria-hidden />
-            Upkeep
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-2.5 rounded-sm bg-[#ff9f0a]" aria-hidden />
-            Replacements
-          </span>
-        </div>
-      </section>
-
-      {selected ? (
-        <section className="rounded-2xl bg-white px-4 py-4">
-          <p className="font-medium">{monthLabel(selected.month)}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            About ${Math.round(selected.total).toLocaleString()} this month.
-          </p>
-          {selected.items.length === 0 ? (
-            <p className="mt-2 text-sm text-muted-foreground">Nothing scheduled this month.</p>
-          ) : (
-            <ul className="mt-3 grid gap-3">
-              {selected.items.map((item) => (
-                <li
-                  key={`${item.kind}-${item.automationId ?? item.dutyId ?? item.assetId ?? item.nodeId}-${item.month}-${item.label}`}
-                >
-                  <ForecastLine item={item} onNavigate={onNavigate} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-      ) : null}
-
-      <section>
-        <h2 className="ui-heading text-[20px] font-semibold">Coming up</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Larger replacements we expect in this window.</p>
-        {forecast.bigTicket.length === 0 ? (
-          <p className="mt-2 text-sm text-muted-foreground">No large replacements in this window.</p>
-        ) : (
-          <ul className="mt-3 grid gap-3">
-            {forecast.bigTicket.map((item) => {
-              const asset = household.assets.find((entry) => entry.id === item.assetId);
-              const room = household.rooms.find((entry) => entry.id === asset?.roomId);
-              return (
-                <li key={`${item.assetId}-${item.month}`} className="rounded-2xl bg-white px-4 py-4">
-                  <ForecastLine
-                    item={item}
-                    extra={`${monthLabel(item.month)}${room ? ` · ${room.name}` : ""}`}
-                    onNavigate={onNavigate}
-                  />
-                  {item.assetId ? (
-                    <div className="mt-3">
-                      <Button variant="secondary" className="h-11 w-full" onClick={() => onReplace(item.assetId!)}>
-                        I replaced this
-                      </Button>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Marks it as new so we stop counting this one.
-                      </p>
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      {forecast.missingData.length > 0 ? (
+      {forecast.missingData.length > 0 && !empty ? (
         <section>
           <h2 className="ui-heading text-[20px] font-semibold">Make this more accurate</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            A date or cost is missing, so this item isn’t in the forecast yet.
+            A date or cost is missing, so this item isn’t fully in the forecast yet.
           </p>
           <ul className="mt-3 grid gap-3">
             {forecast.missingData.map((item) => {
@@ -284,7 +158,8 @@ export function BudgetView({
                           className="h-12"
                           defaultValue={asset?.installDate}
                           onBlur={(event) =>
-                            event.target.value && onUpdateAsset(item.assetId, { installDate: event.target.value })
+                            event.target.value &&
+                            onChange((current) => updateAsset(current, item.assetId, { installDate: event.target.value }))
                           }
                         />
                       </label>
@@ -300,7 +175,9 @@ export function BudgetView({
                           onBlur={(event) => {
                             const value = Number(event.target.value);
                             if (Number.isFinite(value) && value > 0) {
-                              onUpdateAsset(item.assetId, { replacementCostEstimate: value });
+                              onChange((current) =>
+                                updateAsset(current, item.assetId, { replacementCostEstimate: value }),
+                              );
                             }
                           }}
                         />
@@ -314,9 +191,59 @@ export function BudgetView({
         </section>
       ) : null}
 
-      <button type="button" className="h-11 text-[15px] font-medium text-primary" onClick={exportCsv}>
-        Export CSV
-      </button>
+      <FundSheet
+        open={fundOpen}
+        balance={household.maintenanceFund?.balance}
+        contribution={household.maintenanceFund?.monthlyContribution}
+        onOpenChange={setFundOpen}
+        onSave={(input) => onChange((current) => applySetMaintenanceFund(current, input))}
+      />
+      <LogPurchaseSheet
+        open={Boolean(logItem)}
+        item={logItem}
+        onOpenChange={(open) => {
+          if (!open) setLogItem(null);
+        }}
+        onSave={(input) => {
+          if (!logItem) return;
+          onChange((current) =>
+            applyLogPurchase(current, {
+              ...input,
+              label: logItem.label,
+              kind: logItem.kind,
+              dutyId: logItem.dutyId,
+              assetId: logItem.assetId,
+              automationId: logItem.automationId,
+              plannedCost: logItem.cost.mid,
+              replacedAsset: logItem.kind === "replacement",
+            }),
+          );
+        }}
+      />
+      <DeferSheet
+        open={Boolean(deferItem)}
+        item={deferItem}
+        onOpenChange={(open) => {
+          if (!open) setDeferItem(null);
+        }}
+        onSave={(months, reason) => {
+          if (!deferItem?.assetId) return;
+          onChange((current) => applyDeferAsset(current, deferItem.assetId!, months, reason));
+        }}
+      />
+      <ViewOptionsSheet
+        open={optionsOpen}
+        horizon={horizon}
+        threshold={threshold}
+        homeValue={household.homeValueEstimate}
+        onOpenChange={setOptionsOpen}
+        onHorizon={setHorizon}
+        onThreshold={(value) => onChange((current) => applySetBigTicketThreshold(current, value))}
+        onHomeValue={(value) => onChange((current) => applySetHomeValue(current, value))}
+        onShare={() => {
+          void shareSummary();
+        }}
+      />
     </div>
   );
 }

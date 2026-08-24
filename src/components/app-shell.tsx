@@ -64,7 +64,6 @@ export function AppShell() {
     exportBackup,
     importBackup,
     applyRestockWalk,
-    markAssetReplaced,
     acceptPlaybook,
     declinePlaybook,
   } = useHousehold();
@@ -379,13 +378,7 @@ export function AppShell() {
         {tab === "budget" ? (
           <BudgetView
             household={household}
-            onReplace={markAssetReplaced}
-            onUpdateAsset={(assetId, patch) =>
-              updateTree((current) => ({
-                ...current,
-                assets: current.assets.map((asset) => (asset.id === assetId ? { ...asset, ...patch } : asset)),
-              }))
-            }
+            onChange={(updater) => updateTree(updater)}
             onNavigate={navigate}
           />
         ) : null}

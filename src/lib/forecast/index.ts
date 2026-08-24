@@ -55,6 +55,29 @@ export function forecastSourceTag(source: ForecastSource): "Paid" | "Your estima
   return "Typical";
 }
 
+export function forecastSourceBlurb(source: ForecastSource): string {
+  if (source === "lastPaid") return "Based on what you last paid.";
+  if (source === "user") return "Based on your estimate.";
+  return "Based on national averages for this appliance type. Tap to enter your own estimate.";
+}
+
+export function formatCostRange(cost: CatalogCost): string {
+  if (cost.low === cost.high) return formatMoney(cost.low);
+  return `${formatMoney(cost.low)}–${formatMoney(cost.high)}`;
+}
+
+export function formatMoney(value: number): string {
+  const rounded = Math.round(value * 100) / 100;
+  if (Number.isInteger(rounded)) return `$${rounded.toLocaleString("en-US")}`;
+  return `$${rounded.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function monthsUntil(month: string, now = new Date()): number {
+  const [year, mon] = month.split("-").map(Number);
+  if (!year || !mon) return 0;
+  return (year - now.getFullYear()) * 12 + (mon - 1 - now.getMonth());
+}
+
 export function enteredPriceTotal(forecast: ForecastResult): number {
   return forecast.monthly.reduce(
     (sum, month) =>
@@ -154,9 +177,14 @@ export function buildForecast(
     // lands on July 31 in US time zones, shifting end-of-life by a month at boundaries.
     const installed = new Date(parseISODate(asset.installDate));
     const end = addCalendarMonths(installed, Math.round(lifeYears * 12 * conditionFactor(asset.condition)));
-    let month = monthKey(end);
+    let due = end;
+    if (asset.deferredUntil) {
+      const deferred = new Date(parseISODate(asset.deferredUntil));
+      if (deferred.getTime() > due.getTime()) due = deferred;
+    }
+    let month = monthKey(due);
     let overdue = false;
-    if (!inHorizon(month, start, horizonMonths) && end.getTime() < start.getTime()) {
+    if (!inHorizon(month, start, horizonMonths) && due.getTime() < start.getTime()) {
       month = months[0].month;
       overdue = true;
     }

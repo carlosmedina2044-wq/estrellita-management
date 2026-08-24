@@ -96,6 +96,8 @@ export type HomeAsset = {
   replacementCostEstimate?: number;
   condition?: AssetCondition;
   notes?: string;
+  deferredUntil?: string;
+  deferReason?: string;
 };
 
 export type HomeLocation = {
@@ -244,6 +246,29 @@ export type Completion = {
   costSkipped?: true;
 };
 
+export type PurchaseKind = "consumable" | "task" | "replacement";
+export type LaborKind = "diy" | "hired";
+
+export type Purchase = {
+  id: string;
+  completedAt: string;
+  actualCost: number;
+  label: string;
+  kind: PurchaseKind;
+  dutyId?: string;
+  assetId?: string;
+  automationId?: string;
+  laborKind?: LaborKind;
+  notes?: string;
+  plannedCost?: number;
+};
+
+export type MaintenanceFund = {
+  balance: number;
+  updatedAt: string;
+  monthlyContribution?: number;
+};
+
 export type Visit = {
   id: string;
   cleanerName: string;
@@ -292,7 +317,11 @@ export type Household = {
   consumables: Consumable[];
   duties: Duty[];
   completions: Completion[];
+  purchases: Purchase[];
   visits: Visit[];
+  maintenanceFund?: MaintenanceFund;
+  homeValueEstimate?: number;
+  bigTicketThreshold?: number;
   supplyAutomations: SupplyAutomation[];
   savedRetailerLinks: SavedRetailerLink[];
   preferredRetailers: RetailerId[];

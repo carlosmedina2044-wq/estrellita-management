@@ -27,9 +27,13 @@ import {
   type HomeLocation,
   type HomeRoom,
   type Household,
+  type LaborKind,
   type LifespanUnit,
   type LockSettings,
+  type MaintenanceFund,
   type PlaybookDecision,
+  type Purchase,
+  type PurchaseKind,
   type RetailerId,
   type SavedRetailerLink,
   type SupplyAutomation,
@@ -129,6 +133,11 @@ function asActualCost(value: unknown): number | undefined {
   return Math.round(value * 100) / 100;
 }
 
+function asFundAmount(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 5_000_000) return undefined;
+  return Math.round(value * 100) / 100;
+}
+
 function migrateCompletion(raw: unknown): Completion | null {
   if (!isPlainObject(raw)) return null;
   const id = asId(raw.id);
@@ -143,6 +152,43 @@ function migrateCompletion(raw: unknown): Completion | null {
     completedAt: asIsoDateTime(raw.completedAt, new Date().toISOString()),
     actualCost,
     costSkipped: raw.costSkipped === true ? true : undefined,
+  };
+}
+
+function migratePurchase(raw: unknown): Purchase | null {
+  if (!isPlainObject(raw)) return null;
+  const id = asId(raw.id);
+  const actualCost = asActualCost(raw.actualCost);
+  const label = sanitizeText(raw.label, TEXT_LIMITS.title);
+  if (!id || actualCost == null || !label) return null;
+  const kind: PurchaseKind =
+    raw.kind === "consumable" || raw.kind === "task" || raw.kind === "replacement" ? raw.kind : "task";
+  const laborKind: LaborKind | undefined = raw.laborKind === "diy" || raw.laborKind === "hired" ? raw.laborKind : undefined;
+  const plannedCost = asActualCost(raw.plannedCost);
+  return {
+    id,
+    completedAt: asIsoDateTime(raw.completedAt, new Date().toISOString()),
+    actualCost,
+    label,
+    kind,
+    dutyId: asId(raw.dutyId) ?? undefined,
+    assetId: asId(raw.assetId) ?? undefined,
+    automationId: asId(raw.automationId) ?? undefined,
+    laborKind,
+    notes: sanitizeText(raw.notes, TEXT_LIMITS.notes) || undefined,
+    plannedCost,
+  };
+}
+
+function migrateMaintenanceFund(raw: unknown): MaintenanceFund | undefined {
+  if (!isPlainObject(raw)) return undefined;
+  const balance = asFundAmount(raw.balance);
+  if (balance == null) return undefined;
+  const contribution = asActualCost(raw.monthlyContribution);
+  return {
+    balance,
+    updatedAt: asIsoDateTime(raw.updatedAt, new Date().toISOString()),
+    monthlyContribution: contribution,
   };
 }
 
@@ -299,6 +345,8 @@ function migrateAsset(raw: unknown): HomeAsset | null {
       typeof raw.replacementCostEstimate === "number" ? raw.replacementCostEstimate : undefined,
     condition,
     notes: sanitizeText(raw.notes, TEXT_LIMITS.notes) || undefined,
+    deferredUntil: asIsoDate(raw.deferredUntil) ?? undefined,
+    deferReason: sanitizeText(raw.deferReason, TEXT_LIMITS.notes) || undefined,
   };
 }
 
@@ -413,6 +461,10 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     .map(migrateCompletion)
     .filter((item): item is Completion => Boolean(item));
 
+  const purchases = asArray(raw.purchases)
+    .map(migratePurchase)
+    .filter((item): item is Purchase => Boolean(item));
+
   const visits = asArray(raw.visits)
     .map(migrateVisit)
     .filter((item): item is Visit => Boolean(item));
@@ -501,7 +553,17 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     consumables,
     duties: withKind,
     completions,
+    purchases,
     visits,
+    maintenanceFund: migrateMaintenanceFund(raw.maintenanceFund),
+    homeValueEstimate:
+      typeof raw.homeValueEstimate === "number" && Number.isFinite(raw.homeValueEstimate) && raw.homeValueEstimate > 0
+        ? Math.min(100_000_000, Math.round(raw.homeValueEstimate))
+        : undefined,
+    bigTicketThreshold:
+      typeof raw.bigTicketThreshold === "number" && Number.isFinite(raw.bigTicketThreshold) && raw.bigTicketThreshold > 0
+        ? Math.min(50_000, Math.max(50, Math.round(raw.bigTicketThreshold)))
+        : undefined,
     supplyAutomations,
     savedRetailerLinks,
     preferredRetailers: migratePreferredRetailers(raw.preferredRetailers),

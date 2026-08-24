@@ -50,6 +50,7 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
   | "location"
   | "attributes"
   | "consumables"
+  | "purchases"
   | "playbookDecisions"
   | "weatherFires"
   | "weatherStatus"
@@ -64,13 +65,14 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
     homeType: partial.homeType ?? "house",
     location: partial.location ?? { ...DEFAULT_LOCATION },
     attributes: { ...DEFAULT_ATTRIBUTES, ...partial.attributes },
-    consumables: partial.consumables ?? [],
     playbookDecisions: partial.playbookDecisions ?? [],
     weatherFires: partial.weatherFires ?? [],
     weatherStatus: partial.weatherStatus ?? { ...DEFAULT_WEATHER_STATUS },
     lockSettings: { ...DEFAULT_LOCK_SETTINGS, ...partial.lockSettings },
     householdRole: partial.householdRole ?? "owner",
     ...partial,
+    consumables: partial.consumables ?? [],
+    purchases: partial.purchases ?? [],
     savedRetailerLinks: (partial.savedRetailerLinks ?? []) as SavedRetailerLink[],
     preferredRetailers: (partial.preferredRetailers ?? []) as RetailerId[],
     restockDigest: { ...DEFAULT_RESTOCK_DIGEST, ...partial.restockDigest } satisfies RestockDigestSettings,
