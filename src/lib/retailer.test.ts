@@ -6,12 +6,15 @@ import {
   isProductPageUrl,
   MAX_SAVED_RETAILER_LINKS,
   normalizeSavedRetailerUrl,
+  orderedRetailerChips,
   parseRetailerInput,
   rememberRetailerLink,
+  RETAILER_CHIPS,
   retailerSearchUrl,
   resolveRetailerEntry,
   retailerUrlFor,
   savedRetailerLabel,
+  searchQueryFor,
   searchUrlOnHost,
 } from "@/lib/retailer";
 
@@ -135,4 +138,52 @@ test("rememberRetailerLink upserts last-used first and caps the list", () => {
     many = rememberRetailerLink(many, `https://ebay.com/itm/${i}`, now);
   }
   assert.equal(many.length, MAX_SAVED_RETAILER_LINKS);
+});
+
+test("default chips are Amazon, Walmart, Target, Home Depot, Lowe’s, Chewy", () => {
+  assert.deepEqual(
+    RETAILER_CHIPS.map((chip) => chip.id),
+    ["amazon", "walmart", "target", "home-depot", "lowes", "chewy"],
+  );
+  assert.match(retailerSearchUrl("lowes", "caulk"), /lowes\.com\/search\?searchTerm=caulk/);
+  assert.equal(isProductPageUrl("https://www.lowes.com/pd/filter/123"), true);
+  assert.equal(isProductPageUrl("https://www.lowes.com/search?searchTerm=filter"), false);
+  assert.match(searchUrlOnHost("lowes.com", "HVAC filter", "16x25x1"), /lowes\.com\/search\?searchTerm=/);
+});
+
+test("orderedRetailerChips puts last-used first and keeps Chewy opt-in", () => {
+  const defaultOrder = orderedRetailerChips({ preferredRetailers: [] });
+  assert.deepEqual(
+    defaultOrder.map((chip) => chip.id),
+    ["amazon", "walmart", "target", "home-depot", "lowes"],
+  );
+  assert.equal(defaultOrder.some((chip) => chip.id === "chewy"), false);
+
+  const preferred = orderedRetailerChips({ preferredRetailers: ["walmart", "amazon", "chewy"] });
+  assert.deepEqual(
+    preferred.map((chip) => chip.id),
+    ["walmart", "amazon", "chewy", "target", "home-depot", "lowes"],
+  );
+
+  const lastTime = orderedRetailerChips(
+    { preferredRetailers: ["walmart", "amazon"] },
+    { preferredRetailer: "target" },
+  );
+  assert.equal(lastTime[0]?.id, "target");
+  assert.equal(lastTime[0]?.lastTime, true);
+  assert.deepEqual(
+    lastTime.map((chip) => chip.id),
+    ["target", "walmart", "amazon", "home-depot", "lowes"],
+  );
+
+  const chewyItem = orderedRetailerChips({ preferredRetailers: [] }, { preferredRetailer: "chewy" });
+  assert.equal(chewyItem[0]?.id, "chewy");
+  assert.equal(chewyItem[0]?.lastTime, true);
+});
+
+test("searchQueryFor de-dupes size and turns × into x", () => {
+  assert.equal(searchQueryFor({ itemName: "HVAC filter", sku: "16×25×1" }), "HVAC filter 16x25x1");
+  assert.equal(searchQueryFor({ itemName: "HVAC filter (16×25×1)", sku: "16×25×1" }), "HVAC filter (16x25x1)");
+  assert.equal(searchQueryFor({ itemName: "HVAC filter (16x25x1)", sku: "16x25x1" }), "HVAC filter (16x25x1)");
+  assert.equal(searchQueryFor({ itemName: "Trash bags", sku: "" }), "Trash bags");
 });

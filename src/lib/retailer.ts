@@ -1,5 +1,5 @@
 import { TEXT_LIMITS } from "@/lib/sanitize";
-import type { SavedRetailerLink } from "@/lib/types";
+import { RETAILER_IDS, type Household, type RetailerId, type SavedRetailerLink, type SupplyAutomation } from "@/lib/types";
 
 export type { RetailerId } from "@/lib/types";
 
@@ -36,9 +36,10 @@ export function isKnownRetailerUrl(value: string): boolean {
 }
 
 export type RetailerChip = {
-  id: "amazon" | "home-depot" | "walmart" | "chewy" | "target";
+  id: RetailerId;
   label: string;
   searchUrl: (query: string) => string;
+  lastTime?: boolean;
 };
 
 export const RETAILER_CHIPS: RetailerChip[] = [
@@ -48,24 +49,29 @@ export const RETAILER_CHIPS: RetailerChip[] = [
     searchUrl: (query) => `https://www.amazon.com/s?k=${encodeURIComponent(query)}`,
   },
   {
-    id: "home-depot",
-    label: "Home Depot",
-    searchUrl: (query) => `https://www.homedepot.com/s/${encodeURIComponent(query)}`,
-  },
-  {
     id: "walmart",
     label: "Walmart",
     searchUrl: (query) => `https://www.walmart.com/search?q=${encodeURIComponent(query)}`,
   },
   {
-    id: "chewy",
-    label: "Chewy",
-    searchUrl: (query) => `https://www.chewy.com/s?query=${encodeURIComponent(query)}`,
-  },
-  {
     id: "target",
     label: "Target",
     searchUrl: (query) => `https://www.target.com/s?searchTerm=${encodeURIComponent(query)}`,
+  },
+  {
+    id: "home-depot",
+    label: "Home Depot",
+    searchUrl: (query) => `https://www.homedepot.com/s/${encodeURIComponent(query)}`,
+  },
+  {
+    id: "lowes",
+    label: "Lowe’s",
+    searchUrl: (query) => `https://www.lowes.com/search?searchTerm=${encodeURIComponent(query)}`,
+  },
+  {
+    id: "chewy",
+    label: "Chewy",
+    searchUrl: (query) => `https://www.chewy.com/s?query=${encodeURIComponent(query)}`,
   },
 ];
 
@@ -73,21 +79,60 @@ export type RetailerRef =
   | { ok: true; url: string; asin?: string; productPage: boolean }
   | { ok: false; error: string };
 
-function searchQuery(name: string, sizeSpec?: string): string {
-  return `${name.trim()} ${sizeSpec?.trim() ?? ""}`.trim() || "home supply";
+function normalizeSearchQuery(name: string, extra?: string): string {
+  const times = (value: string) => value.replace(/×/g, "x").trim();
+  const n = times(name);
+  const e = extra ? times(extra) : "";
+  if (!e) return n || "home supply";
+  if (n.toLowerCase().includes(e.toLowerCase())) return n || "home supply";
+  return `${n} ${e}`.trim() || "home supply";
+}
+
+export function searchQueryFor(item: Pick<SupplyAutomation, "itemName" | "sku">): string {
+  return normalizeSearchQuery(item.itemName, item.sku);
+}
+
+export function orderedRetailerChips(
+  household: Pick<Household, "preferredRetailers">,
+  item?: Pick<SupplyAutomation, "preferredRetailer">,
+): RetailerChip[] {
+  const preferred = household.preferredRetailers ?? [];
+  const itemPref = typeof item?.preferredRetailer === "string" ? item.preferredRetailer : undefined;
+  const chewyOk = itemPref === "chewy" || preferred.includes("chewy");
+  const ids: RetailerId[] = [];
+  const seen = new Set<RetailerId>();
+
+  function add(id: string | undefined) {
+    if (!id || !(RETAILER_IDS as readonly string[]).includes(id)) return;
+    const chipId = id as RetailerId;
+    if (seen.has(chipId)) return;
+    if (chipId === "chewy" && !chewyOk) return;
+    seen.add(chipId);
+    ids.push(chipId);
+  }
+
+  add(itemPref);
+  for (const id of preferred) add(id);
+  for (const chip of RETAILER_CHIPS) add(chip.id);
+
+  return ids.map((id, index) => {
+    const chip = RETAILER_CHIPS.find((entry) => entry.id === id)!;
+    return index === 0 && itemPref === id ? { ...chip, lastTime: true } : { ...chip };
+  });
 }
 
 export function retailerSearchUrl(chipId: RetailerChip["id"], name: string, sizeSpec?: string): string {
   const chip = RETAILER_CHIPS.find((item) => item.id === chipId);
-  return (chip ?? RETAILER_CHIPS[0]).searchUrl(searchQuery(name, sizeSpec));
+  return (chip ?? RETAILER_CHIPS[0]).searchUrl(normalizeSearchQuery(name, sizeSpec));
 }
 
 /** Search the item on an arbitrary store host the user typed (ebay.com, etc.). */
 export function searchUrlOnHost(host: string, name: string, sizeSpec?: string): string {
   const h = host.replace(/^www\./i, "").toLowerCase();
-  const q = encodeURIComponent(searchQuery(name, sizeSpec));
+  const q = encodeURIComponent(normalizeSearchQuery(name, sizeSpec));
   if (AMAZON_HOST.test(h) || SHORT_HOST.test(h)) return `https://www.amazon.com/s?k=${q}`;
   if (/(^|\.)homedepot\.com$/i.test(h)) return `https://www.homedepot.com/s/${q}`;
+  if (/(^|\.)lowes\.com$/i.test(h)) return `https://www.lowes.com/search?searchTerm=${q}`;
   if (/(^|\.)walmart\.com$/i.test(h)) return `https://www.walmart.com/search?q=${q}`;
   if (/(^|\.)target\.com$/i.test(h)) return `https://www.target.com/s?searchTerm=${q}`;
   if (/(^|\.)chewy\.com$/i.test(h)) return `https://www.chewy.com/s?query=${q}`;
@@ -151,6 +196,7 @@ export function isProductPageUrl(value: string): boolean {
     return /\/(?:dp|gp\/product|gp\/aw\/d)\//i.test(path);
   }
   if (/(^|\.)homedepot\.com$/i.test(host)) return /\/p\//i.test(path);
+  if (/(^|\.)lowes\.com$/i.test(host)) return /\/pd\//i.test(path);
   if (/(^|\.)walmart\.com$/i.test(host)) return /\/ip\//i.test(path);
   if (/(^|\.)target\.com$/i.test(host)) return /\/p\//i.test(path) || /\/-/i.test(path);
   if (/(^|\.)chewy\.com$/i.test(host)) return /\/dp\//i.test(path) || Boolean(path.split("/").filter(Boolean)[1]);
