@@ -148,6 +148,7 @@ export function RestockView({
         open={creating || Boolean(editingDuty)}
         duty={editingDuty}
         household={household}
+        defaultRoom={household.rooms.find((room) => !room.system)?.id ?? "kitchen"}
         automation={editingAutomation}
         onOpenChange={(open) => {
           if (!open) {
