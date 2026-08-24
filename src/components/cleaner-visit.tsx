@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Lock } from "lucide-react";
 import { DutyRow } from "@/components/duty-row";
 import { HomeMapView } from "@/components/home-map-view";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { isOverdueFor, todaysOpenDuties } from "@/lib/duties";
 import { roomById } from "@/lib/home-model";
 import type { Duty, Household } from "@/lib/types";
@@ -13,41 +12,31 @@ import { toast } from "sonner";
 
 export function CleanerVisit({
   household,
-  pinRequired,
+  ownerCheck,
   onComplete,
   onUndo,
   onEndVisit,
 }: {
   household: Household;
-  pinRequired: boolean;
+  /** True when the device can confirm the owner (Face ID / passcode) before exiting. */
+  ownerCheck: boolean;
   onComplete: (dutyId: string) => void;
   onUndo: (dutyId: string) => void;
-  onEndVisit: (pin: string) => boolean | Promise<boolean>;
+  onEndVisit: () => boolean | Promise<boolean>;
 }) {
-  const now = useMemo(() => new Date(), [household.completions, household.duties]);
-  const [pin, setPin] = useState("");
-  const [askingPin, setAskingPin] = useState(false);
+  const now = new Date();
+  const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const open = todaysOpenDuties(household, now, "cleaner");
   const next = open[0];
   const selectedRoom = selected ? roomById(household, selected) : null;
   const roomOpen = open.filter((duty) => duty.room === selected);
 
-  function finish() {
-    if (pinRequired) {
-      setAskingPin(true);
-      return;
-    }
-    void onEndVisit("");
-  }
-
-  async function confirmPin() {
-    if (!(await onEndVisit(pin))) {
-      toast.error("Wrong PIN");
-      return;
-    }
-    setPin("");
-    setAskingPin(false);
+  async function finish() {
+    setBusy(true);
+    const ok = await onEndVisit();
+    setBusy(false);
+    if (!ok) toast.error(ownerCheck ? "Couldn’t confirm the owner. Try again." : "Couldn’t end the visit.");
   }
 
   function toggle(duty: Duty, completed: boolean) {
@@ -108,35 +97,11 @@ export function CleanerVisit({
         )}
       </div>
 
-      <Button variant="secondary" className="mt-auto h-12" onClick={finish}>
+      <Button variant="secondary" className="mt-auto h-12" disabled={busy} onClick={() => void finish()}>
         <Lock className="size-4" />
-        Hand phone back
+        {ownerCheck ? "Hand phone back (Face ID)" : "Hand phone back"}
       </Button>
 
-      {askingPin ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/30 p-4">
-          <div className="w-full rounded-3xl bg-background p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <p className="font-medium">Owner PIN to hand the phone back</p>
-            <Input
-              type="password"
-              inputMode="numeric"
-              autoComplete="off"
-              value={pin}
-              onChange={(event) => setPin(event.target.value)}
-              placeholder="PIN"
-              className="mt-3 h-12"
-            />
-            <div className="mt-3 flex gap-2">
-              <Button variant="secondary" className="h-12 flex-1" onClick={() => setAskingPin(false)}>
-                Cancel
-              </Button>
-              <Button className="h-12 flex-1" onClick={() => void confirmPin()}>
-                Unlock
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

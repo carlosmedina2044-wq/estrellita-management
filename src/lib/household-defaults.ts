@@ -1,6 +1,5 @@
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import type {
-  Account,
   HomeAttributes,
   HomeLocation,
   HomeType,
@@ -34,10 +33,6 @@ export const DEFAULT_LOCK_SETTINGS: LockSettings = {
   lockAfter: "2min",
 };
 
-export const DEFAULT_ACCOUNT: Account = {
-  providers: [],
-};
-
 export const DEFAULT_WEATHER_STATUS: WeatherStatus = {
   lastSuccessAt: null,
   lastError: null,
@@ -56,7 +51,6 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
   | "playbookDecisions"
   | "weatherFires"
   | "weatherStatus"
-  | "account"
   | "lockSettings"
   | "householdRole"
   | "restockDigest"
@@ -70,7 +64,6 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
     playbookDecisions: partial.playbookDecisions ?? [],
     weatherFires: partial.weatherFires ?? [],
     weatherStatus: partial.weatherStatus ?? { ...DEFAULT_WEATHER_STATUS },
-    account: { providers: [], ...partial.account },
     lockSettings: { ...DEFAULT_LOCK_SETTINGS, ...partial.lockSettings },
     householdRole: partial.householdRole ?? "owner",
     ...partial,

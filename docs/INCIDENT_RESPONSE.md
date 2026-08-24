@@ -1,32 +1,30 @@
-# Incident response
+# Incident response and release checks
 
-Owner-held runbook. Cursor cannot declare this exercised.
+## What an incident can be
 
-## Phases
+With no servers or accounts, the realistic incidents are: a dependency vulnerability in the shipped bundle, a bug that corrupts or exposes on-device data, or a retailer-link abuse vector. There is no user database to breach and no credentials to rotate.
 
-1. **Detection** — auth failure spike, refresh-token reuse, vault 401 burst, weather/AI 5xx, unexpected admin session. Sources: Vercel logs, `logEvent` JSON lines, local audit chain in Settings (when exported).
-2. **Containment** — rotate `BLOB_READ_WRITE_TOKEN`, revoke refresh tokens by deleting `auth/store-v1.json` refresh rows, force `MIN_SUPPORTED_APP_VERSION` bump, disable magic-link sending (`RESEND_API_KEY` unset).
-3. **Eradication** — patch the route, rotate Apple client secret if leaked, invalidate Keychain sessions by changing vault wrap (users re-auth with Sign in with Apple).
-4. **User notification** — if email + address (or ZIP + name) may have been exposed, export the affected user list from the auth store and notify within the shortest applicable US state window (often 30–60 days). Template below.
-5. **Post-mortem** — date, timeline, data elements, who was notified, residual risk. Store under `docs/evidence/incidents/`.
+## Response
 
-## Data elements that trigger notice
+1. Confirm scope: which app versions include the affected code (`git log`, App Store Connect build list).
+2. Fix on `main`; CI must be green (typecheck, lint, tests, build, audit, secret scan, OSV, Semgrep).
+3. Ship a new build via TestFlight → App Store with an expedited review request if user data is at risk.
+4. Record the incident, affected versions, and fix in this file's changelog below.
 
-At minimum: email, approximate location (ZIP / lat-lng), and household nickname. The app does not store retailer credentials, payment methods, or shipping addresses. Vault ciphertext alone, without the Keychain secret, is not treated as a contents disclosure until counsel says otherwise.
+## Pre-release device checks (manual, every TestFlight build)
 
-## Notice template
+- [ ] Fresh install: Onboarding → Set up my home → Today list in under 3 minutes.
+- [ ] Fresh install: Use a sample home → Today list immediately.
+- [ ] Face ID lock: background the app for > lock-after, return, verify prompt; cancel prompt → still locked.
+- [ ] Settings → Require Face ID → Off → no prompt on relaunch.
+- [ ] Hand phone to cleaner → Hand phone back → Face ID required.
+- [ ] Add a consumable → Allow notifications → confirm a pending reminder exists in the schedule (Settings shows "Allowed").
+- [ ] Restock → Order → SFSafariViewController opens (not the app WebView); Done returns to the app.
+- [ ] Share a retailer link from Safari to Cuidala → "Save this product" sheet; share a non-retailer link → nothing happens.
+- [ ] Settings → Erase all data → relaunch → onboarding; no residual data.
+- [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
+- [ ] Privacy policy and Terms open from Settings.
 
-Subject: Important information about your Estrellita account
+## Changelog
 
-We learned on [date] that [what happened]. Information that may have been involved: [list]. We [contained by]. You should [sign in with Apple again]. This is not a request for a password — Estrellita does not use passwords.
-
-## Contacts
-
-- Owner on-call: fill in
-- Counsel: fill in
-- Host: Vercel
-- Apple: developer.apple.com support + App Store Connect
-
-## Staging drill
-
-NOT VERIFIED. Fire a deliberate alert in staging and record receipt here with date.
+- 2026-08 — Pre-release. Removed server/auth code; moved to local-first architecture.

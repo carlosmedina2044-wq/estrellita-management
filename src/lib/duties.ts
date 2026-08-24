@@ -1,5 +1,4 @@
-import { audienceLabel, frequencyLabel, roomLabel } from "@/lib/constants";
-import { HOUSE_ROOMS } from "@/lib/house";
+import { audienceLabel, frequencyLabel } from "@/lib/constants";
 import { roomName } from "@/lib/home-model";
 import {
   addCalendarMonths,
@@ -159,7 +158,7 @@ export function dutySubtitle(
   completions: Completion[] = [],
   now = new Date(),
   installedAt?: string | null,
-  household?: Household,
+  household?: Pick<Household, "rooms" | "floors" | "assets">,
 ): string {
   const cadence = frequencyLabel(duty.frequency, duty.weekday, duty.monthDay);
   const next = nextDueDate(duty, completions, now, installedAt);
@@ -169,15 +168,12 @@ export function dutySubtitle(
       : duty.frequency === "quarterly" || duty.frequency === "yearly"
         ? `${cadence} · Due ${next ? formatDueDate(toISODate(next)) : "—"}`
         : cadence;
-  const place = household ? roomName(household, duty.room) : roomLabel(duty.room);
+  const place = household ? roomName(household, duty.room) : duty.room;
   return `${place} · ${dueBit} · ${audienceLabel(duty.audience)}`;
 }
 
-export function sortDuties(duties: Duty[], household?: Household): Duty[] {
-  const ranked = household?.rooms?.length
-    ? household.rooms
-    : HOUSE_ROOMS.map((room, index) => ({ id: room.id, sortOrder: index }));
-  const roomRank = Object.fromEntries(ranked.map((room, index) => [room.id, "sortOrder" in room ? room.sortOrder : index]));
+export function sortDuties(duties: Duty[], household?: Pick<Household, "rooms">): Duty[] {
+  const roomRank = Object.fromEntries((household?.rooms ?? []).map((room) => [room.id, room.sortOrder]));
   const effortRank = { large: 0, medium: 1, small: 2 };
   return [...duties].sort((a, b) => {
     const room = (roomRank[a.room] ?? 99) - (roomRank[b.room] ?? 99);
@@ -317,12 +313,10 @@ export function monthPlanDuties(
   );
 }
 
-export function groupByRoom(duties: Duty[], household?: Household) {
-  const rooms = household?.rooms?.length
-    ? [...household.rooms]
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((room) => ({ id: room.id, label: room.name, floor: room.floorId }))
-    : HOUSE_ROOMS.map((room) => ({ id: room.id, label: room.label, floor: room.floor }));
+export function groupByRoom(duties: Duty[], household: Pick<Household, "rooms">) {
+  const rooms = [...household.rooms]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((room) => ({ id: room.id, label: room.name, floor: room.floorId }));
   return rooms
     .map((room) => ({
       id: room.id,

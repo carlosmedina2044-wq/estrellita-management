@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -21,12 +21,15 @@ export function ZipSheet({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    setZip(normalizeUsZip(initialZip));
-    setError("");
-    setBusy(false);
-  }, [open, initialZip]);
+  const [prevOpen, setPrevOpen] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setZip(normalizeUsZip(initialZip));
+      setError("");
+      setBusy(false);
+    }
+  }
 
   async function submit() {
     const next = normalizeUsZip(zip);
@@ -95,9 +98,11 @@ export function ZipField({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
     setZip(normalizeUsZip(value ?? ""));
-  }, [value]);
+  }
 
   async function submit() {
     const next = normalizeUsZip(zip);

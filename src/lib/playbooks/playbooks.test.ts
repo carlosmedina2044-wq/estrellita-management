@@ -13,7 +13,6 @@ function home(partial: Partial<Household> = {}): Household {
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "Cleaner",
-    ownerPin: "",
     onboarded: true,
     mode: "owner",
     activeVisitId: null,

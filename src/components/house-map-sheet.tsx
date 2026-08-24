@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { DutyForm } from "@/components/duty-form";
@@ -68,9 +68,11 @@ export function HouseMapSheet({
   const [assetType, setAssetType] = useState<AssetType>("other");
   const createGuard = useSheetOpenGuard();
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) setSelected(initialSelected ?? null);
-  }, [open, initialSelected]);
+  }
 
   const openDuties = todaysOpenDuties(household, now, filter);
   const done = household.duties.filter((duty) =>

@@ -1,15 +1,28 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Smartphone } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { HomeEditor } from "@/components/home-editor";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Household, RestockDigestSettings } from "@/lib/types";
 import { ZipField } from "@/components/zip-prompt";
 import { climateLabel, deriveClimate } from "@/lib/climate";
+import { notifyPermission, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
 import { toast } from "sonner";
+
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
 
 export function HomeView({
   household,
@@ -17,24 +30,38 @@ export function HomeView({
   onSavePostalCode,
   onStartCleanerVisit,
   onChangeTree,
-  onDeleted,
+  onErase,
+  canLock,
   restockDigest,
   onUpdateDigest,
 }: {
   household: Household;
   onUpdate: (
-    patch: Partial<Pick<Household, "householdName" | "ownerName" | "cleanerName" | "ownerPin" | "location" | "lockSettings" | "account">>,
+    patch: Partial<Pick<Household, "householdName" | "ownerName" | "cleanerName" | "location" | "lockSettings">>,
   ) => void | Promise<void>;
   onSavePostalCode?: (zip: string) => Promise<{ ok: boolean; error?: string }>;
   onStartCleanerVisit: () => void;
   onChangeTree?: (next: Household) => void;
-  onDeleted?: () => void;
+  onErase: () => Promise<void>;
+  canLock: boolean;
   restockDigest?: RestockDigestSettings;
   onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
 }) {
   const [home, setHome] = useState(household.householdName);
   const [owner, setOwner] = useState(household.ownerName);
   const [cleaner, setCleaner] = useState(household.cleanerName);
+  const [confirmErase, setConfirmErase] = useState(false);
+  const [permission, setPermission] = useState<NotifyPermission>("prompt");
+
+  useEffect(() => {
+    let cancelled = false;
+    void notifyPermission().then((value) => {
+      if (!cancelled) setPermission(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function save() {
     await onUpdate({
@@ -89,7 +116,21 @@ export function HomeView({
           <p className="font-medium">Weekly restock digest</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Sunday 9:00 AM local by default. Sends only when something is in Order now or coming up this week.
+            Per-item “order by” reminders arrive the morning the order should go out.
           </p>
+          {permission === "prompt" ? (
+            <button
+              type="button"
+              className="mt-3 h-12 w-full rounded-xl bg-primary text-sm font-medium text-primary-foreground"
+              onClick={() => void requestNotifyPermission().then(setPermission)}
+            >
+              Allow notifications
+            </button>
+          ) : permission === "denied" ? (
+            <p className="mt-3 text-xs text-destructive">
+              Notifications are off for Cuidala in iOS Settings. Turn them on there to get reminders.
+            </p>
+          ) : null}
           <button
             type="button"
             className="mt-3 h-12 w-full rounded-xl bg-secondary text-sm font-medium"
@@ -128,17 +169,22 @@ export function HomeView({
 
       <div className="rounded-2xl bg-white p-4">
         <p className="font-medium">Require Face ID</p>
-        <p className="mt-1 text-xs text-muted-foreground">Default on. Lock after returning from background.</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {canLock
+            ? "Locks the app on launch and after it has been in the background. Uses Face ID, Touch ID, or your passcode."
+            : "Not available on this device. Face ID, Touch ID, or a passcode must be set up in iOS Settings."}
+        </p>
         <button
           type="button"
-          className="mt-3 h-12 w-full rounded-xl bg-secondary text-sm font-medium"
+          disabled={!canLock}
+          className="mt-3 h-12 w-full rounded-xl bg-secondary text-sm font-medium disabled:opacity-50"
           onClick={() =>
             void onUpdate({
               lockSettings: { ...household.lockSettings, requireFaceId: !household.lockSettings.requireFaceId },
             })
           }
         >
-          {household.lockSettings.requireFaceId ? "On" : "Off"}
+          {household.lockSettings.requireFaceId && canLock ? "On" : "Off"}
         </button>
         <div className="mt-3 flex gap-2">
           {(["immediate", "2min", "15min"] as const).map((item) => (
@@ -160,25 +206,6 @@ export function HomeView({
 
       {onChangeTree ? <HomeEditor household={household} onChange={onChangeTree} /> : null}
 
-      <Button
-        variant="secondary"
-        className="h-12 text-destructive"
-        onClick={async () => {
-          if (!confirm("Delete this account and all home data on the server? This cannot be undone.")) return;
-          if (household.account.appleUserId || household.account.email) {
-            await fetch("/api/account", {
-              method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ userId: household.account.appleUserId || household.account.email }),
-            });
-          }
-          onDeleted?.();
-          toast.success("Account deleted");
-        }}
-      >
-        Delete account
-      </Button>
-
       <Button className="h-12" onClick={save}>
         Save
       </Button>
@@ -187,21 +214,47 @@ export function HomeView({
         Hand phone to {household.cleanerName || "cleaner"}
       </Button>
 
-      <div className="rounded-2xl border border-black/8 bg-white p-4">
-        <div className="flex items-start gap-3">
-          <span className="flex size-10 items-center justify-center rounded-full bg-card text-primary">
-            <Smartphone className="size-5" />
-          </span>
-          <div>
-            <p className="font-medium">On your iPhone</p>
-            <ol className="mt-2 list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
-              <li>Open this site in Safari</li>
-              <li>Tap Share</li>
-              <li>Add to Home Screen</li>
-            </ol>
-          </div>
+      <div className="rounded-2xl bg-white p-4">
+        <p className="font-medium">Your data</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Everything Cuidala knows about your home is stored on this iPhone, encrypted with a key kept
+          in the device Keychain. There is no account and no server copy. Deleting the app deletes the data.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-primary">
+          <Link href="/privacy">Privacy policy</Link>
+          <Link href="/terms">Terms of use</Link>
         </div>
+        <Button
+          variant="secondary"
+          className="mt-3 h-12 w-full text-destructive"
+          onClick={() => setConfirmErase(true)}
+        >
+          Erase all data on this iPhone
+        </Button>
+        <p className="mt-3 text-[11px] text-muted-foreground">Cuidala {APP_VERSION}</p>
       </div>
+
+      <AlertDialog open={confirmErase} onOpenChange={setConfirmErase}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Erase everything?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Rooms, chores, consumables, history, and reminders on this iPhone will be deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white"
+              onClick={() => {
+                void onErase().then(() => toast.success("Erased"));
+              }}
+            >
+              Erase
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

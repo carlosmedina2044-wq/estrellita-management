@@ -16,13 +16,14 @@ import { TodayView } from "@/components/today-view";
 import { Button } from "@/components/ui/button";
 import { useHousehold } from "@/hooks/use-household";
 import { digestPayload } from "@/lib/digest";
-import { showLocalNotification } from "@/lib/notifications";
+import { OPEN_RESTOCK_EVENT, showLocalNotification } from "@/lib/notifications";
 import { extractSharedUrl } from "@/lib/retailer";
 import { groupRestock } from "@/lib/restock";
-import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
-import { roomsWithNearReplacement } from "@/lib/forecast";
-import { next90DaysSpend } from "@/lib/forecast";
-import { readVaultSecret } from "@/lib/native/keychain";
+import { applyPostalCode } from "@/lib/climate";
+import { next90DaysSpend, roomsWithNearReplacement } from "@/lib/forecast";
+import { biometricsAvailable, verifyDeviceOwner } from "@/lib/native/biometrics";
+import { isNative } from "@/lib/native/platform";
+import { fetchForecastFor } from "@/lib/weather/client";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
 import { forCleanerSession } from "@/lib/storage";
 import type { Tab } from "@/lib/types";
@@ -51,28 +52,41 @@ export function AppShell() {
     endCleanerVisit,
     loadError,
     retryLoad,
-    startFresh,
-    gate,
-    unlock,
+    eraseEverything,
     markAssetReplaced,
     acceptPlaybook,
     declinePlaybook,
   } = useHousehold();
-  const [tab, setTab] = useState<Tab>("today");
-  const [locked, setLocked] = useState(false);
+  const [tab, setTab] = useState<Tab>(() => initialTab());
+  // Start locked; unlock only after the device reports no biometric/passcode
+  // capability or the user passes the system prompt.
+  const [locked, setLocked] = useState(true);
+  const [canLock, setCanLock] = useState<boolean | null>(null);
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [roomOpen, setRoomOpen] = useState<string | null>(null);
-  const [sharedUrl, setSharedUrl] = useState<string | null>(null);
+  const [sharedUrl, setSharedUrl] = useState<string | null>(() => readSharedUrlFromLocation());
 
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") return;
+    if (process.env.NODE_ENV !== "production" || isNative()) return;
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!household.onboarded || !household.lockSettings?.requireFaceId) return;
+    let cancelled = false;
+    void biometricsAvailable().then((available) => {
+      if (cancelled) return;
+      setCanLock(available);
+      if (!available) setLocked(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!household.onboarded || !household.lockSettings?.requireFaceId || !canLock) return;
     const ms = LOCK_MS[household.lockSettings.lockAfter];
     let timer: number | undefined;
     const arm = () => {
@@ -98,33 +112,22 @@ export function AppShell() {
       };
     };
     return arm();
-  }, [household.onboarded, household.lockSettings]);
+  }, [household.onboarded, household.lockSettings, canLock]);
 
   useEffect(() => {
     if (!household.onboarded) return;
-    const lat = household.location?.lat;
-    const lng = household.location?.lng;
-    const zip = household.location?.postalCode;
-    const query =
-      lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)
-        ? `lat=${lat}&lng=${lng}`
-        : zip && isValidUsZip(zip)
-          ? `zip=${encodeURIComponent(normalizeUsZip(zip))}`
-          : null;
-    if (!query) return;
+    const { lat, lng, postalCode: zip } = household.location ?? {};
+    if (lat == null && lng == null && !zip) return;
+    let cancelled = false;
     void (async () => {
       try {
-        const response = await fetch(`/api/weather?${query}`, { cache: "no-store" });
-        if (!response.ok) throw new Error("Weather unavailable");
-        const payload = (await response.json()) as WeatherForecast & { lat?: number; lng?: number };
+        const payload = await fetchForecastFor({ lat, lng, postalCode: zip });
+        if (cancelled) return;
+        if (!payload) throw new Error("Weather unavailable");
         setForecast(payload);
         setWeatherError(null);
         const { duties, fires } = evaluateTriggers(household, payload);
-        const needsCoords =
-          (lat == null || lng == null) &&
-          typeof payload.lat === "number" &&
-          typeof payload.lng === "number" &&
-          zip;
+        const needsCoords = (lat == null || lng == null) && zip;
         updateTree((current) => ({
           ...current,
           duties:
@@ -137,10 +140,11 @@ export function AppShell() {
           weatherFires: fires.length > 0 ? [...current.weatherFires, ...fires] : current.weatherFires,
           weatherStatus: { lastSuccessAt: payload.fetchedAt, lastError: null },
           location: needsCoords
-            ? applyPostalCode(current.location, zip, { lat: payload.lat!, lng: payload.lng! })
+            ? applyPostalCode(current.location, zip, { lat: payload.lat, lng: payload.lng })
             : current.location,
         }));
       } catch {
+        if (cancelled) return;
         setWeatherError("Could not refresh weather");
         updateTree((current) => ({
           ...current,
@@ -148,22 +152,14 @@ export function AppShell() {
         }));
       }
     })();
+    return () => {
+      cancelled = true;
+    };
     // Fetch once per location, not on every household mutation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [household.location?.lat, household.location?.lng, household.location?.postalCode, household.onboarded]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") === "restock") setTab("restock");
-    const url = extractSharedUrl({
-      url: params.get("restockUrl") || params.get("url"),
-      text: params.get("text"),
-      title: params.get("title"),
-    });
-    if (url) {
-      setSharedUrl(url);
-      setTab("restock");
-    }
     const onMessage = (event: MessageEvent) => {
       if (event.data?.type === "open-restock") setTab("restock");
     };
@@ -172,13 +168,25 @@ export function AppShell() {
   }, []);
 
   useEffect(() => {
-    const onOpen = () => setTab("restock");
-    window.addEventListener("estrellita-open-restock", onOpen);
-    return () => window.removeEventListener("estrellita-open-restock", onOpen);
+    if (!isNative()) return;
+    let remove: (() => void) | undefined;
+    void import("@capacitor/local-notifications").then(async ({ LocalNotifications }) => {
+      const handle = await LocalNotifications.addListener("localNotificationActionPerformed", (event) => {
+        if (event.notification.extra?.tab === "restock") setTab("restock");
+      });
+      remove = () => void handle.remove();
+    });
+    return () => remove?.();
   }, []);
 
   useEffect(() => {
-    if (!household.onboarded) return;
+    const onOpen = () => setTab("restock");
+    window.addEventListener(OPEN_RESTOCK_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_RESTOCK_EVENT, onOpen);
+  }, []);
+
+  useEffect(() => {
+    if (!household.onboarded || isNative()) return;
     const payload = digestPayload(household);
     if (!payload.shouldSend) return;
     if (showLocalNotification(payload.title, payload.body)) {
@@ -193,16 +201,7 @@ export function AppShell() {
   const ninety = useMemo(() => (hydrated ? next90DaysSpend(household) : 0), [household, hydrated]);
 
   if (!hydrated) {
-    return (
-      <div
-        suppressHydrationWarning
-        className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5"
-      >
-        <p className="text-sm font-medium text-primary">Estrellita</p>
-        <h1 className="ui-heading mt-2 text-[28px] font-semibold tracking-tight">Opening…</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Loading this household on the device.</p>
-      </div>
-    );
+    return <OpeningScreen />;
   }
 
   if (loadError) {
@@ -210,58 +209,38 @@ export function AppShell() {
       <LoadFailed
         reason={loadError.reason}
         onRetry={() => void retryLoad()}
-        onStartFresh={startFresh}
+        onStartFresh={() => void eraseEverything()}
       />
     );
   }
 
-  // Temporary: skip locked / needs-wrap PIN gates so first paint is Today or onboarding.
-  if (!household.onboarded || gate === "empty" || gate === "locked" || gate === "needs-wrap") {
-    return (
-      <Onboarding
-        onComplete={(input) =>
-          completeOnboarding({
-            answers: input.answers,
-            account: input.account,
-            vaultSecret: input.vaultSecret,
-            ownerName: input.ownerName,
-            householdName: input.answers.nickname,
-          })
-        }
-      />
-    );
+  if (!household.onboarded) {
+    return <Onboarding onComplete={(input) => completeOnboarding(input)} />;
   }
 
-  if (locked && household.lockSettings.requireFaceId && household.ownerPin.trim().length > 0) {
-    return (
-      <FaceLock
-        onUnlock={async (secret) => {
-          if (secret) {
-            const ok = await unlock(secret);
-            if (ok) setLocked(false);
-            return ok;
-          }
-          const stored = await readVaultSecret();
-          if (stored) {
-            const ok = await unlock(stored);
-            if (ok) setLocked(false);
-            return ok;
-          }
-          setLocked(false);
-          return true;
-        }}
-      />
-    );
+  if (household.lockSettings.requireFaceId && canLock === null) {
+    return <OpeningScreen />;
+  }
+
+  if (locked && household.lockSettings.requireFaceId && canLock) {
+    return <FaceLock onUnlocked={() => setLocked(false)} />;
   }
 
   if (household.mode === "cleaner") {
     return (
       <CleanerVisit
         household={forCleanerSession(household)}
-        pinRequired={false}
+        ownerCheck={canLock === true}
         onComplete={completeDuty}
         onUndo={undoCompletion}
-        onEndVisit={endCleanerVisit}
+        onEndVisit={async () => {
+          if (canLock) {
+            const ok = await verifyDeviceOwner("Hand the phone back");
+            if (!ok) return false;
+          }
+          endCleanerVisit();
+          return true;
+        }}
       />
     );
   }
@@ -282,7 +261,6 @@ export function AppShell() {
             onSaveDuty={saveDuty}
             onDeleteDuty={deleteDuty}
             onStartCleanerVisit={startCleanerVisit}
-            onOpenSettings={() => setTab("settings")}
             onOpenHome={() => setTab("home")}
             onMarkOrdered={markSupplyOrdered}
             onMarkReceived={markSupplyReceived}
@@ -376,7 +354,8 @@ export function AppShell() {
             onSavePostalCode={savePostalCode}
             onStartCleanerVisit={startCleanerVisit}
             onChangeTree={(next) => updateTree(() => next)}
-            onDeleted={startFresh}
+            onErase={eraseEverything}
+            canLock={canLock === true}
             restockDigest={household.restockDigest}
             onUpdateDigest={updateRestockDigest}
           />
@@ -416,6 +395,32 @@ export function AppShell() {
   );
 }
 
+function OpeningScreen() {
+  return (
+    <div suppressHydrationWarning className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
+      <p className="text-sm font-medium text-primary">Cuidala</p>
+      <h1 className="ui-heading mt-2 text-[28px] font-semibold tracking-tight">Opening…</h1>
+      <p className="mt-2 text-sm text-muted-foreground">Loading this household on the device.</p>
+    </div>
+  );
+}
+
+function initialTab(): Tab {
+  if (typeof window === "undefined") return "today";
+  const params = new URLSearchParams(window.location.search);
+  return params.get("tab") === "restock" || readSharedUrlFromLocation() ? "restock" : "today";
+}
+
+function readSharedUrlFromLocation(): string | null {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  return extractSharedUrl({
+    url: params.get("restockUrl") || params.get("url"),
+    text: params.get("text"),
+    title: params.get("title"),
+  });
+}
+
 function LoadFailed({
   reason,
   onRetry,
@@ -430,15 +435,15 @@ function LoadFailed({
       <h1 className="ui-heading text-[28px] font-semibold tracking-tight">Couldn’t load the house</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         {reason === "unavailable"
-          ? "This browser blocked saved household data. Try again, or start fresh on this device."
-          : "Saved household data on this device looks damaged. Nothing was overwritten."}
+          ? "Saved household data couldn’t be read right now. Try again, or erase this device’s copy and start over."
+          : "Saved household data on this device looks damaged. Nothing was overwritten. You can try again, or erase it and start over."}
       </p>
       <div className="mt-6 flex flex-col gap-2">
         <Button className="h-12" onClick={onRetry}>
           Try again
         </Button>
-        <Button variant="secondary" className="h-12" onClick={onStartFresh}>
-          Start fresh
+        <Button variant="secondary" className="h-12 text-destructive" onClick={onStartFresh}>
+          Erase and start over
         </Button>
       </div>
     </div>

@@ -17,7 +17,6 @@ function household(overrides: Partial<Household> = {}): Household {
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "Cleaner",
-    ownerPin: "",
     onboarded: true,
     mode: "owner",
     activeVisitId: null,
@@ -41,7 +40,7 @@ const now = new Date(2026, 7, 1);
 test("36-month forecast places end-of-life and set-aside", () => {
   const home = household({
     assets: [
-      asset({ id: "hvac", name: "HVAC", type: "hvac_system", installDate: "2014-08-01", replacementCostEstimate: 7500 }),
+      asset({ id: "hvac", name: "HVAC", type: "hvac_system", installDate: "2013-08-01", replacementCostEstimate: 7500 }),
       asset({ id: "wh", name: "Water heater", type: "water_heater", installDate: "2018-08-01", replacementCostEstimate: 1600 }),
       asset({ id: "fridge", name: "Fridge", type: "refrigerator", installDate: "2020-08-01", replacementCostEstimate: 1600 }),
       asset({ id: "washer", name: "Washer", type: "washer", installDate: "2019-08-01", replacementCostEstimate: 900 }),

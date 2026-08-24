@@ -1,5 +1,5 @@
 import { catalogEntry, type CatalogCost } from "@/lib/asset-catalog";
-import { addCalendarMonths, toISODate } from "@/lib/dates";
+import { addCalendarMonths, parseISODate, toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
 import type { Duty, HomeAsset, Household } from "@/lib/types";
 
@@ -129,11 +129,10 @@ export function buildForecast(
     }
 
     const lifeYears = asset.expectedLifeYears ?? catalog.defaultLifeYears;
-    const end = addCalendarMonths(new Date(asset.installDate), Math.round(lifeYears * 12 * conditionFactor(asset.condition)));
-    const lowEnd = addCalendarMonths(new Date(asset.installDate), Math.round(lifeYears * 12 * conditionFactor(asset.condition) * 0.85));
-    const highEnd = addCalendarMonths(new Date(asset.installDate), Math.round(lifeYears * 12 * conditionFactor(asset.condition) * 1.15));
-    void lowEnd;
-    void highEnd;
+    // parseISODate keeps "2014-08-01" in local time; new Date("2014-08-01") is UTC and
+    // lands on July 31 in US time zones, shifting end-of-life by a month at boundaries.
+    const installed = new Date(parseISODate(asset.installDate));
+    const end = addCalendarMonths(installed, Math.round(lifeYears * 12 * conditionFactor(asset.condition)));
     let month = monthKey(end);
     let overdue = false;
     if (!inHorizon(month, start, horizonMonths) && end.getTime() < start.getTime()) {

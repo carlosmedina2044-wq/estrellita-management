@@ -48,7 +48,7 @@ export function BudgetView({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `estrellita-forecast-${horizon}m.csv`;
+    link.download = `cuidala-forecast-${horizon}m.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }

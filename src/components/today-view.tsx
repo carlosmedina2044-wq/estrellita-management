@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CalendarDays, Map, Share2, Sparkles, UserRound } from "lucide-react";
 import { DayCalendar } from "@/components/day-calendar";
 import { ConsumableForm } from "@/components/consumable-form";
@@ -23,6 +23,7 @@ import {
   type OutstandingScope,
 } from "@/lib/duties";
 import { homeSummary, statusTone } from "@/lib/node-status";
+import { shareText as nativeShare } from "@/lib/native/share";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock } from "@/lib/restock";
 import type { Audience, Duty, DutyDraft, Household } from "@/lib/types";
@@ -45,7 +46,6 @@ export function TodayView({
   onSaveDuty,
   onDeleteDuty,
   onStartCleanerVisit,
-  onOpenSettings,
   onOpenHome,
   onReorderRooms,
   onChangeTree,
@@ -64,7 +64,6 @@ export function TodayView({
   onDeleteDuty: (id: string) => void;
   onStartCleanerVisit: () => void;
   onOpenHome?: () => void;
-  onOpenSettings?: () => void;
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
   onMarkOrdered?: (id: string) => void;
@@ -72,7 +71,7 @@ export function TodayView({
   onSaveLink?: (id: string, url: string) => void;
   onOpenRestock?: () => void;
 }) {
-  const now = useMemo(() => new Date(), [household.completions, household.duties]);
+  const now = new Date();
   const [filter, setFilter] = useState<Audience | "all">("all");
   const [scope, setScope] = useState<OutstandingScope>("daily");
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -133,22 +132,14 @@ export function TodayView({
 
   async function share() {
     const text = shareText(household, cleanerOpen.length ? cleanerOpen : open);
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: `${household.householdName} today`, text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast.success("Copied today's list");
-      }
-    } catch {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied today's list");
-    }
+    const result = await nativeShare(`${household.householdName} today`, text);
+    if (result === "copied") toast.success("Copied today's list");
+    if (result === "failed") toast.error("Couldn't share the list");
   }
 
   const weekOpen = openDutiesInScope(household, "weekly", now, filter);
   const restock = groupRestock(household.supplyAutomations, household, now);
-  const hermes = [...restock.ordered, ...restock.order_now, ...restock.coming_up];
+  const restockItems = [...restock.ordered, ...restock.order_now, ...restock.coming_up];
   const greeting = household.ownerName ? `Hi, ${household.ownerName}` : "Today";
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
   const listSummary = viewingCalendar
@@ -331,57 +322,70 @@ export function TodayView({
         </div>
       ) : null}
 
-      <section className="rounded-2xl bg-white px-4 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="font-medium">Restock</p>
-          <div className="flex items-center gap-3">
-            {onOpenRestock ? (
-              <button type="button" className="text-[13px] font-medium text-primary" onClick={onOpenRestock}>
-                See all
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="text-[13px] font-medium text-primary"
-              onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}
-            >
-              Add item
-            </button>
-          </div>
-        </div>
-        {hermes.length === 0 ? (
-          <p className="mt-1 text-sm text-muted-foreground">Nothing to order. We’ll remind you before you run out.</p>
-        ) : (
-          <ul className="mt-3 grid gap-3">
-            {hermes.map((item) => (
-              <li key={item.id} className="grid gap-2">
-                <button
-                  type="button"
-                  className="text-left"
-                  onClick={() => {
-                    const duty = household.duties.find(
-                      (entry) => entry.id === item.dutyId || item.linkedDutyIds.includes(entry.id),
-                    );
-                    if (duty) setEditing(duty);
-                  }}
-                >
-                  <span className="block text-[15px] font-medium">{item.itemName}</span>
-                  <span className="text-[13px] text-muted-foreground">
-                    <OrderByLine item={item} household={household} />
-                  </span>
+      {household.supplyAutomations.length === 0 ? (
+        <section className="rounded-2xl bg-white px-4 py-4">
+          <p className="text-[13px] font-medium text-muted-foreground">Restock</p>
+          <p className="ui-heading mt-1 text-[22px] font-semibold">Track a filter or battery</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            We’ll remind you when to order so it arrives before you run out. Checkout happens on the retailer’s site.
+          </p>
+          <Button className="mt-4 h-11" onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}>
+            Track a filter or battery
+          </Button>
+        </section>
+      ) : (
+        <section className="rounded-2xl bg-white px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-medium">Restock</p>
+            <div className="flex items-center gap-3">
+              {onOpenRestock ? (
+                <button type="button" className="text-[13px] font-medium text-primary" onClick={onOpenRestock}>
+                  See all
                 </button>
-                <RestockOrderButton
-                  item={item}
-                  household={household}
-                  onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
-                  onReceived={onMarkReceived ? (qty) => onMarkReceived(item.id, qty) : undefined}
-                  onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+              ) : null}
+              <button
+                type="button"
+                className="text-[13px] font-medium text-primary"
+                onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}
+              >
+                Add item
+              </button>
+            </div>
+          </div>
+          {restockItems.length === 0 ? (
+            <p className="mt-1 text-sm text-muted-foreground">Nothing to order. We’ll remind you before you run out.</p>
+          ) : (
+            <ul className="mt-3 grid gap-3">
+              {restockItems.map((item) => (
+                <li key={item.id} className="grid gap-2">
+                  <button
+                    type="button"
+                    className="text-left"
+                    onClick={() => {
+                      const duty = household.duties.find(
+                        (entry) => entry.id === item.dutyId || item.linkedDutyIds.includes(entry.id),
+                      );
+                      if (duty) setEditing(duty);
+                    }}
+                  >
+                    <span className="block text-[15px] font-medium">{item.itemName}</span>
+                    <span className="text-[13px] text-muted-foreground">
+                      <OrderByLine item={item} household={household} />
+                    </span>
+                  </button>
+                  <RestockOrderButton
+                    item={item}
+                    household={household}
+                    onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
+                    onReceived={onMarkReceived ? (qty) => onMarkReceived(item.id, qty) : undefined}
+                    onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <div className="grid grid-cols-2 gap-2">
         <Button variant="secondary" className="h-12 rounded-full" onClick={() => (onOpenHome ? onOpenHome() : setHouseOpen(true))}>
@@ -453,6 +457,7 @@ export function TodayView({
         open={creatingRule}
         duty={null}
         household={household}
+        defaultRoom={household.rooms.find((room) => !room.system)?.id ?? "whole-home"}
         automation={null}
         onOpenChange={(openSheet) => {
           if (!openSheet) {

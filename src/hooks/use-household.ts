@@ -5,25 +5,18 @@ import { todayISO } from "@/lib/dates";
 import { sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
 import {
   EMPTY_HOUSEHOLD,
-  getGate,
+  eraseHousehold,
   getHousehold,
-  getVaultId,
-  hydrateHouseholdFromStorage,
-  joinRemoteHousehold,
-  resetHousehold,
+  hydrateHousehold,
   subscribeHousehold,
-  unlockHousehold,
   updateHousehold,
-  wrapHousehold,
-  type Gate,
   type HouseholdLoad,
 } from "@/lib/storage";
-import { treeFromDraft, type HomeTreeDraft } from "@/lib/home-model";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
-import type { Account, DutyDraft, Household } from "@/lib/types";
-import type { StarterDuty } from "@/lib/constants";
+import type { DutyDraft, Household } from "@/lib/types";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
+import { fetchForecastFor } from "@/lib/weather/client";
 import { generateHomeFromAnswers } from "@/lib/onboarding/generate";
 import { dutyFromPlaybookTask, PLAYBOOKS } from "@/lib/playbooks";
 import { addDays, toISODate } from "@/lib/dates";
@@ -48,22 +41,17 @@ function uid() {
 export function useHousehold() {
   const [household, setHousehold] = useState<Household>(EMPTY_HOUSEHOLD);
   const [hydrated, setHydrated] = useState(false);
-  const [gate, setGate] = useState<Gate>("empty");
-  const [vaultId, setVaultId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<Exclude<HouseholdLoad, { ok: true }> | null>(null);
+  const [legacyLockedVault, setLegacyLockedVault] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const unsubscribe = subscribeHousehold(() => {
-      if (!cancelled) {
-        setHousehold(getHousehold());
-        setGate(getGate());
-        setVaultId(getVaultId());
-      }
+      if (!cancelled) setHousehold(getHousehold());
     });
 
     void (async () => {
-      const result = await hydrateHouseholdFromStorage();
+      const result = await hydrateHousehold();
       if (cancelled) return;
       if (!result.ok) {
         setLoadError(result);
@@ -71,8 +59,7 @@ export function useHousehold() {
         return;
       }
       setLoadError(null);
-      setGate(result.gate);
-      setVaultId(getVaultId());
+      setLegacyLockedVault(result.legacyLockedVault);
       setHousehold(getHousehold());
       setHydrated(true);
     })();
@@ -88,92 +75,41 @@ export function useHousehold() {
   }, []);
 
   const completeOnboarding = useCallback(
-    async (input: {
-      householdName?: string;
-      ownerName?: string;
-      cleanerName?: string;
-      ownerPin?: string;
-      starters?: StarterDuty[];
-      tree?: HomeTreeDraft;
-      answers?: OnboardingAnswers;
-      account?: Account;
-      vaultSecret?: string;
-    }) => {
-      const generated = input.answers ? generateHomeFromAnswers(input.answers) : null;
-      // Temporary: skip hashing / wrapping with an owner PIN so first paint is never gated.
-      const tree = generated
-        ? {
-            homeId: generated.homeId,
-            floors: generated.floors,
-            rooms: generated.rooms,
-            assets: generated.assets,
-          }
-        : input.tree
-          ? treeFromDraft({ ...input.tree, homeName: input.householdName || input.answers?.nickname || "Home" })
-          : treeFromDraft({
-              homeName: input.householdName || "Home",
-              floors: [],
-              rooms: [],
-            });
-      const seasonalDuties =
-        generated?.seasonalSuggestions
-          .filter((playbook) => playbook.climateZones === "all")
-          .flatMap((playbook) =>
-            playbook.tasks.map((task) => ({
-              id: uid(),
-              createdAt: new Date().toISOString(),
-              ...dutyFromPlaybookTask(generated, playbook, task, toISODate(addDays(new Date(), 14))),
-            })),
-          ) ?? [];
+    (input: { answers: OnboardingAnswers; ownerName?: string }) => {
+      const generated = generateHomeFromAnswers(input.answers);
+      const seasonalDuties = generated.seasonalSuggestions
+        .filter((playbook) => playbook.climateZones === "all")
+        .flatMap((playbook) =>
+          playbook.tasks.map((task) => ({
+            id: uid(),
+            createdAt: new Date().toISOString(),
+            ...dutyFromPlaybookTask(generated, playbook, task, toISODate(addDays(new Date(), 14))),
+          })),
+        );
       update(() =>
         withHouseholdDefaults({
           version: 7,
-          householdName:
-            sanitizeText(generated?.householdName ?? input.householdName, TEXT_LIMITS.name) || "Home",
-          ownerName: sanitizeText(input.ownerName, TEXT_LIMITS.name) || "Me",
-          cleanerName: sanitizeText(input.cleanerName, TEXT_LIMITS.name) || "Cleaner",
-          ownerPin: "",
+          householdName: sanitizeText(generated.householdName, TEXT_LIMITS.name) || "Home",
+          ownerName: sanitizeText(input.ownerName, TEXT_LIMITS.name) || "",
+          cleanerName: "Cleaner",
           onboarded: true,
           mode: "owner",
           activeVisitId: null,
-          homeId: tree.homeId,
-          homeType: generated?.homeType ?? "house",
-          location: generated?.location ?? {},
-          attributes: generated?.attributes,
-          floors: tree.floors,
-          rooms: tree.rooms,
-          assets: generated?.assets ?? tree.assets,
-          consumables: generated?.consumables ?? [],
-          duties: generated
-            ? [...generated.duties, ...seasonalDuties]
-            : (input.starters ?? []).map((starter) => ({
-                id: uid(),
-                title: sanitizeText(starter.title, TEXT_LIMITS.title),
-                notes: "",
-                room: starter.room,
-                nodeId: starter.room,
-                nodeType: "room" as const,
-                audience: starter.audience,
-                effort: starter.effort,
-                frequency: starter.frequency,
-                kind: "chore" as const,
-                weekday: starter.weekday,
-                monthDay: starter.monthDay,
-                dueDate: starter.frequency === "once" ? todayISO() : null,
-                priority: starter.priority,
-                createdAt: new Date().toISOString(),
-                archived: false,
-                origin: "starter" as const,
-              })),
+          homeId: generated.homeId,
+          homeType: generated.homeType,
+          location: generated.location,
+          attributes: generated.attributes,
+          floors: generated.floors,
+          rooms: generated.rooms,
+          assets: generated.assets,
+          consumables: generated.consumables,
+          duties: [...generated.duties, ...seasonalDuties],
           completions: [],
           visits: [],
           supplyAutomations: [],
-          account: input.account ?? { providers: [] },
           restockDigest: { ...DEFAULT_RESTOCK_DIGEST },
         }),
       );
-      setGate(getGate());
-      setVaultId(getVaultId());
       setHousehold(getHousehold());
     },
     [update],
@@ -245,26 +181,7 @@ export function useHousehold() {
                     nodeType,
                     itemName: sanitizeText(supplyAutomation.itemName, TEXT_LIMITS.title) || title,
                     sku: sanitizeText(supplyAutomation.sku ?? existing?.sku, TEXT_LIMITS.sku),
-                    asin: sanitizeText(supplyAutomation.asin ?? existing?.asin, TEXT_LIMITS.asin),
-                    amazonProductUrl: sanitizeText(
-                      supplyAutomation.retailerUrl ??
-                        supplyAutomation.amazonProductUrl ??
-                        existing?.retailerUrl ??
-                        existing?.amazonProductUrl,
-                      TEXT_LIMITS.url,
-                    ),
-                    amazonOneClick: false,
-                    amazonNotes: sanitizeText(
-                      supplyAutomation.amazonNotes ?? existing?.amazonNotes,
-                      TEXT_LIMITS.notes,
-                    ),
-                    retailerUrl: sanitizeText(
-                      supplyAutomation.retailerUrl ??
-                        supplyAutomation.amazonProductUrl ??
-                        existing?.retailerUrl ??
-                        existing?.amazonProductUrl,
-                      TEXT_LIMITS.url,
-                    ),
+                    retailerUrl: sanitizeText(supplyAutomation.retailerUrl ?? existing?.retailerUrl, TEXT_LIMITS.url),
                     quantity: Math.min(
                       99,
                       Math.max(1, supplyAutomation.qtyPerOrder ?? supplyAutomation.quantity ?? existing?.qtyPerOrder ?? DEFAULT_QUANTITY),
@@ -366,7 +283,6 @@ export function useHousehold() {
               nodeType: "room" as const,
               itemName: "New consumable",
               retailerUrl: url,
-              amazonProductUrl: url,
               createdAt: new Date().toISOString(),
             },
           ],
@@ -460,11 +376,9 @@ export function useHousehold() {
           | "householdName"
           | "ownerName"
           | "cleanerName"
-          | "ownerPin"
           | "location"
           | "attributes"
           | "lockSettings"
-          | "account"
           | "homeType"
         >
       >,
@@ -496,10 +410,8 @@ export function useHousehold() {
           : current.location,
         attributes: patch.attributes ?? current.attributes,
         lockSettings: patch.lockSettings ?? current.lockSettings,
-        account: patch.account ?? current.account,
         homeType: patch.homeType ?? current.homeType,
       }));
-      setVaultId(getVaultId());
     },
     [update],
   );
@@ -512,15 +424,8 @@ export function useHousehold() {
       }
       let coords: { lat: number; lng: number } | undefined;
       try {
-        const response = await fetch(`/api/weather?zip=${encodeURIComponent(postalCode)}`, {
-          cache: "no-store",
-        });
-        if (response.ok) {
-          const payload = (await response.json()) as { lat?: number; lng?: number };
-          if (typeof payload.lat === "number" && typeof payload.lng === "number") {
-            coords = { lat: payload.lat, lng: payload.lng };
-          }
-        }
+        const result = await fetchForecastFor({ postalCode });
+        if (result) coords = { lat: result.lat, lng: result.lng };
       } catch {
         // Climate still persists if weather lookup is offline.
       }
@@ -606,8 +511,7 @@ export function useHousehold() {
     });
   }, [update]);
 
-  const endCleanerVisit = useCallback(async (_pin: string) => {
-    // Temporary: owner PIN is disabled — end the visit without asking for one.
+  const endCleanerVisit = useCallback(() => {
     update((latest) => ({
       ...latest,
       mode: "owner",
@@ -616,57 +520,24 @@ export function useHousehold() {
         visit.id === latest.activeVisitId ? { ...visit, endedAt: new Date().toISOString() } : visit,
       ),
     }));
-    return true;
   }, [update]);
 
   const retryLoad = useCallback(async () => {
-    const result = await hydrateHouseholdFromStorage();
+    const result = await hydrateHousehold();
     if (!result.ok) {
       setLoadError(result);
       return;
     }
     setLoadError(null);
-    setGate(result.gate);
-    setVaultId(getVaultId());
+    setLegacyLockedVault(result.legacyLockedVault);
     setHousehold(getHousehold());
   }, []);
 
-  const startFresh = useCallback(() => {
-    resetHousehold();
+  const eraseEverything = useCallback(async () => {
+    await eraseHousehold();
     setLoadError(null);
-    setGate("empty");
-    setVaultId(null);
+    setLegacyLockedVault(false);
     setHousehold(getHousehold());
-  }, []);
-
-  const unlock = useCallback(async (secret: string) => {
-    const ok = await unlockHousehold(secret);
-    if (ok) {
-      setGate(getGate());
-      setVaultId(getVaultId());
-      setHousehold(getHousehold());
-    }
-    return ok;
-  }, []);
-
-  const wrap = useCallback(async (secret: string) => {
-    const ok = await wrapHousehold(secret);
-    if (ok) {
-      setGate(getGate());
-      setVaultId(getVaultId());
-      setHousehold(getHousehold());
-    }
-    return ok;
-  }, []);
-
-  const joinRemote = useCallback(async (id: string, secret: string) => {
-    const ok = await joinRemoteHousehold(id, secret);
-    if (ok) {
-      setGate(getGate());
-      setVaultId(getVaultId());
-      setHousehold(getHousehold());
-    }
-    return ok;
   }, []);
 
   const activeDuties = useMemo(
@@ -677,9 +548,8 @@ export function useHousehold() {
   return {
     household,
     hydrated,
-    gate,
-    vaultId,
     loadError,
+    legacyLockedVault,
     activeDuties,
     completeOnboarding,
     saveDuty,
@@ -700,9 +570,6 @@ export function useHousehold() {
     startCleanerVisit,
     endCleanerVisit,
     retryLoad,
-    startFresh,
-    unlock,
-    wrap,
-    joinRemote,
+    eraseEverything,
   };
 }

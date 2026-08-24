@@ -1,33 +1,40 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import type { ReactNode } from "react";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Enforced in the bundled WKWebView and on the web shell alike.
+// script-src keeps 'unsafe-inline' because Next.js static export emits inline
+// hydration bootstrap scripts whose hashes change per build. Compensating
+// controls: no third-party scripts, no HTML rendered from user input, and
+// connect-src pinned to the two weather endpoints (see docs/RESIDUAL_RISKS.md).
+const CSP = [
+  "default-src 'self'",
+  // next dev needs eval for React refresh; production/static export does not.
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  "connect-src 'self' https://api.open-meteo.com https://api.zippopotam.us",
+  "worker-src 'self'",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
 
 export const metadata: Metadata = {
-  title: "Estrellita Management",
-  description: "Keep track of household duties from your iPhone.",
-  applicationName: "Estrellita",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Estrellita",
-  },
-  formatDetection: {
-    telephone: false,
-  },
-  icons: {
-    icon: "/icon",
-    apple: "/apple-icon",
+  title: "Cuidala",
+  description: "Home maintenance, restock, and seasonal checklists — on your iPhone.",
+  applicationName: "Cuidala",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Cuidala" },
+  formatDetection: { telephone: false },
+  icons: { icon: "/icon", apple: "/apple-icon" },
+  openGraph: {
+    title: "Cuidala",
+    description: "Home maintenance, restock, and seasonal checklists — on your iPhone.",
+    siteName: "Cuidala",
   },
 };
 
@@ -39,13 +46,12 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="en" suppressHydrationWarning className="h-full antialiased">
+      <head>
+        <meta httpEquiv="Content-Security-Policy" content={CSP} />
+      </head>
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>
       </body>

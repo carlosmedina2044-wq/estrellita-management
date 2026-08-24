@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { RestockOrderButton } from "@/components/restock-order-button";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { FLOORS, HOUSE_ROOMS } from "@/lib/house";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
 import type { Duty, DutyDraft, Household, Room, SupplyAutomation } from "@/lib/types";
@@ -34,7 +33,7 @@ type Draft = {
   onHand: string;
 };
 
-function emptyDraft(room: Room = "living-room"): Draft {
+function emptyDraft(room: Room): Draft {
   return {
     itemName: "",
     room,
@@ -48,7 +47,7 @@ export function ConsumableForm({
   duty,
   automation,
   household,
-  defaultRoom = "living-room",
+  defaultRoom,
   onOpenChange,
   onSave,
   onDelete,
@@ -59,8 +58,8 @@ export function ConsumableForm({
   open: boolean;
   duty: Duty | null;
   automation: SupplyAutomation | null;
-  household?: Household;
-  defaultRoom?: Room;
+  household: Household;
+  defaultRoom: Room;
   onOpenChange: (open: boolean) => void;
   onSave: (input: DutyDraft) => void;
   onDelete?: (id: string) => void;
@@ -71,20 +70,22 @@ export function ConsumableForm({
   const [draft, setDraft] = useState<Draft>(emptyDraft(defaultRoom));
   const [formError, setFormError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
+  const resetKey = `${open}:${duty?.id ?? ""}:${automation?.id ?? ""}:${defaultRoom}`;
+  const [prevResetKey, setPrevResetKey] = useState<string | null>(null);
+  if (open && prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
     setFormError(null);
-    if (automation) {
-      setDraft({
-        itemName: automation.itemName,
-        room: automation.room || duty?.room || defaultRoom,
-        leadTimeDays: String(automation.leadTimeDays ?? DEFAULT_LEAD_TIME_DAYS),
-        onHand: String(automation.onHand ?? 0),
-      });
-      return;
-    }
-    setDraft(emptyDraft(defaultRoom));
-  }, [open, duty, automation, defaultRoom]);
+    setDraft(
+      automation
+        ? {
+            itemName: automation.itemName,
+            room: automation.room || duty?.room || defaultRoom,
+            leadTimeDays: String(automation.leadTimeDays ?? DEFAULT_LEAD_TIME_DAYS),
+            onHand: String(automation.onHand ?? 0),
+          }
+        : emptyDraft(defaultRoom),
+    );
+  }
 
   function closeAfterClick() {
     window.setTimeout(() => onOpenChange(false), 250);
@@ -154,9 +155,7 @@ export function ConsumableForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {household ? (
-                  <>
-                    {systemRoomList(household).map((room) => (
+                                    {systemRoomList(household).map((room) => (
                       <SelectItem key={room.id} value={room.id}>
                         {room.name}
                       </SelectItem>
@@ -171,19 +170,6 @@ export function ConsumableForm({
                         ))}
                       </SelectGroup>
                     ))}
-                  </>
-                ) : (
-                  FLOORS.map((floor) => (
-                    <SelectGroup key={floor.id}>
-                      <SelectLabel>{floor.label}</SelectLabel>
-                      {HOUSE_ROOMS.filter((room) => room.floor === floor.id).map((room) => (
-                        <SelectItem key={room.id} value={room.id}>
-                          {room.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))
-                )}
               </SelectContent>
             </Select>
           </Field>
@@ -210,7 +196,7 @@ export function ConsumableForm({
           <p className="text-[13px] text-muted-foreground">
             Save a product link later with Share, or tap Save this link after you find it.
           </p>
-          {automation && household ? (
+          {automation ? (
             <RestockOrderButton
               item={automation}
               household={household}

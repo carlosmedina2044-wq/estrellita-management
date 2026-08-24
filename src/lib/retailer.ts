@@ -1,6 +1,30 @@
 const ASIN = /^[A-Z0-9]{10}$/i;
-const AMAZON_HOST = /(^|\.)amazon\.[a-z.]+$/i;
+const AMAZON_HOST = /(^|\.)amazon\.(com|ca|com\.mx|co\.uk|de|fr|es|it|nl|se|pl|com\.au|co\.jp|in|sg|ae|sa|com\.br)$/i;
 const SHORT_HOST = /^(amzn\.to|a\.co)$/i;
+
+/** Hosts a link may come from without the user pasting it themselves. */
+const KNOWN_RETAILER_HOSTS = [
+  AMAZON_HOST,
+  SHORT_HOST,
+  /(^|\.)homedepot\.com$/i,
+  /(^|\.)lowes\.com$/i,
+  /(^|\.)walmart\.com$/i,
+  /(^|\.)target\.com$/i,
+  /(^|\.)chewy\.com$/i,
+  /(^|\.)costco\.com$/i,
+  /(^|\.)acehardware\.com$/i,
+];
+
+export function isKnownRetailerUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:") return false;
+    const host = url.hostname.replace(/^www\./i, "");
+    return KNOWN_RETAILER_HOSTS.some((pattern) => pattern.test(host));
+  } catch {
+    return false;
+  }
+}
 
 export type RetailerChip = {
   id: "amazon" | "home-depot" | "walmart" | "chewy" | "target";
@@ -105,32 +129,27 @@ export function parseRetailerInput(input: string): RetailerRef {
   };
 }
 
-export function retailerUrlFor(item: {
-  retailerUrl?: string;
-  amazonProductUrl?: string;
-  asin?: string;
-}): string | null {
-  const pasted = item.retailerUrl?.trim() || item.amazonProductUrl?.trim();
-  if (pasted) {
-    const parsed = parseRetailerInput(pasted);
-    if (parsed.ok) return parsed.url;
-  }
-  const asin = item.asin?.trim();
-  if (asin && ASIN.test(asin)) return amazonUrlFromAsin(asin);
-  return null;
+export function retailerUrlFor(item: { retailerUrl?: string }): string | null {
+  const pasted = item.retailerUrl?.trim();
+  if (!pasted) return null;
+  const parsed = parseRetailerInput(pasted);
+  return parsed.ok ? parsed.url : null;
 }
 
+/**
+ * Pulls a product URL out of share-sheet input. Because this path is reached
+ * from outside the app (share extension, deep link), only known retailer hosts
+ * over HTTPS are accepted; anything else is dropped rather than surfaced as an
+ * "Order" button.
+ */
 export function extractSharedUrl(input: { url?: string | null; text?: string | null; title?: string | null }): string | null {
   const candidates = [input.url, input.text, input.title];
   for (const value of candidates) {
     if (!value) continue;
     const match = value.match(/https?:\/\/[^\s]+/i);
-    if (match) {
-      const parsed = parseRetailerInput(match[0]);
-      if (parsed.ok) return parsed.url;
-    }
-    const parsed = parseRetailerInput(value);
-    if (parsed.ok) return parsed.url;
+    const candidate = match ? match[0] : value;
+    const parsed = parseRetailerInput(candidate);
+    if (parsed.ok && isKnownRetailerUrl(parsed.url)) return parsed.url;
   }
   return null;
 }

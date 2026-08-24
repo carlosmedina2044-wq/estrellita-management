@@ -1,9 +1,22 @@
-<!-- Merge these keys into ios/App/App/Info.plist after `npx cap add ios`. -->
+<!--
+  Merge these keys into ios/App/App/Info.plist after `npx cap add ios`.
+  Only keys for capabilities the app actually uses are listed. Do not add
+  NSUserTrackingUsageDescription: the app does not track and App Store Connect
+  flags an empty tracking string.
+-->
 <key>NSFaceIDUsageDescription</key>
-<string>Estrellita uses Face ID to unlock your home after each launch. Your chores stay hidden until you confirm it’s you.</string>
+<string>Cuidala uses Face ID to lock your home’s chores and restock list so only you can open them.</string>
 <key>NSLocationWhenInUseUsageDescription</key>
-<string>Estrellita uses your location once during setup to pick weather and seasonal tasks. We store only a ZIP and coordinates rounded to two decimals.</string>
-<key>NSUserTrackingUsageDescription</key>
-<string></string>
-<key>NSUserNotificationsUsageDescription</key>
-<string>Estrellita can send a weekly restock digest when something needs to be ordered. The app never places orders or stores payment information.</string>
+<string>Cuidala uses your location once during setup to pick weather-based and seasonal tasks. Only coordinates rounded to about one kilometre are kept.</string>
+<key>ITSAppUsesNonExemptEncryption</key>
+<false/>
+<key>WKAppBoundDomains</key>
+<array>
+  <string>api.open-meteo.com</string>
+  <string>api.zippopotam.us</string>
+</array>
+<key>NSAppTransportSecurity</key>
+<dict>
+  <key>NSAllowsArbitraryLoads</key>
+  <false/>
+</dict>

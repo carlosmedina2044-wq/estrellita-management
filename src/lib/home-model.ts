@@ -1,4 +1,3 @@
-import { HOUSE_ROOMS, HOUSE_STARTERS } from "@/lib/house";
 import { catalogLabel, CANONICAL_ASSET_TYPES } from "@/lib/asset-catalog";
 import type {
   AssetType,
@@ -37,33 +36,6 @@ export const ASSET_TYPES: { id: AssetType; label: string }[] = CANONICAL_ASSET_T
   label: catalogLabel(id),
 }));
 
-const EXTERIOR_LEGACY = new Set(["patio", "lawn", "pool", "ramada", "shed"]);
-
-const ROOM_TYPE_BY_LEGACY: Record<string, RoomType> = {
-  entry: "hallway",
-  "family-room": "living",
-  "dining-room": "dining",
-  kitchen: "kitchen",
-  nook: "other",
-  "living-room": "living",
-  "guest-room": "bedroom",
-  "downstairs-bath": "bathroom",
-  laundry: "laundry",
-  garage: "garage",
-  patio: "other",
-  "main-bedroom": "primary_bedroom",
-  "main-bath": "bathroom",
-  "carlos-office": "office",
-  "adriana-office": "bedroom",
-  "elliotts-room": "bedroom",
-  "upstairs-bath": "bathroom",
-  "upstairs-hall": "hallway",
-  lawn: "other",
-  pool: "other",
-  ramada: "other",
-  shed: "other",
-};
-
 export function roomTypeLabel(type: RoomType): string {
   return ROOM_TYPES.find((item) => item.id === type)?.label ?? type;
 }
@@ -97,7 +69,7 @@ export function systemRooms(names?: { wholeHome?: string; exterior?: string }): 
   ];
 }
 
-export function emptyHomeTree(homeName = "Home"): Pick<Household, "homeId" | "floors" | "rooms" | "assets"> {
+export function emptyHomeTree(): Pick<Household, "homeId" | "floors" | "rooms" | "assets"> {
   return {
     homeId: "home",
     floors: [{ id: "main", name: "Main", sortOrder: 0 }],
@@ -106,34 +78,14 @@ export function emptyHomeTree(homeName = "Home"): Pick<Household, "homeId" | "fl
   };
 }
 
-export function appraisalHomeTree(): Pick<Household, "homeId" | "floors" | "rooms" | "assets"> {
-  const floors: HomeFloor[] = [
-    { id: "downstairs", name: "Downstairs", sortOrder: 0 },
-    { id: "upstairs", name: "Upstairs", sortOrder: 1 },
-    { id: "outside", name: "Yard", sortOrder: 2 },
-  ];
-  const rooms: HomeRoom[] = [
-    ...systemRooms(),
-    ...HOUSE_ROOMS.map((room, index) => ({
-      id: room.id,
-      floorId: room.floor,
-      name: room.label,
-      type: ROOM_TYPE_BY_LEGACY[room.id] ?? "other",
-      sortOrder: index + 2,
-    })),
-  ];
-  return { homeId: "home", floors, rooms, assets: [] };
-}
-
 export function ensureHomeTree<T extends Pick<Household, "floors" | "rooms" | "assets" | "homeId" | "householdName" | "duties" | "supplyAutomations">>(
   household: T,
 ): T {
   const hasTree = household.floors.length > 0 && household.rooms.some((room) => room.system);
-  if (hasTree) {
-    return ensureSystemRooms(household);
-  }
-  const seeded = household.duties.length > 0 || household.rooms.length === 0 ? appraisalHomeTree() : emptyHomeTree(household.householdName);
-  const rooms = seeded.rooms;
+  const base = hasTree ? ensureSystemRooms(household) : { ...household, ...emptyHomeTree(), assets: household.assets, homeId: household.homeId || "home" };
+  const rooms = base.rooms;
+  // Always re-point work at a room that exists, so stale ids from an older
+  // build or a deleted room never leave a duty orphaned.
   const duties = household.duties.map((duty) => {
     const nodeId = duty.nodeId || duty.room;
     const nodeType: NodeType = duty.nodeType || "room";
@@ -144,15 +96,7 @@ export function ensureHomeTree<T extends Pick<Household, "floors" | "rooms" | "a
     const nodeType: NodeType = item.nodeType || "room";
     return { ...item, nodeId, nodeType, room: resolveRoomId(rooms, household.assets, nodeId, nodeType, item.room) };
   });
-  return {
-    ...household,
-    homeId: household.homeId || seeded.homeId,
-    floors: seeded.floors,
-    rooms,
-    assets: household.assets.length ? household.assets : seeded.assets,
-    duties,
-    supplyAutomations,
-  };
+  return { ...base, duties, supplyAutomations };
 }
 
 function ensureSystemRooms<T extends Pick<Household, "rooms">>(household: T): T {
@@ -274,36 +218,6 @@ export type HomeTreeDraft = {
   floors: HomeFloor[];
   rooms: HomeRoom[];
 };
-
-export function mapStarterRoom(rooms: HomeRoom[], legacyRoom: string): string {
-  if (EXTERIOR_LEGACY.has(legacyRoom)) {
-    return rooms.find((room) => room.system === "exterior")?.id ?? EXTERIOR_ID;
-  }
-  const exact = rooms.find((room) => room.id === legacyRoom);
-  if (exact) return exact.id;
-  if (legacyRoom === "nook") {
-    return (
-      rooms.find((room) => room.type === "dining" && !room.system)?.id ??
-      rooms.find((room) => room.type === "kitchen" && !room.system)?.id ??
-      rooms.find((room) => !room.system)?.id ??
-      WHOLE_HOME_ID
-    );
-  }
-  const type = ROOM_TYPE_BY_LEGACY[legacyRoom];
-  const byType = type ? rooms.find((room) => room.type === type && !room.system) : undefined;
-  if (byType) return byType.id;
-  if (type === "office") {
-    return rooms.find((room) => room.system === "whole-home")?.id ?? WHOLE_HOME_ID;
-  }
-  return rooms.find((room) => !room.system)?.id ?? WHOLE_HOME_ID;
-}
-
-export function startersForTree(rooms: HomeRoom[]) {
-  return HOUSE_STARTERS.map((starter) => ({
-    ...starter,
-    room: mapStarterRoom(rooms, starter.room),
-  })).filter((starter, index, all) => all.findIndex((item) => item.title === starter.title && item.room === starter.room) === index);
-}
 
 export function treeFromDraft(draft: HomeTreeDraft): Pick<Household, "homeId" | "floors" | "rooms" | "assets"> {
   const rooms = [...systemRooms(), ...draft.rooms.filter((room) => !room.system)];

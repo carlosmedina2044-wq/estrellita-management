@@ -68,7 +68,7 @@ export function markAutomationOrdered(item: SupplyAutomation, now = new Date()):
   };
 }
 
-export function reconcileAutomation(item: SupplyAutomation, _now = new Date()): SupplyAutomation {
+export function reconcileAutomation(item: SupplyAutomation): SupplyAutomation {
   return item;
 }
 
@@ -99,7 +99,7 @@ export function daysUntilOrder(item: SupplyAutomation, now = new Date()): number
 }
 
 export function isDueToOrderSoon(item: SupplyAutomation, now = new Date(), windowDays = 21): boolean {
-  const current = reconcileAutomation(item, now);
+  const current = reconcileAutomation(item);
   if (isAwaitingArrival(current, now)) return false;
   return daysUntilOrder(current, now) <= windowDays;
 }

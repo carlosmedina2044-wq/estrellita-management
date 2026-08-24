@@ -4,26 +4,16 @@ import { useState } from "react";
 import { Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { appendAudit } from "@/lib/audit";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
-import { signInWithAppleNative, signInWithAppleWeb } from "@/lib/native/apple-sign-in";
-import { persistRefreshToken, persistVaultSecret } from "@/lib/native/keychain";
-import { isNativeIos } from "@/lib/native/platform";
 import { sampleHomeAnswers, type OnboardingAnswers } from "@/lib/onboarding/generate";
 import { ADD_ROOM_TYPES, nextRoomKey, roomTemplateFor, type RoomChoice } from "@/lib/onboarding/rooms";
-import { beginPasskeyRegistration, finishPasskeyRegistration } from "@/lib/passkey";
-import type { Account, HomeType } from "@/lib/types";
+import type { HomeType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function Onboarding({
   onComplete,
 }: {
-  onComplete: (input: {
-    answers: OnboardingAnswers;
-    account?: Account;
-    vaultSecret?: string;
-    ownerName?: string;
-  }) => void | Promise<void>;
+  onComplete: (input: { answers: OnboardingAnswers; ownerName?: string }) => void | Promise<void>;
 }) {
   const [step, setStep] = useState(0);
   const [homeType, setHomeType] = useState<HomeType>("house");
@@ -32,9 +22,6 @@ export function Onboarding({
   const [postalCode, setPostalCode] = useState("");
   const [lat, setLat] = useState<number | undefined>();
   const [lng, setLng] = useState<number | undefined>();
-  const [account, setAccount] = useState<Account>({ providers: [] });
-  const [email, setEmail] = useState("");
-  const [authError, setAuthError] = useState("");
   const [busy, setBusy] = useState(false);
   const [zipError, setZipError] = useState("");
 
@@ -50,7 +37,7 @@ export function Onboarding({
     nickname: "Home",
     rooms,
   };
-  const progress = step === 0 ? 0 : step / 3;
+  const progress = step / 3;
 
   function go(next: number) {
     setStep(next);
@@ -60,95 +47,7 @@ export function Onboarding({
   async function finish(nextAnswers: OnboardingAnswers) {
     setBusy(true);
     try {
-      await appendAudit("onboarding_complete");
-      await onComplete({
-        answers: nextAnswers,
-        account,
-        ownerName: account.email?.split("@")[0],
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function finishAuth(nextAccount: Account, vaultSecret: string) {
-    setAccount(nextAccount);
-    await persistVaultSecret(vaultSecret);
-    go(1);
-  }
-
-  async function apple() {
-    setBusy(true);
-    setAuthError("");
-    try {
-      const native = isNativeIos();
-      const result = native ? await signInWithAppleNative() : await signInWithAppleWeb().catch(() => null);
-      if (!result) {
-        setAuthError("Sign in with Apple needs the iOS app, or Apple JS configured for the web build.");
-        return;
-      }
-      const response = await fetch("/api/auth/apple", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identityToken: result.identityToken }),
-      });
-      const payload = (await response.json()) as {
-        refreshToken?: string;
-        user?: { id: string; email?: string; emailHidden?: boolean; appleUserId?: string };
-        error?: string;
-      };
-      if (!response.ok || !payload.refreshToken) {
-        setAuthError(payload.error || "Apple could not sign you in.");
-        return;
-      }
-      await persistRefreshToken(payload.refreshToken);
-      const vaultSecret = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-      await finishAuth(
-        {
-          appleUserId: payload.user?.appleUserId ?? result.user,
-          email: payload.user?.email ?? result.email,
-          emailHidden: payload.user?.emailHidden,
-          providers: ["apple"],
-        },
-        vaultSecret,
-      );
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Apple sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function passkey() {
-    setBusy(true);
-    setAuthError("");
-    try {
-      const vaultId = crypto.randomUUID();
-      const vaultSecret = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
-      const credential = await beginPasskeyRegistration(vaultId);
-      await finishPasskeyRegistration(credential, vaultSecret, vaultId);
-      await finishAuth({ providers: ["passkey"] }, vaultSecret);
-    } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Passkey sign-in failed.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function sendMagic() {
-    setBusy(true);
-    setAuthError("");
-    try {
-      const response = await fetch("/api/auth/magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!response.ok) {
-        setAuthError("Could not send the email link.");
-        return;
-      }
-      setAuthError("Check your email for a 15-minute sign-in link. It opens this app.");
+      await onComplete({ answers: nextAnswers });
     } finally {
       setBusy(false);
     }
@@ -206,43 +105,29 @@ export function Onboarding({
         </div>
         <div className="mt-4 flex items-center gap-2 text-primary">
           <Star className="size-5 fill-current" />
-          <span className="text-sm font-medium tracking-wide">Estrellita</span>
+          <span className="text-sm font-medium tracking-wide">Cuidala</span>
         </div>
 
         {step === 0 ? (
-          <Screen title="Your home, on your iPhone." copy="Sign in once. After that it’s Face ID, then today’s chores.">
-            <Button className="h-14 w-full text-base" disabled={busy} onClick={() => void apple()}>
-              Sign in with Apple
+          <Screen
+            title="Your home, on your iPhone."
+            copy="Rooms, chores, and the filters and batteries you need to reorder — all on this device. Setup takes about two minutes."
+          >
+            <Button className="h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
+              Set up my home
             </Button>
-            <Button variant="secondary" className="mt-3 h-14 w-full" disabled={busy} onClick={() => void passkey()}>
-              Continue with passkey
-            </Button>
-            <div className="mt-4">
-              <Input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="Email for a magic link"
-                className="h-12"
-              />
-              <Button variant="secondary" className="mt-2 h-12 w-full" disabled={busy || !email.includes("@")} onClick={() => void sendMagic()}>
-                Email me a sign-in link
-              </Button>
-            </div>
-            {authError ? <p className="mt-3 text-sm text-muted-foreground">{authError}</p> : null}
-            <button type="button" className="mt-6 text-[13px] font-medium text-primary" onClick={() => go(1)}>
-              Continue without signing in
-            </button>
             <button
               type="button"
-              className="mt-3 text-[13px] font-medium text-primary"
+              className="mt-4 text-[13px] font-medium text-primary"
               disabled={busy}
               onClick={() => void finish(sampleHomeAnswers())}
             >
-              Use a sample home
+              Use a sample home instead
             </button>
+            <p className="mt-auto pt-8 text-[12px] leading-5 text-muted-foreground">
+              Cuidala keeps your home data on this iPhone, encrypted. No account, no server copy.
+              See Settings for the privacy policy.
+            </p>
           </Screen>
         ) : null}
 

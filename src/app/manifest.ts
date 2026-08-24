@@ -1,8 +1,10 @@
+export const dynamic = "force-static";
+
 export default function manifest() {
   return {
-    name: "Estrellita Management",
-    short_name: "Estrellita",
-    description: "Knows what is running out and when to order it, one tap to any retailer.",
+    name: "Cuidala",
+    short_name: "Cuidala",
+    description: "Home maintenance, restock, and seasonal checklists.",
     start_url: "/",
     display: "standalone",
     share_target: {

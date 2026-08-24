@@ -1,11 +1,9 @@
+import { Capacitor } from "@capacitor/core";
+
 export function isNativeIos(): boolean {
-  if (typeof window === "undefined") return false;
-  const capacitor = (window as Window & { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } })
-    .Capacitor;
-  return Boolean(capacitor?.isNativePlatform?.() && capacitor.getPlatform?.() === "ios");
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "ios";
 }
 
-export function isCapacitor(): boolean {
-  if (typeof window === "undefined") return false;
-  return Boolean((window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
+export function isNative(): boolean {
+  return Capacitor.isNativePlatform();
 }

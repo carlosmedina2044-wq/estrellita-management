@@ -57,7 +57,6 @@ export type AssetCondition = "good" | "fair" | "poor";
 export type SystemRoomKind = "whole-home" | "exterior";
 export type HomeType = "house" | "townhouse" | "condo" | "apartment" | "other";
 export type ClimateZone = "hot-arid" | "cold" | "humid-subtropical" | "marine" | "mixed";
-export type AuthProvider = "apple" | "passkey" | "magic-link";
 export type LockAfter = "immediate" | "2min" | "15min";
 export type HouseholdMemberRole = "owner" | "adult" | "child";
 export type PlaybookSeason = "spring" | "summer" | "fall" | "winter" | "monsoon" | "any";
@@ -178,10 +177,6 @@ export type SupplyAutomation = {
   nodeType: NodeType;
   itemName: string;
   sku: string;
-  asin: string;
-  amazonProductUrl: string;
-  amazonOneClick: boolean;
-  amazonNotes: string;
   retailerUrl: string;
   quantity: number;
   onHand: number;
@@ -204,10 +199,6 @@ export type SupplyAutomationInput = {
   id?: string;
   itemName: string;
   sku?: string;
-  asin?: string;
-  amazonProductUrl?: string;
-  amazonOneClick?: boolean;
-  amazonNotes?: string;
   retailerUrl?: string;
   quantity?: number;
   onHand?: number;
@@ -233,14 +224,6 @@ export type Visit = {
   cleanerName: string;
   startedAt: string;
   endedAt: string | null;
-};
-
-export type Account = {
-  appleUserId?: string;
-  email?: string;
-  emailHidden?: boolean;
-  providers: AuthProvider[];
-  passkeyPromptedAt?: string;
 };
 
 export type LockSettings = {
@@ -270,7 +253,6 @@ export type Household = {
   householdName: string;
   ownerName: string;
   cleanerName: string;
-  ownerPin: string;
   onboarded: boolean;
   mode: Mode;
   activeVisitId: string | null;
@@ -289,7 +271,6 @@ export type Household = {
   playbookDecisions: PlaybookDecision[];
   weatherFires: WeatherFire[];
   weatherStatus: WeatherStatus;
-  account: Account;
   lockSettings: LockSettings;
   householdRole: HouseholdMemberRole;
   restockDigest: RestockDigestSettings;

@@ -1,9 +1,5 @@
-import type { Audience, Effort, Frequency, Room } from "@/lib/types";
-import { HOUSE_STARTERS, inferAudience as inferHouseAudience, roomLabel as houseRoomLabel, ROOMS as HOUSE_ROOM_LIST } from "@/lib/house";
-
-export const STORAGE_KEY = "estrellita-household-v1";
-
-export const ROOMS = HOUSE_ROOM_LIST;
+import type { Audience, Effort, Frequency } from "@/lib/types";
+import { inferAudience as inferHouseAudience } from "@/lib/house";
 
 export const FREQUENCIES: { id: Frequency; label: string }[] = [
   { id: "daily", label: "Every day" },
@@ -42,14 +38,6 @@ export const AUDIENCES: { id: Audience; label: string }[] = [
   { id: "anyone", label: "Either" },
 ];
 
-export type StarterDuty = (typeof HOUSE_STARTERS)[number];
-
-export const STARTER_DUTIES = HOUSE_STARTERS;
-
-export function roomLabel(room: Room): string {
-  return houseRoomLabel(room);
-}
-
 export function audienceLabel(audience: Audience): string {
   return AUDIENCES.find((item) => item.id === audience)?.label ?? audience;
 }
@@ -73,6 +61,6 @@ export function frequencyLabel(frequency: Frequency, weekday: number, monthDay: 
   return "One time";
 }
 
-export function inferAudience(title: string, room: Room): Audience {
-  return inferHouseAudience(title, room);
+export function inferAudience(title: string): Audience {
+  return inferHouseAudience(title);
 }

@@ -43,7 +43,6 @@ export function normalizeConsumable(item: SupplyAutomation): SupplyAutomation {
     linkedDutyIds,
     dutyId: linkedDutyIds[0] ?? item.dutyId,
     retailerUrl,
-    amazonProductUrl: item.amazonProductUrl || retailerUrl,
     onHand: Math.max(0, Math.round(item.onHand ?? 0)),
     qtyPerOrder,
     quantity: qtyPerOrder,
@@ -52,7 +51,7 @@ export function normalizeConsumable(item: SupplyAutomation): SupplyAutomation {
   };
 }
 
-function nextOnce(duty: Duty, completions: Completion[], _onOrAfter: Date): Date | null {
+function nextOnce(duty: Duty, completions: Completion[]): Date | null {
   if (!duty.dueDate || lastCompletion(duty.id, completions)) return null;
   return new Date(parseISODate(duty.dueDate));
 }
@@ -88,7 +87,7 @@ export function upcomingDutyDates(
   let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   if (duty.frequency === "once") {
-    const due = nextOnce(duty, completions, cursor);
+    const due = nextOnce(duty, completions);
     return due ? [due] : [];
   }
 
@@ -258,7 +257,6 @@ export function saveRetailerLink(item: SupplyAutomation, url: string): SupplyAut
   return {
     ...current,
     retailerUrl: url,
-    amazonProductUrl: url,
   };
 }
 
@@ -275,16 +273,12 @@ export function usedWhere(
 
 export function defaultConsumableFields(now = new Date()): Pick<
   SupplyAutomation,
-  "sku" | "asin" | "amazonProductUrl" | "amazonOneClick" | "amazonNotes" | "retailerUrl" | "quantity" | "onHand" | "qtyPerOrder" | "leadTimeDays" | "installedAt" | "lifespanValue" | "lifespanUnit" | "orderByDate" | "nextOrderDate" | "orderInFlight" | "state" | "expectedArrivalDate"
+  "sku" | "retailerUrl" | "quantity" | "onHand" | "qtyPerOrder" | "leadTimeDays" | "installedAt" | "lifespanValue" | "lifespanUnit" | "orderByDate" | "nextOrderDate" | "orderInFlight" | "state" | "expectedArrivalDate"
 > {
   const installedAt = toISODate(now);
   const orderByDate = deriveOrderByDate(installedAt, 12, "months");
   return {
     sku: "",
-    asin: "",
-    amazonProductUrl: "",
-    amazonOneClick: false,
-    amazonNotes: "",
     retailerUrl: "",
     quantity: DEFAULT_QUANTITY,
     onHand: 0,

@@ -1,51 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { evaluateDeviceOwner, nativeBiometricsAvailable } from "@/lib/native/biometrics";
-import { isNativeIos } from "@/lib/native/platform";
-import { formatPasskeyError, hasStoredPasskey, unlockSecretWithPasskey } from "@/lib/passkey";
+import { verifyDeviceOwner } from "@/lib/native/biometrics";
 
-export function FaceLock({
-  onUnlock,
-}: {
-  onUnlock: (secret?: string) => Promise<boolean>;
-}) {
-  const [error, setError] = useState("");
+/**
+ * App lock. Resolves only when the system confirms Face ID / Touch ID / passcode.
+ * If verification fails or is cancelled the app stays locked; there is no bypass.
+ */
+export function FaceLock({ onUnlocked }: { onUnlocked: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   async function unlock() {
     setBusy(true);
     setError("");
-    try {
-      if (isNativeIos() && (await nativeBiometricsAvailable())) {
-        await evaluateDeviceOwner();
-        const ok = await onUnlock();
-        if (!ok) setError("Face ID worked, but the Keychain session could not open the vault.");
-        return;
-      }
-      if (hasStoredPasskey()) {
-        const secret = await unlockSecretWithPasskey();
-        const ok = await onUnlock(secret);
-        if (!ok) setError("Face ID worked, but that session did not open the vault.");
-        return;
-      }
-      setError("Face ID is not enrolled on this device. Add a passkey in Settings.");
-    } catch (caught) {
-      setError(formatPasskeyError(caught));
-    } finally {
-      setBusy(false);
-    }
+    const ok = await verifyDeviceOwner("Unlock Cuidala");
+    setBusy(false);
+    if (ok) onUnlocked();
+    else setError("Couldn’t confirm it’s you. Try again.");
   }
+
+  useEffect(() => {
+    // Prompt once on mount; the button covers retries.
+    const timer = window.setTimeout(() => void unlock(), 0);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
-      <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Estrellita is locked</h1>
+      <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Cuidala is locked</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Use Face ID or Touch ID to open today’s list. Nothing else is visible until you unlock.
+        Use Face ID, Touch ID, or your passcode to open today’s list.
       </p>
       <Button className="mt-8 h-14" disabled={busy} onClick={() => void unlock()}>
-        {busy ? "Waiting…" : "Unlock with Face ID"}
+        {busy ? "Waiting…" : "Unlock"}
       </Button>
       {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
     </div>

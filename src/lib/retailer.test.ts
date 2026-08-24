@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   extractSharedUrl,
+  isKnownRetailerUrl,
   isProductPageUrl,
   parseRetailerInput,
   retailerSearchUrl,
@@ -38,12 +39,10 @@ test("product page detection distinguishes search vs product", () => {
   assert.equal(isProductPageUrl("https://www.homedepot.com/p/123"), true);
 });
 
-test("retailerUrlFor prefers a saved retailer link", () => {
-  assert.equal(
-    retailerUrlFor({ retailerUrl: "https://www.target.com/p/filter", amazonProductUrl: "https://www.amazon.com/dp/B0FILTER12" }),
-    "https://www.target.com/p/filter",
-  );
-  assert.equal(retailerUrlFor({ asin: "B0FILTER12" }), "https://www.amazon.com/dp/B0FILTER12");
+test("retailerUrlFor returns the saved link or null", () => {
+  assert.equal(retailerUrlFor({ retailerUrl: "https://www.target.com/p/filter" }), "https://www.target.com/p/filter");
+  assert.equal(retailerUrlFor({ retailerUrl: "" }), null);
+  assert.equal(retailerUrlFor({ retailerUrl: "javascript:alert(1)" }), null);
 });
 
 test("extractSharedUrl finds a URL in share text", () => {
@@ -51,4 +50,16 @@ test("extractSharedUrl finds a URL in share text", () => {
     extractSharedUrl({ text: "Check this https://www.chewy.com/dp/abc123 extra" }),
     "https://www.chewy.com/dp/abc123",
   );
+});
+
+test("extractSharedUrl drops unknown hosts and non-HTTPS links", () => {
+  assert.equal(extractSharedUrl({ url: "https://evil.example/login" }), null);
+  assert.equal(extractSharedUrl({ url: "http://www.amazon.com/dp/B0FILTER12" }), null);
+  assert.equal(extractSharedUrl({ text: "see https://www.homedepot.com/p/123" }), "https://www.homedepot.com/p/123");
+});
+
+test("isKnownRetailerUrl matches subdomains but not lookalikes", () => {
+  assert.equal(isKnownRetailerUrl("https://smile.amazon.com/dp/B0FILTER12"), true);
+  assert.equal(isKnownRetailerUrl("https://amazon.com.evil.example/dp/x"), false);
+  assert.equal(isKnownRetailerUrl("https://notwalmart.com/ip/x"), false);
 });

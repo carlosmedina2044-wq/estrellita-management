@@ -1,4 +1,4 @@
-const CACHE_NAME = "estrellita-v4";
+const CACHE_NAME = "cuidala-v1";
 const PRECACHE = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

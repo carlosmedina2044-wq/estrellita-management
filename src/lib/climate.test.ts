@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { applyPostalCode, deriveClimate, isValidUsZip, normalizeUsZip } from "@/lib/climate";
+import { applyPostalCode, deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
 
 test("accepts a 5-digit US ZIP and rejects partials", () => {
   assert.equal(normalizeUsZip("85701-1234"), "85701");
@@ -18,4 +18,12 @@ test("saving a ZIP overwrites a stale mixed climate zone", () => {
 
 test("ZIP prefix beats a stored climate zone on later reads", () => {
   assert.equal(deriveClimate({ postalCode: "55401", climateZone: "mixed" }), "cold");
+});
+
+test("coordinates are rounded to two decimals before they are stored or sent", () => {
+  assert.equal(roundCoord(32.2226066), 32.22);
+  assert.equal(roundCoord(-110.9747108), -110.97);
+  const next = applyPostalCode({}, "85701", { lat: 32.2226066, lng: -110.9747108 });
+  assert.equal(next.lat, 32.22);
+  assert.equal(next.lng, -110.97);
 });

@@ -1,34 +1,31 @@
 import { normalizeAssetType } from "@/lib/asset-catalog";
-import { inferAudience, STORAGE_KEY } from "@/lib/constants";
+import { inferAudience } from "@/lib/constants";
 import {
-  createVaultSession,
-  decryptEnvelope,
-  encryptHousehold,
-  isVaultEnvelope,
+  decryptJson,
+  encryptJson,
+  isLegacyPinEnvelope,
+  LEGACY_PLAINTEXT_KEY,
+  LEGACY_VAULT_KEY,
   parseEnvelopeJson,
-  sessionFromEnvelope,
+  PREVIOUS_VAULT_KEY,
   VAULT_STORAGE_KEY,
-  type VaultEnvelope,
-  type VaultSession,
 } from "@/lib/crypto";
 import { todayISO } from "@/lib/dates";
 import { migrateRoom } from "@/lib/house";
-import { appraisalHomeTree, asRoomType, emptyHomeTree, ensureHomeTree, systemRooms } from "@/lib/home-model";
+import { asRoomType, emptyHomeTree, ensureHomeTree, systemRooms } from "@/lib/home-model";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import {
-  DEFAULT_ACCOUNT,
   DEFAULT_ATTRIBUTES,
   DEFAULT_LOCK_SETTINGS,
   DEFAULT_WEATHER_STATUS,
   withHouseholdDefaults,
 } from "@/lib/household-defaults";
-import { clearPasskey } from "@/lib/passkey";
-import { hashPin, isBrokenPinHash, isPinHash, pinIsSet, pinsMatch, sanitizeStoredPin } from "@/lib/pin";
-import { asArray, asId, isPlainObject, sanitizePinInput, sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
+import { deleteDeviceKey, loadOrCreateDeviceKey } from "@/lib/native/device-key";
+import { kvGet, kvRemove, kvSet } from "@/lib/native/kv";
+import { syncScheduledNotifications } from "@/lib/notifications";
+import { asArray, asId, isPlainObject, sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
 import { deriveOrderByDate } from "@/lib/supply";
-import { pullVaultEnvelope, pushVaultEnvelope } from "@/lib/vault-sync";
 import type {
-  Account,
   Audience,
   Completion,
   Consumable,
@@ -43,7 +40,6 @@ import type {
   Household,
   LifespanUnit,
   LockSettings,
-  NodeType,
   PlaybookDecision,
   SupplyAutomation,
   Visit,
@@ -52,24 +48,21 @@ import type {
 
 export const EMPTY_HOUSEHOLD: Household = withHouseholdDefaults({
   version: 7,
-  householdName: "Estrellita",
+  householdName: "Home",
   ownerName: "",
   cleanerName: "Cleaner",
-  ownerPin: "",
   onboarded: false,
   mode: "owner",
   activeVisitId: null,
-  ...emptyHomeTree("Estrellita"),
+  ...emptyHomeTree(),
   duties: [],
   completions: [],
   visits: [],
   supplyAutomations: [],
 });
 
-export type Gate = "empty" | "ready" | "locked" | "needs-wrap";
-
 export type HouseholdLoad =
-  | { ok: true; gate: Gate }
+  | { ok: true; legacyLockedVault: boolean }
   | { ok: false; reason: "corrupt" | "unavailable" };
 
 const FREQUENCIES: Frequency[] = ["once", "daily", "weekly", "monthly", "quarterly", "yearly"];
@@ -80,21 +73,19 @@ const PRIORITIES = ["low", "medium", "high"] as const;
 
 let memory: Household | null = null;
 let didHydrate = false;
-let lastLoadError: HouseholdLoad | null = null;
-let gate: Gate = "empty";
-let session: VaultSession | null = null;
+let lastLoad: HouseholdLoad | null = null;
+let key: CryptoKey | null = null;
 let persistChain: Promise<void> = Promise.resolve();
+let notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
 function cloneEmpty(): Household {
   return withHouseholdDefaults({
     ...EMPTY_HOUSEHOLD,
-    ...emptyHomeTree("Estrellita"),
+    ...emptyHomeTree(),
     duties: [],
     completions: [],
     visits: [],
     supplyAutomations: [],
-    floors: emptyHomeTree().floors.map((floor) => ({ ...floor })),
-    rooms: emptyHomeTree().rooms.map((room) => ({ ...room })),
     assets: [],
     consumables: [],
     playbookDecisions: [],
@@ -143,7 +134,7 @@ function migrateDuty(raw: unknown): Duty | null {
     room,
     nodeId,
     nodeType,
-    audience: asEnum(raw.audience, AUDIENCES, inferAudience(title, room)),
+    audience: asEnum(raw.audience, AUDIENCES, inferAudience(title)),
     effort: asEnum(raw.effort, EFFORTS, "medium"),
     frequency,
     kind: raw.kind === "replacement" ? "replacement" : "chore",
@@ -227,10 +218,6 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     nodeType,
     itemName: sanitizeText(raw.itemName, TEXT_LIMITS.title) || duty?.title || "Supply",
     sku: sanitizeText(raw.sku, TEXT_LIMITS.sku),
-    asin: sanitizeText(raw.asin, TEXT_LIMITS.asin),
-    amazonProductUrl: sanitizeText(raw.amazonProductUrl, TEXT_LIMITS.url) || retailerUrl,
-    amazonOneClick: false,
-    amazonNotes: sanitizeText(raw.amazonNotes, TEXT_LIMITS.notes),
     retailerUrl,
     quantity,
     onHand: asInt(raw.onHand, 0, 0, 999),
@@ -368,21 +355,6 @@ function migrateAttributes(raw: unknown): HomeAttributes {
   };
 }
 
-function migrateAccount(raw: unknown): Account {
-  if (!isPlainObject(raw)) return { ...DEFAULT_ACCOUNT };
-  const providers = asArray(raw.providers).filter(
-    (item): item is Account["providers"][number] =>
-      item === "apple" || item === "passkey" || item === "magic-link",
-  );
-  return {
-    appleUserId: typeof raw.appleUserId === "string" ? raw.appleUserId : undefined,
-    email: typeof raw.email === "string" ? sanitizeText(raw.email, 120) : undefined,
-    emailHidden: raw.emailHidden === true,
-    providers,
-    passkeyPromptedAt: typeof raw.passkeyPromptedAt === "string" ? raw.passkeyPromptedAt : undefined,
-  };
-}
-
 function migrateLockSettings(raw: unknown): LockSettings {
   if (!isPlainObject(raw)) return { ...DEFAULT_LOCK_SETTINGS };
   return {
@@ -444,7 +416,7 @@ function migrate(raw: Record<string, unknown>): Household {
     .map(migrateAsset)
     .filter((item): item is HomeAsset => Boolean(item));
 
-  const householdName = sanitizeText(raw.householdName, TEXT_LIMITS.name) || "Estrellita";
+  const householdName = sanitizeText(raw.householdName, TEXT_LIMITS.name) || "Home";
   const seeded = floors.length > 0 && rooms.length > 0
     ? {
         homeId: asSlugId(raw.homeId, "home"),
@@ -452,9 +424,7 @@ function migrate(raw: Record<string, unknown>): Household {
         rooms: rooms.some((room) => room.system) ? rooms : [...systemRooms(), ...rooms],
         assets,
       }
-    : withKind.length > 0 || raw.onboarded === true
-      ? appraisalHomeTree()
-      : emptyHomeTree(householdName);
+    : emptyHomeTree();
 
   const consumables = asArray(raw.consumables)
     .map(migrateConsumable)
@@ -478,7 +448,6 @@ function migrate(raw: Record<string, unknown>): Household {
     householdName,
     ownerName: sanitizeText(raw.ownerName, TEXT_LIMITS.name) || firstPerson || "Me",
     cleanerName: sanitizeText(raw.cleanerName, TEXT_LIMITS.name) || "Cleaner",
-    ownerPin: sanitizeStoredPin(raw.ownerPin),
     onboarded: raw.onboarded === true,
     mode: raw.mode === "cleaner" ? "cleaner" : "owner",
     activeVisitId: asId(raw.activeVisitId),
@@ -502,7 +471,6 @@ function migrate(raw: Record<string, unknown>): Household {
           lastError: typeof raw.weatherStatus.lastError === "string" ? raw.weatherStatus.lastError : null,
         }
       : { ...DEFAULT_WEATHER_STATUS },
-    account: migrateAccount(raw.account),
     lockSettings: migrateLockSettings(raw.lockSettings),
     householdRole: raw.householdRole === "adult" || raw.householdRole === "child" ? raw.householdRole : "owner",
     restockDigest: isPlainObject(raw.restockDigest)
@@ -518,62 +486,41 @@ function migrate(raw: Record<string, unknown>): Household {
   });
 }
 
-function parseStored(raw: string): Household {
+/** Parses a stored JSON household and runs every migration. Exported for tests. */
+export function parseStored(raw: string): Household {
   const parsed: unknown = JSON.parse(raw);
-  if (!isPlainObject(parsed)) {
-    throw new Error("Household data is not an object");
-  }
-  if (isVaultEnvelope(parsed)) {
-    throw new Error("Encrypted vault cannot be read as plaintext");
-  }
+  if (!isPlainObject(parsed)) throw new Error("Household data is not an object");
   return migrate(parsed);
 }
 
-function readLocalEnvelope(): VaultEnvelope | null {
-  const vaultRaw = window.localStorage.getItem(VAULT_STORAGE_KEY);
-  if (vaultRaw) return parseEnvelopeJson(vaultRaw);
-  const legacy = window.localStorage.getItem(STORAGE_KEY);
-  return legacy ? parseEnvelopeJson(legacy) : null;
+const CHANGE_EVENT = "cuidala-change";
+
+function notifyChange() {
+  window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
-function remember(next: Household, nextGate: Gate, load: HouseholdLoad) {
-  memory = next;
-  gate = nextGate;
-  lastLoadError = load;
-  window.dispatchEvent(new Event("estrellita-change"));
+async function persist(next: Household) {
+  if (!key) key = await loadOrCreateDeviceKey();
+  const envelope = await encryptJson(key, JSON.stringify(next));
+  await kvSet(VAULT_STORAGE_KEY, JSON.stringify(envelope));
+  scheduleNotificationSync(next);
 }
 
-async function persistEncrypted(next: Household) {
-  if (!session) return;
-  const envelope = await encryptHousehold(session, JSON.stringify(next));
-  window.localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(envelope));
-  window.localStorage.removeItem(STORAGE_KEY);
-  try {
-    await pushVaultEnvelope(session.authToken, envelope);
-  } catch {
-    // Local ciphertext is the source of truth if the vault is offline.
-  }
-}
-
-// Temporary: owner PIN is disabled — persist plaintext on this device instead of wrapping.
-function persistPlaintext(next: Household) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...next, ownerPin: "" }));
-  window.localStorage.removeItem(VAULT_STORAGE_KEY);
-}
-
-async function persistHousehold(next: Household) {
-  if (session) {
-    await persistEncrypted(next);
-    return;
-  }
-  persistPlaintext(next);
+function scheduleNotificationSync(next: Household) {
+  if (notifyTimer) clearTimeout(notifyTimer);
+  notifyTimer = setTimeout(() => {
+    void syncScheduledNotifications(next).catch(() => {});
+  }, 1500);
 }
 
 function write(next: Household) {
   memory = next;
-  gate = next.onboarded ? "ready" : "empty";
-  window.dispatchEvent(new Event("estrellita-change"));
-  persistChain = persistChain.then(() => persistHousehold(next));
+  notifyChange();
+  persistChain = persistChain
+    .then(() => persist(next))
+    .catch(() => {
+      // Keep the in-memory copy; the next write retries the whole envelope.
+    });
 }
 
 export function getHousehold(): Household {
@@ -581,59 +528,86 @@ export function getHousehold(): Household {
   return memory ?? EMPTY_HOUSEHOLD;
 }
 
-export function getGate(): Gate {
-  return gate;
+export function getHouseholdLoad(): HouseholdLoad | null {
+  return lastLoad;
 }
 
-export function getVaultId(): string | null {
-  return session?.vaultId ?? readLocalEnvelope()?.vaultId ?? null;
+/** Resolves once every queued write has reached storage. */
+export function flushHousehold(): Promise<void> {
+  return persistChain;
 }
 
-export function getHouseholdLoadError(): HouseholdLoad | null {
-  return lastLoadError;
+async function readLegacyPlaintext(): Promise<Household | null> {
+  if (typeof window === "undefined") return null;
+  const raw = window.localStorage.getItem(LEGACY_PLAINTEXT_KEY);
+  if (!raw) return null;
+  const parsed: unknown = JSON.parse(raw);
+  if (!isPlainObject(parsed) || isLegacyPinEnvelope(parsed)) return null;
+  return migrate(parsed);
 }
 
-function openWithoutPin(next: Household, nextGate: Gate): HouseholdLoad {
-  memory = { ...next, ownerPin: "" };
-  gate = nextGate;
-  lastLoadError = { ok: true, gate };
-  return lastLoadError;
+function legacyLockedVaultPresent(): boolean {
+  if (typeof window === "undefined") return false;
+  for (const storageKey of [LEGACY_VAULT_KEY, LEGACY_PLAINTEXT_KEY]) {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) continue;
+    try {
+      if (isLegacyPinEnvelope(JSON.parse(raw))) return true;
+    } catch {
+      // ignore
+    }
+  }
+  return false;
 }
 
-export async function hydrateHouseholdFromStorage(): Promise<HouseholdLoad> {
+/**
+ * Loads the household from encrypted storage. Never deletes anything it cannot
+ * read: unreadable data is reported as `corrupt` and left in place.
+ */
+export async function hydrateHousehold(): Promise<HouseholdLoad> {
   didHydrate = true;
   memory = null;
-  session = null;
-  lastLoadError = null;
   try {
-    const envelope = readLocalEnvelope();
-    if (envelope) {
-      // Temporary: PIN unlock is off. Ciphertext cannot be opened without the
-      // forgotten PIN — reset this device's local vault and continue unlocked.
-      try {
-        window.localStorage.removeItem(VAULT_STORAGE_KEY);
-        window.localStorage.removeItem(STORAGE_KEY);
-        clearPasskey();
-      } catch {
-        // Private mode / quota — still continue with an empty household.
-      }
-      return openWithoutPin(cloneEmpty(), "empty");
-    }
-
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    key = await loadOrCreateDeviceKey();
+    let raw = await kvGet(VAULT_STORAGE_KEY);
+    let fromPreviousKey = false;
     if (!raw) {
-      return openWithoutPin(cloneEmpty(), "empty");
+      raw = await kvGet(PREVIOUS_VAULT_KEY);
+      fromPreviousKey = Boolean(raw);
+    }
+    if (raw) {
+      const envelope = parseEnvelopeJson(raw);
+      if (!envelope) {
+        lastLoad = { ok: false, reason: "corrupt" };
+        return lastLoad;
+      }
+      memory = parseStored(await decryptJson(key, envelope));
+      if (fromPreviousKey) {
+        await persist(memory);
+        await kvRemove(PREVIOUS_VAULT_KEY);
+      }
+      if (typeof window !== "undefined") window.localStorage.removeItem("estrellita-audit-v1");
+      lastLoad = { ok: true, legacyLockedVault: false };
+      return lastLoad;
     }
 
-    const household = parseStored(raw);
-    return openWithoutPin(household, household.onboarded ? "ready" : "empty");
-  } catch (error) {
-    if (error instanceof DOMException) {
-      lastLoadError = { ok: false, reason: "unavailable" };
-      return lastLoadError;
+    // First launch on this build: pick up a plaintext household from the
+    // pre-release web build, encrypt it, and remove the plaintext copy.
+    const legacy = await readLegacyPlaintext();
+    if (legacy) {
+      memory = legacy;
+      await persist(legacy);
+      window.localStorage.removeItem(LEGACY_PLAINTEXT_KEY);
+      lastLoad = { ok: true, legacyLockedVault: false };
+      return lastLoad;
     }
-    lastLoadError = { ok: false, reason: "corrupt" };
-    return lastLoadError;
+
+    memory = cloneEmpty();
+    lastLoad = { ok: true, legacyLockedVault: legacyLockedVaultPresent() };
+    return lastLoad;
+  } catch (error) {
+    lastLoad = { ok: false, reason: error instanceof DOMException ? "unavailable" : "corrupt" };
+    return lastLoad;
   }
 }
 
@@ -642,182 +616,38 @@ export function updateHousehold(updater: (current: Household) => Household) {
   write(updater(memory ?? cloneEmpty()));
 }
 
-async function pinOpensCurrentVault(pin: string): Promise<boolean> {
-  if (!session) return false;
-  const local = readLocalEnvelope();
-  if (!local) return false;
-  try {
-    const candidate = await sessionFromEnvelope(pin, local);
-    return candidate.authToken === session.authToken;
-  } catch {
-    return false;
-  }
-}
-
-async function repairOwnerPinHash(pin: string) {
-  if (!memory || isPinHash(memory.ownerPin)) return;
-  const ownerPin = await hashPin(pin);
-  if (memory.ownerPin === ownerPin) return;
-  const next = { ...memory, ownerPin };
-  remember(next, gate, lastLoadError ?? { ok: true, gate });
-  persistChain = persistChain.then(() => persistEncrypted(next));
-}
-
-/**
- * Same check unlock uses: the typed PIN must open this vault.
- * Intact hashes compare quickly; a truncated leftover hash falls back to the
- * session derived at unlock.
- */
-export async function verifyOwnerPin(secret: string): Promise<boolean> {
-  const pin = sanitizePinInput(secret);
-  if (pin.length < 4) return false;
-  const stored = memory?.ownerPin ?? "";
-  if (isPinHash(stored) || (pinIsSet(stored) && !isBrokenPinHash(stored))) {
-    return pinsMatch(pin, stored);
-  }
-  if (await pinOpensCurrentVault(pin)) {
-    await repairOwnerPinHash(pin);
-    return true;
-  }
-  return pinsMatch(pin, stored);
-}
-
-export async function unlockHousehold(secret: string): Promise<boolean> {
-  const pin = sanitizePinInput(secret);
-  if (!pin) return false;
-  const local = readLocalEnvelope();
-  if (!local) return false;
-  try {
-    let active = await sessionFromEnvelope(pin, local);
-    let envelope = local;
-    let plaintext = await decryptEnvelope(active, local);
-    const remote = await pullVaultEnvelope(local.vaultId).catch(() => null);
-    if (remote && remote.updatedAt > local.updatedAt) {
-      try {
-        const remoteSession = await sessionFromEnvelope(pin, remote);
-        plaintext = await decryptEnvelope(remoteSession, remote);
-        active = remoteSession;
-        envelope = remote;
-      } catch {
-        // Keep the local ciphertext if the remote blob does not match this PIN.
-      }
-    }
-    session = active;
-    window.localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(envelope));
-    const household = parseStored(plaintext);
-    const repaired = !isPinHash(household.ownerPin);
-    if (repaired) household.ownerPin = await hashPin(pin);
-    remember(household, "ready", { ok: true, gate: "ready" });
-    if (repaired) persistChain = persistChain.then(() => persistEncrypted(household));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export async function wrapHousehold(secret: string): Promise<boolean> {
-  const pin = sanitizePinInput(secret);
-  if (pin.length < 4) return false;
-  const current = memory ?? cloneEmpty();
-  if (
-    pinIsSet(current.ownerPin) &&
-    !isBrokenPinHash(current.ownerPin) &&
-    !(await pinsMatch(pin, current.ownerPin))
-  ) {
-    return false;
-  }
-  session = await createVaultSession(pin);
-  const next = { ...current, ownerPin: await hashPin(pin), onboarded: true };
-  remember(next, "ready", { ok: true, gate: "ready" });
-  await persistEncrypted(next);
-  return true;
-}
-
-export async function joinRemoteHousehold(vaultId: string, secret: string): Promise<boolean> {
-  const pin = sanitizePinInput(secret);
-  if (!pin) return false;
-  const envelope = await pullVaultEnvelope(vaultId.trim());
-  if (!envelope) return false;
-  try {
-    const active = await sessionFromEnvelope(pin, envelope);
-    const plaintext = await decryptEnvelope(active, envelope);
-    session = active;
-    window.localStorage.setItem(VAULT_STORAGE_KEY, JSON.stringify(envelope));
-    window.localStorage.removeItem(STORAGE_KEY);
-    const household = parseStored(plaintext);
-    const repaired = !isPinHash(household.ownerPin);
-    if (repaired) household.ownerPin = await hashPin(pin);
-    remember(household, "ready", { ok: true, gate: "ready" });
-    if (repaired) persistChain = persistChain.then(() => persistEncrypted(household));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export async function rotateVaultSecret(secret: string): Promise<boolean> {
-  const pin = sanitizePinInput(secret);
-  if (pin.length < 4 || !memory) return false;
-  const vaultId = session?.vaultId ?? crypto.randomUUID();
-  session = await createVaultSession(pin, { vaultId });
-  const next = { ...memory, ownerPin: await hashPin(pin) };
-  clearPasskey();
-  remember(next, "ready", { ok: true, gate: "ready" });
-  await persistEncrypted(next);
-  return true;
-}
-
-export function resetHousehold() {
+/** Erases the household, its encryption key, and pending notifications on this device. */
+export async function eraseHousehold(): Promise<void> {
   didHydrate = true;
-  session = null;
+  await persistChain.catch(() => {});
   try {
-    window.localStorage.removeItem(STORAGE_KEY);
-    window.localStorage.removeItem(VAULT_STORAGE_KEY);
-    clearPasskey();
+    await kvRemove(VAULT_STORAGE_KEY);
+    await kvRemove(PREVIOUS_VAULT_KEY);
+    await deleteDeviceKey();
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(LEGACY_PLAINTEXT_KEY);
+      window.localStorage.removeItem(LEGACY_VAULT_KEY);
+      window.localStorage.removeItem("estrellita-audit-v1");
+    }
   } catch {
-    // Private mode / quota — still reset in-memory state.
+    // Storage may be unavailable; in-memory state still resets below.
   }
-  remember(cloneEmpty(), "empty", { ok: true, gate: "empty" });
+  key = null;
+  memory = cloneEmpty();
+  lastLoad = { ok: true, legacyLockedVault: false };
+  notifyChange();
+  void syncScheduledNotifications(memory).catch(() => {});
 }
 
 export function forCleanerSession(household: Household): Household {
   return {
     ...household,
-    ownerPin: "",
     supplyAutomations: [],
     duties: household.duties.filter((duty) => duty.audience === "cleaner" || duty.audience === "anyone"),
   };
 }
 
 export function subscribeHousehold(onStoreChange: () => void) {
-  const onLocal = () => onStoreChange();
-  const onStorage = (event: StorageEvent) => {
-    if (event.key !== STORAGE_KEY && event.key !== VAULT_STORAGE_KEY) return;
-    if (session && event.newValue) {
-      const envelope = parseEnvelopeJson(event.newValue);
-      if (envelope) {
-        void decryptEnvelope(session, envelope)
-          .then((plaintext) => {
-            memory = parseStored(plaintext);
-            onStoreChange();
-          })
-          .catch(() => {
-            session = null;
-            gate = "empty";
-            memory = null;
-            onStoreChange();
-          });
-        return;
-      }
-    }
-    memory = null;
-    onStoreChange();
-  };
-
-  window.addEventListener("estrellita-change", onLocal);
-  window.addEventListener("storage", onStorage);
-  return () => {
-    window.removeEventListener("estrellita-change", onLocal);
-    window.removeEventListener("storage", onStorage);
-  };
+  window.addEventListener(CHANGE_EVENT, onStoreChange);
+  return () => window.removeEventListener(CHANGE_EVENT, onStoreChange);
 }

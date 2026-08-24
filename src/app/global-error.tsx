@@ -31,7 +31,7 @@ export default function GlobalError({
         <main style={{ maxWidth: 28 * 16, padding: 20 }}>
           <h1 style={{ fontSize: 28, margin: 0 }}>Something went wrong</h1>
           <p style={{ color: "#86868b", marginTop: 8, fontSize: 14 }}>
-            Estrellita failed to start. Try again — household data on this device was not
+            Cuidala failed to start. Try again — household data on this device was not
             overwritten.
           </p>
           <button

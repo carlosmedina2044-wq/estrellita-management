@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { AUDIENCES, EFFORTS, FREQUENCIES, WEEKDAYS } from "@/lib/constants";
 import { todayISO } from "@/lib/dates";
-import { FLOORS, HOUSE_ROOMS } from "@/lib/house";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { RestockOrderButton } from "@/components/restock-order-button";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
@@ -112,7 +111,7 @@ export function DutyForm({
 }: {
   open: boolean;
   duty: Duty | null;
-  household?: Household;
+  household: Household;
   defaultRoom?: Room;
   supplyAutomation?: SupplyAutomation | null;
   defaultTrackSupply?: boolean;
@@ -129,27 +128,31 @@ export function DutyForm({
   const [showSupply, setShowSupply] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
+  // Reset the draft whenever the sheet opens for a different duty. Adjusting
+  // state during render (instead of in an effect) avoids a flash of stale data.
+  const resetKey = `${open}:${duty?.id ?? ""}:${supplyAutomation?.id ?? ""}:${defaultRoom ?? ""}:${defaultTrackSupply ?? ""}`;
+  const [prevResetKey, setPrevResetKey] = useState<string | null>(null);
+  if (open && prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
     setFormError(null);
     if (duty) {
       setDraft(fromDuty(duty, supplyAutomation));
       setShowNotes(Boolean(duty.notes.trim()));
       setShowSupply(Boolean(supplyAutomation) || duty.kind === "replacement");
       setShowAdvanced(duty.effort !== "medium");
-      return;
+    } else {
+      setShowNotes(false);
+      setShowSupply(Boolean(defaultTrackSupply));
+      setShowAdvanced(false);
+      setDraft({
+        ...emptyDraft,
+        room: defaultRoom ?? "kitchen",
+        dueDate: todayISO(),
+        trackSupply: Boolean(defaultTrackSupply),
+        kind: defaultTrackSupply ? "replacement" : "chore",
+      });
     }
-    setShowNotes(false);
-    setShowSupply(Boolean(defaultTrackSupply));
-    setShowAdvanced(false);
-    setDraft({
-      ...emptyDraft,
-      room: defaultRoom ?? "kitchen",
-      dueDate: todayISO(),
-      trackSupply: Boolean(defaultTrackSupply),
-      kind: defaultTrackSupply ? "replacement" : "chore",
-    });
-  }, [open, duty, defaultRoom, supplyAutomation, defaultTrackSupply]);
+  }
 
   function closeAfterClick() {
     // Delay so the same click cannot hit Add duty / FAB under the closing sheet.
@@ -235,9 +238,7 @@ export function DutyForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {household ? (
-                    <>
-                      {systemRoomList(household).length > 0 ? (
+                                        {systemRoomList(household).length > 0 ? (
                         <SelectGroup>
                           <SelectLabel>Always</SelectLabel>
                           {systemRoomList(household).map((room) => (
@@ -257,19 +258,6 @@ export function DutyForm({
                           ))}
                         </SelectGroup>
                       ))}
-                    </>
-                  ) : (
-                    FLOORS.map((floor) => (
-                      <SelectGroup key={floor.id}>
-                        <SelectLabel>{floor.label}</SelectLabel>
-                        {HOUSE_ROOMS.filter((room) => room.floor === floor.id).map((room) => (
-                          <SelectItem key={room.id} value={room.id}>
-                            {room.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))
-                  )}
                 </SelectContent>
               </Select>
             </Field>
@@ -443,7 +431,7 @@ export function DutyForm({
                 <p className="text-[13px] text-muted-foreground">
                   Save a product link later from Share, or after you tap Find it.
                 </p>
-                {supplyAutomation && household ? (
+                {supplyAutomation ? (
                   <RestockOrderButton
                     item={supplyAutomation}
                     household={household}

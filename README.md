@@ -1,45 +1,59 @@
-# Estrellita
+# Cuidala
 
-iOS App Store household app. The product UI is a Next.js App Router client; Capacitor wraps it for Sign in with Apple, Face ID, and Keychain. Duties stay encrypted on device (AES-256-GCM) before sync. Restock tracks runway and opens any retailer in the browser — the app does not place orders or store payment info.
+Home maintenance for iPhone: rooms, chores, the filters and batteries you need to reorder, a maintenance budget forecast, and seasonal / weather-driven checklists.
 
-## Run the web shell
+**Local-first.** There are no accounts and no Cuidala servers. Everything lives on the device, encrypted at rest (AES-256-GCM) with a key held in the iOS Keychain. Face ID / Touch ID / passcode lock is enforced by the system prompt and fails closed. The only network calls are to two public weather endpoints, sent a coordinate rounded to ~1 km with no identifier.
+
+The UI is a Next.js app exported to static files and packaged by Capacitor into a native iOS shell. No remote code is loaded.
+
+## Develop
 
 ```bash
 npm install
-npm run dev
+npm run dev          # web shell at http://localhost:3456 (dev only; see "Web shell" below)
+npm test             # unit tests (node:test)
+npm run lint
+npm run typecheck
+npm run build        # static export to out/ — this is what ships
 ```
 
-[http://localhost:3456](http://localhost:3456)
+## Build the iOS app
+
+Requires macOS with Xcode 16+, **Node 22+** (Capacitor 8), and CocoaPods. The repo currently ships plist stubs only (`ios/App/App/Info-usage.plist.fragment` and `PrivacyInfo.xcprivacy`); there is no Xcode project until you add the iOS platform once.
 
 ```bash
-npm test
-npm run build
+nvm install 22 && nvm use 22      # or any Node 22+
+npm install
+# cap add refuses if ios/ already exists — park the stubs, then generate
+mkdir -p /tmp/cuidala-ios-stubs
+mv ios/App/App/Info-usage.plist.fragment ios/App/App/PrivacyInfo.xcprivacy /tmp/cuidala-ios-stubs/
+rm -rf ios
+npx cap add ios
+# Merge /tmp/cuidala-ios-stubs/Info-usage.plist.fragment into ios/App/App/Info.plist
+cp /tmp/cuidala-ios-stubs/PrivacyInfo.xcprivacy ios/App/App/
+# Add PrivacyInfo.xcprivacy to the App target if Xcode does not pick it up
+npm run cap:sync                  # build + copy out/ + pod install
+npm run cap:ios                   # open in Xcode; set Team
 ```
 
-## iOS / App Store
+In Xcode:
+- Signing & Capabilities: your team; bundle id `com.cuidala.app`.
+- Add capability **Push Notifications** is *not* needed (local notifications only).
+- Deployment target iOS 15.0 or later.
+- Archive → Distribute → App Store Connect.
 
-```bash
-npx cap add ios   # once, requires Xcode
-# Merge ios/App/App/Info-usage.plist.fragment into Info.plist
-npx cap sync ios
-npx cap open ios
-```
+## App Store Connect notes
 
-Configure `APPLE_BUNDLE_ID`, `APPLE_SERVICE_ID`, and replace `TEAMID` in `public/.well-known/apple-app-site-association`. Privacy manifest: `ios/App/App/PrivacyInfo.xcprivacy`.
+- **App Privacy:** Data Not Collected except *Coarse Location → App Functionality, not linked to identity*. Matches `PrivacyInfo.xcprivacy`.
+- **Privacy policy URL:** host `out/privacy/` (e.g. on Vercel) and use that URL; the same policy is reachable in-app at Settings → Privacy policy.
+- **Reviewer notes:** No sign-in. On first launch tap **Use a sample home instead** to reach the task list immediately. Restock's Order / Find it buttons open the retailer in an in-app Safari view; the app does not process purchases or store payment information.
+- **Export compliance:** the app uses only Apple-provided encryption (`ITSAppUsesNonExemptEncryption = false`).
+- **Age rating:** 4+.
 
-Sign in with Apple is the primary button. Passkeys and email magic links are secondary. There is no password field on signup. Face ID locks the app after launch / background per Settings.
+## Web shell
 
-## Environment
+`npm run dev` and a hosted copy of `out/` exist for development and for the privacy-policy URL. On the web there is no Keychain: the encryption key is kept in `localStorage`, notifications are the browser API, and Face ID lock is unavailable. It is not a supported end-user surface.
 
-Server-only: `BLOB_READ_WRITE_TOKEN`, `APPLE_BUNDLE_ID`, `APPLE_SERVICE_ID`, `RESEND_API_KEY`, `AUTH_FROM_EMAIL`, `MIN_SUPPORTED_APP_VERSION`. Never commit `.env*`.
+## Security posture
 
-## Specs implemented
-
-- Sign-up / under-3-minute room setup (no appraisal or floor-plan upload). Reviewers: tap **Use a sample home** on the first screen.
-- Restock: knows what is running out and when to order it, one tap to any retailer. The app does not process purchases or store retailer credentials.
-- Budget forecast + seasonal/weather playbooks
-- Security verification artifacts in `docs/` — statuses are honest; most controls are **NOT VERIFIED** until evidence is committed
-
-## App Store reviewer notes
-
-Onboarding does not require any documents. Tap “Use a sample home” on the first screen to load a pre-built home and reach the task list immediately. The Restock tab’s Order / Find it buttons open the retailer’s own site in an in-app browser; the app does not process purchases or store payment information.
+`docs/CONTROL_MATRIX.md` lists each control, where it lives, and how it is verified. `docs/RESIDUAL_RISKS.md` lists what is knowingly left open. Both must stay accurate; update them in the same PR as the code they describe.
