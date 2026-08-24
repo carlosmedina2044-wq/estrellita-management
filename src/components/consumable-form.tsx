@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { RestockOrderButton } from "@/components/restock-order-button";
+import { RestockOrderButton } from "@/components/restock-order-flow";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved-retailer-field";
 import { sizePlaceholder } from "@/lib/item-label";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
+import type { MarkOrderedDetails } from "@/lib/restock";
 import type { Duty, DutyDraft, Household, Room, SupplyAutomation } from "@/lib/types";
 
 type Draft = {
@@ -72,7 +73,7 @@ export function ConsumableForm({
   onOpenChange: (open: boolean) => void;
   onSave: (input: DutyDraft) => void;
   onDelete?: (id: string) => void;
-  onMarkOrdered?: (id: string) => void;
+  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
   onPreferRetailer?: (id: string, retailer: string) => void;
@@ -248,7 +249,7 @@ export function ConsumableForm({
             <RestockOrderButton
               item={automation}
               household={household}
-              onOrdered={onMarkOrdered ? () => onMarkOrdered(automation.id) : undefined}
+              onOrdered={onMarkOrdered ? (details) => onMarkOrdered(automation.id, details) : undefined}
               onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(automation.id, qty, paid) : undefined}
               onSaveLink={onSaveLink ? (url) => onSaveLink(automation.id, url) : undefined}
               onPreferRetailer={onPreferRetailer ? (retailer) => onPreferRetailer(automation.id, retailer) : undefined}

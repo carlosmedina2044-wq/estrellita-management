@@ -28,10 +28,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { AUDIENCES, EFFORTS, FREQUENCIES, WEEKDAYS } from "@/lib/constants";
 import { todayISO } from "@/lib/dates";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
-import { RestockOrderButton } from "@/components/restock-order-button";
+import { RestockOrderButton } from "@/components/restock-order-flow";
 import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved-retailer-field";
 import { sizePlaceholder } from "@/lib/item-label";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
+import type { MarkOrderedDetails } from "@/lib/restock";
 import type {
   Audience,
   Duty,
@@ -130,7 +131,7 @@ export function DutyForm({
   onOpenChange: (open: boolean) => void;
   onSave: (input: DutyDraft) => void;
   onDelete?: (id: string) => void;
-  onMarkOrdered?: (id: string) => void;
+  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
   onPreferRetailer?: (id: string, retailer: string) => void;
@@ -487,7 +488,7 @@ export function DutyForm({
                   <RestockOrderButton
                     item={supplyAutomation}
                     household={household}
-                    onOrdered={onMarkOrdered ? () => onMarkOrdered(supplyAutomation.id) : undefined}
+                    onOrdered={onMarkOrdered ? (details) => onMarkOrdered(supplyAutomation.id, details) : undefined}
                     onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(supplyAutomation.id, qty, paid) : undefined}
                     onSaveLink={onSaveLink ? (url) => onSaveLink(supplyAutomation.id, url) : undefined}
                     onPreferRetailer={

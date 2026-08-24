@@ -7,7 +7,7 @@ import { DayCalendar } from "@/components/day-calendar";
 import { CostPrompt } from "@/components/cost-prompt";
 import { ConsumableForm } from "@/components/consumable-form";
 import { ItemName } from "@/components/item-name";
-import { OrderByLine, RestockOrderButton } from "@/components/restock-order-button";
+import { OrderByLine, RestockOrderButton } from "@/components/restock-order-flow";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { HouseMapSheet } from "@/components/house-map-sheet";
@@ -29,7 +29,7 @@ import {
 import { homeSummary, statusTone } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
-import { groupRestock } from "@/lib/restock";
+import { groupRestock, type MarkOrderedDetails } from "@/lib/restock";
 import type { Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -73,7 +73,7 @@ export function TodayView({
   onOpenHome?: () => void;
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
-  onMarkOrdered?: (id: string) => void;
+  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
   onPreferRetailer?: (id: string, retailer: string) => void;
@@ -433,7 +433,7 @@ export function TodayView({
                     item={item}
                     household={household}
                     compact
-                    onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
+                    onOrdered={onMarkOrdered ? (details) => onMarkOrdered(item.id, details) : undefined}
                     onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
                     onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
                     onPreferRetailer={onPreferRetailer ? (retailer) => onPreferRetailer(item.id, retailer) : undefined}

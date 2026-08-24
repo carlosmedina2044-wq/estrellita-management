@@ -36,6 +36,7 @@ import {
   receiveConsumable,
   restoreLinkedUnit,
   saveRetailerLink,
+  type MarkOrderedDetails,
 } from "@/lib/restock";
 import type { RestockDigestSettings } from "@/lib/types";
 
@@ -147,11 +148,11 @@ export function useHousehold() {
   );
 
   const markSupplyOrdered = useCallback(
-    (id: string) => {
+    (id: string, details?: MarkOrderedDetails) => {
       update((current) => ({
         ...current,
         supplyAutomations: current.supplyAutomations.map((item) =>
-          item.id === id ? markConsumableOrdered(item) : item,
+          item.id === id ? markConsumableOrdered(item, details) : item,
         ),
       }));
     },

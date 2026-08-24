@@ -28,8 +28,8 @@ import { ASSET_TYPES, reorderRooms, roomById } from "@/lib/home-model";
 import { warrantyBadgeLabel } from "@/lib/warranty";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { ItemName } from "@/components/item-name";
-import { RestockOrderButton } from "@/components/restock-order-button";
-import { restockPlacement } from "@/lib/restock";
+import { RestockOrderButton } from "@/components/restock-order-flow";
+import { restockPlacement, type MarkOrderedDetails } from "@/lib/restock";
 import type { AssetType, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 
 export function HouseMapSheet({
@@ -60,7 +60,7 @@ export function HouseMapSheet({
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
   initialSelected?: string | null;
-  onMarkOrdered?: (id: string) => void;
+  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
   onPreferRetailer?: (id: string, retailer: string) => void;
@@ -214,7 +214,7 @@ export function HouseMapSheet({
                             <RestockOrderButton
                               item={item}
                               household={household}
-                              onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
+                              onOrdered={onMarkOrdered ? (details) => onMarkOrdered(item.id, details) : undefined}
                               onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
                               onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
                               onPreferRetailer={

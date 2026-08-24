@@ -230,14 +230,53 @@ export function digestCandidates(
   });
 }
 
-export function markConsumableOrdered(item: SupplyAutomation, now = new Date()): SupplyAutomation {
+export function markConsumableOrdered(
+  item: SupplyAutomation,
+  detailsOrNow?: MarkOrderedDetails | Date,
+  now = new Date(),
+): SupplyAutomation {
   const current = normalizeConsumable(item);
+  const details = isMarkOrderedDetails(detailsOrNow) ? detailsOrNow : undefined;
+  const when = details ? now : detailsOrNow instanceof Date ? detailsOrNow : now;
+  const qty = details
+    ? Math.min(99, Math.max(1, Math.round(details.qty) || current.qtyPerOrder))
+    : current.qtyPerOrder;
   return {
     ...current,
     state: "ordered",
     orderInFlight: true,
-    expectedArrivalDate: expectedArrivalFor(now, leadTimeDaysFor(current)),
+    orderedAt: toISODate(when),
+    orderedQty: qty,
+    qtyPerOrder: qty,
+    quantity: qty,
+    expectedArrivalDate: details?.expectedArrivalDate ?? expectedArrivalFor(when, leadTimeDaysFor(current)),
+    preferredRetailer: details?.retailer || current.preferredRetailer,
   };
+}
+
+export type MarkOrderedDetails = {
+  expectedArrivalDate: string;
+  qty: number;
+  retailer?: string;
+};
+
+function isMarkOrderedDetails(value: unknown): value is MarkOrderedDetails {
+  return Boolean(value) && typeof value === "object" && !(value instanceof Date) && "expectedArrivalDate" in (value as object);
+}
+
+export const ARRIVAL_OFFSETS = [
+  { id: "tomorrow", days: 1, label: "Tomorrow" },
+  { id: "two", days: 2, label: "2 days" },
+  { id: "week", days: 5, label: "This week" },
+  { id: "next", days: 10, label: "Next week" },
+] as const;
+
+export function closestArrivalOffset(leadTimeDays: number): number {
+  let best: number = ARRIVAL_OFFSETS[0].days;
+  for (const option of ARRIVAL_OFFSETS) {
+    if (Math.abs(option.days - leadTimeDays) < Math.abs(best - leadTimeDays)) best = option.days;
+  }
+  return best;
 }
 
 export function receiveConsumable(item: SupplyAutomation, qty: number): SupplyAutomation {

@@ -77,6 +77,17 @@ export function formatDueDate(value: string | Date): string {
   }).format(date);
 }
 
+export function formatWeekdayDate(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(parseISODate(value)) : value;
+  const includeYear = date.getFullYear() !== new Date().getFullYear();
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: includeYear ? "numeric" : undefined,
+  }).format(date);
+}
+
 export function startOfWeek(date: Date): Date {
   const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   start.setDate(start.getDate() - start.getDay());

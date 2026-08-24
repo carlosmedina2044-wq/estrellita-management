@@ -40,7 +40,7 @@ export function RetailerPickerSheet({
   onSaveLink?: (url: string) => void;
   onPreferRetailer?: (retailer: string) => void;
   onAddSize?: () => void;
-  onOpened?: () => void;
+  onOpened?: (retailer?: string) => void;
 }) {
   const href = retailerUrlFor(item);
   const size = (item.sku || item.sizeSpec || "").trim();
@@ -59,7 +59,7 @@ export function RetailerPickerSheet({
       return;
     }
     onOpenChange(false);
-    onOpened?.();
+    onOpened?.(retailer);
   }
 
   return (

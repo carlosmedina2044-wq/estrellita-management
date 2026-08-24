@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { digestCopy, shouldSendDigest } from "@/lib/digest";
 import {
+  closestArrivalOffset,
   consumeLinkedUnit,
   digestCandidates,
   groupRestock,
@@ -181,11 +182,29 @@ test("ordered stays out of Order now until arrival plus 3 days", () => {
   const ordered = markConsumableOrdered(item({ onHand: 0 }), now);
   assert.equal(ordered.state, "ordered");
   assert.equal(ordered.expectedArrivalDate, "2026-09-06");
+  assert.equal(ordered.orderedAt, "2026-08-23");
   assert.equal(restockPlacement(ordered, household, now).bucket, "ordered");
   assert.equal(restockPlacement(ordered, household, new Date(2026, 8, 9)).bucket, "ordered");
   const nudged = restockPlacement(ordered, household, new Date(2026, 8, 10));
   assert.equal(nudged.bucket, "order_now");
   assert.equal(nudged.nudgeArrive, true);
+});
+
+test("markConsumableOrdered v2 stores arrival date, qty, and retailer", () => {
+  const ordered = markConsumableOrdered(
+    item({ onHand: 0 }),
+    { expectedArrivalDate: "2026-08-25", qty: 2, retailer: "walmart" },
+    now,
+  );
+  assert.equal(ordered.expectedArrivalDate, "2026-08-25");
+  assert.equal(ordered.orderedQty, 2);
+  assert.equal(ordered.qtyPerOrder, 2);
+  assert.equal(ordered.orderedAt, "2026-08-23");
+  assert.equal(ordered.preferredRetailer, "walmart");
+  assert.equal(restockPlacement(ordered, household, now).bucket, "ordered");
+  assert.equal(closestArrivalOffset(14), 10);
+  assert.equal(closestArrivalOffset(2), 2);
+  assert.equal(closestArrivalOffset(1), 1);
 });
 
 test("received adds qty to on-hand and returns to stocked", () => {

@@ -5,11 +5,11 @@ import { ChevronDown, Package } from "lucide-react";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
-import { OrderByLine, RestockOrderButton } from "@/components/restock-order-button";
+import { OrderByLine, RestockOrderButton } from "@/components/restock-order-flow";
 import { Button } from "@/components/ui/button";
 import { roomName } from "@/lib/home-model";
 import { SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
-import { groupRestock, restockPlacement, usedWhere } from "@/lib/restock";
+import { groupRestock, restockPlacement, usedWhere, type MarkOrderedDetails } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import type { Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,7 @@ export function RestockView({
   household: Household;
   onSaveDuty: (duty: DutyDraft) => void;
   onDeleteDuty: (id: string) => void;
-  onMarkOrdered?: (id: string) => void;
+  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
   onPreferRetailer?: (id: string, retailer: string) => void;
@@ -253,7 +253,7 @@ function RestockRow({
   household: Household;
   item: SupplyAutomation;
   onOpen: () => void;
-  onMarkOrdered?: (id: string) => void;
+  onMarkOrdered?: (id: string, details?: MarkOrderedDetails) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
   onPreferRetailer?: (id: string, retailer: string) => void;
@@ -282,7 +282,7 @@ function RestockRow({
         <RestockOrderButton
           item={item}
           household={household}
-          onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
+          onOrdered={onMarkOrdered ? (details) => onMarkOrdered(item.id, details) : undefined}
               onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
           onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
           onPreferRetailer={onPreferRetailer ? (retailer) => onPreferRetailer(item.id, retailer) : undefined}
