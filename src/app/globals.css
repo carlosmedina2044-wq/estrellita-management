@@ -218,23 +218,27 @@ html.keyboard-open .app-fab {
 }
 
 [data-slot="sheet-content"][data-side="bottom"] {
-  bottom: var(--keyboard-inset, 0px);
-  max-height: min(92dvh, var(--visual-viewport-height, 100dvh));
+  bottom: 0;
+  max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 24px));
 }
 
 [data-slot="sheet-content"][data-side="bottom"][data-sheet-size="form"] {
+  bottom: var(--keyboard-inset, 0px);
   height: min(92dvh, var(--visual-viewport-height, 100dvh));
-  max-height: min(92dvh, var(--visual-viewport-height, 100dvh));
+  max-height: min(
+    92dvh,
+    var(--visual-viewport-height, 100dvh),
+    calc(100dvh - var(--keyboard-inset, 0px) - env(safe-area-inset-top, 0px) - 24px)
+  );
 }
 
 html.keyboard-open [data-slot="sheet-content"][data-side="bottom"] {
-  max-height: var(--visual-viewport-height, 100dvh);
   padding-bottom: 0.5rem;
 }
 
 html.keyboard-open [data-slot="sheet-content"][data-side="bottom"][data-sheet-size="form"] {
-  height: var(--visual-viewport-height, 100dvh);
-  max-height: var(--visual-viewport-height, 100dvh);
+  height: calc(100dvh - var(--keyboard-inset, 0px) - env(safe-area-inset-top, 0px) - 24px);
+  max-height: calc(100dvh - var(--keyboard-inset, 0px) - env(safe-area-inset-top, 0px) - 24px);
 }
 
 html.keyboard-open [data-slot="sheet-header"] {

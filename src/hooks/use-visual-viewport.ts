@@ -28,11 +28,9 @@ function syncViewport() {
   const overlayInset = Math.max(0, layoutH - vvHeight - offsetTop);
   const focused = isField(document.activeElement);
   const phone = window.innerWidth <= PHONE_MAX_PX;
-  const inSheet =
+  const inFormSheet =
     focused &&
-    Boolean(
-      document.activeElement?.closest("[data-keyboard-scroll], [data-slot='sheet-content']"),
-    );
+    Boolean(document.activeElement?.closest("[data-slot='sheet-content'][data-sheet-size='form']"));
 
   if (!focused && overlayInset < KEYBOARD_OPEN_PX) {
     restingHeight = Math.max(restingHeight, layoutH, vvHeight);
@@ -44,8 +42,10 @@ function syncViewport() {
   let visibleH = vvHeight;
 
   // Overlay keyboards that never shrink visualViewport (some iOS / narrow-desktop cases).
+  // Only lift full-height form sheets — compact sheets stay docked so they do not
+  // jump into the Dynamic Island.
   const alreadyShrunk = restingHeight - vvHeight > KEYBOARD_OPEN_PX;
-  if (inSheet && phone && overlayInset < KEYBOARD_OPEN_PX && !alreadyShrunk) {
+  if (inFormSheet && phone && overlayInset < KEYBOARD_OPEN_PX && !alreadyShrunk) {
     inset = Math.round(Math.min(layoutH * 0.42, FALLBACK_KEYBOARD_PX));
     visibleH = Math.max(240, layoutH - inset);
   }

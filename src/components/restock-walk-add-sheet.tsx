@@ -103,7 +103,7 @@ export function RestockWalkAddSheet({
         <SheetHeader className="shrink-0 pb-2">
           <SheetTitle>Add something you buy</SheetTitle>
         </SheetHeader>
-        <div data-keyboard-scroll className="flex flex-col gap-4 px-4 pb-4">
+        <div data-keyboard-scroll className="flex flex-col gap-3 px-4 pb-4">
           <div className="grid gap-1.5">
             <Label htmlFor="walk-add-name">What is it?</Label>
             <Input
@@ -112,7 +112,6 @@ export function RestockWalkAddSheet({
               onChange={(event) => setItemName(event.target.value)}
               placeholder="Water softener salt"
               className="h-12"
-              autoFocus
             />
           </div>
           <div className="grid gap-1.5">
