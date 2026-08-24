@@ -119,6 +119,7 @@ export function DutyForm({
   onMarkOrdered,
   onMarkReceived,
   onSaveLink,
+  onPreferRetailer,
 }: {
   open: boolean;
   duty: Duty | null;
@@ -132,6 +133,7 @@ export function DutyForm({
   onMarkOrdered?: (id: string) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
+  onPreferRetailer?: (id: string, retailer: string) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [formError, setFormError] = useState<string | null>(null);
@@ -488,6 +490,9 @@ export function DutyForm({
                     onOrdered={onMarkOrdered ? () => onMarkOrdered(supplyAutomation.id) : undefined}
                     onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(supplyAutomation.id, qty, paid) : undefined}
                     onSaveLink={onSaveLink ? (url) => onSaveLink(supplyAutomation.id, url) : undefined}
+                    onPreferRetailer={
+                      onPreferRetailer ? (retailer) => onPreferRetailer(supplyAutomation.id, retailer) : undefined
+                    }
                   />
                 ) : null}
               </div>

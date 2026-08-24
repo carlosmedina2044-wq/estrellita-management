@@ -62,6 +62,7 @@ export function ConsumableForm({
   onMarkOrdered,
   onMarkReceived,
   onSaveLink,
+  onPreferRetailer,
 }: {
   open: boolean;
   duty: Duty | null;
@@ -74,6 +75,7 @@ export function ConsumableForm({
   onMarkOrdered?: (id: string) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
+  onPreferRetailer?: (id: string, retailer: string) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft(defaultRoom));
   const [formError, setFormError] = useState<string | null>(null);
@@ -249,6 +251,7 @@ export function ConsumableForm({
               onOrdered={onMarkOrdered ? () => onMarkOrdered(automation.id) : undefined}
               onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(automation.id, qty, paid) : undefined}
               onSaveLink={onSaveLink ? (url) => onSaveLink(automation.id, url) : undefined}
+              onPreferRetailer={onPreferRetailer ? (retailer) => onPreferRetailer(automation.id, retailer) : undefined}
             />
           ) : null}
           {formError ? (

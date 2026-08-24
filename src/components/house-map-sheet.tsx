@@ -47,6 +47,7 @@ export function HouseMapSheet({
   onMarkOrdered,
   onMarkReceived,
   onSaveLink,
+  onPreferRetailer,
 }: {
   open: boolean;
   household: Household;
@@ -62,6 +63,7 @@ export function HouseMapSheet({
   onMarkOrdered?: (id: string) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
+  onPreferRetailer?: (id: string, retailer: string) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(initialSelected ?? null);
   const [editing, setEditing] = useState<Duty | null>(null);
@@ -215,6 +217,9 @@ export function HouseMapSheet({
                               onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
                               onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
                               onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
+                              onPreferRetailer={
+                                onPreferRetailer ? (retailer) => onPreferRetailer(item.id, retailer) : undefined
+                              }
                             />
                           </div>
                         </li>
@@ -325,6 +330,7 @@ export function HouseMapSheet({
         onMarkOrdered={onMarkOrdered}
         onMarkReceived={onMarkReceived}
         onSaveLink={onSaveLink}
+        onPreferRetailer={onPreferRetailer}
       />
     </>
   );

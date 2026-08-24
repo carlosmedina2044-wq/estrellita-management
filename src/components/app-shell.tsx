@@ -42,6 +42,7 @@ export function AppShell() {
     markSupplyOrdered,
     markSupplyReceived,
     saveSupplyLink,
+    preferSupplyRetailer,
     attachSharedLink,
     updateRestockDigest,
     deleteDuty,
@@ -282,6 +283,7 @@ export function AppShell() {
             onMarkOrdered={markSupplyOrdered}
             onMarkReceived={markSupplyReceived}
             onSaveLink={saveSupplyLink}
+            onPreferRetailer={preferSupplyRetailer}
             onOpenRestock={() => setTab("restock")}
           />
         ) : null}
@@ -293,6 +295,7 @@ export function AppShell() {
             onMarkOrdered={markSupplyOrdered}
             onMarkReceived={markSupplyReceived}
             onSaveLink={saveSupplyLink}
+            onPreferRetailer={preferSupplyRetailer}
             onWalkHouse={applyRestockWalk}
           />
         ) : null}
@@ -339,6 +342,7 @@ export function AppShell() {
               onMarkOrdered={markSupplyOrdered}
               onMarkReceived={markSupplyReceived}
               onSaveLink={saveSupplyLink}
+              onPreferRetailer={preferSupplyRetailer}
             />
           </div>
         ) : null}

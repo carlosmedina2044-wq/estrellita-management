@@ -186,6 +186,20 @@ export function useHousehold() {
     [update],
   );
 
+  const preferSupplyRetailer = useCallback(
+    (id: string, retailer: string) => {
+      const value = retailer.trim();
+      if (!value) return;
+      update((current) => ({
+        ...current,
+        supplyAutomations: current.supplyAutomations.map((item) =>
+          item.id === id ? { ...item, preferredRetailer: value } : item,
+        ),
+      }));
+    },
+    [update],
+  );
+
   const attachSharedLink = useCallback(
     (url: string, consumableId?: string) => {
       update((current) => {
@@ -516,6 +530,7 @@ export function useHousehold() {
     markSupplyOrdered,
     markSupplyReceived,
     saveSupplyLink,
+    preferSupplyRetailer,
     attachSharedLink,
     updateRestockDigest,
     deleteDuty,

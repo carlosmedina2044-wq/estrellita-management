@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { RetailerPickerSheet } from "@/components/retailer-picker-sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,15 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { openExternalUrl } from "@/lib/native/open-url";
-import {
-  resolveRetailerEntry,
-  retailerSearchUrl,
-  retailerUrlFor,
-  RETAILER_CHIPS,
-  savedRetailerLabel,
-  sortedSavedRetailerLinks,
-} from "@/lib/retailer";
+import { resolveRetailerEntry } from "@/lib/retailer";
 import { restockPlacement, reorderAtFor } from "@/lib/restock";
 import { formatDueDate } from "@/lib/dates";
 import type { Household, SupplyAutomation } from "@/lib/types";
@@ -33,50 +26,39 @@ export function RestockOrderButton({
   onOrdered,
   onReceived,
   onSaveLink,
+  onPreferRetailer,
+  onAddSize,
   className,
   compact,
 }: {
   item: SupplyAutomation;
-  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables">;
+  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers">;
   onOrdered?: () => void;
   onReceived?: (qty: number, paid?: number) => void;
   onSaveLink?: (url: string) => void;
+  onPreferRetailer?: (retailer: string) => void;
+  onAddSize?: () => void;
   className?: string;
   compact?: boolean;
 }) {
+  const [picker, setPicker] = useState(false);
   const [ask, setAsk] = useState(false);
   const [receive, setReceive] = useState(false);
   const [linkDraft, setLinkDraft] = useState(item.retailerUrl || "");
   const [qtyDraft, setQtyDraft] = useState(String(item.qtyPerOrder || 1));
   const placement = restockPlacement(item, household);
-  const href = retailerUrlFor(item);
   const arriving = placement.bucket === "ordered";
-  const savedLinks = sortedSavedRetailerLinks(household.savedRetailerLinks ?? []).filter(
-    (entry) => entry.url !== href,
-  );
   const linkedConsumable = (household.consumables ?? []).find(
     (entry) => entry.nodeId === item.nodeId || entry.assetId === item.nodeId || entry.name === item.itemName,
   );
   const suggestedCost = item.lastPaidPrice ?? item.unitCost ?? linkedConsumable?.lastPaidPrice ?? linkedConsumable?.unitCost;
 
-  async function openHref(url: string) {
-    const opened = await openExternalUrl(url);
-    if (!opened) {
-      toast.error("Couldn’t open the retailer. Check your browser pop-up setting.");
-    }
-    setAsk(true);
-  }
-
-  function applyEntry(saveUrl: string, openUrl: string) {
-    setLinkDraft(saveUrl);
-    onSaveLink?.(saveUrl);
-    void openHref(openUrl);
-  }
-
   if (arriving) {
     return (
       <div className="grid gap-2">
-        <p className="text-[13px] text-muted-foreground">Arriving ~{item.expectedArrivalDate}</p>
+        <p className="text-[13px] text-muted-foreground">
+          Arriving {item.expectedArrivalDate ? formatDueDate(item.expectedArrivalDate) : ""}
+        </p>
         {onReceived ? (
           <Button type="button" className={className ?? "h-10"} onClick={() => setReceive(true)}>
             Received
@@ -96,46 +78,9 @@ export function RestockOrderButton({
 
   return (
     <>
-      {href ? (
-        <Button type="button" className={className ?? (compact ? "h-12" : "h-10")} onClick={() => void openHref(href)}>
-          Order
-        </Button>
-      ) : (
-        <p className="text-[13px] font-medium">Find it</p>
-      )}
-      {href && compact ? null : (
-      <div className="mt-2 grid gap-2">
-        <div className="flex flex-wrap gap-1.5">
-          {!href
-            ? RETAILER_CHIPS.map((chip) => (
-                <Button
-                  key={chip.id}
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  className="h-8 rounded-full"
-                  onClick={() => void openHref(retailerSearchUrl(chip.id, item.itemName, item.sizeSpec))}
-                >
-                  {chip.label}
-                </Button>
-              ))
-            : null}
-          {savedLinks.slice(0, 6).map((entry) => (
-            <Button
-              key={entry.url}
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="h-8 max-w-full rounded-full"
-              onClick={() => applyEntry(entry.url, entry.url)}
-            >
-              <span className="truncate">{savedRetailerLabel(entry.url)}</span>
-            </Button>
-          ))}
-        </div>
-        <CustomStoreSearch itemName={item.itemName} sizeSpec={item.sizeSpec} onSearch={applyEntry} />
-      </div>
-      )}
+      <Button type="button" className={className ?? (compact ? "h-12" : "h-10")} onClick={() => setPicker(true)}>
+        Order
+      </Button>
       {placement.nudgeArrive ? (
         <p className="mt-2 text-[13px] text-muted-foreground">Did it arrive?</p>
       ) : null}
@@ -144,6 +89,17 @@ export function RestockOrderButton({
           Received
         </Button>
       ) : null}
+
+      <RetailerPickerSheet
+        open={picker}
+        item={item}
+        household={household}
+        onOpenChange={setPicker}
+        onSaveLink={onSaveLink}
+        onPreferRetailer={onPreferRetailer}
+        onAddSize={onAddSize}
+        onOpened={() => setAsk(true)}
+      />
 
       <AlertDialog open={ask} onOpenChange={setAsk}>
         <AlertDialogContent>
@@ -211,55 +167,6 @@ export function RestockOrderButton({
   );
 }
 
-function CustomStoreSearch({
-  itemName,
-  sizeSpec,
-  onSearch,
-}: {
-  itemName: string;
-  sizeSpec?: string;
-  onSearch: (saveUrl: string, openUrl: string) => void;
-}) {
-  const [draft, setDraft] = useState("");
-
-  function go() {
-    const resolved = resolveRetailerEntry(draft, itemName, sizeSpec);
-    if (!resolved.ok) {
-      toast.error(resolved.error);
-      return;
-    }
-    onSearch(resolved.saveUrl, resolved.openUrl);
-    setDraft("");
-  }
-
-  return (
-    <div className="grid gap-1.5">
-      <p className="text-[13px] text-muted-foreground">Or any other store</p>
-      <div className="flex gap-2">
-        <Input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="ebay.com or paste a link"
-          className="h-10 min-w-0 flex-1"
-          inputMode="url"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              go();
-            }
-          }}
-        />
-        <Button type="button" variant="secondary" className="h-10 shrink-0 px-3" onClick={go}>
-          Search
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 function ReceiveDialog({
   open,
   qty,
@@ -321,7 +228,7 @@ export function OrderByLine({
 }) {
   const placement = restockPlacement(item, household);
   if (placement.bucket === "ordered" && item.expectedArrivalDate) {
-    return <>Arriving ~{formatDueDate(item.expectedArrivalDate)}</>;
+    return <>Arriving {formatDueDate(item.expectedArrivalDate)}</>;
   }
   if (placement.bucket === "order_now" && item.onHand <= reorderAtFor(item)) {
     return (

@@ -21,6 +21,7 @@ export function RestockView({
   onMarkOrdered,
   onMarkReceived,
   onSaveLink,
+  onPreferRetailer,
   onWalkHouse,
 }: {
   household: Household;
@@ -29,6 +30,7 @@ export function RestockView({
   onMarkOrdered?: (id: string) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
+  onPreferRetailer?: (id: string, retailer: string) => void;
   onWalkHouse?: (picks: RestockPick[]) => void;
 }) {
   const [creating, setCreating] = useState(false);
@@ -112,6 +114,7 @@ export function RestockView({
               onMarkOrdered={onMarkOrdered}
               onMarkReceived={onMarkReceived}
               onSaveLink={onSaveLink}
+              onPreferRetailer={onPreferRetailer}
             />
           ))}
         </Section>
@@ -130,6 +133,7 @@ export function RestockView({
               onMarkOrdered={onMarkOrdered}
               onMarkReceived={onMarkReceived}
               onSaveLink={onSaveLink}
+              onPreferRetailer={onPreferRetailer}
             />
           ))
         )}
@@ -148,6 +152,7 @@ export function RestockView({
               onMarkOrdered={onMarkOrdered}
               onMarkReceived={onMarkReceived}
               onSaveLink={onSaveLink}
+              onPreferRetailer={onPreferRetailer}
             />
           ))
         )}
@@ -180,6 +185,7 @@ export function RestockView({
                   onMarkOrdered={onMarkOrdered}
                   onMarkReceived={onMarkReceived}
                   onSaveLink={onSaveLink}
+                  onPreferRetailer={onPreferRetailer}
                 />
               ))
             )}
@@ -209,6 +215,7 @@ export function RestockView({
         onMarkOrdered={onMarkOrdered}
         onMarkReceived={onMarkReceived}
         onSaveLink={onSaveLink}
+        onPreferRetailer={onPreferRetailer}
       />
     </div>
   );
@@ -241,6 +248,7 @@ function RestockRow({
   onMarkOrdered,
   onMarkReceived,
   onSaveLink,
+  onPreferRetailer,
 }: {
   household: Household;
   item: SupplyAutomation;
@@ -248,6 +256,7 @@ function RestockRow({
   onMarkOrdered?: (id: string) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
+  onPreferRetailer?: (id: string, retailer: string) => void;
 }) {
   const where = usedWhere(item, household) || roomName(household, item.room);
   const placement = restockPlacement(item, household);
@@ -276,6 +285,8 @@ function RestockRow({
           onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
               onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
           onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
+          onPreferRetailer={onPreferRetailer ? (retailer) => onPreferRetailer(item.id, retailer) : undefined}
+          onAddSize={onOpen}
         />
       </div>
     </div>

@@ -57,6 +57,7 @@ export function TodayView({
   onMarkOrdered,
   onMarkReceived,
   onSaveLink,
+  onPreferRetailer,
   onOpenRestock,
 }: {
   household: Household;
@@ -75,6 +76,7 @@ export function TodayView({
   onMarkOrdered?: (id: string) => void;
   onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
+  onPreferRetailer?: (id: string, retailer: string) => void;
   onOpenRestock?: () => void;
 }) {
   const now = new Date();
@@ -434,6 +436,7 @@ export function TodayView({
                     onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
                     onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
                     onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
+                    onPreferRetailer={onPreferRetailer ? (retailer) => onPreferRetailer(item.id, retailer) : undefined}
                   />
                 </li>
               ))}
@@ -471,6 +474,7 @@ export function TodayView({
         onMarkOrdered={onMarkOrdered}
         onMarkReceived={onMarkReceived}
         onSaveLink={onSaveLink}
+        onPreferRetailer={onPreferRetailer}
       />
 
       {onSavePostalCode ? (
@@ -506,6 +510,7 @@ export function TodayView({
         onMarkOrdered={onMarkOrdered}
         onMarkReceived={onMarkReceived}
         onSaveLink={onSaveLink}
+        onPreferRetailer={onPreferRetailer}
       />
 
       <ConsumableForm
@@ -524,6 +529,7 @@ export function TodayView({
         onMarkOrdered={onMarkOrdered}
         onMarkReceived={onMarkReceived}
         onSaveLink={onSaveLink}
+        onPreferRetailer={onPreferRetailer}
       />
     </div>
   );
