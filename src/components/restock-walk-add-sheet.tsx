@@ -98,13 +98,12 @@ export function RestockWalkAddSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
-        size="form"
         className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader className="shrink-0 pb-2">
           <SheetTitle>Add something you buy</SheetTitle>
         </SheetHeader>
-        <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4">
+        <div data-keyboard-scroll className="flex flex-col gap-4 px-4 pb-4">
           <div className="grid gap-1.5">
             <Label htmlFor="walk-add-name">What is it?</Label>
             <Input
@@ -177,7 +176,7 @@ export function RestockWalkAddSheet({
               ))}
             </div>
           </div>
-          <Button className="mt-auto h-12" disabled={!itemName.trim()} onClick={submit}>
+          <Button className="h-12" disabled={!itemName.trim()} onClick={submit}>
             Add
           </Button>
           {onMoreOptions ? (
