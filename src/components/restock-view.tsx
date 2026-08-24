@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Package } from "lucide-react";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
@@ -11,7 +11,7 @@ import { roomName } from "@/lib/home-model";
 import { SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
 import { groupRestock, restockPlacement, usedWhere, type RestockFlowHandlers } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
-import type { Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
+import type { AppNavigateTarget, Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function RestockView({
@@ -19,12 +19,16 @@ export function RestockView({
   onSaveDuty,
   onDeleteDuty,
   onWalkHouse,
+  focus,
+  onFocusHandled,
   ...restock
 }: {
   household: Household;
   onSaveDuty: (duty: DutyDraft) => void;
   onDeleteDuty: (id: string) => void;
   onWalkHouse?: (picks: RestockPick[]) => void;
+  focus?: AppNavigateTarget | null;
+  onFocusHandled?: () => void;
 } & RestockFlowHandlers) {
   const [creating, setCreating] = useState(false);
   const [editingDuty, setEditingDuty] = useState<Duty | null>(null);
@@ -45,6 +49,14 @@ export function RestockView({
     if (duty) setEditingDuty(duty);
     else setCreating(true);
   }
+
+  useEffect(() => {
+    if (!focus?.itemId && !focus?.section) return;
+    const itemEl = focus.itemId ? document.getElementById(`restock-item-${focus.itemId}`) : null;
+    const sectionEl = focus.section ? document.getElementById(`restock-${focus.section}`) : null;
+    (itemEl ?? sectionEl)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (focus.action === "receive") onFocusHandled?.();
+  }, [focus, onFocusHandled]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -97,20 +109,21 @@ export function RestockView({
       ) : null}
 
       {groups.ordered.length > 0 ? (
-        <Section title="On the way" count={groups.ordered.length}>
+        <Section id="restock-ordered" title="On the way" count={groups.ordered.length}>
           {groups.ordered.map((item) => (
             <RestockRow
               key={item.id}
               household={household}
               item={item}
               onOpen={() => openItem(item)}
+              autoReceive={focus?.action === "receive" && focus.itemId === item.id}
               {...restock}
             />
           ))}
         </Section>
       ) : null}
 
-      <Section title="Order now" count={groups.order_now.length}>
+      <Section id="restock-order_now" title="Order now" count={groups.order_now.length}>
         {groups.order_now.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nothing to order right now.</p>
         ) : (
@@ -120,13 +133,14 @@ export function RestockView({
               household={household}
               item={item}
               onOpen={() => openItem(item)}
+              autoReceive={focus?.action === "receive" && focus.itemId === item.id}
               {...restock}
             />
           ))
         )}
       </Section>
 
-      <Section title="Coming up" count={groups.coming_up.length}>
+      <Section id="restock-coming_up" title="Coming up" count={groups.coming_up.length}>
         {groups.coming_up.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nothing in the next three weeks.</p>
         ) : (
@@ -142,7 +156,7 @@ export function RestockView({
         )}
       </Section>
 
-      <section>
+      <section id="restock-stocked">
         <button
           type="button"
           className="mb-2 flex w-full items-baseline justify-between gap-3 px-1"
@@ -200,16 +214,18 @@ export function RestockView({
 }
 
 function Section({
+  id,
   title,
   count,
   children,
 }: {
+  id?: string;
   title: string;
   count: number;
   children: React.ReactNode;
 }) {
   return (
-    <section>
+    <section id={id}>
       <header className="mb-2 flex items-baseline justify-between gap-3 px-1">
         <h2 className="ui-heading text-[22px] font-semibold">{title}</h2>
         <span className="text-[13px] font-medium text-muted-foreground">{count}</span>
@@ -223,16 +239,18 @@ function RestockRow({
   household,
   item,
   onOpen,
+  autoReceive,
   ...restock
 }: {
   household: Household;
   item: SupplyAutomation;
   onOpen: () => void;
+  autoReceive?: boolean;
 } & RestockFlowHandlers) {
   const where = usedWhere(item, household) || roomName(household, item.room);
   const placement = restockPlacement(item, household);
   return (
-    <div className="ui-group-row w-full px-4 py-3">
+    <div id={`restock-item-${item.id}`} className="ui-group-row w-full px-4 py-3">
       <button type="button" className="w-full text-left" onClick={onOpen}>
         <span className="flex items-start gap-3">
           <Package
@@ -254,6 +272,7 @@ function RestockRow({
           item={item}
           household={household}
           onAddSize={onOpen}
+          autoReceive={autoReceive}
           {...restockButtonProps(item, restock)}
         />
       </div>

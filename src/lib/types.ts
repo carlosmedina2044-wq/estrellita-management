@@ -307,3 +307,10 @@ export type DutyDraft = Omit<Duty, "id" | "createdAt" | "archived"> & {
 };
 
 export type Tab = "today" | "home" | "restock" | "budget" | "seasonal" | "settings";
+
+export type AppNavigateTarget = {
+  tab: Tab;
+  section?: "ordered" | "order_now" | "coming_up" | "stocked";
+  itemId?: string;
+  action?: "receive";
+};

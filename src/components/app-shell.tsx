@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Home, Leaf, Package, Settings, Sun, Wallet } from "lucide-react";
 import { BrandLockup } from "@/components/brand-logo";
 import { BackupPanel } from "@/components/backup-panel";
@@ -28,7 +28,7 @@ import { isNative } from "@/lib/native/platform";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
 import { forCleanerSession } from "@/lib/storage";
-import type { Tab } from "@/lib/types";
+import type { AppNavigateTarget, Tab } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const LOCK_MS = { immediate: 0, "2min": 120_000, "15min": 900_000 } as const;
@@ -69,6 +69,14 @@ export function AppShell() {
     declinePlaybook,
   } = useHousehold();
   const [tab, setTab] = useState<Tab>(() => initialTab());
+  const [nav, setNav] = useState<AppNavigateTarget | null>(null);
+  const navigate = useCallback((target: AppNavigateTarget) => {
+    setTab(target.tab);
+    setNav(target);
+  }, []);
+  const handleFocusHandled = useCallback(() => {
+    setNav((current) => (current ? { ...current, action: undefined } : null));
+  }, []);
   // Start locked; unlock only after the device reports no biometric/passcode
   // capability or the user passes the system prompt.
   const [locked, setLocked] = useState(true);
@@ -179,30 +187,38 @@ export function AppShell() {
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.data?.type === "open-restock") setTab("restock");
+      if (event.data?.type === "open-restock") navigate({ tab: "restock" });
     };
     navigator.serviceWorker?.addEventListener("message", onMessage);
     return () => navigator.serviceWorker?.removeEventListener("message", onMessage);
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!isNative()) return;
     let remove: (() => void) | undefined;
     void import("@capacitor/local-notifications").then(async ({ LocalNotifications }) => {
       const handle = await LocalNotifications.addListener("localNotificationActionPerformed", (event) => {
-        if (event.notification.extra?.tab === "restock") setTab("restock");
-        if (event.notification.extra?.tab === "home") setTab("home");
+        const extra = event.notification.extra as { tab?: string; itemId?: string; action?: string } | undefined;
+        if (extra?.tab === "restock") {
+          navigate({
+            tab: "restock",
+            itemId: extra.itemId,
+            action: extra.action === "receive" ? "receive" : undefined,
+            section: extra.action === "receive" ? "ordered" : undefined,
+          });
+        }
+        if (extra?.tab === "home") navigate({ tab: "home" });
       });
       remove = () => void handle.remove();
     });
     return () => remove?.();
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
-    const onOpen = () => setTab("restock");
+    const onOpen = () => navigate({ tab: "restock" });
     window.addEventListener(OPEN_RESTOCK_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_RESTOCK_EVENT, onOpen);
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (!household.onboarded || isNative()) return;
@@ -305,6 +321,8 @@ export function AppShell() {
             onDeleteDuty={deleteDuty}
             {...restockHandlers}
             onWalkHouse={applyRestockWalk}
+            focus={tab === "restock" ? nav : null}
+            onFocusHandled={handleFocusHandled}
           />
         ) : null}
         {tab === "home" ? (

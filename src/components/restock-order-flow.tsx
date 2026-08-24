@@ -80,6 +80,7 @@ export function RestockOrderButton({
   onAddSize,
   className,
   compact,
+  autoReceive,
 }: {
   item: SupplyAutomation;
   household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers">;
@@ -94,6 +95,7 @@ export function RestockOrderButton({
   onAddSize?: () => void;
   className?: string;
   compact?: boolean;
+  autoReceive?: boolean;
 }) {
   const [picker, setPicker] = useState(false);
   const [ask, setAsk] = useState(false);
@@ -104,6 +106,7 @@ export function RestockOrderButton({
   const [qtyDraft, setQtyDraft] = useState(String(item.qtyPerOrder || 1));
   const [pendingRetailer, setPendingRetailer] = useState<string | undefined>();
   const pendingRetailerRef = useRef<string | undefined>(undefined);
+  if (autoReceive && !receive) setReceive(true);
   const placement = restockPlacement(item, household);
   const arriving = placement.bucket === "ordered";
   const linkedConsumable = (household.consumables ?? []).find(
