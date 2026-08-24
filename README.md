@@ -32,15 +32,17 @@ npm run cap:ios                   # open in Xcode; set Team
 
 In Xcode:
 - Signing & Capabilities: your team; bundle id `com.cuidala.app`.
+- Always run **signed** (Xcode’s default “Sign to Run Locally” is fine on the simulator). Building with code signing stripped breaks Keychain writes and the app shows the load-failure screen.
 - Add capability **Push Notifications** is *not* needed (local notifications only).
-- Deployment target iOS 15.0 or later. Required device capability is **arm64**.
+- Deployment target iOS 16.4 or later (`dvh` layout units). Required device capability is **arm64**. iPhone-only for v1 (iPad is deferred).
 - Archive → Distribute → App Store Connect.
 
 ## App Store Connect notes
 
-- **Price:** one-time purchase, $9.99. No in-app purchases, no subscription, no account. Core chores, Restock, and Seasonal ship in the binary; adding StoreKit later would be a new review cycle.
+- **Price:** free for v1 (validate demand). A paid tier is planned for 1.1; that would be a new review cycle. No in-app purchases, no subscription, no account in this binary.
+- **Devices:** iPhone only for v1 (`TARGETED_DEVICE_FAMILY = 1`). iPad is planned for a later release; do not leave iPad in the target family until the layout is native, not a phone column.
 - **App Privacy:** Data Not Collected except *Coarse Location → App Functionality, not linked to identity*. Matches `PrivacyInfo.xcprivacy`.
-- **Privacy policy URL:** host `out/privacy/` (e.g. on Vercel) and use that URL; the same policy is reachable in-app at Settings → Privacy policy.
+- **Privacy policy URL:** host `out/privacy/` (e.g. on Vercel) and use that URL; the same policy is reachable in-app at Settings → Privacy policy. Have a support URL ready before submission.
 - **Listing copy:** lead with “No account. No cloud. Yours.”
 - **Reviewer notes:** This is a Capacitor/WKWebView app with native iOS capabilities, not a thin website wrapper:
   - Face ID / Touch ID / device passcode lock (LocalAuthentication via native plugin); cancel stays locked.
@@ -51,7 +53,7 @@ In Xcode:
   - Optional coarse location (rounded to ~1 km) for seasonal/weather tasks.
   - No sign-in. On first launch tap **Use a sample home instead** to reach the task list immediately, with Restock already seeded.
   - Restock’s Order / Find it buttons open the retailer in an in-app Safari view; the app does not process purchases or store payment information.
-  - iPad uses a wider layout (`preferredContentMode: recommended`); portrait and landscape are supported.
+  - iPhone only; portrait and landscape are supported.
 - **Export compliance:** the app uses only Apple-provided encryption (`ITSAppUsesNonExemptEncryption = false`).
 - **Age rating:** 4+.
 

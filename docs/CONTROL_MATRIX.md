@@ -30,4 +30,4 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 
 ## Not implemented (by design for v1)
 
-Accounts, cross-device sync, household invites, server-side anything, in-app purchase / StoreKit (paid up front in App Store Connect; no paywall in the binary). See `docs/RESIDUAL_RISKS.md` for what that leaves open.
+Accounts, cross-device sync, household invites, server-side anything, in-app purchase / StoreKit (v1 is free; a paid tier is planned for 1.1), and iPad (iPhone-only until a later release). See `docs/RESIDUAL_RISKS.md` for what that leaves open.

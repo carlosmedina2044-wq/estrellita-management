@@ -26,8 +26,9 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
 - [ ] Privacy policy and Terms open from Settings.
 - [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy still Data Not Collected + coarse location.
-- [ ] iPad: layout is not a stretched phone column; tab bar remains usable in landscape.
+- [ ] Confirm the binary is iPhone-only (no iPad destination). Always run a signed build — unsigned Keychain writes fail and show the load-failure screen.
 
 ## Changelog
 
-- 2026-08 — Review follow-up: lint gate, Open-Meteo geocoding, encrypted export/import, Face ID residual-risk wording, restock walk-through, iPad layout.
+- 2026-08-24 — Simulator pre-TestFlight run: unsigned builds break Keychain (load-failure screen); iPad deferred (phone-column layout / 4.2 risk); floor raised to iOS 16.4 for `dvh`. iPhone-only; v1 free.
+- 2026-08 — Review follow-up: lint gate, Open-Meteo geocoding, encrypted export/import, Face ID residual-risk wording, restock walk-through.

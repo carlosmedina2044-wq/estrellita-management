@@ -28,9 +28,9 @@ export async function shareBackupFile(
   filename: string,
 ): Promise<"shared" | "cancelled" | "failed"> {
   if (!isNative()) return "failed";
+  const { Directory, Encoding, Filesystem } = await import("@capacitor/filesystem");
+  const { Share } = await import("@capacitor/share");
   try {
-    const { Directory, Encoding, Filesystem } = await import("@capacitor/filesystem");
-    const { Share } = await import("@capacitor/share");
     await Filesystem.writeFile({
       path: filename,
       data: json,
@@ -49,5 +49,11 @@ export async function shareBackupFile(
     const message = error instanceof Error ? error.message : String(error);
     if (/cancel/i.test(message)) return "cancelled";
     return "failed";
+  } finally {
+    try {
+      await Filesystem.deleteFile({ path: filename, directory: Directory.Temporary });
+    } catch {
+      // already gone
+    }
   }
 }
