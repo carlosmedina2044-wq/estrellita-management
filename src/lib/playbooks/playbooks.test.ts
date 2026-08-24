@@ -9,7 +9,7 @@ import { withHouseholdDefaults } from "@/lib/household-defaults";
 
 function home(partial: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 7,
+    version: 8,
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "Cleaner",

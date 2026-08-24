@@ -203,3 +203,40 @@ test("absent tenure stays absent and invalid tenure is dropped", () => {
   const kept = parseStored(JSON.stringify({ onboarded: true, tenure: "new" }));
   assert.equal(kept.tenure, "new");
 });
+
+test("v7 households migrate to v8 with empty preferredRetailers", () => {
+  const household = parseStored(
+    JSON.stringify({
+      version: 7,
+      onboarded: true,
+      householdName: "Home",
+      preferredRetailers: ["walmart", "bogus", "amazon", "walmart"],
+      duties: [
+        {
+          id: "duty-0008",
+          title: "Replace filter",
+          room: "kitchen",
+          kind: "replacement",
+          createdAt: "2026-08-23T12:00:00.000Z",
+        },
+      ],
+      supplyAutomations: [
+        {
+          id: "sup-00008",
+          dutyId: "duty-0008",
+          itemName: "Filter",
+          preferredRetailer: "ebay.com",
+          orderedAt: "2026-08-20",
+          orderedQty: 2,
+          observedLeadTimeDays: 4,
+        },
+      ],
+    }),
+  );
+  assert.equal(household.version, 8);
+  assert.deepEqual(household.preferredRetailers, ["walmart", "amazon"]);
+  assert.equal(household.supplyAutomations[0]?.preferredRetailer, "ebay.com");
+  assert.equal(household.supplyAutomations[0]?.orderedAt, "2026-08-20");
+  assert.equal(household.supplyAutomations[0]?.orderedQty, 2);
+  assert.equal(household.supplyAutomations[0]?.observedLeadTimeDays, 4);
+});

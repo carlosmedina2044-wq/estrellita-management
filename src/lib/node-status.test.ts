@@ -25,7 +25,7 @@ function duty(partial: Partial<Duty> & Pick<Duty, "id" | "title" | "room">): Dut
 
 function household(overrides: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 7,
+    version: 8,
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "Cleaner",

@@ -1,6 +1,8 @@
 import { TEXT_LIMITS } from "@/lib/sanitize";
 import type { SavedRetailerLink } from "@/lib/types";
 
+export type { RetailerId } from "@/lib/types";
+
 const ASIN = /^[A-Z0-9]{10}$/i;
 const AMAZON_HOST = /(^|\.)amazon\.(com|ca|com\.mx|co\.uk|de|fr|es|it|nl|se|pl|com\.au|co\.jp|in|sg|ae|sa|com\.br)$/i;
 const SHORT_HOST = /^(amzn\.to|a\.co)$/i;

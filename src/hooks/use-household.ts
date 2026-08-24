@@ -93,7 +93,7 @@ export function useHousehold() {
         );
       const seeded = applyRestockPicks(
         withHouseholdDefaults({
-          version: 7,
+          version: 8,
           householdName: sanitizeText(generated.householdName, TEXT_LIMITS.name) || "Home",
           ownerName: sanitizeText(input.ownerName, TEXT_LIMITS.name) || "",
           cleanerName: "Cleaner",
@@ -302,7 +302,7 @@ export function useHousehold() {
 
   const updateTree = useCallback(
     (updater: (current: Household) => Household) => {
-      update((current) => ({ ...updater(current), version: 7 }));
+      update((current) => ({ ...updater(current), version: 8 }));
     },
     [update],
   );

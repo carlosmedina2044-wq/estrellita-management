@@ -19,7 +19,7 @@ const rooms: HomeRoom[] = [
 
 function household(overrides: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 7,
+    version: 8,
     householdName: "Test",
     ownerName: "",
     cleanerName: "Cleaner",

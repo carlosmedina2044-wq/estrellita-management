@@ -137,7 +137,7 @@ export function applyDutySave(current: Household, duty: DutyDraft, now = new Dat
 
   return {
     ...current,
-    version: 7,
+    version: 8,
     duties: nextDuty,
     supplyAutomations,
     savedRetailerLinks: savedUrl

@@ -19,7 +19,7 @@ test("Tucson ZIP payoff names monsoon and pre-summer AC", () => {
 test("walk-your-house picks seed Restock without duplicating", () => {
   const generated = generateHomeFromAnswers(sampleHomeAnswers(), new Date(2026, 5, 1));
   const household = withHouseholdDefaults({
-    version: 7,
+    version: 8,
     householdName: generated.householdName,
     ownerName: "",
     cleanerName: "Cleaner",

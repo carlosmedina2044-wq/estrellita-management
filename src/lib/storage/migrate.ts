@@ -13,31 +13,33 @@ import {
 import { asArray, asId, isPlainObject, sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
 import { rememberRetailerLink, normalizeSavedRetailerUrl } from "@/lib/retailer";
 import { deriveOrderByDate } from "@/lib/supply";
-import type {
-  Audience,
-  Completion,
-  Consumable,
-  Duty,
-  DutyKind,
-  Frequency,
-  HomeAsset,
-  HomeAttributes,
-  HomeFloor,
-  HomeLocation,
-  HomeRoom,
-  Household,
-  LifespanUnit,
-  LockSettings,
-  PlaybookDecision,
-  SavedRetailerLink,
-  SupplyAutomation,
-  Tenure,
-  Visit,
-  WeatherFire,
+import {
+  RETAILER_IDS,
+  type Audience,
+  type Completion,
+  type Consumable,
+  type Duty,
+  type DutyKind,
+  type Frequency,
+  type HomeAsset,
+  type HomeAttributes,
+  type HomeFloor,
+  type HomeLocation,
+  type HomeRoom,
+  type Household,
+  type LifespanUnit,
+  type LockSettings,
+  type PlaybookDecision,
+  type RetailerId,
+  type SavedRetailerLink,
+  type SupplyAutomation,
+  type Tenure,
+  type Visit,
+  type WeatherFire,
 } from "@/lib/types";
 
 export const EMPTY_HOUSEHOLD: Household = withHouseholdDefaults({
-  version: 7,
+  version: 8,
   householdName: "Home",
   ownerName: "",
   cleanerName: "Cleaner",
@@ -210,7 +212,33 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     createdAt: asIsoDateTime(raw.createdAt, new Date().toISOString()),
     unitCost: typeof raw.unitCost === "number" ? raw.unitCost : undefined,
     lastPaidPrice: typeof raw.lastPaidPrice === "number" ? raw.lastPaidPrice : undefined,
+    preferredRetailer: asPreferredRetailer(raw.preferredRetailer),
+    orderedAt: asIsoDate(raw.orderedAt) ?? undefined,
+    orderedQty: raw.orderedQty !== undefined ? asInt(raw.orderedQty, 1, 1, 99) : undefined,
+    observedLeadTimeDays:
+      raw.observedLeadTimeDays !== undefined ? asInt(raw.observedLeadTimeDays, 0, 0, 90) : undefined,
   };
+}
+
+function asPreferredRetailer(value: unknown): RetailerId | string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = sanitizeText(value, TEXT_LIMITS.url);
+  if (!trimmed) return undefined;
+  return (RETAILER_IDS as readonly string[]).includes(trimmed) ? (trimmed as RetailerId) : trimmed;
+}
+
+function migratePreferredRetailers(raw: unknown): RetailerId[] {
+  const seen = new Set<RetailerId>();
+  const next: RetailerId[] = [];
+  for (const item of asArray(raw)) {
+    if (typeof item !== "string") continue;
+    if (!(RETAILER_IDS as readonly string[]).includes(item)) continue;
+    const id = item as RetailerId;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    next.push(id);
+  }
+  return next;
 }
 
 function asSlugId(value: unknown, fallback: string): string {
@@ -454,7 +482,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       : undefined;
 
   return ensureHomeTree({
-    version: 7,
+    version: 8,
     householdName,
     ownerName: sanitizeText(raw.ownerName, TEXT_LIMITS.name) || firstPerson || "Me",
     cleanerName: sanitizeText(raw.cleanerName, TEXT_LIMITS.name) || "Cleaner",
@@ -475,6 +503,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     visits,
     supplyAutomations,
     savedRetailerLinks,
+    preferredRetailers: migratePreferredRetailers(raw.preferredRetailers),
     playbookDecisions,
     weatherFires,
     weatherStatus: isPlainObject(raw.weatherStatus)

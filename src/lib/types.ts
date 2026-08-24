@@ -62,6 +62,8 @@ export type HouseholdMemberRole = "owner" | "adult" | "child";
 export type PlaybookSeason = "spring" | "summer" | "fall" | "winter" | "monsoon" | "any";
 export type AgeBucket = "new" | "mid" | "old" | "unsure";
 export type Tenure = "new" | "settled" | "longtime";
+export const RETAILER_IDS = ["amazon", "walmart", "target", "home-depot", "lowes", "chewy"] as const;
+export type RetailerId = (typeof RETAILER_IDS)[number];
 
 export type HomeFloor = {
   id: string;
@@ -205,6 +207,10 @@ export type SupplyAutomation = {
   createdAt: string;
   unitCost?: number;
   lastPaidPrice?: number;
+  preferredRetailer?: RetailerId | string;
+  orderedAt?: string;
+  orderedQty?: number;
+  observedLeadTimeDays?: number;
 };
 
 export type SupplyAutomationInput = {
@@ -265,7 +271,7 @@ export type WeatherStatus = {
 };
 
 export type Household = {
-  version: 7;
+  version: 8;
   householdName: string;
   ownerName: string;
   cleanerName: string;
@@ -286,6 +292,7 @@ export type Household = {
   visits: Visit[];
   supplyAutomations: SupplyAutomation[];
   savedRetailerLinks: SavedRetailerLink[];
+  preferredRetailers: RetailerId[];
   playbookDecisions: PlaybookDecision[];
   weatherFires: WeatherFire[];
   weatherStatus: WeatherStatus;
