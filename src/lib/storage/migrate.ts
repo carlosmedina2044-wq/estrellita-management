@@ -212,6 +212,7 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     createdAt: asIsoDateTime(raw.createdAt, new Date().toISOString()),
     unitCost: typeof raw.unitCost === "number" ? raw.unitCost : undefined,
     lastPaidPrice: typeof raw.lastPaidPrice === "number" ? raw.lastPaidPrice : undefined,
+    lastPaidAt: asIsoDate(raw.lastPaidAt) ?? undefined,
     preferredRetailer: asPreferredRetailer(raw.preferredRetailer),
     orderedAt: asIsoDate(raw.orderedAt) ?? undefined,
     orderedQty: raw.orderedQty !== undefined ? asInt(raw.orderedQty, 1, 1, 99) : undefined,

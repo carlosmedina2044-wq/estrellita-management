@@ -86,6 +86,30 @@ test("restored old completions do not prompt", () => {
   assert.equal(shouldPromptCost(backup, duty({ id: "duty-cost1" }), now), false);
 });
 
+test("shouldPromptCost skips when the linked item was received with a price in the last 30 days", () => {
+  const now = new Date("2026-08-24T12:00:00.000Z");
+  const recent = completion({ id: "comp-recv", dutyId: "duty-cost1", completedAt: "2026-08-24T01:00:00.000Z" });
+  const replacement = duty({ id: "duty-cost1" });
+  const household = {
+    supplyAutomations: [
+      {
+        id: "auto-1",
+        dutyId: "duty-cost1",
+        linkedDutyIds: ["duty-cost1"],
+        lastPaidPrice: 18.5,
+        lastPaidAt: "2026-08-10",
+      },
+    ],
+  };
+  assert.equal(shouldPromptCost(recent, replacement, now, household), false);
+  assert.equal(
+    shouldPromptCost(recent, replacement, now, {
+      supplyAutomations: [{ ...household.supplyAutomations[0], lastPaidAt: "2026-07-01" }],
+    }),
+    true,
+  );
+});
+
 test("migrateCompletion round-trips actualCost and costSkipped and rejects bad numbers", () => {
   const household = parseStored(
     JSON.stringify({

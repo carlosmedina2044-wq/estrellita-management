@@ -186,7 +186,7 @@ export function TodayView({
   const costPrompts = onRecordCost
     ? household.completions.filter((item) => {
         const match = household.duties.find((duty) => duty.id === item.dutyId);
-        return match ? shouldPromptCost(item, match, now) : false;
+        return match ? shouldPromptCost(item, match, now, household) : false;
       })
     : [];
   const greeting = household.ownerName ? `Hi, ${household.ownerName}` : "Today";

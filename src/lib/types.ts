@@ -207,6 +207,7 @@ export type SupplyAutomation = {
   createdAt: string;
   unitCost?: number;
   lastPaidPrice?: number;
+  lastPaidAt?: string;
   preferredRetailer?: RetailerId | string;
   orderedAt?: string;
   orderedQty?: number;
