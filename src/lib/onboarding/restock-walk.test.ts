@@ -119,6 +119,7 @@ test("free-text variant is stored as sku and sizeSpec", () => {
   assert.ok(hvac);
   assert.equal(hvac.sku, "20x20x1");
   assert.equal(hvac.sizeSpec, "20x20x1");
+  assert.equal(hvac.unitCost, 18);
 });
 
 test("picksMissingSize lists checked catalog items that still need a size", () => {

@@ -2,6 +2,7 @@ import { catalogEntry, type CatalogCost } from "@/lib/asset-catalog";
 import { blendedCostFor } from "@/lib/costs";
 import { addCalendarMonths, parseISODate, toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
+import { linkedDutyIdsFor, runwayFor } from "@/lib/restock";
 import type { Completion, Duty, HomeAsset, Household } from "@/lib/types";
 
 export type ForecastKind = "consumable" | "task" | "replacement";
@@ -196,6 +197,43 @@ export function buildForecast(
   for (const automation of household.supplyAutomations) {
     const price = automation.lastPaidPrice ?? automation.unitCost;
     if (price == null) continue;
+    const unitPrice = price;
+    const source: ForecastSource = automation.lastPaidPrice != null ? "lastPaid" : "catalog";
+    const linked = linkedDutyIdsFor(automation);
+    const hasRunwayAnchor = linked.length > 0 || Boolean(automation.orderByDate);
+    const purchaseDates = hasRunwayAnchor
+      ? runwayFor(automation, { duties: household.duties, completions: household.completions ?? [] }, now).upcomingDates.slice(
+          Math.max(0, automation.onHand),
+        )
+      : [];
+
+    function pushConsumable(isoOrMonth: string) {
+      let month = isoOrMonth.length > 7 ? isoOrMonth.slice(0, 7) : isoOrMonth;
+      const past = isoOrMonth.length > 7 && parseISODate(isoOrMonth) < start.getTime();
+      if (!inHorizon(month, start, horizonMonths) && past) month = months[0].month;
+      if (!inHorizon(month, start, horizonMonths)) return;
+      const item: ForecastItem = {
+        kind: "consumable",
+        nodeId: automation.nodeId,
+        nodeType: automation.nodeType === "asset" ? "asset" : "room",
+        label: automation.itemName,
+        month,
+        cost: singleCost(unitPrice),
+        confidence: automation.lastPaidPrice != null ? "high" : "medium",
+        source,
+      };
+      const bucket = byMonth.get(month);
+      if (bucket) {
+        bucket.items.push(item);
+        bucket.recurring += unitPrice;
+      }
+    }
+
+    if (hasRunwayAnchor) {
+      for (const iso of purchaseDates) pushConsumable(iso);
+      continue;
+    }
+
     const days =
       automation.lifespanUnit === "days"
         ? automation.lifespanValue
@@ -206,23 +244,7 @@ export function buildForecast(
     const occurrences = Math.max(1, Math.floor((horizonMonths * 30) / days));
     for (let i = 0; i < occurrences; i += 1) {
       const date = addCalendarMonths(start, Math.round((i * days) / 30));
-      const month = monthKey(date);
-      if (!inHorizon(month, start, horizonMonths)) continue;
-      const item: ForecastItem = {
-        kind: "consumable",
-        nodeId: automation.nodeId,
-        nodeType: automation.nodeType === "asset" ? "asset" : "room",
-        label: automation.itemName,
-        month,
-        cost: singleCost(price),
-        confidence: automation.lastPaidPrice != null ? "high" : "medium",
-        source: automation.lastPaidPrice != null ? "lastPaid" : "catalog",
-      };
-      const bucket = byMonth.get(month);
-      if (bucket) {
-        bucket.items.push(item);
-        bucket.recurring += price;
-      }
+      pushConsumable(monthKey(date));
     }
   }
 

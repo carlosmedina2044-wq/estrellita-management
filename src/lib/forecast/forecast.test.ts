@@ -216,3 +216,97 @@ test("forecast total shifts when a real price replaces the estimate", () => {
   assert.equal(before, 100);
   assert.equal(after, 10);
 });
+
+test("stocked restock item is not charged this month; overdue empty stock is", () => {
+  const dutyNext = {
+    id: "duty-runway",
+    title: "Replace HVAC filter",
+    notes: "",
+    room: "kitchen",
+    nodeId: "hvac",
+    nodeType: "asset" as const,
+    audience: "me" as const,
+    effort: "small" as const,
+    frequency: "monthly" as const,
+    kind: "replacement" as const,
+    weekday: 0,
+    monthDay: 1,
+    dueDate: "2026-08-01",
+    priority: "medium" as const,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    archived: false,
+  };
+  const stocked = household({
+    duties: [dutyNext],
+    supplyAutomations: [
+      {
+        id: "auto-runway",
+        dutyId: "duty-runway",
+        linkedDutyIds: ["duty-runway"],
+        room: "kitchen",
+        nodeId: "hvac",
+        nodeType: "asset",
+        itemName: "HVAC filter",
+        sku: "",
+        retailerUrl: "",
+        quantity: 1,
+        onHand: 1,
+        qtyPerOrder: 1,
+        reorderAt: 0,
+        leadTimeDays: 14,
+        installedAt: "2026-07-01",
+        lifespanValue: 1,
+        lifespanUnit: "months",
+        orderByDate: "2026-08-18",
+        nextOrderDate: "2026-08-18",
+        orderInFlight: false,
+        state: "stocked",
+        expectedArrivalDate: null,
+        createdAt: "2026-07-01T00:00:00.000Z",
+        unitCost: 18,
+      },
+    ],
+  });
+  const stockedForecast = buildForecast(stocked, 12, now);
+  const thisMonth = stockedForecast.monthly[0].items.filter((item) => item.label === "HVAC filter");
+  const nextMonth = stockedForecast.monthly[1].items.filter((item) => item.label === "HVAC filter");
+  assert.equal(thisMonth.length, 0);
+  assert.equal(nextMonth.length, 1);
+  assert.equal(nextMonth[0]?.cost.mid, 18);
+
+  const overdue = household({
+    duties: [{ ...dutyNext, id: "duty-over", dueDate: "2026-07-01", frequency: "quarterly" }],
+    supplyAutomations: [
+      {
+        id: "auto-over",
+        dutyId: "duty-over",
+        linkedDutyIds: ["duty-over"],
+        room: "kitchen",
+        nodeId: "hvac",
+        nodeType: "asset",
+        itemName: "HVAC filter",
+        sku: "",
+        retailerUrl: "",
+        quantity: 1,
+        onHand: 0,
+        qtyPerOrder: 1,
+        reorderAt: 0,
+        leadTimeDays: 14,
+        installedAt: "2026-04-01",
+        lifespanValue: 3,
+        lifespanUnit: "months",
+        orderByDate: "2026-06-17",
+        nextOrderDate: "2026-06-17",
+        orderInFlight: false,
+        state: "stocked",
+        expectedArrivalDate: null,
+        createdAt: "2026-04-01T00:00:00.000Z",
+        unitCost: 18,
+      },
+    ],
+  });
+  const overdueForecast = buildForecast(overdue, 12, now);
+  const overdueMonth = overdueForecast.monthly[0].items.filter((item) => item.label === "HVAC filter");
+  assert.equal(overdueMonth.length, 1);
+  assert.equal(overdueMonth[0]?.cost.mid, 18);
+});

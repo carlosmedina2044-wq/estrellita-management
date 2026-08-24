@@ -230,6 +230,7 @@ export type SupplyAutomationInput = {
   orderByDate?: string;
   linkedDutyIds?: string[];
   preferredRetailer?: RetailerId | string;
+  unitCost?: number;
 };
 
 export type Completion = {

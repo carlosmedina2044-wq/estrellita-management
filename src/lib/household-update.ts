@@ -128,6 +128,7 @@ export function applyDutySave(current: Household, duty: DutyDraft, now = new Dat
               expectedArrivalDate: existing?.expectedArrivalDate ?? null,
               createdAt: existing?.createdAt ?? now.toISOString(),
               preferredRetailer: supplyAutomation.preferredRetailer ?? existing?.preferredRetailer,
+              unitCost: supplyAutomation.unitCost ?? existing?.unitCost,
             },
           ];
 

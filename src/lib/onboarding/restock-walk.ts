@@ -3,6 +3,7 @@ import { applyDutySave } from "@/lib/household-update";
 import { DEFAULT_LEAD_TIME_DAYS, deriveOrderByDate } from "@/lib/supply";
 import { toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
+import type { CatalogCost } from "@/lib/asset-catalog";
 import type { AssetType, Duty, Household, LifespanUnit, RetailerId, RoomType } from "@/lib/types";
 
 export type RestockWalkVariant = { id: string; label: string };
@@ -25,6 +26,7 @@ export type RestockWalkItem = {
   assetType?: AssetType;
   when?: (household: RestockWalkContext) => boolean;
   defaultOn?: boolean | ((household: RestockWalkContext) => boolean);
+  defaultUnitCost?: CatalogCost;
 };
 
 export type CatalogRestockPick = { id: string; variant?: string };
@@ -117,6 +119,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     assetType: "refrigerator",
     roomType: "kitchen",
     defaultOn: (household) => hasAsset(household, "refrigerator"),
+    defaultUnitCost: { low: 30, mid: 40, high: 50 },
   },
   {
     id: "water-filter",
@@ -128,6 +131,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     frequency: "quarterly",
     group: "kitchen",
     roomType: "kitchen",
+    defaultUnitCost: { low: 20, mid: 35, high: 50 },
   },
   {
     id: "dishwasher-pods",
@@ -140,6 +144,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     group: "kitchen",
     roomType: "kitchen",
     defaultOn: true,
+    defaultUnitCost: { low: 15, mid: 20, high: 25 },
   },
   {
     id: "laundry-soap",
@@ -153,6 +158,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     roomType: "laundry",
     when: (household) => household.attributes.hasLaundry,
     defaultOn: true,
+    defaultUnitCost: { low: 15, mid: 20, high: 25 },
   },
   {
     id: "vacuum-filter",
@@ -164,6 +170,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     frequency: "quarterly",
     group: "living",
     roomType: "living",
+    defaultUnitCost: { low: 10, mid: 15, high: 25 },
   },
   {
     id: "air-purifier",
@@ -177,6 +184,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     assetType: "air_purifier",
     roomType: "living",
     defaultOn: (household) => hasAsset(household, "air_purifier"),
+    defaultUnitCost: { low: 20, mid: 30, high: 45 },
   },
   {
     id: "hvac-filter",
@@ -189,6 +197,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     group: "whole-home",
     assetType: "hvac_system",
     defaultOn: true,
+    defaultUnitCost: { low: 12, mid: 18, high: 25 },
     variants: [
       { id: "16x25x1", label: "16×25×1" },
       { id: "20x25x1", label: "20×25×1" },
@@ -207,6 +216,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     group: "whole-home",
     assetType: "smoke_detector",
     defaultOn: true,
+    defaultUnitCost: { low: 10, mid: 12, high: 15 },
     variants: [
       { id: "9v", label: "9V" },
       { id: "aa", label: "AA" },
@@ -224,6 +234,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     group: "whole-home",
     assetType: "water_softener",
     when: (household) => hasAsset(household, "water_softener"),
+    defaultUnitCost: { low: 8, mid: 10, high: 12 },
   },
   {
     id: "cooler-pads",
@@ -236,6 +247,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     group: "whole-home",
     assetType: "evaporative_cooler",
     when: (household) => household.attributes.hasEvaporativeCooler,
+    defaultUnitCost: { low: 20, mid: 30, high: 40 },
   },
   {
     id: "well-filter",
@@ -247,6 +259,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     frequency: "monthly",
     group: "whole-home",
     when: (household) => household.attributes.hasWell,
+    defaultUnitCost: { low: 15, mid: 25, high: 40 },
   },
   {
     id: "garage-remote-battery",
@@ -259,6 +272,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     group: "whole-home",
     roomType: "garage",
     when: (household) => household.attributes.hasGarage,
+    defaultUnitCost: { low: 5, mid: 8, high: 12 },
   },
   {
     id: "pool-chlorine",
@@ -272,6 +286,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     assetType: "pool_pump",
     when: (household) => household.attributes.hasPool,
     defaultOn: true,
+    defaultUnitCost: { low: 60, mid: 75, high: 90 },
   },
   {
     id: "pool-test-strips",
@@ -284,6 +299,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
     group: "outside",
     assetType: "pool_pump",
     when: (household) => household.attributes.hasPool,
+    defaultUnitCost: { low: 10, mid: 15, high: 22 },
   },
 ];
 
@@ -450,6 +466,7 @@ export function applyRestockPicks(household: Household, picks: RestockPick[], no
           lifespanUnit: item.lifespanUnit,
           installedAt: today,
           orderByDate,
+          unitCost: item.defaultUnitCost?.mid,
         },
       },
       now,
