@@ -14,6 +14,7 @@ import {
   updateHousehold,
   type HouseholdLoad,
 } from "@/lib/storage";
+import { applyCompletionCost, applyReceivedPrice } from "@/lib/costs";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { applyDutySave } from "@/lib/household-update";
@@ -101,6 +102,7 @@ export function useHousehold() {
           activeVisitId: null,
           homeId: generated.homeId,
           homeType: generated.homeType,
+          tenure: generated.tenure,
           location: generated.location,
           attributes: generated.attributes,
           floors: generated.floors,
@@ -111,6 +113,13 @@ export function useHousehold() {
           completions: [],
           visits: [],
           supplyAutomations: [],
+          playbookDecisions: generated.seasonalSuggestions
+            .filter((playbook) => playbook.id === "new-home")
+            .map((playbook) => ({
+              playbookId: playbook.id,
+              year: new Date().getFullYear(),
+              declinedTaskKeys: [],
+            })),
           restockDigest: { ...DEFAULT_RESTOCK_DIGEST },
         }),
         input.answers.restockPicks ?? [],
@@ -150,13 +159,16 @@ export function useHousehold() {
   );
 
   const markSupplyReceived = useCallback(
-    (id: string, qty: number) => {
-      update((current) => ({
-        ...current,
-        supplyAutomations: current.supplyAutomations.map((item) =>
-          item.id === id ? receiveConsumable(item, qty) : item,
-        ),
-      }));
+    (id: string, qty: number, paid?: number) => {
+      update((current) => {
+        const received = {
+          ...current,
+          supplyAutomations: current.supplyAutomations.map((item) =>
+            item.id === id ? receiveConsumable(item, qty) : item,
+          ),
+        };
+        return paid != null ? applyReceivedPrice(received, id, paid) : received;
+      });
     },
     [update],
   );
@@ -260,6 +272,13 @@ export function useHousehold() {
           linkedDutyIdsFor(item).includes(dutyId) ? consumeLinkedUnit(item) : item,
         ),
       }));
+    },
+    [update],
+  );
+
+  const recordCompletionCost = useCallback(
+    (completionId: string, input: { actualCost: number } | { skip: true }) => {
+      update((current) => applyCompletionCost(current, completionId, input));
     },
     [update],
   );
@@ -501,6 +520,7 @@ export function useHousehold() {
     updateRestockDigest,
     deleteDuty,
     completeDuty,
+    recordCompletionCost,
     undoCompletion,
     updateHome,
     savePostalCode,

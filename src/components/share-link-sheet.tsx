@@ -8,6 +8,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { ItemName } from "@/components/item-name";
 import type { Household } from "@/lib/types";
 
 export function ShareLinkSheet({
@@ -41,7 +42,9 @@ export function ShareLinkSheet({
                 className="rounded-2xl bg-white px-4 py-3 text-left"
                 onClick={() => onPick(item.id)}
               >
-                <span className="block font-medium">{item.itemName}</span>
+                <span className="block font-medium">
+                  <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
+                </span>
                 <span className="text-[13px] text-muted-foreground">On hand {item.onHand}</span>
               </button>
             ))

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DEFAULT_ATTRIBUTES } from "@/lib/household-defaults";
-import { matchingPlaybooks, playbookApplies } from "@/lib/playbooks";
+import { matchingPlaybooks, playbookApplies, PLAYBOOKS } from "@/lib/playbooks";
 import { conditionHits, evaluateTriggers, onCooldown, type WeatherForecast } from "@/lib/weather/provider";
 import { WEATHER_TRIGGERS } from "@/lib/weather/provider";
 import type { Household } from "@/lib/types";
@@ -27,6 +27,52 @@ function home(partial: Partial<Household> = {}): Household {
     ...partial,
   });
 }
+
+test("tenure-gated playbook only applies when tenure is new", () => {
+  const playbook = PLAYBOOKS.find((item) => item.id === "new-home");
+  assert.ok(playbook);
+  assert.equal(playbookApplies(playbook, home({ tenure: "new" })), true);
+  assert.equal(playbookApplies(playbook, home({ tenure: "settled" })), false);
+  assert.equal(playbookApplies(playbook, home({ tenure: "longtime" })), false);
+});
+
+test("old vault with no tenure does not get the new-home playbook", () => {
+  const playbook = PLAYBOOKS.find((item) => item.id === "new-home");
+  assert.ok(playbook);
+  assert.equal(playbookApplies(playbook, home()), false);
+  assert.equal(
+    matchingPlaybooks(home({ location: { climateZone: "mixed" } }), 8).some((item) => item.id === "new-home"),
+    false,
+  );
+  assert.equal(
+    playbookApplies(
+      { id: "all-safety", name: "Safety", season: "any", climateZones: "all", tasks: [] },
+      home(),
+    ),
+    true,
+  );
+});
+
+test("declining individual new-home tasks persists like any other playbook", () => {
+  const year = new Date().getFullYear();
+  const declined = home({
+    tenure: "new",
+    playbookDecisions: [
+      {
+        playbookId: "new-home",
+        year,
+        declinedTaskKeys: ["Change or rekey the exterior locks."],
+      },
+    ],
+  });
+  const matched = matchingPlaybooks(declined, 8).find((item) => item.id === "new-home");
+  assert.ok(matched);
+  const decision = declined.playbookDecisions.find((item) => item.playbookId === "new-home");
+  assert.deepEqual(decision?.declinedTaskKeys, ["Change or rekey the exterior locks."]);
+  const remaining = matched.tasks.filter((task) => !decision?.declinedTaskKeys.includes(task.title));
+  assert.equal(remaining.some((task) => task.title === "Change or rekey the exterior locks."), false);
+  assert.ok(remaining.length > 0);
+});
 
 test("Tucson-area home surfaces monsoon and pre-summer AC", () => {
   const tucson = home({

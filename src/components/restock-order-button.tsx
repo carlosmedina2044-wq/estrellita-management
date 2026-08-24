@@ -37,9 +37,9 @@ export function RestockOrderButton({
   compact,
 }: {
   item: SupplyAutomation;
-  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks">;
+  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables">;
   onOrdered?: () => void;
-  onReceived?: (qty: number) => void;
+  onReceived?: (qty: number, paid?: number) => void;
   onSaveLink?: (url: string) => void;
   className?: string;
   compact?: boolean;
@@ -54,6 +54,10 @@ export function RestockOrderButton({
   const savedLinks = sortedSavedRetailerLinks(household.savedRetailerLinks ?? []).filter(
     (entry) => entry.url !== href,
   );
+  const linkedConsumable = (household.consumables ?? []).find(
+    (entry) => entry.nodeId === item.nodeId || entry.assetId === item.nodeId || entry.name === item.itemName,
+  );
+  const suggestedCost = item.lastPaidPrice ?? item.unitCost ?? linkedConsumable?.lastPaidPrice ?? linkedConsumable?.unitCost;
 
   async function openHref(url: string) {
     const opened = await openExternalUrl(url);
@@ -82,8 +86,9 @@ export function RestockOrderButton({
           open={receive}
           qty={qtyDraft}
           onQty={setQtyDraft}
+          suggestedCost={suggestedCost}
           onOpenChange={setReceive}
-          onConfirm={() => onReceived?.(Math.max(1, Number(qtyDraft) || item.qtyPerOrder || 1))}
+          onConfirm={(qty, paid) => onReceived?.(qty, paid)}
         />
       </div>
     );
@@ -109,7 +114,7 @@ export function RestockOrderButton({
                   size="sm"
                   variant="secondary"
                   className="h-8 rounded-full"
-                  onClick={() => void openHref(retailerSearchUrl(chip.id, item.itemName))}
+                  onClick={() => void openHref(retailerSearchUrl(chip.id, item.itemName, item.sizeSpec))}
                 >
                   {chip.label}
                 </Button>
@@ -128,7 +133,7 @@ export function RestockOrderButton({
             </Button>
           ))}
         </div>
-        <CustomStoreSearch itemName={item.itemName} onSearch={applyEntry} />
+        <CustomStoreSearch itemName={item.itemName} sizeSpec={item.sizeSpec} onSearch={applyEntry} />
       </div>
       )}
       {placement.nudgeArrive ? (
@@ -145,7 +150,8 @@ export function RestockOrderButton({
           <AlertDialogHeader>
             <AlertDialogTitle>Did you order it?</AlertDialogTitle>
             <AlertDialogDescription>
-              {item.itemName}. If you ordered it, we’ll hide this until it should arrive.
+              {item.itemName}
+              {item.sizeSpec ? ` · ${item.sizeSpec}` : ""}. If you ordered it, we’ll hide this until it should arrive.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {onSaveLink ? (
@@ -164,7 +170,7 @@ export function RestockOrderButton({
                 type="button"
                 variant="secondary"
                 onClick={() => {
-                  const resolved = resolveRetailerEntry(linkDraft, item.itemName);
+                  const resolved = resolveRetailerEntry(linkDraft, item.itemName, item.sizeSpec);
                   if (!resolved.ok) {
                     toast.error(resolved.error);
                     return;
@@ -197,8 +203,9 @@ export function RestockOrderButton({
         open={receive}
         qty={qtyDraft}
         onQty={setQtyDraft}
+        suggestedCost={suggestedCost}
         onOpenChange={setReceive}
-        onConfirm={() => onReceived?.(Math.max(1, Number(qtyDraft) || item.qtyPerOrder || 1))}
+        onConfirm={(qty, paid) => onReceived?.(qty, paid)}
       />
     </>
   );
@@ -206,15 +213,17 @@ export function RestockOrderButton({
 
 function CustomStoreSearch({
   itemName,
+  sizeSpec,
   onSearch,
 }: {
   itemName: string;
+  sizeSpec?: string;
   onSearch: (saveUrl: string, openUrl: string) => void;
 }) {
   const [draft, setDraft] = useState("");
 
   function go() {
-    const resolved = resolveRetailerEntry(draft, itemName);
+    const resolved = resolveRetailerEntry(draft, itemName, sizeSpec);
     if (!resolved.ok) {
       toast.error(resolved.error);
       return;
@@ -255,15 +264,27 @@ function ReceiveDialog({
   open,
   qty,
   onQty,
+  suggestedCost,
   onOpenChange,
   onConfirm,
 }: {
   open: boolean;
   qty: string;
   onQty: (value: string) => void;
+  suggestedCost?: number;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (qty: number, paid?: number) => void;
 }) {
+  const [costDraft, setCostDraft] = useState(suggestedCost != null ? String(suggestedCost) : "");
+  const parsedCost = Number(costDraft);
+  const paid = Number.isFinite(parsedCost) && parsedCost >= 0 ? Math.round(parsedCost * 100) / 100 : undefined;
+
+  function confirm(withCost: boolean) {
+    const amount = Math.max(1, Number(qty) || 1);
+    onConfirm(amount, withCost ? paid : undefined);
+    toast.success("Marked received");
+  }
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -272,16 +293,19 @@ function ReceiveDialog({
           <AlertDialogDescription>Adds to what you have on hand and moves this back to Stocked.</AlertDialogDescription>
         </AlertDialogHeader>
         <Input type="number" min={1} value={qty} onChange={(event) => onQty(event.target.value)} className="h-11" />
+        <p className="text-[13px] text-muted-foreground">What did it cost?</p>
+        <Input
+          inputMode="decimal"
+          value={costDraft}
+          onChange={(event) => setCostDraft(event.target.value)}
+          placeholder="0.00"
+          className="h-11"
+          aria-label="What did it cost?"
+        />
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={() => {
-              onConfirm();
-              toast.success("Marked received");
-            }}
-          >
-            Add to stock
-          </AlertDialogAction>
+          <AlertDialogAction onClick={() => confirm(false)}>Skip</AlertDialogAction>
+          <AlertDialogAction onClick={() => confirm(true)}>Add to stock</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

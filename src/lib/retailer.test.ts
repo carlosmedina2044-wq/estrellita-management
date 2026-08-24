@@ -12,6 +12,7 @@ import {
   resolveRetailerEntry,
   retailerUrlFor,
   savedRetailerLabel,
+  searchUrlOnHost,
 } from "@/lib/retailer";
 
 test("accepts any retailer URL, including Walmart", () => {
@@ -36,6 +37,31 @@ test("search chips encode the item name", () => {
   );
   assert.match(retailerSearchUrl("home-depot", "caulk"), /homedepot\.com/);
   assert.match(retailerSearchUrl("target", "trash bags"), /target\.com/);
+});
+
+test("search URLs append sizeSpec and encode x and quotes", () => {
+  assert.equal(
+    retailerSearchUrl("amazon", "HVAC filter", "16x25x1"),
+    "https://www.amazon.com/s?k=HVAC%20filter%2016x25x1",
+  );
+  const quoted = retailerSearchUrl("amazon", "shim", '1/4"');
+  assert.equal(quoted, `https://www.amazon.com/s?k=${encodeURIComponent('shim 1/4"')}`);
+  assert.match(quoted, /1%2F4%22/);
+  assert.match(searchUrlOnHost("homedepot.com", "HVAC filter", "16x25x1"), /16x25x1/);
+  assert.equal(
+    searchUrlOnHost("ebay.com", "shim", '1/4"'),
+    `https://ebay.com/sch/i.html?_nkw=${encodeURIComponent('shim 1/4"')}`,
+  );
+});
+
+test("absent sizeSpec produces the same search URLs as name-only", () => {
+  assert.equal(retailerSearchUrl("amazon", "HVAC filter"), retailerSearchUrl("amazon", "HVAC filter", undefined));
+  assert.equal(retailerSearchUrl("amazon", "HVAC filter", ""), retailerSearchUrl("amazon", "HVAC filter"));
+  assert.equal(
+    retailerSearchUrl("walmart", "caulk"),
+    "https://www.walmart.com/search?q=caulk",
+  );
+  assert.equal(searchUrlOnHost("target.com", "trash bags"), searchUrlOnHost("target.com", "trash bags", undefined));
 });
 
 test("resolveRetailerEntry searches a typed host and saves the store", () => {

@@ -12,7 +12,7 @@ import { defaultFeatures, sampleHomeAnswers, type OnboardingAnswers } from "@/li
 import { ADD_ROOM_TYPES, nextRoomKey, roomTemplateFor, type RoomChoice } from "@/lib/onboarding/rooms";
 import { SAMPLE_RESTOCK_PICKS, type RestockPick } from "@/lib/onboarding/restock-walk";
 import { geocodeUsZip } from "@/lib/weather/client";
-import type { HomeAttributes, HomeLocation, HomeType } from "@/lib/types";
+import type { HomeAttributes, HomeLocation, HomeType, Tenure } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function Onboarding({
@@ -22,6 +22,7 @@ export function Onboarding({
 }) {
   const [step, setStep] = useState(0);
   const [homeType, setHomeType] = useState<HomeType>("house");
+  const [tenure, setTenure] = useState<Tenure | undefined>();
   const [rooms, setRooms] = useState<RoomChoice[]>(() => roomTemplateFor("house"));
   const [adding, setAdding] = useState(false);
   const [postalCode, setPostalCode] = useState("");
@@ -41,14 +42,15 @@ export function Onboarding({
   };
   const answers: OnboardingAnswers = {
     homeType,
+    tenure,
     location,
     nickname: "Home",
     rooms,
     restockPicks,
   };
-  const lastStep = 5;
+  const lastStep = 6;
   const progress = step / lastStep;
-  const preview = climatePayoff(location, attributesForPreview(homeType, location));
+  const preview = climatePayoff(location, attributesForPreview(homeType, location), tenure);
 
   function go(next: number) {
     setStep(next);
@@ -91,10 +93,10 @@ export function Onboarding({
       location: { ...nextLocation, climateZone: deriveClimate(nextLocation) },
     };
     if (nextLocation.postalCode || (nextLocation.lat != null && nextLocation.lng != null)) {
-      go(4);
+      go(5);
       return resolved;
     }
-    go(5);
+    go(6);
     return resolved;
   }
 
@@ -203,6 +205,28 @@ export function Onboarding({
         ) : null}
 
         {step === 2 ? (
+          <Screen title="How long have you been here?" copy="Tap the closest fit. We’ll use this for the first-week checklist.">
+            <ChoiceGrid
+              value={tenure ?? ""}
+              options={[
+                { id: "new", label: "Just moved in", hint: "Under a year" },
+                { id: "settled", label: "A few years" },
+                { id: "longtime", label: "A long time" },
+              ]}
+              onChange={(value) => {
+                setTenure(value as Tenure);
+                go(3);
+              }}
+            />
+            <div className="mt-auto flex gap-3 pt-6">
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(1)}>
+                Back
+              </Button>
+            </div>
+          </Screen>
+        ) : null}
+
+        {step === 3 ? (
           <Screen title="Build your home" copy="Toggle rooms, rename them, or add one. Chores attach after you finish.">
             <div className="grid gap-2">
               {rooms.map((room) => (
@@ -249,13 +273,13 @@ export function Onboarding({
               </button>
             )}
             <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(1)}>
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(2)}>
                 Back
               </Button>
               <Button
                 className="h-14 flex-1"
                 disabled={!rooms.some((room) => room.enabled && !room.system)}
-                onClick={() => go(3)}
+                onClick={() => go(4)}
               >
                 Continue
               </Button>
@@ -263,7 +287,7 @@ export function Onboarding({
           </Screen>
         ) : null}
 
-        {step === 3 ? (
+        {step === 4 ? (
           <Screen
             title="Where is it?"
             copy="ZIP is only for weather and seasonal tasks. We’ll show what that climate means for your house next."
@@ -294,7 +318,7 @@ export function Onboarding({
           </Screen>
         ) : null}
 
-        {step === 4 ? (
+        {step === 5 ? (
           <Screen
             title={preview.headline}
             copy="Here’s what this climate means for your house. These jobs show up on Seasonal when they’re due."
@@ -310,24 +334,24 @@ export function Onboarding({
               This home lives only on this iPhone. Before you switch phones, make an encrypted backup in Settings.
             </p>
             <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(3)}>
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(4)}>
                 Back
               </Button>
-              <Button className="h-14 flex-1" onClick={() => go(5)}>
+              <Button className="h-14 flex-1" onClick={() => go(6)}>
                 Continue
               </Button>
             </div>
           </Screen>
         ) : null}
 
-        {step === 5 ? (
+        {step === 6 ? (
           <Screen
             title="Walk your house"
             copy="Tap what you actually buy. Restock will track order-by dates so you’re not hunting sizes later."
           >
             <RestockWalkPicker picks={restockPicks} onChange={setRestockPicks} />
             <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(location.postalCode || location.lat != null ? 4 : 3)}>
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(location.postalCode || location.lat != null ? 5 : 4)}>
                 Back
               </Button>
               <Button className="h-14 flex-1" disabled={busy} onClick={() => void finish({ ...answers, restockPicks })}>
@@ -380,7 +404,7 @@ function ChoiceGrid({
   onChange,
 }: {
   value: string;
-  options: { id: string; label: string }[];
+  options: { id: string; label: string; hint?: string }[];
   onChange: (value: string) => void;
 }) {
   return (
@@ -391,11 +415,12 @@ function ChoiceGrid({
           type="button"
           onClick={() => onChange(item.id)}
           className={cn(
-            "min-h-14 rounded-2xl border px-4 text-left text-[17px] font-medium",
+            "min-h-14 rounded-2xl border px-4 py-3 text-left text-[17px] font-medium",
             value === item.id ? "border-brand bg-brand-cream/60" : "border-border bg-card",
           )}
         >
-          {item.label}
+          <span className="block">{item.label}</span>
+          {item.hint ? <span className="mt-0.5 block text-[13px] font-normal text-muted-foreground">{item.hint}</span> : null}
         </button>
       ))}
     </div>

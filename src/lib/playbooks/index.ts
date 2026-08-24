@@ -9,6 +9,7 @@ import type {
   NodeType,
   PlaybookSeason,
   RoomType,
+  Tenure,
 } from "@/lib/types";
 
 export type PlaybookTaskDef = {
@@ -27,6 +28,7 @@ export type Playbook = {
   name: string;
   season: PlaybookSeason;
   climateZones: string[] | "all";
+  tenure?: Tenure;
   requires?: Partial<HomeAttributes>;
   triggerMonth?: number;
   tasks: PlaybookTaskDef[];
@@ -45,14 +47,18 @@ export function attributesMatch(requires: Partial<HomeAttributes> | undefined, a
   );
 }
 
-export function playbookApplies(playbook: Playbook, household: Pick<Household, "location" | "attributes">): boolean {
+export function playbookApplies(
+  playbook: Playbook,
+  household: Pick<Household, "location" | "attributes" | "tenure">,
+): boolean {
   const zone = deriveClimate(household.location);
   const climateOk = playbook.climateZones === "all" || playbook.climateZones.includes(zone);
-  return climateOk && attributesMatch(playbook.requires, household.attributes);
+  const tenureOk = !playbook.tenure || playbook.tenure === household.tenure;
+  return climateOk && attributesMatch(playbook.requires, household.attributes) && tenureOk;
 }
 
 export function matchingPlaybooks(
-  household: Pick<Household, "location" | "attributes" | "playbookDecisions">,
+  household: Pick<Household, "location" | "attributes" | "playbookDecisions" | "tenure">,
   month = new Date().getMonth() + 1,
 ): Playbook[] {
   const year = new Date().getFullYear();

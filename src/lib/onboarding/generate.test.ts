@@ -3,6 +3,40 @@ import { test } from "node:test";
 import { generateHomeFromAnswers, sampleHomeAnswers, sizeDefaults } from "@/lib/onboarding/generate";
 import { roomTemplateFor } from "@/lib/onboarding/rooms";
 
+test("onboarding carries tenure through generate", () => {
+  const generated = generateHomeFromAnswers(
+    {
+      homeType: "house",
+      tenure: "new",
+      location: { postalCode: "85701", lat: 32.22, lng: -110.97 },
+      nickname: "Home",
+      ...sizeDefaults("house"),
+      features: ["hasGarage", "hasYard", "hasIrrigation", "hasLaundry", "hasGutters"],
+      ages: {},
+    },
+    new Date(2026, 5, 1),
+  );
+  assert.equal(generated.tenure, "new");
+  assert.ok(generated.seasonalSuggestions.some((item) => item.id === "new-home"));
+});
+
+test("settled tenure does not surface the new-home playbook", () => {
+  const generated = generateHomeFromAnswers(
+    {
+      homeType: "house",
+      tenure: "settled",
+      location: { postalCode: "85701" },
+      nickname: "Home",
+      ...sizeDefaults("house"),
+      features: ["hasLaundry"],
+      ages: {},
+    },
+    new Date(2026, 5, 1),
+  );
+  assert.equal(generated.tenure, "settled");
+  assert.equal(generated.seasonalSuggestions.some((item) => item.id === "new-home"), false);
+});
+
 test("defaults accepted produce rooms, chores, and a seasonal suggestion", () => {
   const generated = generateHomeFromAnswers(
     {

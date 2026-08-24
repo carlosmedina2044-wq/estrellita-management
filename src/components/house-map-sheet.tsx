@@ -25,7 +25,9 @@ import {
   wasCompletedToday,
 } from "@/lib/duties";
 import { ASSET_TYPES, reorderRooms, roomById } from "@/lib/home-model";
+import { warrantyBadgeLabel } from "@/lib/warranty";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
+import { ItemName } from "@/components/item-name";
 import { RestockOrderButton } from "@/components/restock-order-button";
 import { restockPlacement } from "@/lib/restock";
 import type { AssetType, Audience, Duty, DutyDraft, Household } from "@/lib/types";
@@ -58,7 +60,7 @@ export function HouseMapSheet({
   onChangeTree?: (next: Household) => void;
   initialSelected?: string | null;
   onMarkOrdered?: (id: string) => void;
-  onMarkReceived?: (id: string, qty: number) => void;
+  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(initialSelected ?? null);
@@ -198,7 +200,9 @@ export function HouseMapSheet({
                     <ul className="grid gap-2">
                       {roomConsumables.map((item) => (
                         <li key={item.id} className="rounded-2xl bg-white px-4 py-3 text-sm">
-                          <p className="font-medium">{item.itemName}</p>
+                          <p className="font-medium">
+                            <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
+                          </p>
                           <p className="mt-0.5 text-[13px] text-muted-foreground">
                             {restockPlacement(item, household, now).bucket === "ordered" && item.expectedArrivalDate
                               ? `Arriving ~${item.expectedArrivalDate}`
@@ -209,7 +213,7 @@ export function HouseMapSheet({
                               item={item}
                               household={household}
                               onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
-                              onReceived={onMarkReceived ? (qty) => onMarkReceived(item.id, qty) : undefined}
+                              onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
                               onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
                             />
                           </div>
@@ -224,14 +228,18 @@ export function HouseMapSheet({
                     <p className="text-sm text-muted-foreground">No appliances or units tagged yet.</p>
                   ) : (
                     <ul className="mb-3 grid gap-2">
-                      {roomAssets.map((asset) => (
+                      {roomAssets.map((asset) => {
+                        const badge = warrantyBadgeLabel(asset, now);
+                        return (
                         <li key={asset.id} className="rounded-2xl bg-white px-4 py-3 text-sm">
                           <p className="font-medium">{asset.name}</p>
                           <p className="mt-0.5 text-[13px] text-muted-foreground">
                             {ASSET_TYPES.find((item) => item.id === asset.type)?.label ?? asset.type}
+                            {badge ? ` · ${badge}` : ""}
                           </p>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   )}
                   {onChangeTree ? (

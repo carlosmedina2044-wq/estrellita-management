@@ -71,19 +71,19 @@ export type RetailerRef =
   | { ok: true; url: string; asin?: string; productPage: boolean }
   | { ok: false; error: string };
 
-function searchQuery(name: string): string {
-  return name.trim() || "home supply";
+function searchQuery(name: string, sizeSpec?: string): string {
+  return `${name.trim()} ${sizeSpec?.trim() ?? ""}`.trim() || "home supply";
 }
 
-export function retailerSearchUrl(chipId: RetailerChip["id"], name: string): string {
+export function retailerSearchUrl(chipId: RetailerChip["id"], name: string, sizeSpec?: string): string {
   const chip = RETAILER_CHIPS.find((item) => item.id === chipId);
-  return (chip ?? RETAILER_CHIPS[0]).searchUrl(searchQuery(name));
+  return (chip ?? RETAILER_CHIPS[0]).searchUrl(searchQuery(name, sizeSpec));
 }
 
 /** Search the item on an arbitrary store host the user typed (ebay.com, etc.). */
-export function searchUrlOnHost(host: string, name: string): string {
+export function searchUrlOnHost(host: string, name: string, sizeSpec?: string): string {
   const h = host.replace(/^www\./i, "").toLowerCase();
-  const q = encodeURIComponent(searchQuery(name));
+  const q = encodeURIComponent(searchQuery(name, sizeSpec));
   if (AMAZON_HOST.test(h) || SHORT_HOST.test(h)) return `https://www.amazon.com/s?k=${q}`;
   if (/(^|\.)homedepot\.com$/i.test(h)) return `https://www.homedepot.com/s/${q}`;
   if (/(^|\.)walmart\.com$/i.test(h)) return `https://www.walmart.com/search?q=${q}`;
@@ -111,6 +111,7 @@ function isBareStoreUrl(value: string): boolean {
 export function resolveRetailerEntry(
   input: string,
   itemName = "",
+  sizeSpec?: string,
 ): { ok: true; saveUrl: string; openUrl: string } | { ok: false; error: string } {
   const trimmed = input.trim();
   if (!trimmed) return { ok: false, error: "Type a store like ebay.com, or paste a link." };
@@ -120,7 +121,7 @@ export function resolveRetailerEntry(
   if (isBareStoreUrl(parsed.url) && itemName.trim()) {
     try {
       const host = new URL(parsed.url.includes("://") ? parsed.url : `https://${parsed.url}`).hostname;
-      return { ok: true, saveUrl, openUrl: searchUrlOnHost(host, itemName) };
+      return { ok: true, saveUrl, openUrl: searchUrlOnHost(host, itemName, sizeSpec) };
     } catch {
       return { ok: true, saveUrl, openUrl: saveUrl };
     }

@@ -46,6 +46,7 @@ export function AppShell() {
     updateRestockDigest,
     deleteDuty,
     completeDuty,
+    recordCompletionCost,
     undoCompletion,
     updateHome,
     savePostalCode,
@@ -185,6 +186,7 @@ export function AppShell() {
     void import("@capacitor/local-notifications").then(async ({ LocalNotifications }) => {
       const handle = await LocalNotifications.addListener("localNotificationActionPerformed", (event) => {
         if (event.notification.extra?.tab === "restock") setTab("restock");
+        if (event.notification.extra?.tab === "home") setTab("home");
       });
       remove = () => void handle.remove();
     });
@@ -271,6 +273,7 @@ export function AppShell() {
             needsZip={weather.needsZip}
             onSavePostalCode={savePostalCode}
             onComplete={completeDuty}
+            onRecordCost={recordCompletionCost}
             onUndo={undoCompletion}
             onSaveDuty={saveDuty}
             onDeleteDuty={deleteDuty}

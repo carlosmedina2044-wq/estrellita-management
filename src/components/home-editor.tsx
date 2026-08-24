@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { suggestionsForAsset, suggestionsForRoom } from "@/lib/catalog";
+import { warrantyBadgeLabel, warrantyFromInstall } from "@/lib/warranty";
 import {
   ASSET_TYPES,
   defaultRoomName,
@@ -41,6 +42,8 @@ export function HomeEditor({
   const [assetRoom, setAssetRoom] = useState(household.rooms[0]?.id ?? "");
   const [assetType, setAssetType] = useState<AssetType>("other");
   const [assetName, setAssetName] = useState("");
+  const [assetInstall, setAssetInstall] = useState("");
+  const [assetWarranty, setAssetWarranty] = useState("");
   const roomHints = suggestionsForRoom(roomType);
   const assetHints = suggestionsForAsset(assetType);
 
@@ -249,6 +252,38 @@ export function HomeEditor({
           placeholder="Optional name"
           className="h-11"
         />
+        <div className="grid gap-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Install date</Label>
+          <Input
+            type="date"
+            value={assetInstall}
+            onChange={(event) => setAssetInstall(event.target.value)}
+            className="h-11"
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Warranty until</Label>
+          <Input
+            type="date"
+            value={assetWarranty}
+            onChange={(event) => setAssetWarranty(event.target.value)}
+            className="h-11"
+          />
+          {assetInstall ? (
+            <div className="flex flex-wrap gap-1.5">
+              {([1, 2, 5, 10] as const).map((years) => (
+                <button
+                  key={years}
+                  type="button"
+                  className="h-8 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                  onClick={() => setAssetWarranty(warrantyFromInstall(assetInstall, years))}
+                >
+                  +{years} yr
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
         {assetHints.length > 0 ? (
           <p className="text-xs text-muted-foreground">
             Suggested consumables: {assetHints.map((item) => item.itemName).join(", ")}
@@ -269,10 +304,19 @@ export function HomeEditor({
               ...household,
               assets: [
                 ...household.assets,
-                { id: crypto.randomUUID(), roomId: assetRoom, name, type: assetType },
+                {
+                  id: crypto.randomUUID(),
+                  roomId: assetRoom,
+                  name,
+                  type: assetType,
+                  installDate: assetInstall || undefined,
+                  warrantyUntil: assetWarranty || undefined,
+                },
               ],
             });
             setAssetName("");
+            setAssetInstall("");
+            setAssetWarranty("");
             if (assetHints[0]) {
               toast.message(`Suggestion: ${assetHints[0].itemName}`, { description: assetHints[0].hint });
             } else {
@@ -283,6 +327,78 @@ export function HomeEditor({
           Add asset
         </Button>
       </div>
+
+      {household.assets.length > 0 ? (
+        <div className="grid gap-3">
+          <p className="font-medium">Assets</p>
+          {household.assets.map((asset) => {
+            const badge = warrantyBadgeLabel(asset);
+            const room = household.rooms.find((item) => item.id === asset.roomId);
+            return (
+              <section key={asset.id} className="rounded-2xl bg-white p-4">
+                <p className="font-medium">{asset.name}</p>
+                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                  {room?.name ?? "Home"}
+                  {badge ? ` · ${badge}` : ""}
+                </p>
+                <div className="mt-3 grid gap-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Install date</Label>
+                  <Input
+                    type="date"
+                    value={asset.installDate ?? ""}
+                    onChange={(event) =>
+                      onChange({
+                        ...household,
+                        assets: household.assets.map((item) =>
+                          item.id === asset.id ? { ...item, installDate: event.target.value || undefined } : item,
+                        ),
+                      })
+                    }
+                    className="h-11"
+                  />
+                  <Label className="text-xs font-medium text-muted-foreground">Warranty until</Label>
+                  <Input
+                    type="date"
+                    value={asset.warrantyUntil ?? ""}
+                    onChange={(event) =>
+                      onChange({
+                        ...household,
+                        assets: household.assets.map((item) =>
+                          item.id === asset.id ? { ...item, warrantyUntil: event.target.value || undefined } : item,
+                        ),
+                      })
+                    }
+                    className="h-11"
+                  />
+                  {asset.installDate ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {([1, 2, 5, 10] as const).map((years) => (
+                        <button
+                          key={years}
+                          type="button"
+                          className="h-8 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                          onClick={() =>
+                            onChange({
+                              ...household,
+                              assets: household.assets.map((item) =>
+                                item.id === asset.id
+                                  ? { ...item, warrantyUntil: warrantyFromInstall(asset.installDate!, years) }
+                                  : item,
+                              ),
+                            })
+                          }
+                        >
+                          +{years} yr
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      ) : null}
 
       {deleteId ? (
         <div className="rounded-2xl bg-accent p-4">

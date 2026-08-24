@@ -120,3 +120,99 @@ test("catalog ranges used when user did not enter a price", () => {
 test("age helper derives an install date", () => {
   assert.equal(installDateFromAge(1.5, new Date(2026, 7, 1)).startsWith("2025"), true);
 });
+
+test("forecast uses blended actual cost instead of the estimate", () => {
+  const home = household({
+    duties: [
+      {
+        id: "duty-cost",
+        title: "Replace filter",
+        notes: "",
+        room: "kitchen",
+        nodeId: "kitchen",
+        nodeType: "room",
+        audience: "me",
+        effort: "small",
+        frequency: "once",
+        kind: "replacement",
+        weekday: 0,
+        monthDay: 1,
+        dueDate: "2026-09-01",
+        priority: "medium",
+        createdAt: "2026-08-01T00:00:00.000Z",
+        archived: false,
+        estimatedCost: 40,
+      },
+    ],
+  });
+  const estimated = buildForecast(home, 12, now);
+  const withActual = buildForecast(
+    {
+      ...home,
+      completions: [
+        {
+          id: "comp-cost",
+          dutyId: "duty-cost",
+          actor: "me",
+          visitId: null,
+          completedAt: "2026-08-20T12:00:00.000Z",
+          actualCost: 24.99,
+        },
+      ],
+    },
+    12,
+    now,
+  );
+  const estimatedItem = estimated.monthly.flatMap((month) => month.items).find((item) => item.label === "Replace filter");
+  const actualItem = withActual.monthly.flatMap((month) => month.items).find((item) => item.label === "Replace filter");
+  assert.equal(estimatedItem?.cost.mid, 40);
+  assert.equal(actualItem?.cost.mid, 24.99);
+  assert.equal(actualItem?.source, "lastPaid");
+  assert.ok(withActual.totals.total < estimated.totals.total);
+});
+
+test("forecast total shifts when a real price replaces the estimate", () => {
+  const base = household({
+    duties: [
+      {
+        id: "duty-shift",
+        title: "Buy salt",
+        notes: "",
+        room: "kitchen",
+        nodeId: "kitchen",
+        nodeType: "room",
+        audience: "me",
+        effort: "small",
+        frequency: "once",
+        kind: "replacement",
+        weekday: 0,
+        monthDay: 1,
+        dueDate: "2026-08-15",
+        priority: "medium",
+        createdAt: "2026-08-01T00:00:00.000Z",
+        archived: false,
+        estimatedCost: 100,
+      },
+    ],
+  });
+  const before = buildForecast(base, 12, now).totals.total;
+  const after = buildForecast(
+    {
+      ...base,
+      completions: [
+        {
+          id: "comp-shift",
+          dutyId: "duty-shift",
+          actor: "me",
+          visitId: null,
+          completedAt: "2026-08-10T12:00:00.000Z",
+          actualCost: 10,
+        },
+      ],
+    },
+    12,
+    now,
+  ).totals.total;
+  assert.equal(before, 100);
+  assert.equal(after, 10);
+});

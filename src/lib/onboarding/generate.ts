@@ -21,6 +21,7 @@ import type {
   HomeType,
   Household,
   RoomType,
+  Tenure,
 } from "@/lib/types";
 
 export type FeatureKey = keyof Pick<
@@ -70,6 +71,7 @@ export const SYSTEMS: { id: SystemKey; label: string }[] = [
 
 export type OnboardingAnswers = {
   homeType: HomeType;
+  tenure?: Tenure;
   location: HomeLocation;
   nickname: string;
   floors?: 1 | 2 | 3;
@@ -189,7 +191,17 @@ export function generateHomeFromAnswers(
   now = new Date(),
 ): Pick<
   Household,
-  "homeId" | "homeType" | "householdName" | "location" | "attributes" | "floors" | "rooms" | "assets" | "consumables" | "duties"
+  | "homeId"
+  | "homeType"
+  | "tenure"
+  | "householdName"
+  | "location"
+  | "attributes"
+  | "floors"
+  | "rooms"
+  | "assets"
+  | "consumables"
+  | "duties"
 > & { seasonalSuggestions: ReturnType<typeof matchingPlaybooks> } {
   const size = {
     floors: answers.floors ?? sizeDefaults(answers.homeType).floors,
@@ -383,6 +395,7 @@ export function generateHomeFromAnswers(
   return {
     homeId: "home",
     homeType: answers.homeType,
+    tenure: answers.tenure,
     householdName: answers.nickname.trim() || "Home",
     location,
     attributes,
@@ -391,7 +404,10 @@ export function generateHomeFromAnswers(
     assets,
     consumables,
     duties,
-    seasonalSuggestions: matchingPlaybooks({ location, attributes, playbookDecisions: [] }, now.getMonth() + 1),
+    seasonalSuggestions: matchingPlaybooks(
+      { location, attributes, playbookDecisions: [], tenure: answers.tenure },
+      now.getMonth() + 1,
+    ),
   };
 }
 

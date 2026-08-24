@@ -26,7 +26,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | Face ID and location usage strings present in shipped Info.plist | App Store 5.1.1 | `ios/App/App/Info.plist` contains `NSFaceIDUsageDescription` and `NSLocationWhenInUseUsageDescription` matching `Info-usage.plist.fragment` | File inspection | VERIFIED |
 | Input limits and control-char stripping | ASVS V5 | `sanitize.ts`, `migrateHousehold` | `storage.test.ts` | VERIFIED |
 | Dependency audit, secret scan, OSV, Semgrep | Supply chain | `.github/workflows/security.yml` | CI runs on every PR; `npm audit` clean at moderate | VERIFIED |
-| Forecast, playbooks, restock math, onboarding, backups | Product | `src/lib/**` | Unit tests including weather-fire idempotence and restock walk | VERIFIED |
+| Forecast, playbooks, restock math, onboarding, backups | Product | `src/lib/**` | 103 unit tests including weather-fire idempotence, restock walk, sizeSpec, warranties, tenure/new-home playbook, and actual-cost blending | VERIFIED |
 
 ## Not implemented (by design for v1)
 

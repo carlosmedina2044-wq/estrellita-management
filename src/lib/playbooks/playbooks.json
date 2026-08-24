@@ -50,6 +50,66 @@
     ]
   },
   {
+    "id": "new-home",
+    "name": "New Home",
+    "season": "any",
+    "climateZones": "all",
+    "tenure": "new",
+    "requires": {},
+    "tasks": [
+      {
+        "title": "Find and label the main water shutoff.",
+        "description": "You want to know this before a pipe bursts, not during.",
+        "nodeType": "home",
+        "estimatedMinutes": 15,
+        "isDiy": true
+      },
+      {
+        "title": "Label the breaker panel.",
+        "nodeType": "home",
+        "estimatedMinutes": 30,
+        "isDiy": true
+      },
+      {
+        "title": "Change or rekey the exterior locks.",
+        "description": "About $80, or a DIY rekey kit.",
+        "nodeType": "home",
+        "estimatedMinutes": 40,
+        "estimatedCost": 80,
+        "isDiy": true
+      },
+      {
+        "title": "Test every smoke and CO detector and note the battery types.",
+        "nodeType": "assetType",
+        "target": "smoke_detector",
+        "estimatedMinutes": 15,
+        "isDiy": true
+      },
+      {
+        "title": "Replace the HVAC filter and record the size.",
+        "description": "Put the size in the item’s Size or spec field so the next order is the right one.",
+        "nodeType": "assetType",
+        "target": "hvac_system",
+        "estimatedMinutes": 10,
+        "isDiy": true
+      },
+      {
+        "title": "Find the water heater and note its age from the serial plate.",
+        "nodeType": "assetType",
+        "target": "water_heater",
+        "estimatedMinutes": 10,
+        "isDiy": true
+      },
+      {
+        "title": "Photograph the electrical panel, shutoffs, and appliance nameplates.",
+        "description": "Parked in Notes for now.",
+        "nodeType": "home",
+        "estimatedMinutes": 20,
+        "isDiy": true
+      }
+    ]
+  },
+  {
     "id": "hot-arid-presummer",
     "name": "Pre-summer AC service",
     "season": "summer",

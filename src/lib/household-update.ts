@@ -84,6 +84,11 @@ export function applyDutySave(current: Household, duty: DutyDraft, now = new Dat
               nodeType,
               itemName: sanitizeText(supplyAutomation.itemName, TEXT_LIMITS.title) || title,
               sku: sanitizeText(supplyAutomation.sku ?? existing?.sku, TEXT_LIMITS.sku),
+              sizeSpec:
+                sanitizeText(
+                  supplyAutomation.sizeSpec !== undefined ? supplyAutomation.sizeSpec : existing?.sizeSpec,
+                  TEXT_LIMITS.sizeSpec,
+                ) || undefined,
               retailerUrl: sanitizeText(supplyAutomation.retailerUrl ?? existing?.retailerUrl, TEXT_LIMITS.url),
               quantity: Math.min(
                 99,

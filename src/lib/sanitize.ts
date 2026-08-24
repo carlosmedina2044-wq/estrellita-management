@@ -3,6 +3,7 @@ export const TEXT_LIMITS = {
   title: 120,
   notes: 500,
   sku: 80,
+  sizeSpec: 40,
   asin: 20,
   url: 500,
   pin: 32,

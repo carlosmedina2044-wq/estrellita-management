@@ -24,11 +24,13 @@ import {
 } from "@/components/ui/sheet";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved-retailer-field";
+import { sizePlaceholder } from "@/lib/item-label";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
 import type { Duty, DutyDraft, Household, Room, SupplyAutomation } from "@/lib/types";
 
 type Draft = {
   itemName: string;
+  sizeSpec: string;
   room: Room;
   leadTimeDays: string;
   onHand: string;
@@ -39,6 +41,7 @@ type Draft = {
 function emptyDraft(room: Room): Draft {
   return {
     itemName: "",
+    sizeSpec: "",
     room,
     leadTimeDays: String(DEFAULT_LEAD_TIME_DAYS),
     onHand: "0",
@@ -69,7 +72,7 @@ export function ConsumableForm({
   onSave: (input: DutyDraft) => void;
   onDelete?: (id: string) => void;
   onMarkOrdered?: (id: string) => void;
-  onMarkReceived?: (id: string, qty: number) => void;
+  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft(defaultRoom));
@@ -84,6 +87,7 @@ export function ConsumableForm({
       automation
         ? {
             itemName: automation.itemName,
+            sizeSpec: automation.sizeSpec ?? "",
             room: automation.room || duty?.room || defaultRoom,
             leadTimeDays: String(automation.leadTimeDays ?? DEFAULT_LEAD_TIME_DAYS),
             onHand: String(automation.onHand ?? 0),
@@ -130,6 +134,7 @@ export function ConsumableForm({
       supplyAutomation: {
         id: automation?.id,
         itemName,
+        sizeSpec: draft.sizeSpec.trim() || undefined,
         leadTimeDays: Math.min(90, Math.max(0, Number(draft.leadTimeDays) || DEFAULT_LEAD_TIME_DAYS)),
         onHand: Math.max(0, Number(draft.onHand) || 0),
         reorderAt: Math.min(99, Math.max(0, Math.round(Number(draft.reorderAt)) || 0)),
@@ -156,9 +161,18 @@ export function ConsumableForm({
             <Input
               value={draft.itemName}
               onChange={(event) => setDraft((current) => ({ ...current, itemName: event.target.value }))}
-              placeholder="HVAC filter 16x25x1"
+              placeholder="HVAC filter"
               className="h-12"
               autoFocus={!automation}
+            />
+          </Field>
+          <Field label="Size or spec">
+            <Input
+              value={draft.sizeSpec}
+              onChange={(event) => setDraft((current) => ({ ...current, sizeSpec: event.target.value }))}
+              placeholder={sizePlaceholder(draft.itemName)}
+              maxLength={40}
+              className="h-12"
             />
           </Field>
           <Field label="Where you order it">
@@ -233,7 +247,7 @@ export function ConsumableForm({
               item={automation}
               household={household}
               onOrdered={onMarkOrdered ? () => onMarkOrdered(automation.id) : undefined}
-              onReceived={onMarkReceived ? (qty) => onMarkReceived(automation.id, qty) : undefined}
+              onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(automation.id, qty, paid) : undefined}
               onSaveLink={onSaveLink ? (url) => onSaveLink(automation.id, url) : undefined}
             />
           ) : null}

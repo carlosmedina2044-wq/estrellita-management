@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown, Package } from "lucide-react";
+import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { OrderByLine, RestockOrderButton } from "@/components/restock-order-button";
@@ -26,7 +27,7 @@ export function RestockView({
   onSaveDuty: (duty: DutyDraft) => void;
   onDeleteDuty: (id: string) => void;
   onMarkOrdered?: (id: string) => void;
-  onMarkReceived?: (id: string, qty: number) => void;
+  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
   onWalkHouse?: (picks: RestockPick[]) => void;
 }) {
@@ -245,7 +246,7 @@ function RestockRow({
   item: SupplyAutomation;
   onOpen: () => void;
   onMarkOrdered?: (id: string) => void;
-  onMarkReceived?: (id: string, qty: number) => void;
+  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
 }) {
   const where = usedWhere(item, household) || roomName(household, item.room);
@@ -258,7 +259,9 @@ function RestockRow({
             className={`mt-0.5 size-4 shrink-0 ${placement.bucket === "order_now" ? "text-primary" : "text-muted-foreground"}`}
           />
           <span className="min-w-0 flex-1">
-            <span className="block text-[17px] font-medium leading-snug">{item.itemName}</span>
+            <span className="block text-[17px] font-medium leading-snug">
+              <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
+            </span>
             <span className="mt-0.5 block text-[13px] text-muted-foreground">
               {where ? `${where} · ` : ""}
               <OrderByLine item={item} household={household} />
@@ -271,7 +274,7 @@ function RestockRow({
           item={item}
           household={household}
           onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
-          onReceived={onMarkReceived ? (qty) => onMarkReceived(item.id, qty) : undefined}
+              onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
           onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
         />
       </div>

@@ -1,7 +1,8 @@
 import { catalogEntry, type CatalogCost } from "@/lib/asset-catalog";
+import { blendedCostFor } from "@/lib/costs";
 import { addCalendarMonths, parseISODate, toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
-import type { Duty, HomeAsset, Household } from "@/lib/types";
+import type { Completion, Duty, HomeAsset, Household } from "@/lib/types";
 
 export type ForecastKind = "consumable" | "task" | "replacement";
 export type ForecastConfidence = "high" | "medium" | "low";
@@ -100,7 +101,9 @@ function inHorizon(month: string, start: Date, horizonMonths: number): boolean {
 }
 
 export function buildForecast(
-  household: Pick<Household, "assets" | "duties" | "consumables" | "supplyAutomations" | "rooms">,
+  household: Pick<Household, "assets" | "duties" | "consumables" | "supplyAutomations" | "rooms"> & {
+    completions?: Completion[];
+  },
   horizonMonths: number,
   now = new Date(),
   options?: { bigTicketThreshold?: number },
@@ -225,8 +228,10 @@ export function buildForecast(
 
   for (const duty of household.duties) {
     if (duty.archived) continue;
-    const cost = duty.estimatedCost;
-    if (cost == null || cost <= 0) continue;
+    const blended = blendedCostFor(duty, household.completions ?? []);
+    if (!blended) continue;
+    const cost = blended.cost;
+    const source: ForecastSource = blended.source === "actual" ? "lastPaid" : "user";
     const days = cadenceDays(duty);
     if (!days) {
       if (duty.dueDate) {
@@ -239,8 +244,8 @@ export function buildForecast(
             label: duty.title,
             month,
             cost: singleCost(cost),
-            confidence: "medium",
-            source: "user",
+            confidence: blended.source === "actual" ? "high" : "medium",
+            source,
           };
           const bucket = byMonth.get(month);
           if (bucket) {
@@ -263,8 +268,8 @@ export function buildForecast(
         label: duty.title,
         month,
         cost: singleCost(cost),
-        confidence: "medium",
-        source: "user",
+        confidence: blended.source === "actual" ? "high" : "medium",
+        source,
       };
       const bucket = byMonth.get(month);
       if (bucket) {

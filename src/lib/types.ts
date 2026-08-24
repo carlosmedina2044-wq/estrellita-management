@@ -61,6 +61,7 @@ export type LockAfter = "immediate" | "2min" | "15min";
 export type HouseholdMemberRole = "owner" | "adult" | "child";
 export type PlaybookSeason = "spring" | "summer" | "fall" | "winter" | "monsoon" | "any";
 export type AgeBucket = "new" | "mid" | "old" | "unsure";
+export type Tenure = "new" | "settled" | "longtime";
 
 export type HomeFloor = {
   id: string;
@@ -87,6 +88,7 @@ export type HomeAsset = {
   name: string;
   type: AssetType;
   installDate?: string;
+  warrantyUntil?: string;
   purchasePrice?: number;
   expectedLifeYears?: number;
   replacementCostEstimate?: number;
@@ -130,6 +132,7 @@ export type Consumable = {
   unitCost?: number;
   lastPaidPrice?: number;
   lastReplacedAt?: string;
+  sizeSpec?: string;
 };
 
 export type Duty = {
@@ -184,6 +187,7 @@ export type SupplyAutomation = {
   nodeType: NodeType;
   itemName: string;
   sku: string;
+  sizeSpec?: string;
   retailerUrl: string;
   quantity: number;
   onHand: number;
@@ -207,6 +211,7 @@ export type SupplyAutomationInput = {
   id?: string;
   itemName: string;
   sku?: string;
+  sizeSpec?: string;
   retailerUrl?: string;
   quantity?: number;
   onHand?: number;
@@ -226,6 +231,8 @@ export type Completion = {
   actor: "me" | "cleaner";
   visitId: string | null;
   completedAt: string;
+  actualCost?: number;
+  costSkipped?: true;
 };
 
 export type Visit = {
@@ -267,6 +274,7 @@ export type Household = {
   activeVisitId: string | null;
   homeId: string;
   homeType: HomeType;
+  tenure?: Tenure;
   location: HomeLocation;
   attributes: HomeAttributes;
   floors: HomeFloor[];

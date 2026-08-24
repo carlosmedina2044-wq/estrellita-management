@@ -31,6 +31,7 @@ import type {
   PlaybookDecision,
   SavedRetailerLink,
   SupplyAutomation,
+  Tenure,
   Visit,
   WeatherFire,
 } from "@/lib/types";
@@ -121,17 +122,25 @@ function migrateDuty(raw: unknown): Duty | null {
   };
 }
 
+function asActualCost(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 100_000) return undefined;
+  return Math.round(value * 100) / 100;
+}
+
 function migrateCompletion(raw: unknown): Completion | null {
   if (!isPlainObject(raw)) return null;
   const id = asId(raw.id);
   const dutyId = asId(raw.dutyId);
   if (!id || !dutyId) return null;
+  const actualCost = asActualCost(raw.actualCost);
   return {
     id,
     dutyId,
     actor: raw.actor === "cleaner" ? "cleaner" : "me",
     visitId: asId(raw.visitId),
     completedAt: asIsoDateTime(raw.completedAt, new Date().toISOString()),
+    actualCost,
+    costSkipped: raw.costSkipped === true ? true : undefined,
   };
 }
 
@@ -183,6 +192,7 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     nodeType,
     itemName: sanitizeText(raw.itemName, TEXT_LIMITS.title) || duty?.title || "Supply",
     sku: sanitizeText(raw.sku, TEXT_LIMITS.sku),
+    sizeSpec: sanitizeText(raw.sizeSpec, TEXT_LIMITS.sizeSpec) || undefined,
     retailerUrl,
     quantity,
     onHand: asInt(raw.onHand, 0, 0, 999),
@@ -253,6 +263,7 @@ function migrateAsset(raw: unknown): HomeAsset | null {
     name,
     type,
     installDate: asIsoDate(raw.installDate) ?? undefined,
+    warrantyUntil: asIsoDate(raw.warrantyUntil) ?? undefined,
     purchasePrice: typeof raw.purchasePrice === "number" ? raw.purchasePrice : undefined,
     expectedLifeYears: typeof raw.expectedLifeYears === "number" ? raw.expectedLifeYears : undefined,
     replacementCostEstimate:
@@ -278,6 +289,7 @@ function migrateConsumable(raw: unknown): Consumable | null {
     unitCost: typeof raw.unitCost === "number" ? raw.unitCost : undefined,
     lastPaidPrice: typeof raw.lastPaidPrice === "number" ? raw.lastPaidPrice : undefined,
     lastReplacedAt: asIsoDate(raw.lastReplacedAt) ?? undefined,
+    sizeSpec: sanitizeText(raw.sizeSpec, TEXT_LIMITS.sizeSpec) || undefined,
   };
 }
 
@@ -435,6 +447,11 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     raw.homeType === "other"
       ? raw.homeType
       : "house";
+  const TENURES: Tenure[] = ["new", "settled", "longtime"];
+  const tenure =
+    typeof raw.tenure === "string" && (TENURES as readonly string[]).includes(raw.tenure)
+      ? (raw.tenure as Tenure)
+      : undefined;
 
   return ensureHomeTree({
     version: 7,
@@ -446,6 +463,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     activeVisitId: asId(raw.activeVisitId),
     homeId: seeded.homeId,
     homeType,
+    tenure,
     location: migrateLocation(raw.location),
     attributes: migrateAttributes(raw.attributes),
     floors: seeded.floors,

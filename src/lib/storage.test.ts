@@ -105,6 +105,44 @@ test("keeps an explicit empty installedAt and household saved retailer links", (
   assert.equal(household.savedRetailerLinks[0]?.useCount, 2);
 });
 
+test("sizeSpec is truncated and stripped of control characters", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      duties: [
+        {
+          id: "duty-0005",
+          title: "Replace filter",
+          room: "kitchen",
+          kind: "replacement",
+          createdAt: "2026-08-23T12:00:00.000Z",
+        },
+      ],
+      supplyAutomations: [
+        {
+          id: "sup-00005",
+          dutyId: "duty-0005",
+          itemName: "Filter",
+          sizeSpec: `16x25x1\u0000${"x".repeat(50)}`,
+        },
+      ],
+      consumables: [
+        {
+          id: "con-00005",
+          nodeId: "hvac",
+          name: "HVAC filter",
+          intervalDays: 90,
+          sizeSpec: `CR2032\u0007${"y".repeat(50)}`,
+        },
+      ],
+    }),
+  );
+  assert.equal(household.supplyAutomations[0]?.sizeSpec, `16x25x1${"x".repeat(33)}`);
+  assert.equal(household.supplyAutomations[0]?.sizeSpec?.length, 40);
+  assert.equal(household.consumables[0]?.sizeSpec, `CR2032${"y".repeat(34)}`);
+  assert.equal(household.consumables[0]?.sizeSpec?.length, 40);
+});
+
 test("keeps a geocoded place name on location", () => {
   const household = parseStored(
     JSON.stringify({
@@ -113,4 +151,55 @@ test("keeps a geocoded place name on location", () => {
     }),
   );
   assert.equal(household.location.placeName, "Tucson");
+});
+
+test("warrantyUntil round-trips an ISO date", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      floors: [{ id: "main", name: "Main", sortOrder: 0 }],
+      rooms: [{ id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 1 }],
+      assets: [
+        {
+          id: "asset001",
+          roomId: "kitchen",
+          name: "Fridge",
+          type: "refrigerator",
+          installDate: "2024-03-01",
+          warrantyUntil: "2027-03-01",
+        },
+      ],
+    }),
+  );
+  assert.equal(household.assets[0]?.warrantyUntil, "2027-03-01");
+  assert.equal(household.assets[0]?.installDate, "2024-03-01");
+});
+
+test("malformed warrantyUntil is dropped", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      floors: [{ id: "main", name: "Main", sortOrder: 0 }],
+      rooms: [{ id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 1 }],
+      assets: [
+        {
+          id: "asset002",
+          roomId: "kitchen",
+          name: "Dishwasher",
+          type: "dishwasher",
+          warrantyUntil: "not-a-date",
+        },
+      ],
+    }),
+  );
+  assert.equal(household.assets[0]?.warrantyUntil, undefined);
+});
+
+test("absent tenure stays absent and invalid tenure is dropped", () => {
+  const old = parseStored(JSON.stringify({ onboarded: true, householdName: "Old" }));
+  assert.equal(old.tenure, undefined);
+  const bad = parseStored(JSON.stringify({ onboarded: true, tenure: "yesterday" }));
+  assert.equal(bad.tenure, undefined);
+  const kept = parseStored(JSON.stringify({ onboarded: true, tenure: "new" }));
+  assert.equal(kept.tenure, "new");
 });

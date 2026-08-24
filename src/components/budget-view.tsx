@@ -142,6 +142,7 @@ export function BudgetView({
                   <span className="font-medium">{item.label}</span>
                   <span className="block text-muted-foreground">
                     ${item.cost.low.toLocaleString()}–${item.cost.high.toLocaleString()}
+                    {item.source === "lastPaid" ? " · based on what you paid." : ""}
                   </span>
                 </li>
               ))}

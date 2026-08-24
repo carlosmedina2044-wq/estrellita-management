@@ -1,7 +1,9 @@
 import { parseISODate } from "@/lib/dates";
+import { itemNameWithSize } from "@/lib/item-label";
 import { digestCandidates, restockPlacement } from "@/lib/restock";
 import { digestCopy } from "@/lib/digest";
 import { isNative } from "@/lib/native/platform";
+import { warrantyNotificationsFor } from "@/lib/warranty";
 import type { Household } from "@/lib/types";
 
 export type NotifyPermission = "granted" | "denied" | "prompt" | "unsupported";
@@ -94,10 +96,21 @@ export async function syncScheduledNotifications(household: Household, now = new
   for (const { item, due } of reminders) {
     notifications.push({
       id: stableId(item.id),
-      title: `Order ${item.itemName}`,
+      title: `Order ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
       body: `Order today so it arrives before you run out (${item.leadTimeDays}-day lead time).`,
       schedule: { at: due },
       extra: { tab: "restock", itemId: item.id },
+    });
+  }
+
+  const remaining = Math.max(0, 64 - notifications.length);
+  for (const notice of warrantyNotificationsFor(household.assets, now).slice(0, remaining)) {
+    notifications.push({
+      id: stableId(notice.id),
+      title: notice.title,
+      body: notice.body,
+      schedule: { at: notice.at },
+      extra: notice.extra,
     });
   }
 

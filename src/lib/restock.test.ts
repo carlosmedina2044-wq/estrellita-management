@@ -239,6 +239,17 @@ test("weekly digest copy and send rules", () => {
   );
 });
 
+test("digest line renders name plus size", () => {
+  assert.deepEqual(digestCopy([item({ itemName: "HVAC filter", sizeSpec: "16x25x1" })]), {
+    title: "1 thing to order this week",
+    body: "HVAC filter · 16x25x1",
+  });
+  assert.deepEqual(digestCopy([item({ itemName: "Trash bags" })]), {
+    title: "1 thing to order this week",
+    body: "Trash bags",
+  });
+});
+
 test("digest candidates include order now and coming up within 7 days", () => {
   const nowItems = item({ onHand: 0 });
   const soon = item({

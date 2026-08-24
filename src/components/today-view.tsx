@@ -4,13 +4,16 @@ import { useState } from "react";
 import { CalendarDays, Map, Share2, UserRound } from "lucide-react";
 import { BrandMark, BrandLockup } from "@/components/brand-logo";
 import { DayCalendar } from "@/components/day-calendar";
+import { CostPrompt } from "@/components/cost-prompt";
 import { ConsumableForm } from "@/components/consumable-form";
+import { ItemName } from "@/components/item-name";
 import { OrderByLine, RestockOrderButton } from "@/components/restock-order-button";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { HouseMapSheet } from "@/components/house-map-sheet";
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
+import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
 import { formatLongDate, isFirstOfMonth, sameDay } from "@/lib/dates";
 import {
   dutiesDueOnDate,
@@ -43,6 +46,7 @@ export function TodayView({
   needsZip,
   onSavePostalCode,
   onComplete,
+  onRecordCost,
   onUndo,
   onSaveDuty,
   onDeleteDuty,
@@ -60,6 +64,7 @@ export function TodayView({
   needsZip?: boolean;
   onSavePostalCode?: (zip: string) => Promise<{ ok: boolean; error?: string }>;
   onComplete: (dutyId: string) => void;
+  onRecordCost?: (completionId: string, input: { actualCost: number } | { skip: true }) => void;
   onUndo: (dutyId: string) => void;
   onSaveDuty: (duty: DutyDraft) => void;
   onDeleteDuty: (id: string) => void;
@@ -68,7 +73,7 @@ export function TodayView({
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
   onMarkOrdered?: (id: string) => void;
-  onMarkReceived?: (id: string, qty: number) => void;
+  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
   onOpenRestock?: () => void;
 }) {
@@ -141,6 +146,12 @@ export function TodayView({
   const weekOpen = openDutiesInScope(household, "weekly", now, filter);
   const restock = groupRestock(household.supplyAutomations, household, now);
   const restockItems = [...restock.ordered, ...restock.order_now];
+  const costPrompts = onRecordCost
+    ? household.completions.filter((item) => {
+        const match = household.duties.find((duty) => duty.id === item.dutyId);
+        return match ? shouldPromptCost(item, match, now) : false;
+      })
+    : [];
   const greeting = household.ownerName ? `Hi, ${household.ownerName}` : "Today";
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
   const listSummary = viewingCalendar
@@ -275,7 +286,7 @@ export function TodayView({
         </section>
       ) : null}
 
-      {open.length === 0 && doneOnDay.length === 0 ? (
+      {open.length === 0 && doneOnDay.length === 0 && costPrompts.length === 0 ? (
         <EmptyToday onAdd={() => createGuard.tryOpen(() => setCreating(true))} calendar={viewingCalendar} />
       ) : (
         <div className="ui-group">
@@ -291,7 +302,9 @@ export function TodayView({
               />
             </div>
           ))}
-          {doneOnDay.map((duty) => (
+          {doneOnDay.map((duty) => {
+            const prompt = costPrompts.find((item) => item.dutyId === duty.id);
+            return (
             <div key={duty.id} className="ui-group-row">
               <DutyRow
                 duty={duty}
@@ -301,8 +314,45 @@ export function TodayView({
                 onToggle={() => toggle(duty, true)}
                 onOpen={() => setEditing(duty)}
               />
+              {prompt && onRecordCost ? (
+                <div className="px-4 pb-3">
+                  <CostPrompt
+                    suggested={suggestedCostFor(duty, household)}
+                    onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
+                    onSkip={() => onRecordCost(prompt.id, { skip: true })}
+                  />
+                </div>
+              ) : null}
             </div>
-          ))}
+            );
+          })}
+          {costPrompts
+            .filter((item) => !doneOnDay.some((duty) => duty.id === item.dutyId) && !open.some((duty) => duty.id === item.dutyId))
+            .map((prompt) => {
+              const duty = household.duties.find((item) => item.id === prompt.dutyId);
+              if (!duty) return null;
+              return (
+                <div key={prompt.id} className="ui-group-row">
+                  <DutyRow
+                    duty={duty}
+                    household={household}
+                    now={viewDate}
+                    done
+                    onToggle={() => toggle(duty, true)}
+                    onOpen={() => setEditing(duty)}
+                  />
+                  {onRecordCost ? (
+                    <div className="px-4 pb-3">
+                      <CostPrompt
+                        suggested={suggestedCostFor(duty, household)}
+                        onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
+                        onSkip={() => onRecordCost(prompt.id, { skip: true })}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
         </div>
       )}
 
@@ -370,7 +420,9 @@ export function TodayView({
                       if (duty) setEditing(duty);
                     }}
                   >
-                    <span className="block text-[15px] font-medium">{item.itemName}</span>
+                    <span className="block text-[15px] font-medium">
+                      <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
+                    </span>
                     <span className="text-[13px] text-muted-foreground">
                       <OrderByLine item={item} household={household} />
                     </span>
@@ -380,7 +432,7 @@ export function TodayView({
                     household={household}
                     compact
                     onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
-                    onReceived={onMarkReceived ? (qty) => onMarkReceived(item.id, qty) : undefined}
+                    onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(item.id, qty, paid) : undefined}
                     onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
                   />
                 </li>

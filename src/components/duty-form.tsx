@@ -30,6 +30,7 @@ import { todayISO } from "@/lib/dates";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { RestockOrderButton } from "@/components/restock-order-button";
 import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved-retailer-field";
+import { sizePlaceholder } from "@/lib/item-label";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
 import type {
   Audience,
@@ -56,6 +57,7 @@ type Draft = {
   kind: DutyKind;
   trackSupply: boolean;
   itemName: string;
+  sizeSpec: string;
   leadTimeDays: string;
   onHand: string;
   reorderAt: string;
@@ -75,6 +77,7 @@ const emptyDraft: Draft = {
   kind: "chore",
   trackSupply: false,
   itemName: "",
+  sizeSpec: "",
   leadTimeDays: String(DEFAULT_LEAD_TIME_DAYS),
   onHand: "0",
   reorderAt: "0",
@@ -95,6 +98,7 @@ function fromDuty(duty: Duty, automation?: SupplyAutomation | null): Draft {
     kind: duty.kind,
     trackSupply: Boolean(automation) || duty.kind === "replacement",
     itemName: automation?.itemName ?? duty.title,
+    sizeSpec: automation?.sizeSpec ?? "",
     leadTimeDays: String(automation?.leadTimeDays ?? DEFAULT_LEAD_TIME_DAYS),
     onHand: String(automation?.onHand ?? 0),
     reorderAt: String(automation?.reorderAt ?? 0),
@@ -126,7 +130,7 @@ export function DutyForm({
   onSave: (input: DutyDraft) => void;
   onDelete?: (id: string) => void;
   onMarkOrdered?: (id: string) => void;
-  onMarkReceived?: (id: string, qty: number) => void;
+  onMarkReceived?: (id: string, qty: number, paid?: number) => void;
   onSaveLink?: (id: string, url: string) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
@@ -206,6 +210,7 @@ export function DutyForm({
         ? {
             id: supplyAutomation?.id,
             itemName: draft.itemName.trim() || title,
+            sizeSpec: draft.sizeSpec.trim() || undefined,
             leadTimeDays: Math.min(90, Math.max(0, Number(draft.leadTimeDays) || DEFAULT_LEAD_TIME_DAYS)),
             onHand: Math.max(0, Number(draft.onHand) || 0),
             reorderAt: Math.min(99, Math.max(0, Math.round(Number(draft.reorderAt)) || 0)),
@@ -415,7 +420,18 @@ export function DutyForm({
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, itemName: event.target.value }))
                     }
-                    placeholder="HVAC filter 16x25x1"
+                    placeholder="HVAC filter"
+                    className="h-12"
+                  />
+                </Field>
+                <Field label="Size or spec">
+                  <Input
+                    value={draft.sizeSpec}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, sizeSpec: event.target.value }))
+                    }
+                    placeholder={sizePlaceholder(draft.itemName)}
+                    maxLength={40}
                     className="h-12"
                   />
                 </Field>
@@ -470,7 +486,7 @@ export function DutyForm({
                     item={supplyAutomation}
                     household={household}
                     onOrdered={onMarkOrdered ? () => onMarkOrdered(supplyAutomation.id) : undefined}
-                    onReceived={onMarkReceived ? (qty) => onMarkReceived(supplyAutomation.id, qty) : undefined}
+                    onReceived={onMarkReceived ? (qty, paid) => onMarkReceived(supplyAutomation.id, qty, paid) : undefined}
                     onSaveLink={onSaveLink ? (url) => onSaveLink(supplyAutomation.id, url) : undefined}
                   />
                 ) : null}
