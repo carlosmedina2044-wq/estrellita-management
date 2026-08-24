@@ -19,20 +19,12 @@ npm run build        # static export to out/ — this is what ships
 
 ## Build the iOS app
 
-Requires macOS with Xcode 16+, **Node 22+** (Capacitor 8), and CocoaPods. The repo currently ships plist stubs only (`ios/App/App/Info-usage.plist.fragment` and `PrivacyInfo.xcprivacy`); there is no Xcode project until you add the iOS platform once.
+Requires macOS with Xcode 16+ and **Node 22+** (Capacitor 8). The native project is committed at `ios/App/App.xcodeproj`. Plugins are Swift packages, so CocoaPods is not required.
 
 ```bash
 nvm install 22 && nvm use 22      # or any Node 22+
 npm install
-# cap add refuses if ios/ already exists — park the stubs, then generate
-mkdir -p /tmp/cuidala-ios-stubs
-mv ios/App/App/Info-usage.plist.fragment ios/App/App/PrivacyInfo.xcprivacy /tmp/cuidala-ios-stubs/
-rm -rf ios
-npx cap add ios
-# Merge /tmp/cuidala-ios-stubs/Info-usage.plist.fragment into ios/App/App/Info.plist
-cp /tmp/cuidala-ios-stubs/PrivacyInfo.xcprivacy ios/App/App/
-# Add PrivacyInfo.xcprivacy to the App target if Xcode does not pick it up
-npm run cap:sync                  # build + copy out/ + pod install
+npm run cap:sync                  # static export to out/ + copy into the iOS app
 npm run cap:ios                   # open in Xcode; set Team
 ```
 
