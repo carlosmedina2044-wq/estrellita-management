@@ -6,7 +6,7 @@ import { HomeEditor } from "@/components/home-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { Household } from "@/lib/types";
+import type { Household, RestockDigestSettings } from "@/lib/types";
 import { ZipField } from "@/components/zip-prompt";
 import { climateLabel, deriveClimate } from "@/lib/climate";
 import { toast } from "sonner";
@@ -18,6 +18,8 @@ export function HomeView({
   onStartCleanerVisit,
   onChangeTree,
   onDeleted,
+  restockDigest,
+  onUpdateDigest,
 }: {
   household: Household;
   onUpdate: (
@@ -27,6 +29,8 @@ export function HomeView({
   onStartCleanerVisit: () => void;
   onChangeTree?: (next: Household) => void;
   onDeleted?: () => void;
+  restockDigest?: RestockDigestSettings;
+  onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
 }) {
   const [home, setHome] = useState(household.householdName);
   const [owner, setOwner] = useState(household.ownerName);
@@ -79,6 +83,48 @@ export function HomeView({
           }}
         />
       </Field>
+
+      {restockDigest && onUpdateDigest ? (
+        <div className="rounded-2xl bg-white p-4">
+          <p className="font-medium">Weekly restock digest</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Sunday 9:00 AM local by default. Sends only when something is in Order now or coming up this week.
+          </p>
+          <button
+            type="button"
+            className="mt-3 h-12 w-full rounded-xl bg-secondary text-sm font-medium"
+            onClick={() => onUpdateDigest({ enabled: !restockDigest.enabled })}
+          >
+            {restockDigest.enabled ? "On" : "Off"}
+          </button>
+          {restockDigest.enabled ? (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <select
+                className="h-11 rounded-xl bg-secondary px-3 text-sm"
+                value={restockDigest.weekday}
+                onChange={(event) => onUpdateDigest({ weekday: Number(event.target.value) })}
+              >
+                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => (
+                  <option key={day} value={index}>
+                    {day}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="h-11 rounded-xl bg-secondary px-3 text-sm"
+                value={restockDigest.hour}
+                onChange={(event) => onUpdateDigest({ hour: Number(event.target.value) })}
+              >
+                {Array.from({ length: 24 }, (_, hour) => (
+                  <option key={hour} value={hour}>
+                    {`${String(hour).padStart(2, "0")}:00`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="rounded-2xl bg-white p-4">
         <p className="font-medium">Require Face ID</p>

@@ -3,8 +3,8 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, Map, Share2, Sparkles, UserRound } from "lucide-react";
 import { DayCalendar } from "@/components/day-calendar";
-import { AmazonOrderButton } from "@/components/amazon-order-button";
-import { AutomationForm } from "@/components/automation-form";
+import { ConsumableForm } from "@/components/consumable-form";
+import { OrderByLine, RestockOrderButton } from "@/components/restock-order-button";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { HouseMapSheet } from "@/components/house-map-sheet";
@@ -24,7 +24,7 @@ import {
 } from "@/lib/duties";
 import { homeSummary, statusTone } from "@/lib/node-status";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
-import { isAwaitingArrival, isReorderReminderActive, reconcileAutomation } from "@/lib/supply";
+import { groupRestock } from "@/lib/restock";
 import type { Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -50,6 +50,9 @@ export function TodayView({
   onReorderRooms,
   onChangeTree,
   onMarkOrdered,
+  onMarkReceived,
+  onSaveLink,
+  onOpenRestock,
 }: {
   household: Household;
   weatherLine?: string;
@@ -65,6 +68,9 @@ export function TodayView({
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
   onMarkOrdered?: (id: string) => void;
+  onMarkReceived?: (id: string, qty: number) => void;
+  onSaveLink?: (id: string, url: string) => void;
+  onOpenRestock?: () => void;
 }) {
   const now = useMemo(() => new Date(), [household.completions, household.duties]);
   const [filter, setFilter] = useState<Audience | "all">("all");
@@ -141,9 +147,8 @@ export function TodayView({
   }
 
   const weekOpen = openDutiesInScope(household, "weekly", now, filter);
-  const hermes = household.supplyAutomations
-    .map((item) => reconcileAutomation(item, now))
-    .filter((item) => isAwaitingArrival(item, now) || isReorderReminderActive(item, now));
+  const restock = groupRestock(household.supplyAutomations, household, now);
+  const hermes = [...restock.ordered, ...restock.order_now, ...restock.coming_up];
   const greeting = household.ownerName ? `Hi, ${household.ownerName}` : "Today";
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
   const listSummary = viewingCalendar
@@ -328,17 +333,24 @@ export function TodayView({
 
       <section className="rounded-2xl bg-white px-4 py-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="font-medium">Reorder</p>
-          <button
-            type="button"
-            className="text-[13px] font-medium text-primary"
-            onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}
-          >
-            Add item
-          </button>
+          <p className="font-medium">Restock</p>
+          <div className="flex items-center gap-3">
+            {onOpenRestock ? (
+              <button type="button" className="text-[13px] font-medium text-primary" onClick={onOpenRestock}>
+                See all
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="text-[13px] font-medium text-primary"
+              onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}
+            >
+              Add item
+            </button>
+          </div>
         </div>
         {hermes.length === 0 ? (
-          <p className="mt-1 text-sm text-muted-foreground">Nothing to reorder. We’ll remind you before you run out.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Nothing to order. We’ll remind you before you run out.</p>
         ) : (
           <ul className="mt-3 grid gap-3">
             {hermes.map((item) => (
@@ -347,18 +359,24 @@ export function TodayView({
                   type="button"
                   className="text-left"
                   onClick={() => {
-                    const duty = household.duties.find((entry) => entry.id === item.dutyId);
+                    const duty = household.duties.find(
+                      (entry) => entry.id === item.dutyId || item.linkedDutyIds.includes(entry.id),
+                    );
                     if (duty) setEditing(duty);
                   }}
                 >
                   <span className="block text-[15px] font-medium">{item.itemName}</span>
                   <span className="text-[13px] text-muted-foreground">
-                    {isAwaitingArrival(item, now)
-                      ? `Arriving ${item.expectedArrivalDate}`
-                      : `Order by ${item.orderByDate}`}
+                    <OrderByLine item={item} household={household} />
                   </span>
                 </button>
-                {onMarkOrdered ? <AmazonOrderButton item={item} onOrdered={() => onMarkOrdered(item.id)} /> : null}
+                <RestockOrderButton
+                  item={item}
+                  household={household}
+                  onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
+                  onReceived={onMarkReceived ? (qty) => onMarkReceived(item.id, qty) : undefined}
+                  onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
+                />
               </li>
             ))}
           </ul>
@@ -392,6 +410,8 @@ export function TodayView({
         onReorderRooms={onReorderRooms}
         onChangeTree={onChangeTree}
         onMarkOrdered={onMarkOrdered}
+        onMarkReceived={onMarkReceived}
+        onSaveLink={onSaveLink}
       />
 
       {onSavePostalCode ? (
@@ -409,7 +429,11 @@ export function TodayView({
         household={household}
         defaultRoom={household.rooms.find((room) => !room.system)?.id ?? "kitchen"}
         supplyAutomation={
-          editing ? household.supplyAutomations.find((item) => item.dutyId === editing.id) : null
+          editing
+            ? household.supplyAutomations.find(
+                (item) => item.dutyId === editing.id || item.linkedDutyIds.includes(editing.id),
+              )
+            : null
         }
         onOpenChange={(openSheet) => {
           if (!openSheet) {
@@ -421,9 +445,11 @@ export function TodayView({
         onSave={onSaveDuty}
         onDelete={onDeleteDuty}
         onMarkOrdered={onMarkOrdered}
+        onMarkReceived={onMarkReceived}
+        onSaveLink={onSaveLink}
       />
 
-      <AutomationForm
+      <ConsumableForm
         open={creatingRule}
         duty={null}
         household={household}
@@ -435,6 +461,9 @@ export function TodayView({
           }
         }}
         onSave={onSaveDuty}
+        onMarkOrdered={onMarkOrdered}
+        onMarkReceived={onMarkReceived}
+        onSaveLink={onSaveLink}
       />
     </div>
   );

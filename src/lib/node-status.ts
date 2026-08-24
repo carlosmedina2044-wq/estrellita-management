@@ -1,6 +1,6 @@
 import { addDays, startOfDay } from "@/lib/dates";
 import { isDueToday, isOverdue, nextDueDate } from "@/lib/duties";
-import { isAutomationDue, isDueToOrderSoon } from "@/lib/supply";
+import { restockPlacement } from "@/lib/restock";
 import type { Household, NodeType } from "@/lib/types";
 
 export type NodeStatus = {
@@ -69,7 +69,8 @@ function ownStatus(household: Household, nodeId: string, nodeType: NodeType, now
 
   for (const item of household.supplyAutomations) {
     if (!attachedTo(household, nodeId, nodeType, item)) continue;
-    if (isAutomationDue(item, now) || isDueToOrderSoon(item, now, 7)) {
+    const bucket = restockPlacement(item, household, now).bucket;
+    if (bucket === "order_now" || bucket === "coming_up") {
       status.reorderPending += 1;
     }
   }

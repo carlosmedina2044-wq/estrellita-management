@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/home-model.test.ts src/lib/node-status.test.ts src/lib/forecast/forecast.test.ts src/lib/playbooks/playbooks.test.ts src/lib/onboarding/generate.test.ts src/lib/climate.test.ts src/lib/amazon.test.ts src/lib/supply.test.ts",
+    "test": "tsx --test src/lib/home-model.test.ts src/lib/node-status.test.ts src/lib/forecast/forecast.test.ts src/lib/playbooks/playbooks.test.ts src/lib/onboarding/generate.test.ts src/lib/climate.test.ts src/lib/amazon.test.ts src/lib/supply.test.ts src/lib/retailer.test.ts src/lib/restock.test.ts",
     "cap:sync": "npx cap sync ios",
     "cap:ios": "npx cap open ios"
   },

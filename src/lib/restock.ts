@@ -140,7 +140,7 @@ export function runwayFor(
 
   const nextNeedDate = upcoming[current.onHand] ?? null;
   const fallbackNeed =
-    !nextNeedDate && (current.orderByDate || current.nextOrderDate)
+    !nextNeedDate && upcoming.length === 0 && (current.orderByDate || current.nextOrderDate)
       ? current.orderByDate || current.nextOrderDate
       : nextNeedDate;
   const orderByDate = fallbackNeed

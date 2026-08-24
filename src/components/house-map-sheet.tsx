@@ -26,8 +26,8 @@ import {
 } from "@/lib/duties";
 import { ASSET_TYPES, reorderRooms, roomById } from "@/lib/home-model";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
-import { AmazonOrderButton } from "@/components/amazon-order-button";
-import { lifespanLabel } from "@/lib/supply";
+import { RestockOrderButton } from "@/components/restock-order-button";
+import { restockPlacement } from "@/lib/restock";
 import type { AssetType, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 
 export function HouseMapSheet({
@@ -43,6 +43,8 @@ export function HouseMapSheet({
   onChangeTree,
   initialSelected,
   onMarkOrdered,
+  onMarkReceived,
+  onSaveLink,
 }: {
   open: boolean;
   household: Household;
@@ -56,6 +58,8 @@ export function HouseMapSheet({
   onChangeTree?: (next: Household) => void;
   initialSelected?: string | null;
   onMarkOrdered?: (id: string) => void;
+  onMarkReceived?: (id: string, qty: number) => void;
+  onSaveLink?: (id: string, url: string) => void;
 }) {
   const [selected, setSelected] = useState<string | null>(initialSelected ?? null);
   const [editing, setEditing] = useState<Duty | null>(null);
@@ -194,15 +198,19 @@ export function HouseMapSheet({
                         <li key={item.id} className="rounded-2xl bg-white px-4 py-3 text-sm">
                           <p className="font-medium">{item.itemName}</p>
                           <p className="mt-0.5 text-[13px] text-muted-foreground">
-                            {item.orderInFlight && item.expectedArrivalDate
-                              ? `Ordered · arriving ${item.expectedArrivalDate}`
-                              : `Need by ${item.orderByDate} · lasts ${lifespanLabel(item.lifespanValue, item.lifespanUnit)}`}
+                            {restockPlacement(item, household, now).bucket === "ordered" && item.expectedArrivalDate
+                              ? `Arriving ~${item.expectedArrivalDate}`
+                              : `On hand ${item.onHand} · lead ${item.leadTimeDays}d`}
                           </p>
-                          {onMarkOrdered ? (
-                            <div className="mt-2">
-                              <AmazonOrderButton item={item} onOrdered={() => onMarkOrdered(item.id)} />
-                            </div>
-                          ) : null}
+                          <div className="mt-2">
+                            <RestockOrderButton
+                              item={item}
+                              household={household}
+                              onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
+                              onReceived={onMarkReceived ? (qty) => onMarkReceived(item.id, qty) : undefined}
+                              onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
+                            />
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -289,7 +297,11 @@ export function HouseMapSheet({
         household={household}
         defaultRoom={selected ?? household.rooms.find((room) => !room.system)?.id ?? "kitchen"}
         supplyAutomation={
-          editing ? household.supplyAutomations.find((item) => item.dutyId === editing.id) : null
+          editing
+            ? household.supplyAutomations.find(
+                (item) => item.dutyId === editing.id || item.linkedDutyIds.includes(editing.id),
+              )
+            : null
         }
         onOpenChange={(openSheet) => {
           if (!openSheet) {
@@ -301,6 +313,8 @@ export function HouseMapSheet({
         onSave={onSaveDuty}
         onDelete={onDeleteDuty}
         onMarkOrdered={onMarkOrdered}
+        onMarkReceived={onMarkReceived}
+        onSaveLink={onSaveLink}
       />
     </>
   );

@@ -1,6 +1,6 @@
 # Estrellita
 
-iOS App Store household app. The product UI is a Next.js App Router client; Capacitor wraps it for Sign in with Apple, Face ID, and Keychain. Duties stay encrypted on device (AES-256-GCM) before sync. Reorder reminders open Amazon in the browser — the app does not place orders or store payment info.
+iOS App Store household app. The product UI is a Next.js App Router client; Capacitor wraps it for Sign in with Apple, Face ID, and Keychain. Duties stay encrypted on device (AES-256-GCM) before sync. Restock tracks runway and opens any retailer in the browser — the app does not place orders or store payment info.
 
 ## Run the web shell
 
@@ -36,10 +36,10 @@ Server-only: `BLOB_READ_WRITE_TOKEN`, `APPLE_BUNDLE_ID`, `APPLE_SERVICE_ID`, `RE
 ## Specs implemented
 
 - Sign-up / under-3-minute room setup (no appraisal or floor-plan upload). Reviewers: tap **Use a sample home** on the first screen.
-- Reorder reminders: one tap to Amazon. The app does not process purchases or store retailer credentials.
+- Restock: knows what is running out and when to order it, one tap to any retailer. The app does not process purchases or store retailer credentials.
 - Budget forecast + seasonal/weather playbooks
 - Security verification artifacts in `docs/` — statuses are honest; most controls are **NOT VERIFIED** until evidence is committed
 
 ## App Store reviewer notes
 
-Onboarding does not require any documents. Tap “Use a sample home” on the first screen to load a pre-built home and reach the task list immediately. The “Order on Amazon” button opens the retailer’s site in an in-app browser; the app does not process purchases.
+Onboarding does not require any documents. Tap “Use a sample home” on the first screen to load a pre-built home and reach the task list immediately. The Restock tab’s Order / Find it buttons open the retailer’s own site in an in-app browser; the app does not process purchases or store payment information.

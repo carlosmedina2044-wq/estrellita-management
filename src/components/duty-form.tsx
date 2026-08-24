@@ -25,13 +25,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { AUDIENCES, EFFORTS, FREQUENCIES, LIFESPAN_UNITS, WEEKDAYS } from "@/lib/constants";
+import { AUDIENCES, EFFORTS, FREQUENCIES, WEEKDAYS } from "@/lib/constants";
 import { todayISO } from "@/lib/dates";
 import { FLOORS, HOUSE_ROOMS } from "@/lib/house";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
-import { parseAmazonProduct } from "@/lib/amazon";
-import { AmazonOrderButton } from "@/components/amazon-order-button";
-import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, deriveOrderByDate } from "@/lib/supply";
+import { RestockOrderButton } from "@/components/restock-order-button";
+import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
 import type {
   Audience,
   Duty,
@@ -40,7 +39,6 @@ import type {
   Effort,
   Frequency,
   Household,
-  LifespanUnit,
   Room,
   SupplyAutomation,
 } from "@/lib/types";
@@ -58,18 +56,8 @@ type Draft = {
   kind: DutyKind;
   trackSupply: boolean;
   itemName: string;
-  sku: string;
-  asin: string;
-  amazonProductUrl: string;
-  amazonOneClick: boolean;
-  amazonNotes: string;
-  quantity: string;
   leadTimeDays: string;
-  installedAt: string;
-  lifespanValue: string;
-  lifespanUnit: LifespanUnit;
-  orderByDate: string;
-  orderByDirty: boolean;
+  onHand: string;
 };
 
 const emptyDraft: Draft = {
@@ -85,24 +73,11 @@ const emptyDraft: Draft = {
   kind: "chore",
   trackSupply: false,
   itemName: "",
-  sku: "",
-  asin: "",
-  amazonProductUrl: "",
-  amazonOneClick: false,
-  amazonNotes: "",
-  quantity: String(DEFAULT_QUANTITY),
   leadTimeDays: String(DEFAULT_LEAD_TIME_DAYS),
-  installedAt: todayISO(),
-  lifespanValue: "12",
-  lifespanUnit: "months",
-  orderByDate: deriveOrderByDate(todayISO(), 12, "months"),
-  orderByDirty: false,
+  onHand: "0",
 };
 
 function fromDuty(duty: Duty, automation?: SupplyAutomation | null): Draft {
-  const installedAt = automation?.installedAt ?? todayISO();
-  const lifespanValue = automation?.lifespanValue ?? 12;
-  const lifespanUnit = automation?.lifespanUnit ?? "months";
   return {
     title: duty.title,
     notes: duty.notes,
@@ -116,18 +91,8 @@ function fromDuty(duty: Duty, automation?: SupplyAutomation | null): Draft {
     kind: duty.kind,
     trackSupply: Boolean(automation) || duty.kind === "replacement",
     itemName: automation?.itemName ?? duty.title,
-    sku: automation?.sku ?? "",
-    asin: automation?.asin ?? "",
-    amazonProductUrl: automation?.amazonProductUrl ?? "",
-    amazonOneClick: false,
-    amazonNotes: automation?.amazonNotes ?? "",
-    quantity: String(automation?.quantity ?? DEFAULT_QUANTITY),
     leadTimeDays: String(automation?.leadTimeDays ?? DEFAULT_LEAD_TIME_DAYS),
-    installedAt,
-    lifespanValue: String(lifespanValue),
-    lifespanUnit,
-    orderByDate: automation?.orderByDate ?? deriveOrderByDate(installedAt, lifespanValue, lifespanUnit),
-    orderByDirty: Boolean(automation),
+    onHand: String(automation?.onHand ?? 0),
   };
 }
 
@@ -142,6 +107,8 @@ export function DutyForm({
   onSave,
   onDelete,
   onMarkOrdered,
+  onMarkReceived,
+  onSaveLink,
 }: {
   open: boolean;
   duty: Duty | null;
@@ -153,6 +120,8 @@ export function DutyForm({
   onSave: (input: DutyDraft) => void;
   onDelete?: (id: string) => void;
   onMarkOrdered?: (id: string) => void;
+  onMarkReceived?: (id: string, qty: number) => void;
+  onSaveLink?: (id: string, url: string) => void;
 }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [formError, setFormError] = useState<string | null>(null);
@@ -173,38 +142,18 @@ export function DutyForm({
     setShowNotes(false);
     setShowSupply(Boolean(defaultTrackSupply));
     setShowAdvanced(false);
-    const installedAt = todayISO();
     setDraft({
       ...emptyDraft,
       room: defaultRoom ?? "kitchen",
       dueDate: todayISO(),
       trackSupply: Boolean(defaultTrackSupply),
       kind: defaultTrackSupply ? "replacement" : "chore",
-      installedAt,
-      orderByDate: deriveOrderByDate(installedAt, 12, "months"),
-      orderByDirty: false,
     });
   }, [open, duty, defaultRoom, supplyAutomation, defaultTrackSupply]);
 
   function closeAfterClick() {
     // Delay so the same click cannot hit Add duty / FAB under the closing sheet.
     window.setTimeout(() => onOpenChange(false), 250);
-  }
-
-  function patchSupply(
-    next: Partial<Pick<Draft, "installedAt" | "lifespanValue" | "lifespanUnit" | "orderByDate" | "orderByDirty">>,
-  ) {
-    setDraft((current) => {
-      const merged = { ...current, ...next };
-      if (merged.orderByDirty && next.orderByDate === undefined) return merged;
-      if (next.orderByDate !== undefined) return merged;
-      merged.orderByDate = deriveOrderByDate(
-        merged.installedAt,
-        Number(merged.lifespanValue) || 1,
-        merged.lifespanUnit,
-      );
-      return merged;
-    });
   }
 
   function submit() {
@@ -218,14 +167,6 @@ export function DutyForm({
       setShowSupply(true);
       setFormError("Name the item to order.");
       toast.error("Name the item to order.");
-      return;
-    }
-    const amazonLink = draft.amazonProductUrl.trim();
-    const parsedAmazon = amazonLink ? parseAmazonProduct(amazonLink) : null;
-    if (draft.trackSupply && parsedAmazon && !parsedAmazon.ok) {
-      setShowSupply(true);
-      setFormError(parsedAmazon.error);
-      toast.error(parsedAmazon.error);
       return;
     }
     setFormError(null);
@@ -248,17 +189,10 @@ export function DutyForm({
         ? {
             id: supplyAutomation?.id,
             itemName: draft.itemName.trim() || title,
-            sku: draft.sku.trim(),
-            asin: draft.asin.trim() || (parsedAmazon?.ok ? parsedAmazon.asin ?? "" : ""),
-            amazonProductUrl: amazonLink,
-            amazonOneClick: false,
-            amazonNotes: draft.amazonNotes.trim(),
-            quantity: Math.min(99, Math.max(1, Number(draft.quantity) || DEFAULT_QUANTITY)),
             leadTimeDays: Math.min(90, Math.max(0, Number(draft.leadTimeDays) || DEFAULT_LEAD_TIME_DAYS)),
-            installedAt: draft.installedAt,
-            lifespanValue: Math.max(1, Number(draft.lifespanValue) || 1),
-            lifespanUnit: draft.lifespanUnit,
-            orderByDate: draft.orderByDate,
+            onHand: Math.max(0, Number(draft.onHand) || 0),
+            retailerUrl: supplyAutomation?.retailerUrl,
+            linkedDutyIds: supplyAutomation?.linkedDutyIds,
           }
         : null,
     });
@@ -443,11 +377,11 @@ export function DutyForm({
           <Disclosure
             open={showSupply}
             onOpenChange={setShowSupply}
-            label="Reorder reminder"
+            label="Consumable"
             hint={
               draft.trackSupply
-                ? draft.itemName.trim() || "Tracking a reorder"
-                : "Lead time and an Amazon link — you check out yourself"
+                ? draft.itemName.trim() || "This task uses a consumable"
+                : "This task uses a consumable"
             }
           >
             <label className="flex items-start gap-3 text-sm">
@@ -463,53 +397,26 @@ export function DutyForm({
                 }
               />
               <span>
-                <span className="block font-medium">Track a reorder</span>
+                <span className="block font-medium">This task uses a consumable</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Reminds you before you run out. One tap opens Amazon.
+                  Tracks runway and when to order. Checkout stays on the retailer’s site.
                 </span>
               </span>
             </label>
 
             {draft.trackSupply ? (
               <div className="grid gap-3">
-                <Field label="Item to order / deliver">
+                <Field label="Item">
                   <Input
                     value={draft.itemName}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, itemName: event.target.value }))
                     }
-                    placeholder="Air purifier filter"
-                    className="h-12"
-                  />
-                </Field>
-                <Field label="Amazon product link or ASIN">
-                  <Input
-                    value={draft.amazonProductUrl || draft.asin}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      const parsed = value.trim() ? parseAmazonProduct(value) : null;
-                      setDraft((current) => ({
-                        ...current,
-                        amazonProductUrl: value,
-                        asin: parsed?.ok ? parsed.asin ?? current.asin : current.asin,
-                      }));
-                    }}
-                    placeholder="https://www.amazon.com/dp/… or B0…"
+                    placeholder="HVAC filter 16x25x1"
                     className="h-12"
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Quantity">
-                    <Input
-                      type="number"
-                      min={1}
-                      value={draft.quantity}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, quantity: event.target.value }))
-                      }
-                      className="h-12"
-                    />
-                  </Field>
                   <Field label="Lead time (days)">
                     <Input
                       type="number"
@@ -521,67 +428,29 @@ export function DutyForm({
                       className="h-12"
                     />
                   </Field>
-                </div>
-                <Field label="Installed / last replaced">
-                  <Input
-                    type="date"
-                    value={draft.installedAt}
-                    onChange={(event) => patchSupply({ installedAt: event.target.value })}
-                    className="h-12"
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Lasts">
+                  <Field label="On hand">
                     <Input
                       type="number"
-                      min={1}
-                      value={draft.lifespanValue}
-                      onChange={(event) => patchSupply({ lifespanValue: event.target.value })}
+                      min={0}
+                      value={draft.onHand}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, onHand: event.target.value }))
+                      }
                       className="h-12"
                     />
                   </Field>
-                  <Field label="Unit">
-                    <Select
-                      value={draft.lifespanUnit}
-                      onValueChange={(value) =>
-                        patchSupply({ lifespanUnit: value as LifespanUnit })
-                      }
-                    >
-                      <SelectTrigger className="h-12 w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LIFESPAN_UNITS.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
                 </div>
-                <Field label="Need by (editable)">
-                  <Input
-                    type="date"
-                    value={draft.orderByDate}
-                    onChange={(event) =>
-                      patchSupply({ orderByDate: event.target.value, orderByDirty: true })
-                    }
-                    className="h-12"
+                <p className="text-[13px] text-muted-foreground">
+                  Save a product link later from Share, or after you tap Find it.
+                </p>
+                {supplyAutomation && household ? (
+                  <RestockOrderButton
+                    item={supplyAutomation}
+                    household={household}
+                    onOrdered={onMarkOrdered ? () => onMarkOrdered(supplyAutomation.id) : undefined}
+                    onReceived={onMarkReceived ? (qty) => onMarkReceived(supplyAutomation.id, qty) : undefined}
+                    onSaveLink={onSaveLink ? (url) => onSaveLink(supplyAutomation.id, url) : undefined}
                   />
-                </Field>
-                <Field label="Notes">
-                  <Textarea
-                    value={draft.amazonNotes}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, amazonNotes: event.target.value }))
-                    }
-                    placeholder="Size, Subscribe & Save, spare under the sink."
-                    className="min-h-20 text-base"
-                  />
-                </Field>
-                {supplyAutomation && onMarkOrdered ? (
-                  <AmazonOrderButton item={supplyAutomation} onOrdered={() => onMarkOrdered(supplyAutomation.id)} />
                 ) : null}
               </div>
             ) : null}

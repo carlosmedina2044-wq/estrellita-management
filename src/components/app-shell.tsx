@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Home, Leaf, Settings, Sun, Wallet } from "lucide-react";
+import { Home, Leaf, Package, Settings, Sun, Wallet } from "lucide-react";
 import { BudgetView } from "@/components/budget-view";
 import { CleanerVisit } from "@/components/cleaner-visit";
 import { FaceLock } from "@/components/face-lock";
@@ -9,10 +9,16 @@ import { HomeMapView } from "@/components/home-map-view";
 import { HomeView } from "@/components/home-view";
 import { HouseMapSheet } from "@/components/house-map-sheet";
 import { Onboarding } from "@/components/onboarding";
+import { RestockView } from "@/components/restock-view";
 import { SeasonalView } from "@/components/seasonal-view";
+import { ShareLinkSheet } from "@/components/share-link-sheet";
 import { TodayView } from "@/components/today-view";
 import { Button } from "@/components/ui/button";
 import { useHousehold } from "@/hooks/use-household";
+import { digestPayload } from "@/lib/digest";
+import { showLocalNotification } from "@/lib/notifications";
+import { extractSharedUrl } from "@/lib/retailer";
+import { groupRestock } from "@/lib/restock";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { roomsWithNearReplacement } from "@/lib/forecast";
 import { next90DaysSpend } from "@/lib/forecast";
@@ -31,6 +37,10 @@ export function AppShell() {
     completeOnboarding,
     saveDuty,
     markSupplyOrdered,
+    markSupplyReceived,
+    saveSupplyLink,
+    attachSharedLink,
+    updateRestockDigest,
     deleteDuty,
     completeDuty,
     undoCompletion,
@@ -53,6 +63,7 @@ export function AppShell() {
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [roomOpen, setRoomOpen] = useState<string | null>(null);
+  const [sharedUrl, setSharedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") return;
@@ -140,6 +151,40 @@ export function AppShell() {
     // Fetch once per location, not on every household mutation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [household.location?.lat, household.location?.lng, household.location?.postalCode, household.onboarded]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "restock") setTab("restock");
+    const url = extractSharedUrl({
+      url: params.get("restockUrl") || params.get("url"),
+      text: params.get("text"),
+      title: params.get("title"),
+    });
+    if (url) {
+      setSharedUrl(url);
+      setTab("restock");
+    }
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type === "open-restock") setTab("restock");
+    };
+    navigator.serviceWorker?.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker?.removeEventListener("message", onMessage);
+  }, []);
+
+  useEffect(() => {
+    const onOpen = () => setTab("restock");
+    window.addEventListener("estrellita-open-restock", onOpen);
+    return () => window.removeEventListener("estrellita-open-restock", onOpen);
+  }, []);
+
+  useEffect(() => {
+    if (!household.onboarded) return;
+    const payload = digestPayload(household);
+    if (!payload.shouldSend) return;
+    if (showLocalNotification(payload.title, payload.body)) {
+      updateRestockDigest({ lastSentOn: payload.sentOn });
+    }
+  }, [household, household.onboarded, updateRestockDigest]);
 
   const nearReplacement = useMemo(
     () => (hydrated ? roomsWithNearReplacement(household) : new Set<string>()),
@@ -240,6 +285,19 @@ export function AppShell() {
             onOpenSettings={() => setTab("settings")}
             onOpenHome={() => setTab("home")}
             onMarkOrdered={markSupplyOrdered}
+            onMarkReceived={markSupplyReceived}
+            onSaveLink={saveSupplyLink}
+            onOpenRestock={() => setTab("restock")}
+          />
+        ) : null}
+        {tab === "restock" ? (
+          <RestockView
+            household={household}
+            onSaveDuty={saveDuty}
+            onDeleteDuty={deleteDuty}
+            onMarkOrdered={markSupplyOrdered}
+            onMarkReceived={markSupplyReceived}
+            onSaveLink={saveSupplyLink}
           />
         ) : null}
         {tab === "home" ? (
@@ -280,6 +338,8 @@ export function AppShell() {
               onDeleteDuty={deleteDuty}
               onChangeTree={(next) => updateTree(() => next)}
               onMarkOrdered={markSupplyOrdered}
+              onMarkReceived={markSupplyReceived}
+              onSaveLink={saveSupplyLink}
             />
           </div>
         ) : null}
@@ -317,14 +377,36 @@ export function AppShell() {
             onStartCleanerVisit={startCleanerVisit}
             onChangeTree={(next) => updateTree(() => next)}
             onDeleted={startFresh}
+            restockDigest={household.restockDigest}
+            onUpdateDigest={updateRestockDigest}
           />
         ) : null}
       </main>
 
+      <ShareLinkSheet
+        open={Boolean(sharedUrl) && household.onboarded}
+        url={sharedUrl}
+        household={household}
+        onOpenChange={(open) => {
+          if (!open) setSharedUrl(null);
+        }}
+        onPick={(id) => {
+          if (sharedUrl) attachSharedLink(sharedUrl, id);
+          setSharedUrl(null);
+        }}
+      />
+
       <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40">
-        <div className="pointer-events-auto mx-auto grid max-w-lg grid-cols-5 border-t border-black/6 bg-[#f5f5f7]/95 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="pointer-events-auto mx-auto grid max-w-lg grid-cols-6 border-t border-black/6 bg-[#f5f5f7]/95 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
           <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
           <NavButton label="Home" icon={<Home className="size-5" />} active={tab === "home"} onClick={() => setTab("home")} />
+          <NavButton
+            label="Restock"
+            icon={<Package className="size-5" />}
+            active={tab === "restock"}
+            badge={groupRestock(household.supplyAutomations, household).order_now.length}
+            onClick={() => setTab("restock")}
+          />
           <NavButton label="Budget" icon={<Wallet className="size-5" />} active={tab === "budget"} onClick={() => setTab("budget")} />
           <NavButton label="Seasonal" icon={<Leaf className="size-5" />} active={tab === "seasonal"} onClick={() => setTab("seasonal")} />
           <NavButton label="Settings" icon={<Settings className="size-5" />} active={tab === "settings"} onClick={() => setTab("settings")} />
@@ -367,11 +449,13 @@ function NavButton({
   label,
   icon,
   active,
+  badge,
   onClick,
 }: {
   label: string;
   icon: ReactNode;
   active: boolean;
+  badge?: number;
   onClick: () => void;
 }) {
   return (
@@ -379,12 +463,17 @@ function NavButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
+        "relative flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px] font-medium",
         active ? "text-primary" : "text-muted-foreground",
       )}
     >
       {icon}
       {label}
+      {badge ? (
+        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+          {badge}
+        </span>
+      ) : null}
     </button>
   );
 }

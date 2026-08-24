@@ -5,3 +5,5 @@
 <string>Estrellita uses your location once during setup to pick weather and seasonal tasks. We store only a ZIP and coordinates rounded to two decimals.</string>
 <key>NSUserTrackingUsageDescription</key>
 <string></string>
+<key>NSUserNotificationsUsageDescription</key>
+<string>Estrellita can send a weekly restock digest when something needs to be ordered. The app never places orders or stores payment information.</string>
