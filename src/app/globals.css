@@ -1,0 +1,357 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Geist Mono", monospace;
+  --font-heading: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.7);
+  --radius-md: calc(var(--radius) * 0.85);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.2);
+  --radius-2xl: calc(var(--radius) * 1.45);
+  --radius-3xl: calc(var(--radius) * 1.7);
+  --radius-4xl: calc(var(--radius) * 2);
+}
+
+:root {
+  --background: #f5f5f7;
+  --foreground: #1d1d1f;
+  --card: #ffffff;
+  --card-foreground: #1d1d1f;
+  --popover: #ffffff;
+  --popover-foreground: #1d1d1f;
+  --primary: #007aff;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f3;
+  --secondary-foreground: #1d1d1f;
+  --muted: #f2f2f4;
+  --muted-foreground: #86868b;
+  --accent: #e8f1fc;
+  --accent-foreground: #007aff;
+  --destructive: #ff3b30;
+  --border: rgb(0 0 0 / 10%);
+  --input: rgb(0 0 0 / 10%);
+  --ring: #007aff;
+  --chart-1: #007aff;
+  --chart-2: #34c759;
+  --chart-3: #5ac8fa;
+  --chart-4: #af52de;
+  --chart-5: #8e8e93;
+  --radius: 0.9rem;
+  --sidebar: #f5f5f7;
+  --sidebar-foreground: #1d1d1f;
+  --sidebar-primary: #007aff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef0f3;
+  --sidebar-accent-foreground: #1d1d1f;
+  --sidebar-border: rgb(0 0 0 / 8%);
+  --sidebar-ring: #007aff;
+}
+
+.dark {
+  --background: #000000;
+  --foreground: #f5f5f7;
+  --card: #1c1c1e;
+  --card-foreground: #f5f5f7;
+  --popover: #1c1c1e;
+  --popover-foreground: #f5f5f7;
+  --primary: #0a84ff;
+  --primary-foreground: #ffffff;
+  --secondary: #2c2c2e;
+  --secondary-foreground: #f5f5f7;
+  --muted: #2c2c2e;
+  --muted-foreground: #98989d;
+  --accent: #1c3250;
+  --accent-foreground: #0a84ff;
+  --destructive: #ff453a;
+  --border: rgb(255 255 255 / 12%);
+  --input: rgb(255 255 255 / 14%);
+  --ring: #0a84ff;
+  --sidebar: #000000;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-primary: #0a84ff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2c2c2e;
+  --sidebar-accent-foreground: #f5f5f7;
+  --sidebar-border: rgb(255 255 255 / 10%);
+  --sidebar-ring: #0a84ff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    height: 100%;
+    font-variant-caps: normal;
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "clig" 0, "dlig" 0, "calt" 0;
+    -webkit-font-smoothing: antialiased;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .font-heading,
+  .ui-heading {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", sans-serif;
+    font-variant: normal;
+    font-variant-caps: normal;
+    font-variant-ligatures: none;
+    font-feature-settings: "liga" 0, "clig" 0, "dlig" 0, "calt" 0;
+    font-synthesis: none;
+    letter-spacing: -0.022em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .font-heading::first-letter,
+  .ui-heading::first-letter {
+    font: inherit;
+    float: none;
+    color: inherit;
+    initial-letter: normal;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100%;
+    min-height: 100dvh;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  input,
+  textarea,
+  select {
+    touch-action: manipulation;
+  }
+
+  input,
+  textarea,
+  select {
+    scroll-margin-top: 1.25rem;
+    scroll-margin-bottom: 1.25rem;
+  }
+
+  [data-keyboard-scroll] input,
+  [data-keyboard-scroll] textarea,
+  [data-keyboard-scroll] select {
+    scroll-margin-bottom: 1.25rem;
+  }
+}
+
+:root {
+  --keyboard-inset: 0px;
+  --visual-viewport-height: 100dvh;
+}
+
+[data-keyboard-scroll] {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-top: 1rem;
+  scroll-padding-bottom: 1.25rem;
+}
+
+.app-shell-main {
+  padding-bottom: calc(7.25rem + env(safe-area-inset-bottom));
+  overflow-x: hidden;
+}
+
+.app-tab-bar {
+  z-index: 40;
+}
+
+html.keyboard-open .app-shell-main {
+  padding-bottom: calc(1.5rem + var(--keyboard-inset));
+}
+
+html.keyboard-open .app-tab-bar,
+html.keyboard-open .app-fab {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+[data-slot="sheet-content"][data-side="bottom"] {
+  bottom: var(--keyboard-inset, 0px);
+  max-height: min(92dvh, var(--visual-viewport-height, 100dvh));
+}
+
+[data-slot="sheet-content"][data-side="bottom"][data-sheet-size="form"] {
+  height: min(92dvh, var(--visual-viewport-height, 100dvh));
+  max-height: min(92dvh, var(--visual-viewport-height, 100dvh));
+}
+
+html.keyboard-open [data-slot="sheet-content"][data-side="bottom"] {
+  max-height: var(--visual-viewport-height, 100dvh);
+  padding-bottom: 0.5rem;
+}
+
+html.keyboard-open [data-slot="sheet-content"][data-side="bottom"][data-sheet-size="form"] {
+  height: var(--visual-viewport-height, 100dvh);
+  max-height: var(--visual-viewport-height, 100dvh);
+}
+
+html.keyboard-open [data-slot="sheet-header"] {
+  padding-top: 0.75rem;
+  padding-bottom: 0.35rem;
+}
+
+html.keyboard-open [data-slot="sheet-footer"] {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.ui-bevel {
+  background: var(--card);
+  border: 1px solid rgb(0 0 0 / 8%);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+}
+
+.ui-inset {
+  background: #fafafa;
+  border: 1px solid rgb(0 0 0 / 6%);
+  border-radius: 16px;
+  box-shadow: none;
+}
+
+.ui-titlebar {
+  background: transparent;
+  color: var(--foreground);
+  border-bottom: 0;
+}
+
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: #eef0f3;
+  color: #636366;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: none;
+}
+
+.ui-group {
+  overflow: hidden;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid rgb(0 0 0 / 8%);
+}
+
+.ui-group-row + .ui-group-row {
+  border-top: 1px solid rgb(0 0 0 / 8%);
+}
+
+.room-hero-scene {
+  position: relative;
+}
+
+.room-hero-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
+
+.room-hero {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  transform: translate3d(var(--hero-dx), var(--hero-dy), 0) scale(var(--hero-sx), var(--hero-sy));
+  will-change: transform;
+}
+
+.room-hero.is-animated {
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.room-hero.is-lifted {
+  transform: translate3d(0, 0, 0) scale(1, 1);
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.12));
+}
+
+.room-hero-panel {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #ffffff;
+  color: var(--card-foreground);
+  border: 1px solid rgb(0 0 0 / 8%);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 8%);
+}
+
+.room-hero-tasks {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.room-hero-tasks.is-revealed {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 150ms ease-out,
+    transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-hero,
+  .room-hero.is-animated,
+  .room-hero.is-lifted,
+  .room-hero-tasks,
+  .room-hero-tasks.is-revealed {
+    transition: none;
+    transform: none;
+    filter: none;
+    opacity: 1;
+  }
+}

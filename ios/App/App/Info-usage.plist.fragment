@@ -1,0 +1,7 @@
+<!-- Merge these keys into ios/App/App/Info.plist after `npx cap add ios`. -->
+<key>NSFaceIDUsageDescription</key>
+<string>Estrellita uses Face ID to unlock your home after each launch. Your chores stay hidden until you confirm it’s you.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Estrellita uses your location once during setup to pick weather and seasonal tasks. We store only a ZIP and coordinates rounded to two decimals.</string>
+<key>NSUserTrackingUsageDescription</key>
+<string></string>

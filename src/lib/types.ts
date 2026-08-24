@@ -1,0 +1,303 @@
+export type Frequency = "once" | "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+export type Priority = "low" | "medium" | "high";
+export type Effort = "small" | "medium" | "large";
+export type Audience = "me" | "cleaner" | "anyone";
+export type Mode = "owner" | "cleaner";
+export type Floor = string;
+export type DutyKind = "chore" | "replacement";
+export type DutyOrigin = "user" | "starter" | "playbook" | "weather";
+export type LifespanUnit = "days" | "months" | "years";
+export type Room = string;
+export type NodeType = "home" | "floor" | "room" | "asset";
+export type RoomType =
+  | "kitchen"
+  | "primary_bedroom"
+  | "bedroom"
+  | "bathroom"
+  | "living"
+  | "dining"
+  | "office"
+  | "laundry"
+  | "garage"
+  | "basement"
+  | "attic"
+  | "hallway"
+  | "closet"
+  | "patio"
+  | "other";
+export type AssetType =
+  | "hvac_system"
+  | "water_heater"
+  | "furnace"
+  | "refrigerator"
+  | "dishwasher"
+  | "range_oven"
+  | "microwave"
+  | "washer"
+  | "dryer"
+  | "garbage_disposal"
+  | "water_softener"
+  | "garage_door_opener"
+  | "roof"
+  | "exterior_paint"
+  | "interior_paint"
+  | "carpet"
+  | "hardwood_floor"
+  | "windows"
+  | "smoke_detector"
+  | "sump_pump"
+  | "pool_pump"
+  | "irrigation_system"
+  | "air_purifier"
+  | "evaporative_cooler"
+  | "hvac"
+  | "fridge"
+  | "other";
+export type AssetCondition = "good" | "fair" | "poor";
+export type SystemRoomKind = "whole-home" | "exterior";
+export type HomeType = "house" | "townhouse" | "condo" | "apartment" | "other";
+export type ClimateZone = "hot-arid" | "cold" | "humid-subtropical" | "marine" | "mixed";
+export type AuthProvider = "apple" | "passkey" | "magic-link";
+export type LockAfter = "immediate" | "2min" | "15min";
+export type HouseholdMemberRole = "owner" | "adult" | "child";
+export type PlaybookSeason = "spring" | "summer" | "fall" | "winter" | "monsoon" | "any";
+export type AgeBucket = "new" | "mid" | "old" | "unsure";
+
+export type HomeFloor = {
+  id: string;
+  name: string;
+  sortOrder: number;
+};
+
+export type HomeRoom = {
+  id: string;
+  floorId: string | null;
+  name: string;
+  type: RoomType;
+  sortOrder: number;
+  system?: SystemRoomKind;
+  tileW?: number;
+  tileH?: number;
+  tileX?: number;
+  tileY?: number;
+};
+
+export type HomeAsset = {
+  id: string;
+  roomId: string;
+  name: string;
+  type: AssetType;
+  installDate?: string;
+  purchasePrice?: number;
+  expectedLifeYears?: number;
+  replacementCostEstimate?: number;
+  condition?: AssetCondition;
+  notes?: string;
+};
+
+export type HomeLocation = {
+  lat?: number;
+  lng?: number;
+  postalCode?: string;
+  climateZone?: ClimateZone;
+};
+
+export type HomeAttributes = {
+  hasGarage: boolean;
+  hasYard: boolean;
+  hasPool: boolean;
+  hasIrrigation: boolean;
+  hasFireplace: boolean;
+  hasBasement: boolean;
+  hasAttic: boolean;
+  hasLaundry: boolean;
+  hasHomeOffice: boolean;
+  hasGutters: boolean;
+  hasSepticSystem: boolean;
+  hasWell: boolean;
+  hasSolar: boolean;
+  hasEvaporativeCooler: boolean;
+  roofType?: string;
+};
+
+export type Consumable = {
+  id: string;
+  assetId?: string;
+  nodeId: string;
+  nodeType: NodeType;
+  name: string;
+  intervalDays: number;
+  unitCost?: number;
+  lastPaidPrice?: number;
+  lastReplacedAt?: string;
+};
+
+export type Duty = {
+  id: string;
+  title: string;
+  notes: string;
+  room: Room;
+  nodeId: string;
+  nodeType: NodeType;
+  audience: Audience;
+  effort: Effort;
+  frequency: Frequency;
+  kind: DutyKind;
+  weekday: number;
+  monthDay: number;
+  dueDate: string | null;
+  priority: Priority;
+  createdAt: string;
+  archived: boolean;
+  estimatedCost?: number;
+  isDiy?: boolean;
+  laborCostEstimate?: number;
+  estimatedMinutes?: number;
+  origin?: DutyOrigin;
+  playbookId?: string;
+  weatherTriggerId?: string;
+  buyLocally?: boolean;
+};
+
+export type RestockState = "stocked" | "order_now" | "ordered";
+
+export type RestockDigestSettings = {
+  enabled: boolean;
+  weekday: number;
+  hour: number;
+  lastSentOn: string | null;
+  permissionAsked: boolean;
+};
+
+export type SupplyAutomation = {
+  id: string;
+  dutyId: string;
+  linkedDutyIds: string[];
+  room: Room;
+  nodeId: string;
+  nodeType: NodeType;
+  itemName: string;
+  sku: string;
+  asin: string;
+  amazonProductUrl: string;
+  amazonOneClick: boolean;
+  amazonNotes: string;
+  retailerUrl: string;
+  quantity: number;
+  onHand: number;
+  qtyPerOrder: number;
+  leadTimeDays: number;
+  installedAt: string;
+  lifespanValue: number;
+  lifespanUnit: LifespanUnit;
+  orderByDate: string;
+  nextOrderDate: string;
+  orderInFlight: boolean;
+  state: RestockState;
+  expectedArrivalDate: string | null;
+  createdAt: string;
+  unitCost?: number;
+  lastPaidPrice?: number;
+};
+
+export type SupplyAutomationInput = {
+  id?: string;
+  itemName: string;
+  sku?: string;
+  asin?: string;
+  amazonProductUrl?: string;
+  amazonOneClick?: boolean;
+  amazonNotes?: string;
+  retailerUrl?: string;
+  quantity?: number;
+  onHand?: number;
+  qtyPerOrder?: number;
+  leadTimeDays: number;
+  installedAt?: string;
+  lifespanValue?: number;
+  lifespanUnit?: LifespanUnit;
+  orderByDate?: string;
+  linkedDutyIds?: string[];
+};
+
+export type Completion = {
+  id: string;
+  dutyId: string;
+  actor: "me" | "cleaner";
+  visitId: string | null;
+  completedAt: string;
+};
+
+export type Visit = {
+  id: string;
+  cleanerName: string;
+  startedAt: string;
+  endedAt: string | null;
+};
+
+export type Account = {
+  appleUserId?: string;
+  email?: string;
+  emailHidden?: boolean;
+  providers: AuthProvider[];
+  passkeyPromptedAt?: string;
+};
+
+export type LockSettings = {
+  requireFaceId: boolean;
+  lockAfter: LockAfter;
+};
+
+export type PlaybookDecision = {
+  playbookId: string;
+  year: number;
+  declinedTaskKeys: string[];
+  disabled?: boolean;
+};
+
+export type WeatherFire = {
+  triggerId: string;
+  firedAt: string;
+};
+
+export type WeatherStatus = {
+  lastSuccessAt: string | null;
+  lastError: string | null;
+};
+
+export type Household = {
+  version: 7;
+  householdName: string;
+  ownerName: string;
+  cleanerName: string;
+  ownerPin: string;
+  onboarded: boolean;
+  mode: Mode;
+  activeVisitId: string | null;
+  homeId: string;
+  homeType: HomeType;
+  location: HomeLocation;
+  attributes: HomeAttributes;
+  floors: HomeFloor[];
+  rooms: HomeRoom[];
+  assets: HomeAsset[];
+  consumables: Consumable[];
+  duties: Duty[];
+  completions: Completion[];
+  visits: Visit[];
+  supplyAutomations: SupplyAutomation[];
+  playbookDecisions: PlaybookDecision[];
+  weatherFires: WeatherFire[];
+  weatherStatus: WeatherStatus;
+  account: Account;
+  lockSettings: LockSettings;
+  householdRole: HouseholdMemberRole;
+  restockDigest: RestockDigestSettings;
+};
+
+export type DutyDraft = Omit<Duty, "id" | "createdAt" | "archived"> & {
+  id?: string;
+  supplyAutomation?: SupplyAutomationInput | null;
+};
+
+export type Tab = "today" | "home" | "restock" | "budget" | "seasonal" | "settings";

@@ -1,0 +1,134 @@
+[
+  {
+    "id": "hard-freeze",
+    "name": "Hard freeze",
+    "condition": { "metric": "tempMinF", "op": "<", "value": 28, "withinDays": 3 },
+    "cooldownDays": 7,
+    "tasks": [
+      {
+        "title": "Cover faucets and drip outdoor taps",
+        "description": "Insulate hose bibs and let a trickle run on the most exposed line.",
+        "nodeType": "exterior",
+        "estimatedMinutes": 20,
+        "isDiy": true
+      },
+      {
+        "title": "Bring in plants",
+        "description": "Move pots inside or cover them before overnight freeze.",
+        "nodeType": "exterior",
+        "estimatedMinutes": 15,
+        "isDiy": true
+      },
+      {
+        "title": "Set pool and irrigation freeze mode",
+        "description": "Run freeze protect if you have a pool or irrigation controller.",
+        "nodeType": "exterior",
+        "estimatedMinutes": 10,
+        "isDiy": true
+      }
+    ]
+  },
+  {
+    "id": "heat-wave",
+    "name": "Heat wave",
+    "condition": { "metric": "tempMaxF", "op": ">", "value": 105, "withinDays": 3 },
+    "cooldownDays": 5,
+    "tasks": [
+      {
+        "title": "Check the AC filter",
+        "description": "A dirty filter during a 105° stretch is how compressors fail.",
+        "nodeType": "assetType",
+        "target": "hvac_system",
+        "estimatedMinutes": 10,
+        "isDiy": true,
+        "consumables": ["HVAC filter"]
+      },
+      {
+        "title": "Close shades on the sunny side",
+        "description": "Blackout or close west/south blinds before peak heat.",
+        "nodeType": "home",
+        "estimatedMinutes": 10,
+        "isDiy": true
+      },
+      {
+        "title": "Set out extra pet water",
+        "description": "Fresh water in the shade, indoors and out.",
+        "nodeType": "home",
+        "estimatedMinutes": 5,
+        "isDiy": true
+      }
+    ]
+  },
+  {
+    "id": "high-wind",
+    "name": "High wind",
+    "condition": { "metric": "windMph", "op": ">", "value": 40, "withinDays": 2 },
+    "cooldownDays": 4,
+    "tasks": [
+      {
+        "title": "Secure patio furniture",
+        "description": "Stack chairs, close umbrellas, and tie down anything that can fly.",
+        "nodeType": "exterior",
+        "estimatedMinutes": 15,
+        "isDiy": true
+      }
+    ]
+  },
+  {
+    "id": "heavy-rain",
+    "name": "Heavy rain",
+    "condition": { "metric": "precipIn", "op": ">", "value": 1, "withinDays": 1 },
+    "cooldownDays": 3,
+    "tasks": [
+      {
+        "title": "Clear drains and gutters",
+        "description": "Walk the yard and pull debris from scuppers before the rain hits.",
+        "nodeType": "exterior",
+        "estimatedMinutes": 20,
+        "isDiy": true
+      },
+      {
+        "title": "Check the sump pump",
+        "description": "Confirm the pump is plugged in and the pit is clear.",
+        "nodeType": "assetType",
+        "target": "sump_pump",
+        "estimatedMinutes": 10,
+        "isDiy": true
+      }
+    ]
+  },
+  {
+    "id": "poor-air",
+    "name": "Poor air quality",
+    "condition": { "metric": "aqi", "op": ">", "value": 150, "withinDays": 1 },
+    "cooldownDays": 3,
+    "tasks": [
+      {
+        "title": "Check air purifier and HVAC filters",
+        "description": "Replace if dirty and close windows. Recirculate indoor air.",
+        "nodeType": "assetType",
+        "target": "air_purifier",
+        "estimatedMinutes": 15,
+        "isDiy": true,
+        "consumables": ["Air purifier filter", "HVAC filter"]
+      }
+    ]
+  },
+  {
+    "id": "dust-advisory",
+    "name": "Dust advisory",
+    "condition": { "metric": "dustAdvisory", "op": ">=", "value": 1, "withinDays": 1 },
+    "cooldownDays": 3,
+    "tasks": [
+      {
+        "title": "Close vents and check filters",
+        "description": "Shut windows, set HVAC to recirculate, and inspect filters after the storm.",
+        "nodeType": "assetType",
+        "target": "hvac_system",
+        "estimatedMinutes": 15,
+        "isDiy": true,
+        "consumables": ["HVAC filter"]
+      }
+    ]
+  }
+]

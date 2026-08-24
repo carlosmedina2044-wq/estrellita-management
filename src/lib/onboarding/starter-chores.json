@@ -1,0 +1,13 @@
+[
+  { "title": "Wipe kitchen counters", "roomType": "kitchen", "frequency": "weekly", "estimatedMinutes": 10, "weekOffset": 0 },
+  { "title": "Clean bathrooms", "roomType": "bathroom", "frequency": "weekly", "estimatedMinutes": 25, "weekOffset": 0 },
+  { "title": "Check bathroom caulk", "roomType": "bathroom", "frequency": "quarterly", "estimatedMinutes": 10, "weekOffset": 2 },
+  { "title": "Vacuum / mop floors", "roomType": "living", "frequency": "weekly", "estimatedMinutes": 20, "weekOffset": 1 },
+  { "title": "Clean fridge coils", "assetType": "refrigerator", "frequency": "monthly", "estimatedMinutes": 20, "weekOffset": 2, "estimatedCost": 0 },
+  { "title": "Run garbage disposal with ice and citrus", "assetType": "garbage_disposal", "frequency": "monthly", "estimatedMinutes": 5, "weekOffset": 3 },
+  { "title": "Clean dryer vent", "assetType": "dryer", "frequency": "quarterly", "estimatedMinutes": 30, "weekOffset": 3 },
+  { "title": "Replace HVAC filter", "assetType": "hvac_system", "frequency": "quarterly", "estimatedMinutes": 10, "weekOffset": 1 },
+  { "title": "Test smoke detectors", "assetType": "smoke_detector", "frequency": "monthly", "estimatedMinutes": 10, "weekOffset": 0 },
+  { "title": "Wipe laundry machines", "roomType": "laundry", "frequency": "weekly", "estimatedMinutes": 10, "weekOffset": 2 },
+  { "title": "Sweep the garage", "roomType": "garage", "frequency": "monthly", "estimatedMinutes": 20, "weekOffset": 3 }
+]
