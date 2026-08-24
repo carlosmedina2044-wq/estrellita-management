@@ -1,12 +1,28 @@
 import { addCalendarMonths, addCalendarYears, addDays, parseISODate, startOfDay, toISODate } from "@/lib/dates";
 import { isDoneThisPeriod, isOverdue, lastCompletion, nextDueDate } from "@/lib/duties";
 import { retailerUrlFor } from "@/lib/retailer";
-import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, leadTimeDaysFor } from "@/lib/supply";
-import type { Completion, Duty, Household, SupplyAutomation } from "@/lib/types";
+import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, isOrdered, leadTimeDaysFor } from "@/lib/supply";
+import type { Completion, Duty, Frequency, Household, SupplyAutomation } from "@/lib/types";
 
 export const DEFAULT_REORDER_AT = 0;
 export const COMING_UP_DAYS = 21;
 export const ARRIVAL_GRACE_DAYS = 3;
+export const DEFAULT_SAFETY_BUFFER_DAYS = 7;
+/** Below this fraction of a full unit, a check-in answer of "Running low" applies. */
+export const CHECKIN_LEVELS = {
+  plenty: 1.0,
+  half: 0.5,
+  low: 0.2,
+  out: 0,
+} as const;
+export type CheckinLevel = keyof typeof CHECKIN_LEVELS;
+/** Don't re-ask for a check-in if the estimate was confirmed within this many days. */
+export const CHECKIN_STALE_DAYS = 30;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const MS_PER_DAY = 86_400_000;
+
+type RestockHousehold = Pick<Household, "duties" | "completions" | "restockSafetyBufferDays">;
 
 export function reorderAtFor(item: Pick<SupplyAutomation, "reorderAt"> | { reorderAt?: number }): number {
   const value = item.reorderAt;
@@ -21,6 +37,9 @@ export type RestockPlacement = {
   nudgeArrive: boolean;
   nextNeedDate: string | null;
   orderByDate: string | null;
+  dutyOrderByDate: string | null;
+  runwayDays: number | null;
+  estimatedLevelFraction: number | null;
 };
 
 function dateFromISO(value: string): Date {
@@ -47,7 +66,7 @@ export type PartStatus = {
 
 export function partStatusForDuty(
   duty: Duty,
-  household: Pick<Household, "duties" | "completions" | "supplyAutomations">,
+  household: Pick<Household, "duties" | "completions" | "supplyAutomations" | "restockSafetyBufferDays">,
   now = new Date(),
 ): PartStatus | null {
   if (duty.kind !== "replacement") return null;
@@ -190,43 +209,306 @@ export function runwayFor(
   return { nextNeedDate: fallbackNeed, orderByDate, upcomingDates: upcoming };
 }
 
+function isISODate(value: unknown): value is string {
+  return typeof value === "string" && ISO_DATE.test(value);
+}
+
+function wholeDaysBetween(fromISO: string, now: Date): number {
+  return Math.max(0, Math.round((startOfDay(now) - parseISODate(fromISO)) / MS_PER_DAY));
+}
+
+function storedRate(value: number): number | undefined {
+  if (!Number.isFinite(value) || value <= 0) return undefined;
+  const rounded = Math.round(value * 10_000) / 10_000;
+  if (rounded <= 0) return undefined;
+  return Math.min(100, rounded);
+}
+
+function earlierISO(a: string | null, b: string | null): string | null {
+  if (!a) return b;
+  if (!b) return a;
+  return a <= b ? a : b;
+}
+
+function cadenceDaysFor(frequency: Frequency): number | null {
+  switch (frequency) {
+    case "daily":
+      return 1;
+    case "weekly":
+      return 7;
+    case "monthly":
+      return 30;
+    case "quarterly":
+      return 90;
+    case "yearly":
+      return 365;
+    default:
+      return null;
+  }
+}
+
+export function safetyBufferDaysFor(
+  household: Pick<Household, "restockSafetyBufferDays">,
+): number {
+  const value = household.restockSafetyBufferDays;
+  if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_SAFETY_BUFFER_DAYS;
+  return Math.min(30, Math.max(0, Math.round(value)));
+}
+
+export function lifespanDaysFor(
+  item: Pick<SupplyAutomation, "lifespanValue" | "lifespanUnit">,
+): number | null {
+  const value = item.lifespanValue;
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return null;
+  if (item.lifespanUnit === "days") return value;
+  if (item.lifespanUnit === "months") return value * 30;
+  if (item.lifespanUnit === "years") return value * 365;
+  return null;
+}
+
+export type RateSource = "observed" | "duty" | "lifespan" | "none";
+
+export function ratePerDayFor(
+  item: SupplyAutomation,
+  household: Pick<Household, "duties">,
+): { rate: number; source: RateSource } | null {
+  const current = normalizeConsumable(item);
+  const observed = current.observedRatePerDay;
+  if (typeof observed === "number" && Number.isFinite(observed) && observed > 0) {
+    return { rate: observed, source: "observed" };
+  }
+
+  let shortest: number | null = null;
+  for (const dutyId of linkedDutyIdsFor(current)) {
+    const duty = household.duties.find((entry) => entry.id === dutyId);
+    if (!duty) continue;
+    const days = cadenceDaysFor(duty.frequency);
+    if (days == null) continue;
+    if (shortest == null || days < shortest) shortest = days;
+  }
+  if (shortest != null && shortest > 0) {
+    return { rate: 1 / shortest, source: "duty" };
+  }
+
+  const lifespanDays = lifespanDaysFor(current);
+  if (lifespanDays != null && lifespanDays > 0) {
+    return { rate: 1 / lifespanDays, source: "lifespan" };
+  }
+
+  return null;
+}
+
+export function anchorLevelFor(
+  item: SupplyAutomation,
+  now = new Date(),
+): { level: number; atISO: string } | null {
+  const current = normalizeConsumable(item);
+  const today = toISODate(now);
+  const confirmedLevel = current.lastConfirmedLevel;
+  const confirmedAt = current.lastConfirmedAt;
+  if (
+    typeof confirmedLevel === "number" &&
+    Number.isFinite(confirmedLevel) &&
+    confirmedLevel >= 0 &&
+    isISODate(confirmedAt)
+  ) {
+    return { level: confirmedLevel, atISO: confirmedAt > today ? today : confirmedAt };
+  }
+  if (
+    current.onHand > 0 &&
+    isISODate(current.installedAt) &&
+    linkedDutyIdsFor(current).length === 0
+  ) {
+    return { level: current.onHand, atISO: current.installedAt > today ? today : current.installedAt };
+  }
+  if (current.onHand > 0) {
+    return { level: current.onHand, atISO: today };
+  }
+  return { level: 0, atISO: today };
+}
+
+export function estimatedLevel(
+  item: SupplyAutomation,
+  household: Pick<Household, "duties">,
+  now = new Date(),
+): number | null {
+  const anchor = anchorLevelFor(item, now);
+  if (anchor == null) return null;
+  const rate = ratePerDayFor(item, household);
+  if (rate == null) return Math.round(anchor.level * 100) / 100;
+  const days = wholeDaysBetween(anchor.atISO, now);
+  const level = Math.max(0, anchor.level - rate.rate * days);
+  return Math.round(level * 100) / 100;
+}
+
+export function runwayDaysFor(
+  item: SupplyAutomation,
+  household: Pick<Household, "duties">,
+  now = new Date(),
+): number | null {
+  const level = estimatedLevel(item, household, now);
+  const rate = ratePerDayFor(item, household);
+  if (level == null || rate == null) return null;
+  if (level === 0 || rate.rate <= 0) return 0;
+  return Math.floor(level / rate.rate);
+}
+
+export function rateBasedOrderByDate(
+  item: SupplyAutomation,
+  household: Pick<Household, "duties" | "restockSafetyBufferDays">,
+  now = new Date(),
+): string | null {
+  const runway = runwayDaysFor(item, household, now);
+  if (runway == null) return null;
+  const runOutDate = addDays(now, runway);
+  return toISODate(addDays(runOutDate, -(leadTimeDaysFor(item) + safetyBufferDaysFor(household))));
+}
+
+export function applyCheckin(
+  item: SupplyAutomation,
+  level: CheckinLevel,
+  household: Pick<Household, "duties">,
+  now = new Date(),
+): SupplyAutomation {
+  const current = normalizeConsumable(item);
+  const predicted = estimatedLevel(current, household, now);
+  const pack = Math.max(1, Math.round(current.onHand) || 1);
+  const confirmedLevel =
+    level === "plenty" ? pack : level === "out" ? 0 : CHECKIN_LEVELS[level] * pack;
+
+  let observedRatePerDay = current.observedRatePerDay;
+  const rate = ratePerDayFor(current, household);
+  const anchor = anchorLevelFor(current, now);
+  const daysElapsed = anchor ? Math.max(1, wholeDaysBetween(anchor.atISO, now)) : 0;
+  const canLearn =
+    predicted != null &&
+    anchor != null &&
+    wholeDaysBetween(anchor.atISO, now) >= 7 &&
+    rate != null &&
+    (rate.source === "observed" || rate.source === "lifespan");
+  if (canLearn && rate) {
+    const actualConsumed = Math.max(0, anchor.level - confirmedLevel);
+    const impliedRate = actualConsumed / daysElapsed;
+    const blended =
+      impliedRate > 0 ? rate.rate * 0.5 + impliedRate * 0.5 : rate.rate * 0.75;
+    observedRatePerDay = storedRate(blended) ?? observedRatePerDay;
+  }
+
+  return normalizeConsumable({
+    ...current,
+    lastConfirmedLevel: confirmedLevel,
+    lastConfirmedAt: toISODate(now),
+    observedRatePerDay,
+    ...(level === "out" ? { onHand: 0 } : {}),
+  });
+}
+
+export function checkinDue(
+  item: SupplyAutomation,
+  household: Pick<Household, "duties" | "completions" | "restockSafetyBufferDays">,
+  now = new Date(),
+): boolean {
+  const current = normalizeConsumable(item);
+  if (isOrdered(current)) return false;
+  const rate = ratePerDayFor(current, household);
+  if (rate == null || (rate.source !== "observed" && rate.source !== "lifespan")) return false;
+  const runway = runwayDaysFor(current, household, now);
+  const threshold = 2 * (leadTimeDaysFor(current) + safetyBufferDaysFor(household));
+  if (runway == null || runway > threshold) return false;
+  const anchor = anchorLevelFor(current, now);
+  if (anchor == null) return false;
+  const neverConfirmed = !isISODate(current.lastConfirmedAt);
+  const stale = wholeDaysBetween(anchor.atISO, now) > CHECKIN_STALE_DAYS;
+  return neverConfirmed || stale;
+}
+
+export function updateObservedRateOnReceive(
+  item: SupplyAutomation,
+  now = new Date(),
+): Pick<SupplyAutomation, "observedRatePerDay"> | Record<string, never> {
+  const current = normalizeConsumable(item);
+  if (!isISODate(current.lastConfirmedAt)) return {};
+  const daysBetween = wholeDaysBetween(current.lastConfirmedAt, now);
+  if (daysBetween < 7) return {};
+  const confirmed = current.lastConfirmedLevel;
+  if (typeof confirmed !== "number" || !Number.isFinite(confirmed) || confirmed <= 0) return {};
+  const impliedRate = confirmed / daysBetween;
+  const existing = current.observedRatePerDay;
+  const blended =
+    typeof existing === "number" && Number.isFinite(existing) && existing > 0
+      ? existing * 0.5 + impliedRate * 0.5
+      : impliedRate;
+  const stored = storedRate(blended);
+  if (stored == null) return {};
+  return { observedRatePerDay: stored };
+}
+
+function placementExtras(
+  item: SupplyAutomation,
+  household: Pick<Household, "duties">,
+  now: Date,
+): { runwayDays: number | null; estimatedLevelFraction: number | null } {
+  const current = normalizeConsumable(item);
+  const level = estimatedLevel(current, household, now);
+  const runwayDays = runwayDaysFor(current, household, now);
+  if (level == null) return { runwayDays, estimatedLevelFraction: null };
+  const confirmed =
+    typeof current.lastConfirmedLevel === "number" && Number.isFinite(current.lastConfirmedLevel)
+      ? current.lastConfirmedLevel
+      : 0;
+  const fullLevel = Math.max(1, current.onHand, confirmed);
+  return {
+    runwayDays,
+    estimatedLevelFraction: Math.min(1, Math.max(0, level / fullLevel)),
+  };
+}
+
 export function restockPlacement(
   item: SupplyAutomation,
-  household: Pick<Household, "duties" | "completions">,
+  household: RestockHousehold,
   now = new Date(),
 ): RestockPlacement {
   const current = normalizeConsumable(item);
   const runway = runwayFor(current, household, now);
+  const extras = placementExtras(current, household, now);
   const today = toISODate(now);
+  const dutyOrderByDate = runway.orderByDate;
+  const base = { ...runway, dutyOrderByDate, ...extras };
 
   if (current.state === "ordered" && current.expectedArrivalDate) {
     const resurface = toISODate(addDays(dateFromISO(current.expectedArrivalDate), ARRIVAL_GRACE_DAYS));
     if (today <= resurface) {
-      return { bucket: "ordered", nudgeArrive: false, ...runway };
+      return { bucket: "ordered", nudgeArrive: false, ...base };
     }
-    return { bucket: "order_now", nudgeArrive: true, ...runway };
+    return { bucket: "order_now", nudgeArrive: true, ...base };
   }
 
-  if (current.onHand <= reorderAtFor(current)) {
-    return { bucket: "order_now", nudgeArrive: false, ...runway };
+  const rate = ratePerDayFor(current, household);
+  const explicitReorder = typeof item.reorderAt === "number" && item.reorderAt > 0;
+  const rateOrderBy = rateBasedOrderByDate(current, household, now);
+  const effectiveOrderBy = earlierISO(rateOrderBy, dutyOrderByDate);
+  const placed = { ...base, orderByDate: effectiveOrderBy };
+
+  if ((explicitReorder || rate == null) && current.onHand <= reorderAtFor(current)) {
+    return { bucket: "order_now", nudgeArrive: false, ...placed };
   }
 
-  if (!runway.orderByDate) {
-    return { bucket: "stocked", nudgeArrive: false, ...runway };
+  if (!effectiveOrderBy) {
+    return { bucket: "stocked", nudgeArrive: false, ...placed };
   }
-  if (runway.orderByDate <= today) {
-    return { bucket: "order_now", nudgeArrive: false, ...runway };
+  if (effectiveOrderBy <= today) {
+    return { bucket: "order_now", nudgeArrive: false, ...placed };
   }
   const soon = toISODate(addDays(now, COMING_UP_DAYS));
-  if (runway.orderByDate <= soon) {
-    return { bucket: "coming_up", nudgeArrive: false, ...runway };
+  if (effectiveOrderBy <= soon) {
+    return { bucket: "coming_up", nudgeArrive: false, ...placed };
   }
-  return { bucket: "stocked", nudgeArrive: false, ...runway };
+  return { bucket: "stocked", nudgeArrive: false, ...placed };
 }
 
 export function groupRestock(
   items: SupplyAutomation[],
-  household: Pick<Household, "duties" | "completions">,
+  household: RestockHousehold,
   now = new Date(),
 ): Record<RestockBucket, SupplyAutomation[]> {
   const groups: Record<RestockBucket, SupplyAutomation[]> = {
@@ -262,7 +544,7 @@ export function orderNowCostCaption(items: SupplyAutomation[]): string | null {
 
 export function digestCandidates(
   items: SupplyAutomation[],
-  household: Pick<Household, "duties" | "completions">,
+  household: RestockHousehold,
   now = new Date(),
 ): SupplyAutomation[] {
   const today = toISODate(now);
@@ -309,6 +591,7 @@ export type RestockFlowHandlers = {
   onNeverCame?: (id: string) => void;
   onChangeArrival?: (id: string, date: string) => void;
   onApplyLeadTime?: (id: string, days: number) => void;
+  onCheckin?: (id: string, level: CheckinLevel) => void;
 };
 
 export const ARRIVAL_OFFSETS = [
@@ -330,9 +613,11 @@ export function receiveConsumable(item: SupplyAutomation, qty: number, now = new
   const current = normalizeConsumable(item);
   const amount = Math.max(1, Math.round(qty) || current.qtyPerOrder);
   const observed = observedLeadTimeDays(current, now);
+  const learnedRate = updateObservedRateOnReceive(current, now);
+  const newLevel = current.onHand + amount;
   return {
     ...current,
-    onHand: current.onHand + amount,
+    onHand: newLevel,
     qtyPerOrder: amount,
     quantity: amount,
     state: "stocked",
@@ -341,6 +626,9 @@ export function receiveConsumable(item: SupplyAutomation, qty: number, now = new
     observedLeadTimeDays: observed ?? current.observedLeadTimeDays,
     orderedAt: undefined,
     orderedQty: undefined,
+    ...learnedRate,
+    lastConfirmedLevel: newLevel,
+    lastConfirmedAt: toISODate(now),
   };
 }
 
@@ -400,14 +688,26 @@ export function changeArrivalDate(item: SupplyAutomation, expectedArrivalDate: s
   };
 }
 
-export function consumeLinkedUnit(item: SupplyAutomation): SupplyAutomation {
+export function consumeLinkedUnit(item: SupplyAutomation, now = new Date()): SupplyAutomation {
   const current = normalizeConsumable(item);
-  return { ...current, onHand: Math.max(0, current.onHand - 1) };
+  const onHand = Math.max(0, current.onHand - 1);
+  return {
+    ...current,
+    onHand,
+    lastConfirmedLevel: onHand,
+    lastConfirmedAt: toISODate(now),
+  };
 }
 
-export function restoreLinkedUnit(item: SupplyAutomation): SupplyAutomation {
+export function restoreLinkedUnit(item: SupplyAutomation, now = new Date()): SupplyAutomation {
   const current = normalizeConsumable(item);
-  return { ...current, onHand: current.onHand + 1 };
+  const onHand = current.onHand + 1;
+  return {
+    ...current,
+    onHand,
+    lastConfirmedLevel: onHand,
+    lastConfirmedAt: toISODate(now),
+  };
 }
 
 export function saveRetailerLink(item: SupplyAutomation, url: string): SupplyAutomation {

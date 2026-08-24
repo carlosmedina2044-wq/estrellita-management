@@ -26,7 +26,7 @@ import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved-retailer-field";
 import { sizePlaceholder } from "@/lib/item-label";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
-import type { RestockFlowHandlers } from "@/lib/restock";
+import { ratePerDayFor, type RestockFlowHandlers } from "@/lib/restock";
 import type { Duty, DutyDraft, Household, Room, SupplyAutomation } from "@/lib/types";
 
 type Draft = {
@@ -242,6 +242,7 @@ export function ConsumableForm({
               className="h-12"
             />
           </Field>
+          {automation ? <EstimatedUseLine item={automation} household={household} /> : null}
           {automation ? (
             <RestockOrderButton
               item={automation}
@@ -284,5 +285,23 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
       {children}
     </div>
+  );
+}
+
+function EstimatedUseLine({
+  item,
+  household,
+}: {
+  item: SupplyAutomation;
+  household: Household;
+}) {
+  const resolved = ratePerDayFor(item, household);
+  if (!resolved) return null;
+  const n = Math.max(1, Math.round(1 / resolved.rate));
+  return (
+    <p className="text-[13px] text-muted-foreground">
+      Estimated use: about 1 every {n} days
+      {resolved.source === "observed" ? " (learned from your orders)" : ""}
+    </p>
   );
 }

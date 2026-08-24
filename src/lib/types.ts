@@ -214,6 +214,12 @@ export type SupplyAutomation = {
   orderedAt?: string;
   orderedQty?: number;
   observedLeadTimeDays?: number;
+  /** Last user- or system-confirmed inventory level, in units. Fractional allowed (0.5 = half a container). */
+  lastConfirmedLevel?: number;
+  /** ISO date (YYYY-MM-DD) when lastConfirmedLevel was confirmed. */
+  lastConfirmedAt?: string;
+  /** Learned consumption rate in units per day, from observed purchase intervals. */
+  observedRatePerDay?: number;
 };
 
 export type SupplyAutomationInput = {
@@ -331,6 +337,8 @@ export type Household = {
   lockSettings: LockSettings;
   householdRole: HouseholdMemberRole;
   restockDigest: RestockDigestSettings;
+  /** Days of slack added to lead time before an item surfaces in Order now. Default 7. */
+  restockSafetyBufferDays?: number;
 };
 
 export type DutyDraft = Omit<Duty, "id" | "createdAt" | "archived"> & {

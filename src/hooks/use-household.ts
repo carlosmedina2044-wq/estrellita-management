@@ -30,6 +30,7 @@ import { requestNotifyPermission } from "@/lib/notifications";
 import { rememberRetailerLink } from "@/lib/retailer";
 import {
   applyLearnedLeadTime,
+  applyCheckin,
   changeArrivalDate,
   consumeLinkedUnit,
   defaultConsumableFields,
@@ -40,6 +41,7 @@ import {
   restoreLinkedUnit,
   saveRetailerLink,
   stillWaitingConsumable,
+  type CheckinLevel,
   type MarkOrderedDetails,
 } from "@/lib/restock";
 import type { RestockDigestSettings } from "@/lib/types";
@@ -175,6 +177,18 @@ export function useHousehold() {
         };
         return paid != null ? applyReceivedPrice(received, id, paid) : received;
       });
+    },
+    [update],
+  );
+
+  const checkinSupply = useCallback(
+    (id: string, level: CheckinLevel) => {
+      update((current) => ({
+        ...current,
+        supplyAutomations: current.supplyAutomations.map((item) =>
+          item.id === id ? applyCheckin(item, level, current) : item,
+        ),
+      }));
     },
     [update],
   );
@@ -585,6 +599,7 @@ export function useHousehold() {
     saveDuty,
     markSupplyOrdered,
     markSupplyReceived,
+    checkinSupply,
     saveSupplyLink,
     preferSupplyRetailer,
     stillWaitingSupply,

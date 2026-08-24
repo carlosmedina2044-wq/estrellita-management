@@ -85,7 +85,7 @@ export function RestockOrderButton({
   onPickerOpenChange,
 }: {
   item: SupplyAutomation;
-  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers">;
+  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers" | "restockSafetyBufferDays">;
   onOrdered?: (details: MarkOrderedDetails) => void;
   onReceived?: (qty: number, paid?: number) => void;
   onSaveLink?: (url: string) => void;
@@ -610,7 +610,7 @@ export function OrderByLine({
   household,
 }: {
   item: SupplyAutomation;
-  household: Pick<Household, "duties" | "completions">;
+  household: Pick<Household, "duties" | "completions" | "restockSafetyBufferDays">;
 }) {
   const placement = restockPlacement(item, household);
   if (placement.bucket === "ordered" && item.expectedArrivalDate) {

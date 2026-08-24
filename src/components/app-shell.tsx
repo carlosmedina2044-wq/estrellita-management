@@ -41,6 +41,7 @@ export function AppShell() {
     saveDuty,
     markSupplyOrdered,
     markSupplyReceived,
+    checkinSupply,
     saveSupplyLink,
     preferSupplyRetailer,
     stillWaitingSupply,
@@ -295,6 +296,7 @@ export function AppShell() {
     onNeverCame: neverCameSupply,
     onChangeArrival: changeSupplyArrival,
     onApplyLeadTime: applySupplyLeadTime,
+    onCheckin: checkinSupply,
   };
 
   return (

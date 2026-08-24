@@ -1,21 +1,30 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { addDays, toISODate } from "@/lib/dates";
 import { digestCopy, shouldSendDigest } from "@/lib/digest";
 import { expectedArrivalFor } from "@/lib/supply";
+import { openBackup, sealBackup } from "@/lib/backup";
+import { parseStored } from "@/lib/storage";
 import {
+  applyCheckin,
   applyLearnedLeadTime,
   changeArrivalDate,
+  checkinDue,
   closestArrivalOffset,
   consumeLinkedUnit,
   digestCandidates,
+  estimatedLevel,
   groupRestock,
   markConsumableOrdered,
   orderNowCostCaption,
   neverCameConsumable,
   observedLeadTimeDays,
   partStatusForDuty,
+  rateBasedOrderByDate,
+  ratePerDayFor,
   receiveConsumable,
   restockPlacement,
+  runwayDaysFor,
   runwayFor,
   shouldOfferLeadTime,
   stillWaitingConsumable,
@@ -397,4 +406,291 @@ test("order now tile sums known prices and prefixes at least when some are missi
     "at least ~$18",
   );
   assert.equal(orderNowCostCaption([item()]), null);
+});
+
+const modelNow = new Date(2026, 7, 24);
+const emptyDuties = { duties: [] as Duty[], completions: [] };
+
+function daysAgo(days: number, from = modelNow): string {
+  return toISODate(addDays(from, -days));
+}
+
+function continuous(partial: Partial<SupplyAutomation> = {}): SupplyAutomation {
+  return item({
+    dutyId: "",
+    linkedDutyIds: [],
+    onHand: 1,
+    reorderAt: 0,
+    installedAt: toISODate(modelNow),
+    lastConfirmedLevel: 1,
+    lastConfirmedAt: toISODate(modelNow),
+    orderByDate: "",
+    nextOrderDate: "",
+    ...partial,
+  });
+}
+
+test("rate ladder prefers observed, then duty cadence, then lifespan", () => {
+  assert.deepEqual(ratePerDayFor(continuous({ observedRatePerDay: 0.05 }), emptyDuties), {
+    rate: 0.05,
+    source: "observed",
+  });
+  const monthly = duty({ id: "d-monthly", title: "Add salt", frequency: "monthly" });
+  assert.deepEqual(
+    ratePerDayFor(item({ dutyId: "d-monthly", linkedDutyIds: ["d-monthly"] }), { duties: [monthly] }),
+    { rate: 1 / 30, source: "duty" },
+  );
+  assert.deepEqual(
+    ratePerDayFor(continuous({ lastConfirmedLevel: undefined, lifespanValue: 2, lifespanUnit: "months" }), emptyDuties),
+    { rate: 1 / 60, source: "lifespan" },
+  );
+  assert.equal(
+    ratePerDayFor(
+      continuous({ lastConfirmedLevel: undefined, lifespanValue: 0, lifespanUnit: "months" }),
+      emptyDuties,
+    ),
+    null,
+  );
+});
+
+test("depletion math: confirmed 1 unit 30 days ago with 60-day lifespan", () => {
+  const soap = continuous({
+    lastConfirmedLevel: 1,
+    lastConfirmedAt: daysAgo(30),
+    lifespanValue: 60,
+    lifespanUnit: "days",
+  });
+  assert.equal(estimatedLevel(soap, emptyDuties, modelNow), 0.5);
+  assert.equal(runwayDaysFor(soap, emptyDuties, modelNow), 30);
+});
+
+test("anchor fallback uses onHand at installedAt when nothing is confirmed", () => {
+  const soap = item({
+    dutyId: "",
+    linkedDutyIds: [],
+    onHand: 2,
+    installedAt: daysAgo(15),
+    lifespanValue: 30,
+    lifespanUnit: "days",
+    orderByDate: "",
+    nextOrderDate: "",
+  });
+  assert.equal(estimatedLevel(soap, emptyDuties, modelNow), 1.5);
+});
+
+test("order now fires when runway equals lead time plus the safety buffer", () => {
+  const detergent = continuous({
+    onHand: 1,
+    reorderAt: 0,
+    leadTimeDays: 14,
+    lifespanValue: 21,
+    lifespanUnit: "days",
+  });
+  assert.equal(rateBasedOrderByDate(detergent, emptyDuties, modelNow), toISODate(modelNow));
+  const placement = restockPlacement(detergent, emptyDuties, modelNow);
+  assert.equal(placement.bucket, "order_now");
+  assert.equal(detergent.onHand, 1);
+});
+
+test("placement uses the earlier of duty and rate order-by dates", () => {
+  const monthlyDuty = duty({ id: "d-merge1", title: "Add salt", frequency: "monthly", monthDay: 1 });
+  const ctx = { duties: [monthlyDuty], completions: [], restockSafetyBufferDays: 0 };
+  const shared = {
+    dutyId: "d-merge1",
+    linkedDutyIds: ["d-merge1"],
+    onHand: 1,
+    reorderAt: 0,
+    leadTimeDays: 0,
+    lastConfirmedLevel: 1,
+    lastConfirmedAt: toISODate(modelNow),
+    installedAt: toISODate(modelNow),
+  };
+  const rateEarlier = restockPlacement(item({ ...shared, observedRatePerDay: 1 / 28 }), ctx, modelNow);
+  assert.equal(rateEarlier.orderByDate, "2026-09-21");
+  assert.equal(rateEarlier.dutyOrderByDate, "2026-10-01");
+  const dutyEarlier = restockPlacement(item({ ...shared, observedRatePerDay: 1 / 200 }), ctx, modelNow);
+  assert.equal(dutyEarlier.orderByDate, "2026-10-01");
+});
+
+test("long runway stays stocked and reports gauge extras", () => {
+  const stocked = continuous({
+    leadTimeDays: 14,
+    lifespanValue: 90,
+    lifespanUnit: "days",
+  });
+  const placement = restockPlacement(stocked, emptyDuties, modelNow);
+  assert.equal(placement.bucket, "stocked");
+  assert.equal(placement.runwayDays, 90);
+  assert.ok(placement.estimatedLevelFraction != null);
+  assert.ok(Math.abs(placement.estimatedLevelFraction - 1) < 0.01);
+});
+
+test("check-in to half recalibrates level and blends the observed rate", () => {
+  const before = continuous({
+    lastConfirmedLevel: 1,
+    lastConfirmedAt: daysAgo(20),
+    observedRatePerDay: 0.015,
+  });
+  assert.equal(estimatedLevel(before, emptyDuties, modelNow), 0.7);
+  const after = applyCheckin(before, "half", emptyDuties, modelNow);
+  assert.equal(after.lastConfirmedLevel, 0.5);
+  assert.equal(after.lastConfirmedAt, toISODate(modelNow));
+  assert.equal(after.observedRatePerDay, 0.02);
+});
+
+test("check-in plenty slows the rate and never stores zero", () => {
+  const before = continuous({
+    lastConfirmedLevel: 1,
+    lastConfirmedAt: daysAgo(30),
+    observedRatePerDay: 0.02,
+  });
+  assert.equal(estimatedLevel(before, emptyDuties, modelNow), 0.4);
+  const after = applyCheckin(before, "plenty", emptyDuties, modelNow);
+  assert.equal(after.lastConfirmedLevel, 1);
+  assert.equal(after.onHand, 1);
+  assert.equal(after.observedRatePerDay, 0.015);
+  assert.ok((after.observedRatePerDay ?? 0) > 0);
+});
+
+test("receiving an order learns cadence from the previous confirmation", () => {
+  const before = continuous({
+    onHand: 0,
+    lastConfirmedLevel: 1,
+    lastConfirmedAt: daysAgo(45),
+  });
+  const received = receiveConsumable(before, 1, modelNow);
+  assert.equal(received.observedRatePerDay, 0.0222);
+  assert.equal(received.lastConfirmedLevel, 1);
+  assert.equal(received.lastConfirmedAt, toISODate(modelNow));
+  assert.equal(received.onHand, 1);
+});
+
+test("checkinDue only when approaching the decision zone with a stale lifespan or observed rate", () => {
+  const due = continuous({
+    lastConfirmedAt: daysAgo(31),
+    lastConfirmedLevel: 1,
+    observedRatePerDay: 1 / 40,
+    leadTimeDays: 14,
+  });
+  assert.equal(checkinDue(due, emptyDuties, modelNow), true);
+
+  const ordered = markConsumableOrdered(due, { expectedArrivalDate: "2026-09-01", qty: 1 }, modelNow);
+  assert.equal(checkinDue(ordered, emptyDuties, modelNow), false);
+
+  const monthlyDuty = duty({ id: "d-checkin", title: "Add salt", frequency: "monthly" });
+  const dutySourced = item({
+    dutyId: "d-checkin",
+    linkedDutyIds: ["d-checkin"],
+    onHand: 1,
+    lastConfirmedLevel: 1,
+    lastConfirmedAt: daysAgo(31),
+  });
+  assert.equal(checkinDue(dutySourced, { duties: [monthlyDuty], completions: [] }, modelNow), false);
+
+  const recent = continuous({
+    lastConfirmedAt: daysAgo(5),
+    lastConfirmedLevel: 1,
+    observedRatePerDay: 1 / 40,
+    leadTimeDays: 14,
+  });
+  assert.equal(checkinDue(recent, emptyDuties, modelNow), false);
+});
+
+test("every placement bucket includes runwayDays and estimatedLevelFraction", () => {
+  const ordered = markConsumableOrdered(continuous({ onHand: 0 }), {
+    expectedArrivalDate: "2026-09-01",
+    qty: 1,
+  }, modelNow);
+  const coming = continuous({
+    leadTimeDays: 14,
+    lifespanValue: 30,
+    lifespanUnit: "days",
+  });
+  const stocked = continuous({
+    leadTimeDays: 14,
+    lifespanValue: 90,
+    lifespanUnit: "days",
+  });
+  const nowItem = continuous({
+    leadTimeDays: 14,
+    lifespanValue: 21,
+    lifespanUnit: "days",
+  });
+  for (const entry of [ordered, coming, stocked, nowItem]) {
+    const placement = restockPlacement(entry, emptyDuties, modelNow);
+    assert.equal("runwayDays" in placement, true);
+    assert.equal("estimatedLevelFraction" in placement, true);
+  }
+  assert.equal(restockPlacement(ordered, emptyDuties, modelNow).bucket, "ordered");
+  assert.equal(restockPlacement(coming, emptyDuties, modelNow).bucket, "coming_up");
+  assert.equal(restockPlacement(stocked, emptyDuties, modelNow).bucket, "stocked");
+  assert.equal(restockPlacement(nowItem, emptyDuties, modelNow).bucket, "order_now");
+});
+
+test("migration drops garbage inventory fields; valid values survive backup restore", async () => {
+  const garbage = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      restockSafetyBufferDays: "nope",
+      duties: [
+        {
+          id: "duty-inv1",
+          title: "Filter",
+          room: "kitchen",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      supplyAutomations: [
+        {
+          id: "sup-inv01",
+          dutyId: "duty-inv1",
+          itemName: "Soap",
+          lastConfirmedLevel: "lots",
+          lastConfirmedAt: "yesterday",
+          observedRatePerDay: -3,
+        },
+      ],
+    }),
+  );
+  const bad = garbage.supplyAutomations[0];
+  assert.equal(bad?.lastConfirmedLevel, undefined);
+  assert.equal(bad?.lastConfirmedAt, undefined);
+  assert.equal(bad?.observedRatePerDay, undefined);
+  assert.equal(garbage.restockSafetyBufferDays, undefined);
+
+  const valid = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      restockSafetyBufferDays: 10,
+      duties: [
+        {
+          id: "duty-inv2",
+          title: "Filter",
+          room: "kitchen",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+      supplyAutomations: [
+        {
+          id: "sup-inv02",
+          dutyId: "duty-inv2",
+          itemName: "Soap",
+          lastConfirmedLevel: 0.5,
+          lastConfirmedAt: "2026-08-01",
+          observedRatePerDay: 0.05,
+        },
+      ],
+    }),
+  );
+  assert.equal(valid.restockSafetyBufferDays, 10);
+  assert.equal(valid.supplyAutomations[0]?.lastConfirmedLevel, 0.5);
+  assert.equal(valid.supplyAutomations[0]?.lastConfirmedAt, "2026-08-01");
+  assert.equal(valid.supplyAutomations[0]?.observedRatePerDay, 0.05);
+
+  const file = await sealBackup(JSON.stringify(valid), "correct horse");
+  const restored = parseStored(await openBackup(file, "correct horse"));
+  assert.equal(restored.restockSafetyBufferDays, 10);
+  assert.equal(restored.supplyAutomations[0]?.lastConfirmedLevel, 0.5);
+  assert.equal(restored.supplyAutomations[0]?.lastConfirmedAt, "2026-08-01");
+  assert.equal(restored.supplyAutomations[0]?.observedRatePerDay, 0.05);
 });

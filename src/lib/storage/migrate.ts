@@ -264,6 +264,21 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     orderedQty: raw.orderedQty !== undefined ? asInt(raw.orderedQty, 1, 1, 99) : undefined,
     observedLeadTimeDays:
       raw.observedLeadTimeDays !== undefined ? asInt(raw.observedLeadTimeDays, 0, 0, 90) : undefined,
+    lastConfirmedLevel:
+      typeof raw.lastConfirmedLevel === "number" &&
+      Number.isFinite(raw.lastConfirmedLevel) &&
+      raw.lastConfirmedLevel >= 0 &&
+      raw.lastConfirmedLevel <= 999
+        ? raw.lastConfirmedLevel
+        : undefined,
+    lastConfirmedAt: asIsoDate(raw.lastConfirmedAt) ?? undefined,
+    observedRatePerDay:
+      typeof raw.observedRatePerDay === "number" &&
+      Number.isFinite(raw.observedRatePerDay) &&
+      raw.observedRatePerDay > 0 &&
+      raw.observedRatePerDay <= 100
+        ? raw.observedRatePerDay
+        : undefined,
   };
 }
 
@@ -577,6 +592,10 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       : { ...DEFAULT_WEATHER_STATUS },
     lockSettings: migrateLockSettings(raw.lockSettings),
     householdRole: raw.householdRole === "adult" || raw.householdRole === "child" ? raw.householdRole : "owner",
+    restockSafetyBufferDays:
+      typeof raw.restockSafetyBufferDays === "number" && Number.isFinite(raw.restockSafetyBufferDays)
+        ? Math.min(30, Math.max(0, Math.round(raw.restockSafetyBufferDays)))
+        : undefined,
     restockDigest: isPlainObject(raw.restockDigest)
       ? {
           enabled: raw.restockDigest.enabled !== false,

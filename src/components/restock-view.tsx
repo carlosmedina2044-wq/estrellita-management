@@ -7,8 +7,11 @@ import { ConsumableForm } from "@/components/consumable-form";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
+import { SupplyCheckinSheet } from "@/components/supply-checkin-sheet";
+import { SupplyGauge } from "@/components/supply-gauge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { formatDueDate } from "@/lib/dates";
 import { roomName } from "@/lib/home-model";
 import {
   SAMPLE_RESTOCK_PICKS,
@@ -19,7 +22,15 @@ import {
   type RestockPick,
   type RestockWalkGroup,
 } from "@/lib/onboarding/restock-walk";
-import { groupRestock, restockPlacement, usedWhere, type RestockFlowHandlers } from "@/lib/restock";
+import {
+  checkinDue,
+  digestCandidates,
+  groupRestock,
+  orderNowCostCaption,
+  restockPlacement,
+  usedWhere,
+  type RestockFlowHandlers,
+} from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import type { AppNavigateTarget, Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -50,11 +61,28 @@ export function RestockView({
   const [quickAdd, setQuickAdd] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [focusSize, setFocusSize] = useState(false);
+  const [checkinItem, setCheckinItem] = useState<SupplyAutomation | null>(null);
   const createGuard = useSheetOpenGuard();
   const groups = useMemo(
     () => groupRestock(household.supplyAutomations, household),
     [household],
   );
+  const weekItems = useMemo(
+    () => digestCandidates(household.supplyAutomations, household),
+    [household],
+  );
+  const needsCheckin = useMemo(
+    () => household.supplyAutomations.filter((item) => checkinDue(item, household)).slice(0, 3),
+    [household],
+  );
+  const nextUp = useMemo(() => {
+    const candidates = [...groups.coming_up, ...groups.stocked]
+      .map((item) => ({ item, date: restockPlacement(item, household).orderByDate }))
+      .filter((entry): entry is { item: SupplyAutomation; date: string } => Boolean(entry.date))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    return candidates[0] ?? null;
+  }, [groups, household]);
+  const weekCost = useMemo(() => orderNowCostCaption(weekItems), [weekItems]);
   const editingAutomation = editingDuty
     ? household.supplyAutomations.find((item) => item.dutyId === editingDuty.id || item.linkedDutyIds.includes(editingDuty.id)) ?? null
     : null;
@@ -173,6 +201,81 @@ export function RestockView({
         </div>
       ) : null}
 
+      {household.supplyAutomations.length > 0 && !walking ? (
+        weekItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Nothing to order this week.
+            {nextUp ? ` Next up: ${nextUp.item.itemName} around ${formatDueDate(nextUp.date)}.` : ""}
+          </p>
+        ) : (
+          <div className="rounded-2xl bg-card px-4 py-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[17px] font-medium">This week</p>
+              {weekCost ? <p className="text-[13px] text-muted-foreground">{weekCost}</p> : null}
+            </div>
+            <div className="mt-2 flex flex-col gap-2">
+              {weekItems.map((item) => {
+                const placement = restockPlacement(item, household);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() =>
+                      document.getElementById(`restock-item-${item.id}`)?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      })
+                    }
+                  >
+                    <span className="block text-[15px] font-medium">{item.itemName}</span>
+                    {placement.orderByDate ? (
+                      <span className="mt-0.5 block text-[13px] text-muted-foreground">
+                        order by {formatDueDate(placement.orderByDate)}
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )
+      ) : null}
+
+      {needsCheckin.length > 0 && !walking ? (
+        <div className="rounded-2xl bg-card px-4 py-4">
+          <p className="text-[17px] font-medium">Quick check</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">Helps keep the estimates honest.</p>
+          <div className="mt-3 flex flex-col gap-3">
+            {needsCheckin.map((item) => (
+              <div key={item.id}>
+                <p className="text-[15px] font-medium">{item.itemName}</p>
+                <div className="mt-2 flex gap-2">
+                  {(
+                    [
+                      ["Full", "plenty"],
+                      ["Half", "half"],
+                      ["Low", "low"],
+                      ["Out", "out"],
+                    ] as const
+                  ).map(([label, level]) => (
+                    <Button
+                      key={level}
+                      type="button"
+                      variant="secondary"
+                      className="h-11 flex-1"
+                      onClick={() => restock.onCheckin?.(item.id, level)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {groups.ordered.length > 0 ? (
         <Section id="restock-ordered" title="On the way" count={groups.ordered.length}>
           {groups.ordered.map((item) => (
@@ -182,6 +285,7 @@ export function RestockView({
               item={item}
               onOpen={() => openItem(item)}
               onAddSize={() => openItem(item, { size: true })}
+              onOpenCheckin={() => setCheckinItem(item)}
               autoReceive={focus?.action === "receive" && focus.itemId === item.id}
               {...restock}
             />
@@ -200,6 +304,7 @@ export function RestockView({
               item={item}
               onOpen={() => openItem(item)}
               onAddSize={() => openItem(item, { size: true })}
+              onOpenCheckin={() => setCheckinItem(item)}
               autoReceive={focus?.action === "receive" && focus.itemId === item.id}
               {...restock}
             />
@@ -218,6 +323,7 @@ export function RestockView({
               item={item}
               onOpen={() => openItem(item)}
               onAddSize={() => openItem(item, { size: true })}
+              onOpenCheckin={() => setCheckinItem(item)}
               {...restock}
             />
           ))
@@ -248,7 +354,8 @@ export function RestockView({
                   household={household}
                   item={item}
                   onOpen={() => openItem(item)}
-              onAddSize={() => openItem(item, { size: true })}
+                  onAddSize={() => openItem(item, { size: true })}
+                  onOpenCheckin={() => setCheckinItem(item)}
                   {...restock}
                 />
               ))
@@ -320,6 +427,14 @@ export function RestockView({
         focusField={focusSize ? "sizeSpec" : undefined}
         {...restock}
       />
+
+      <SupplyCheckinSheet
+        item={checkinItem}
+        onOpenChange={(open) => {
+          if (!open) setCheckinItem(null);
+        }}
+        onCheckin={restock.onCheckin}
+      />
     </div>
   );
 }
@@ -351,6 +466,7 @@ function RestockRow({
   item,
   onOpen,
   onAddSize,
+  onOpenCheckin,
   autoReceive,
   ...restock
 }: {
@@ -358,6 +474,7 @@ function RestockRow({
   item: SupplyAutomation;
   onOpen: () => void;
   onAddSize?: () => void;
+  onOpenCheckin?: () => void;
   autoReceive?: boolean;
 } & RestockFlowHandlers) {
   const where = usedWhere(item, household) || roomName(household, item.room);
@@ -386,6 +503,15 @@ function RestockRow({
         <button type="button" className="mt-1 pl-7 text-[13px] font-medium text-brand" onClick={onAddSize}>
           Add size
         </button>
+      ) : null}
+      {placement.estimatedLevelFraction != null ? (
+        <div className="mt-2 pl-7">
+          <SupplyGauge
+            fraction={placement.estimatedLevelFraction}
+            runwayDays={placement.runwayDays}
+            onTap={onOpenCheckin}
+          />
+        </div>
       ) : null}
       <div className="mt-2 pl-7">
         <RestockOrderButton
