@@ -52,7 +52,7 @@ In Xcode:
   - Retailer pages open in SFSafariViewController, not the app WebView.
   - Optional coarse location (rounded to ~1 km) for seasonal/weather tasks.
   - No sign-in. On first launch tap **Use a sample home instead** to reach the task list immediately, with Restock already seeded.
-  - Restock’s Order / Find it buttons open the retailer in an in-app Safari view; the app does not process purchases or store payment information.
+  - Order opens the retailer in Safari; no in-app purchase.
   - iPhone only; portrait and landscape are supported.
 - **Export compliance:** the app uses only Apple-provided encryption (`ITSAppUsesNonExemptEncryption = false`).
 - **Age rating:** 4+.

@@ -432,7 +432,7 @@ export function Onboarding({
         {step === 6 && walkPhase === "items" ? (
           <Screen
             title="Walk your house"
-            copy="Tap what you actually buy. Restock will track order-by dates so you’re not hunting sizes later."
+            copy="Room by room — tap what you actually buy, add anything we missed. Sizes are asked, never guessed."
           >
             <RestockWalkPicker
               picks={restockPicks}

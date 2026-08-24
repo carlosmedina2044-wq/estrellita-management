@@ -125,7 +125,7 @@ export function RestockView({
       {walking ? (
         <div className="rounded-2xl bg-card px-4 py-5">
           <p className="text-[17px] font-medium">Walk your house</p>
-          <p className="mt-1 text-sm text-muted-foreground">Pick the filters and batteries you actually buy.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Room by room — tap what you actually buy, add anything we missed. Sizes are asked, never guessed.</p>
           <div className="mt-3">
             <RestockWalkPicker
               picks={walkPicks}
