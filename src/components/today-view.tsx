@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CalendarDays, Map, Share2, UserRound } from "lucide-react";
 import { BrandMark, BrandLockup } from "@/components/brand-logo";
 import { DayCalendar } from "@/components/day-calendar";
@@ -92,19 +92,22 @@ export function TodayView({
   const [zipOpen, setZipOpen] = useState(false);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
+  const [prevFocus, setPrevFocus] = useState(focus);
+  if (focus !== prevFocus) {
+    setPrevFocus(focus);
+    if (focus?.dutyId) {
+      const duty = household.duties.find((entry) => entry.id === focus.dutyId);
+      if (duty) setEditing(duty);
+    }
+  }
   const listRef = useRef<HTMLDivElement>(null);
   const createGuard = useSheetOpenGuard();
-  const restockGroups = useMemo(
-    () => groupRestock(household.supplyAutomations, household, now),
-    [household],
-  );
+  const restockGroups = groupRestock(household.supplyAutomations, household, now);
 
   useEffect(() => {
     if (!focus?.dutyId) return;
-    const duty = household.duties.find((entry) => entry.id === focus.dutyId);
-    if (duty) setEditing(duty);
     onFocusHandled?.();
-  }, [focus, household.duties, onFocusHandled]);
+  }, [focus, onFocusHandled]);
 
   const viewingCalendar = calendarDay !== null;
   const viewDate = calendarDay ?? now;
