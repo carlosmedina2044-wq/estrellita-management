@@ -190,7 +190,7 @@ export function HomeView({
         <p className="font-medium">{lockMethodLabel(lockMethod).toggle}</p>
         <p className="mt-1 text-xs text-muted-foreground">
           {canLock
-            ? "Locks the home screen on launch and after the app has been in the background. This is an app lock, not a second encryption layer — anyone with this iPhone’s passcode can still open Cuidala."
+            ? "Locks the home screen on launch and after the app has been in the background. This is an app lock, not a second encryption layer. Anyone with this iPhone’s passcode can still open Cuidala."
             : "Not available on this device. Face ID, Touch ID, or a passcode must be set up in iOS Settings."}
         </p>
         <button
@@ -247,9 +247,9 @@ export function HomeView({
       <div className="rounded-2xl bg-card p-4">
         <p className="font-medium">Your data</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Everything Cuidala knows about your home is stored on this iPhone, encrypted with a key kept
+          Everything about your home is stored on this iPhone, encrypted with a key kept
           in the device Keychain. There is no account and no server copy. An iCloud device backup restores
-          the encrypted home but not that key — use Back up my home before you switch phones. Deleting the
+          the encrypted home but not that key. Use Back up my home before you switch phones. Deleting the
           app deletes the data.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-primary">

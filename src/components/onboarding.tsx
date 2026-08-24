@@ -230,7 +230,7 @@ export function Onboarding({
         {step === 0 ? (
           <Screen
             title="Your home, on your iPhone."
-            copy="Rooms, chores, and the filters and batteries you need to reorder — all on this device. Setup takes about two minutes."
+            copy="Rooms, chores, and the filters and batteries you reorder. All on this device. Setup takes about two minutes."
           >
             <Button className="h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
               Set up my home
@@ -245,7 +245,7 @@ export function Onboarding({
             </Button>
             <p className="mt-auto pt-8 text-[12px] leading-5 text-muted-foreground">
               Cuidala keeps your home data on this iPhone, encrypted. No account, no server copy.
-              iCloud backup restores the encrypted home but not the key — make a backup in Settings before
+              iCloud backup restores the encrypted home but not the key. Make a backup in Settings before
               you switch phones. See Settings for the privacy policy.
             </p>
           </Screen>
@@ -406,7 +406,7 @@ export function Onboarding({
         {step === 5 ? (
           <Screen
             title={preview.headline}
-            copy="Here’s what this climate means for your house. These jobs show up on Seasonal when they’re due."
+            copy="What this climate means for your house. These jobs show up on Seasonal when they’re due."
           >
             <ul className="grid gap-2">
               {preview.beats.map((beat) => (
@@ -432,7 +432,7 @@ export function Onboarding({
         {step === 6 && walkPhase === "items" ? (
           <Screen
             title="Walk your house"
-            copy="Room by room — tap what you actually buy, add anything we missed. Sizes are asked, never guessed."
+            copy="Room by room. Tap what you buy, add anything we missed. We’ll ask for sizes."
           >
             <RestockWalkPicker
               picks={restockPicks}

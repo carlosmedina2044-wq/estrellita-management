@@ -26,7 +26,7 @@ export function SupplyCheckinSheet({
     <Sheet open={Boolean(item)} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0">
         <SheetHeader>
-          <SheetTitle>How&apos;s the {item?.itemName ?? "supply"} looking?</SheetTitle>
+          <SheetTitle>How much is left?</SheetTitle>
         </SheetHeader>
         <div className="flex flex-col gap-2 px-4 pb-4">
           {OPTIONS.map((option) => (
@@ -38,7 +38,7 @@ export function SupplyCheckinSheet({
               onClick={() => {
                 if (item) onCheckin?.(item.id, option.level);
                 onOpenChange(false);
-                toast.success("Got it — updated.");
+                toast.success("Got it. Updated.");
               }}
             >
               {option.label}

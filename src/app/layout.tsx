@@ -26,7 +26,7 @@ const CSP = [
 
 export const metadata: Metadata = {
   title: "Cuidala",
-  description: "Home maintenance, restock, and seasonal checklists — on your iPhone.",
+  description: "Home maintenance, restock, and seasonal checklists on your iPhone.",
   applicationName: "Cuidala",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Cuidala" },
   formatDetection: { telephone: false },
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Cuidala",
-    description: "Home maintenance, restock, and seasonal checklists — on your iPhone.",
+    description: "Home maintenance, restock, and seasonal checklists on your iPhone.",
     siteName: "Cuidala",
   },
 };

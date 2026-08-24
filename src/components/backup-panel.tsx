@@ -43,7 +43,7 @@ export function BackupPanel({
         return;
       }
       if (offered === "cancelled") return;
-      toast.success(offered === "downloaded" ? "Backup saved" : "Backup file ready — save it to Files or iCloud Drive");
+      toast.success(offered === "downloaded" ? "Backup saved" : "Backup file ready. Save it to Files or iCloud Drive");
       setPassphrase("");
       setConfirm("");
     } catch (error) {

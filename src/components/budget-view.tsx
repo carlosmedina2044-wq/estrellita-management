@@ -76,7 +76,7 @@ export function BudgetView({
         ? `${health.saved.toLocaleString("en-US")} saved · ${health.needed12.toLocaleString("en-US")} needed in 12 months · ${health.coveragePct}% covered`
         : `Suggested set-aside ${health.suggestedMonthly.toLocaleString("en-US")}/month`,
       next
-        ? `Next big expense: ${next.label.replace(/ replacement$/i, "")} — ${monthsUntil(next.month) <= 0 ? "due now" : `~${monthsUntil(next.month)} months`} · ${formatCostRange(next.cost)}`
+        ? `Next big expense: ${next.label.replace(/ replacement$/i, "")}, ${monthsUntil(next.month) <= 0 ? "due now" : `~${monthsUntil(next.month)} months`} · ${formatCostRange(next.cost)}`
         : null,
     ].filter(Boolean);
     const result = await shareText("Home budget", lines.join("\n"));

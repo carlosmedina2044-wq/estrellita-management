@@ -125,7 +125,7 @@ export function RestockView({
           ) : null}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Knows what is running out and when to order it. One tap to any retailer — you check out there.
+          Tracks what’s running out and when to order. You check out at the store.
         </p>
       </header>
 
@@ -153,7 +153,7 @@ export function RestockView({
       {walking ? (
         <div className="rounded-2xl bg-card px-4 py-5">
           <p className="text-[17px] font-medium">Walk your house</p>
-          <p className="mt-1 text-sm text-muted-foreground">Room by room — tap what you actually buy, add anything we missed. Sizes are asked, never guessed.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Room by room. Tap what you buy, add anything we missed. We’ll ask for sizes.</p>
           <div className="mt-3">
             <RestockWalkPicker
               picks={walkPicks}
@@ -191,7 +191,7 @@ export function RestockView({
         <div className="rounded-2xl bg-card px-4 py-5">
           <p className="text-[17px] font-medium">Restock is empty</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Walk the house once — HVAC filter, water filter, smoke-detector batteries — and this tab stays useful.
+            Walk the house once. HVAC filter, water filter, smoke-detector batteries. This tab stays useful after that.
           </p>
           {onWalkHouse ? (
             <Button className="mt-3 h-11 w-full" onClick={startWalk}>
@@ -245,7 +245,7 @@ export function RestockView({
       {needsCheckin.length > 0 && !walking ? (
         <div className="rounded-2xl bg-card px-4 py-4">
           <p className="text-[17px] font-medium">Quick check</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">Helps keep the estimates honest.</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">Keeps the estimates honest.</p>
           <div className="mt-3 flex flex-col gap-3">
             {needsCheckin.map((item) => (
               <div key={item.id}>

@@ -137,7 +137,7 @@ export function RestockOrderButton({
     const lead = leadTimeDaysFor(item);
     onReceived?.(qty, paid);
     if (observed != null && shouldOfferLeadTime(lead, observed) && onApplyLeadTime) {
-      toast.message(`Took ${observed} days, not ${lead} — use ${observed} next time?`, {
+      toast.message(`Took ${observed} days, not ${lead}. Use ${observed} next time?`, {
         duration: 10_000,
         action: {
           label: `Use ${observed}`,
@@ -400,7 +400,7 @@ function OrderConfirmSheet({
           <>
             <SheetHeader>
               <SheetTitle>When does it arrive?</SheetTitle>
-              <SheetDescription>We’ll go quiet until then and check in the day after.</SheetDescription>
+              <SheetDescription>We’ll check in the day after it arrives.</SheetDescription>
             </SheetHeader>
             <div className="grid gap-4 px-4 pb-4">
               <ArrivalChips

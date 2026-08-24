@@ -32,7 +32,7 @@ export function DutyRow({
   onOpen?: () => void;
 }) {
   const subtitle = missingPartHint
-    ? "No part on hand — order first or mark done if you already have it."
+    ? "No part on hand. Order first, or mark done if you already have it."
     : household
       ? dutySubtitle(duty, household.completions, now, installedAtFor(household, duty.id), household)
       : dutySubtitle(duty);

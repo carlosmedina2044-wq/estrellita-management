@@ -119,7 +119,7 @@ test("ordered items schedule Did it arrive? before order-by reminders", () => {
   const orderBy = notices.find((notice) => notice.title.startsWith("Order "));
   assert.ok(arrival);
   assert.equal(arrival?.title, "Did the HVAC filter arrive?");
-  assert.equal(arrival?.body, "Tap to mark it received — the install chore is waiting on it.");
+  assert.equal(arrival?.body, "Tap to mark it received. The install chore is waiting on it.");
   assert.equal(arrival?.extra?.tab, "restock");
   assert.equal(arrival?.extra?.itemId, "s1");
   assert.equal(arrival?.schedule.at.getDate(), 26);

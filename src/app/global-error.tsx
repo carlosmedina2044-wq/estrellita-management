@@ -40,7 +40,7 @@ export default function GlobalError({
           />
           <h1 style={{ fontSize: 28, margin: "20px 0 0" }}>Something went wrong</h1>
           <p style={{ color: "#86868b", marginTop: 8, fontSize: 14 }}>
-            Cuidala failed to start. Try again — household data on this device was not
+            Cuidala failed to start. Try again. Household data on this device was not
             overwritten.
           </p>
           <button

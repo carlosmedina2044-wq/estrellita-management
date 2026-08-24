@@ -124,13 +124,13 @@ function seasonalInsight(forecast: ForecastResult): BudgetInsight | null {
         { month: "long" },
       )
     : null;
-  const list = names.length ? names.join(", ").replace(/, ([^,]*)$/, ", and $1") : "several jobs";
+  const list = names.length ? names.join(", ").replace(/, ([^,]*)$/, ", and $1") : "Several jobs";
   const when = monthName ? ` all hit in ${monthName}` : "";
   return {
     id: "seasonal",
     tone: "info",
     title: `${top.season.label} is your most expensive stretch`,
-    body: `${top.season.label} is your most expensive quarter — ${list}${when}.`,
+    body: `${top.season.label} is your most expensive quarter. ${list}${when}.`,
   };
 }
 

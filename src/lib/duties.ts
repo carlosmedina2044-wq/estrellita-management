@@ -365,7 +365,7 @@ export function groupByRoom(duties: Duty[], household: Pick<Household, "rooms">)
 }
 
 export function shareText(household: Household, duties: Duty[]): string {
-  const lines = [`${household.householdName} — today's work`, ""];
+  const lines = [`${household.householdName}: today's work`, ""];
   for (const group of groupByRoom(duties, household)) {
     lines.push(group.label);
     for (const duty of group.duties) {

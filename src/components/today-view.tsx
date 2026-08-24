@@ -629,7 +629,7 @@ function AttentionTiles({
         type="button"
         onClick={onAllClear}
         className="rounded-2xl border border-[#34c759]/40 bg-[#34c759]/8 px-4 py-4 text-left"
-        aria-label="All clear — nothing due, nothing to order"
+        aria-label="All clear. Nothing due, nothing to order"
       >
         <p className="ui-heading text-[28px] font-semibold leading-none">All clear</p>
         <p className="mt-1 text-[13px] text-muted-foreground">Nothing due, nothing to order.</p>

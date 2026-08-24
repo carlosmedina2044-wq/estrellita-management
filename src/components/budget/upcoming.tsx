@@ -114,7 +114,7 @@ export function SpendingSection({
       <h2 className="ui-heading text-[20px] font-semibold">Spending</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Last {months} months: forecast {formatMoney(planned)}, actual {formatMoney(actual)}
-        {logged && delta > 0 ? " — under plan." : logged && delta < 0 ? " — over plan." : "."}
+        {logged && delta > 0 ? ". Under plan." : logged && delta < 0 ? ". Over plan." : "."}
       </p>
       {!logged ? (
         <p className="mt-3 rounded-2xl bg-white px-4 py-4 text-sm text-muted-foreground">

@@ -29,7 +29,7 @@ export function fundHealth(household: Household, forecast12: ForecastResult): Fu
         : annualPctOfValue <= 3
           ? "within the typical 1–3% range"
           : "above the typical 1–3% range";
-    onePercentCopy = `Your forecast is ${formatMoney(suggestedMonthly)}/mo — about ${annualPctOfValue}% of your home’s value annually, which is ${band}.`;
+    onePercentCopy = `Your forecast is ${formatMoney(suggestedMonthly)}/mo, about ${annualPctOfValue}% of your home’s value annually, which is ${band}.`;
   }
   return {
     saved,

@@ -45,7 +45,7 @@ export function FundHero({
       </p>
       <p className="mt-2 text-sm font-medium">
         You’re {covered}% covered
-        {covered >= 100 ? " — you’re set for the year." : covered >= 70 ? " — in good shape." : "."}
+        {covered >= 100 ? ". Set for the year." : covered >= 70 ? ". In good shape." : "."}
       </p>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
         <div

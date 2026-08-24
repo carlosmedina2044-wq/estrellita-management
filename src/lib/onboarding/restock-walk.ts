@@ -277,7 +277,7 @@ export const RESTOCK_WALK_CATALOG: RestockWalkItem[] = [
   {
     id: "pool-chlorine",
     itemName: "Pool chlorine",
-    hint: "Tabs or liquid — whichever you actually buy.",
+    hint: "Tabs or liquid, whichever you actually buy.",
     dutyTitle: "Restock pool chlorine",
     lifespanValue: 1,
     lifespanUnit: "months",

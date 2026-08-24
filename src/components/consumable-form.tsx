@@ -301,7 +301,7 @@ function EstimatedUseLine({
   return (
     <p className="text-[13px] text-muted-foreground">
       Estimated use: about 1 every {n} days
-      {resolved.source === "observed" ? " (learned from your orders)" : ""}
+      {resolved.source === "observed" ? " (from your orders)" : ""}
     </p>
   );
 }

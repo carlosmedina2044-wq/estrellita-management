@@ -61,7 +61,7 @@ export function CleanerVisit({
           <p className="text-[13px] font-medium text-muted-foreground">Next up</p>
           <p className="ui-heading mt-1 text-[22px] font-semibold">{next.title}</p>
           <Button className="mt-3 h-11 w-full" onClick={() => onComplete(next.id)}>
-            Done — next
+            Done. Next
           </Button>
         </div>
       ) : null}
