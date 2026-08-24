@@ -1,6 +1,6 @@
 import { addDays, startOfDay } from "@/lib/dates";
 import { isDueToday, isOverdue, nextDueDate } from "@/lib/duties";
-import { restockPlacement } from "@/lib/restock";
+import { groupRestock, restockPlacement } from "@/lib/restock";
 import type { Household, NodeType } from "@/lib/types";
 
 export type NodeStatus = {
@@ -104,6 +104,30 @@ export function nodeStatus(
   return status;
 }
 
-export function homeSummary(household: Household, now = new Date()): NodeStatus {
-  return nodeStatus(household, household.homeId || "home", "home", now);
+export type HomeSummary = NodeStatus & {
+  dueToday: number;
+  orderNow: number;
+  arriving: number;
+};
+
+export function homeSummary(household: Household, now = new Date()): HomeSummary {
+  const base = nodeStatus(household, household.homeId || "home", "home", now);
+  const groups = groupRestock(household.supplyAutomations, household, now);
+  let dueToday = 0;
+  for (const duty of household.duties) {
+    if (duty.archived) continue;
+    const installedAt = household.supplyAutomations.find((item) => item.dutyId === duty.id)?.installedAt ?? null;
+    if (
+      isDueToday(duty, household.completions, now, installedAt) &&
+      !isOverdue(duty, household.completions, now, installedAt)
+    ) {
+      dueToday += 1;
+    }
+  }
+  return {
+    ...base,
+    dueToday,
+    orderNow: groups.order_now.length,
+    arriving: groups.ordered.length,
+  };
 }

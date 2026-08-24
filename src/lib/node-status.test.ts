@@ -87,6 +87,46 @@ test("home summary aggregates rooms without double counting", () => {
   assert.equal(summary.overdue, 1);
   assert.equal(summary.dueSoon, 1);
   assert.equal(summary.total, 2);
+  assert.equal(summary.dueToday, 0);
+  assert.equal(summary.orderNow, 0);
+  assert.equal(summary.arriving, 0);
+});
+
+test("home summary counts due today, order now, and arriving", () => {
+  const todayDuty = duty({ id: "d3", title: "Wipe", room: "kitchen", dueDate: "2026-08-23" });
+  const arriving: SupplyAutomation = {
+    id: "s2",
+    dutyId: "d4",
+    linkedDutyIds: ["d4"],
+    room: "kitchen",
+    nodeId: "kitchen",
+    nodeType: "room",
+    itemName: "Bags",
+    sku: "",
+    retailerUrl: "",
+    quantity: 1,
+    onHand: 0,
+    qtyPerOrder: 1,
+    reorderAt: 0,
+    leadTimeDays: 14,
+    installedAt: "2026-01-01",
+    lifespanValue: 3,
+    lifespanUnit: "months",
+    orderByDate: "2026-08-01",
+    nextOrderDate: "2026-08-01",
+    orderInFlight: true,
+    state: "ordered",
+    expectedArrivalDate: "2026-08-28",
+    createdAt: "2026-08-01T00:00:00.000Z",
+  };
+  const home = household({
+    duties: [todayDuty, duty({ id: "d4", title: "Replace bags", room: "kitchen", kind: "replacement", dueDate: null, frequency: "yearly" })],
+    supplyAutomations: [arriving],
+  });
+  const summary = homeSummary(home, now);
+  assert.equal(summary.dueToday, 1);
+  assert.equal(summary.arriving, 1);
+  assert.equal(summary.orderNow, 0);
 });
 
 test("reorder pending flags a consumable that needs ordering", () => {

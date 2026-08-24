@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CalendarDays, Map, Share2, UserRound } from "lucide-react";
 import { BrandMark, BrandLockup } from "@/components/brand-logo";
 import { DayCalendar } from "@/components/day-calendar";
@@ -26,11 +26,11 @@ import {
   todaysOpenDuties,
   type OutstandingScope,
 } from "@/lib/duties";
-import { homeSummary, statusTone } from "@/lib/node-status";
+import { homeSummary } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, type RestockFlowHandlers } from "@/lib/restock";
-import type { Audience, Duty, DutyDraft, Household } from "@/lib/types";
+import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -55,6 +55,7 @@ export function TodayView({
   onReorderRooms,
   onChangeTree,
   onOpenRestock,
+  onNavigate,
   ...restockHandlers
 }: {
   household: Household;
@@ -71,6 +72,7 @@ export function TodayView({
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
   onOpenRestock?: () => void;
+  onNavigate?: (target: AppNavigateTarget) => void;
 } & RestockFlowHandlers) {
   const now = new Date();
   const [filter, setFilter] = useState<Audience | "all">("all");
@@ -84,6 +86,8 @@ export function TodayView({
   const [creatingRule, setCreatingRule] = useState(false);
   const [weekExpanded, setWeekExpanded] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
+  const [onlyOverdue, setOnlyOverdue] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
   const createGuard = useSheetOpenGuard();
 
   const viewingCalendar = calendarDay !== null;
@@ -108,9 +112,10 @@ export function TodayView({
   const monthPlan = firstOfMonth ? monthPlanDuties(household, now, filter) : [];
   const cleanerOpen = todaysOpenDuties(household, now, "cleaner");
   const summary = homeSummary(household, now);
-  const summaryTone = statusTone(summary);
+  const listed = onlyOverdue ? open.filter((duty) => isOverdueFor(duty, household, now)) : open;
 
   function selectScope(next: OutstandingScope) {
+    setOnlyOverdue(false);
     setScope(next);
     setCalendarDay(null);
     setCalendarOpen(false);
@@ -186,29 +191,31 @@ export function TodayView({
         ) : (
           <p className="mt-1 text-sm text-muted-foreground">{weatherLine ?? listSummary}</p>
         )}
-        <p className="mt-2 inline-flex rounded-full bg-secondary px-3 py-1 text-[13px] font-medium">
-          {summary.overdue ? `${summary.overdue} overdue` : ""}
-          {summary.overdue && summary.dueSoon ? " · " : ""}
-          {summary.dueSoon || summary.total ? `${todaysOpenDuties(household, now).length} due today` : "All clear"}
-        </p>
       </header>
 
-      <button
-        type="button"
-        onClick={() => setHouseOpen(true)}
-        className={
-          summaryTone === "red"
-            ? "rounded-2xl border border-destructive/40 bg-destructive/8 px-4 py-3 text-left"
-            : summaryTone === "amber"
-              ? "rounded-2xl border border-[#ff9f0a]/40 bg-[#ff9f0a]/10 px-4 py-3 text-left"
-              : "rounded-2xl border border-[#34c759]/40 bg-[#34c759]/8 px-4 py-3 text-left"
-        }
-      >
-        <p className="text-[13px] font-medium text-muted-foreground">House map</p>
-        <p className="ui-heading text-[20px] font-semibold">
-          {summary.total === 0 ? "All rooms clear" : `${summary.total} outstanding across rooms`}
-        </p>
-      </button>
+      <AttentionTiles
+        overdue={summary.overdue}
+        dueToday={summary.dueToday}
+        orderNow={summary.orderNow}
+        arriving={summary.arriving}
+        onOverdue={() => {
+          setOnlyOverdue(true);
+          setScope("daily");
+          setCalendarDay(null);
+          setCalendarOpen(false);
+          listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+        onDueToday={() => {
+          setOnlyOverdue(false);
+          setScope("daily");
+          setCalendarDay(null);
+          setCalendarOpen(false);
+          listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+        onOrder={() => onNavigate?.({ tab: "restock", section: "order_now" })}
+        onArriving={() => onNavigate?.({ tab: "restock", section: "ordered" })}
+        onAllClear={() => setHouseOpen(true)}
+      />
 
       <div className="flex items-center gap-2">
         <div className="flex min-w-0 flex-1 rounded-full bg-secondary p-1">
@@ -281,11 +288,11 @@ export function TodayView({
         </section>
       ) : null}
 
-      {open.length === 0 && doneOnDay.length === 0 && costPrompts.length === 0 ? (
+      {listed.length === 0 && doneOnDay.length === 0 && costPrompts.length === 0 ? (
         <EmptyToday onAdd={() => createGuard.tryOpen(() => setCreating(true))} calendar={viewingCalendar} />
       ) : (
-        <div className="ui-group">
-          {open.map((duty) => (
+        <div ref={listRef} className="ui-group">
+          {listed.map((duty) => (
             <div key={duty.id} className="ui-group-row">
               <DutyRow
                 duty={duty}
@@ -512,6 +519,98 @@ export function TodayView({
         onSave={onSaveDuty}
         {...restockHandlers}
       />
+    </div>
+  );
+}
+
+function AttentionTiles({
+  overdue,
+  dueToday,
+  orderNow,
+  arriving,
+  onOverdue,
+  onDueToday,
+  onOrder,
+  onArriving,
+  onAllClear,
+}: {
+  overdue: number;
+  dueToday: number;
+  orderNow: number;
+  arriving: number;
+  onOverdue: () => void;
+  onDueToday: () => void;
+  onOrder: () => void;
+  onArriving: () => void;
+  onAllClear: () => void;
+}) {
+  const tiles = [
+    overdue > 0
+      ? {
+          key: "overdue",
+          count: overdue,
+          label: "overdue",
+          onClick: onOverdue,
+          className: "border-destructive/40 bg-destructive/8",
+        }
+      : null,
+    dueToday > 0
+      ? {
+          key: "due",
+          count: dueToday,
+          label: "due today",
+          onClick: onDueToday,
+          className: "border-primary/30 bg-primary/8",
+        }
+      : null,
+    orderNow > 0
+      ? {
+          key: "order",
+          count: orderNow,
+          label: "to order",
+          onClick: onOrder,
+          className: "border-[#ff9f0a]/40 bg-[#ff9f0a]/10",
+        }
+      : null,
+    arriving > 0
+      ? {
+          key: "arriving",
+          count: arriving,
+          label: "arriving",
+          onClick: onArriving,
+          className: "border-border bg-secondary",
+        }
+      : null,
+  ].filter((tile): tile is NonNullable<typeof tile> => Boolean(tile));
+
+  if (tiles.length === 0) {
+    return (
+      <button
+        type="button"
+        onClick={onAllClear}
+        className="rounded-2xl border border-[#34c759]/40 bg-[#34c759]/8 px-4 py-4 text-left"
+        aria-label="All clear — nothing due, nothing to order"
+      >
+        <p className="ui-heading text-[28px] font-semibold leading-none">All clear</p>
+        <p className="mt-1 text-[13px] text-muted-foreground">Nothing due, nothing to order.</p>
+      </button>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {tiles.map((tile) => (
+        <button
+          key={tile.key}
+          type="button"
+          onClick={tile.onClick}
+          aria-label={`${tile.count} ${tile.label}`}
+          className={cn("rounded-2xl border px-4 py-3 text-left", tile.className)}
+        >
+          <p className="ui-heading text-[28px] font-semibold leading-none">{tile.count}</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">{tile.label}</p>
+        </button>
+      ))}
     </div>
   );
 }

@@ -311,7 +311,8 @@ export function AppShell() {
             onStartCleanerVisit={startCleanerVisit}
             onOpenHome={() => setTab("home")}
             {...restockHandlers}
-            onOpenRestock={() => setTab("restock")}
+            onOpenRestock={() => navigate({ tab: "restock" })}
+            onNavigate={navigate}
           />
         ) : null}
         {tab === "restock" ? (
