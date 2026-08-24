@@ -103,6 +103,7 @@ test("reorder pending flags a consumable that needs ordering", () => {
     quantity: 1,
     onHand: 0,
     qtyPerOrder: 1,
+    reorderAt: 0,
     leadTimeDays: 14,
     installedAt: "2025-01-01",
     lifespanValue: 1,

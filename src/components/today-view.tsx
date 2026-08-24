@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Map, Share2, Sparkles, UserRound } from "lucide-react";
+import { CalendarDays, Map, Share2, UserRound } from "lucide-react";
+import { BrandMark, BrandLockup } from "@/components/brand-logo";
 import { DayCalendar } from "@/components/day-calendar";
 import { ConsumableForm } from "@/components/consumable-form";
 import { OrderByLine, RestockOrderButton } from "@/components/restock-order-button";
@@ -139,7 +140,7 @@ export function TodayView({
 
   const weekOpen = openDutiesInScope(household, "weekly", now, filter);
   const restock = groupRestock(household.supplyAutomations, household, now);
-  const restockItems = [...restock.ordered, ...restock.order_now, ...restock.coming_up];
+  const restockItems = [...restock.ordered, ...restock.order_now];
   const greeting = household.ownerName ? `Hi, ${household.ownerName}` : "Today";
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
   const listSummary = viewingCalendar
@@ -164,8 +165,9 @@ export function TodayView({
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="pt-1">
-        <p className="text-sm text-muted-foreground">{greeting} · {headingDate}</p>
+      <header className="pt-2">
+        <BrandLockup size="sm" />
+        <p className="mt-5 text-sm text-muted-foreground">{greeting} · {headingDate}</p>
         <h1 className="ui-heading text-[34px] font-semibold tracking-tight">{household.householdName}</h1>
         {needsZip && onSavePostalCode ? (
           <button
@@ -336,7 +338,7 @@ export function TodayView({
       ) : (
         <section className="rounded-2xl bg-white px-4 py-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="font-medium">Restock</p>
+          <p className="font-medium">Order today</p>
             <div className="flex items-center gap-3">
               {onOpenRestock ? (
                 <button type="button" className="text-[13px] font-medium text-primary" onClick={onOpenRestock}>
@@ -376,6 +378,7 @@ export function TodayView({
                   <RestockOrderButton
                     item={item}
                     household={household}
+                    compact
                     onOrdered={onMarkOrdered ? () => onMarkOrdered(item.id) : undefined}
                     onReceived={onMarkReceived ? (qty) => onMarkReceived(item.id, qty) : undefined}
                     onSaveLink={onSaveLink ? (url) => onSaveLink(item.id, url) : undefined}
@@ -476,9 +479,9 @@ export function TodayView({
 
 function EmptyToday({ onAdd, calendar }: { onAdd: () => void; calendar?: boolean }) {
   return (
-    <div className="rounded-2xl bg-white px-5 py-10 text-center">
-      <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-secondary text-primary">
-        <Sparkles className="size-5" />
+    <div className="rounded-2xl bg-card px-5 py-10 text-center">
+      <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
+        <BrandMark size="sm" />
       </span>
       <p className="ui-heading mt-4 text-[22px] font-semibold">Clear day</p>
       <p className="mt-1 text-sm text-muted-foreground">

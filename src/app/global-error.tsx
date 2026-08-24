@@ -22,14 +22,23 @@ export default function GlobalError({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#f5f5f7",
+          background: "#f7f3ec",
           color: "#1d1d1f",
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
         }}
       >
         <main style={{ maxWidth: 28 * 16, padding: 20 }}>
-          <h1 style={{ fontSize: 28, margin: 0 }}>Something went wrong</h1>
+          {/* Isolated document — next/image is unavailable here. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/cuidala-wordmark.webp"
+            alt="Cuidala"
+            width={116}
+            height={32}
+            style={{ height: 32, width: "auto" }}
+          />
+          <h1 style={{ fontSize: 28, margin: "20px 0 0" }}>Something went wrong</h1>
           <p style={{ color: "#86868b", marginTop: 8, fontSize: 14 }}>
             Cuidala failed to start. Try again — household data on this device was not
             overwritten.
@@ -43,8 +52,8 @@ export default function GlobalError({
               width: "100%",
               border: 0,
               borderRadius: 12,
-              background: "#007aff",
-              color: "#fff",
+              background: "#1d1d1f",
+              color: "#f7f3ec",
               fontSize: 16,
               fontWeight: 600,
             }}

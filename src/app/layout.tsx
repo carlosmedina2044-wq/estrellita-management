@@ -30,7 +30,13 @@ export const metadata: Metadata = {
   applicationName: "Cuidala",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Cuidala" },
   formatDetection: { telephone: false },
-  icons: { icon: "/icon", apple: "/apple-icon" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     title: "Cuidala",
     description: "Home maintenance, restock, and seasonal checklists — on your iPhone.",
@@ -39,7 +45,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F5F5F7",
+  themeColor: "#F7F3EC",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

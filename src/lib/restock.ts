@@ -1,11 +1,18 @@
 import { addCalendarMonths, addCalendarYears, addDays, parseISODate, startOfDay, toISODate } from "@/lib/dates";
 import { isDoneThisPeriod, lastCompletion, nextDueDate } from "@/lib/duties";
 import { retailerUrlFor } from "@/lib/retailer";
-import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, deriveOrderByDate, expectedArrivalFor, leadTimeDaysFor } from "@/lib/supply";
+import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, expectedArrivalFor, leadTimeDaysFor } from "@/lib/supply";
 import type { Completion, Duty, Household, SupplyAutomation } from "@/lib/types";
 
+export const DEFAULT_REORDER_AT = 0;
 export const COMING_UP_DAYS = 21;
 export const ARRIVAL_GRACE_DAYS = 3;
+
+export function reorderAtFor(item: Pick<SupplyAutomation, "reorderAt"> | { reorderAt?: number }): number {
+  const value = item.reorderAt;
+  if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_REORDER_AT;
+  return Math.min(99, Math.max(0, Math.round(value)));
+}
 
 export type RestockBucket = "order_now" | "coming_up" | "stocked" | "ordered";
 
@@ -45,6 +52,7 @@ export function normalizeConsumable(item: SupplyAutomation): SupplyAutomation {
     retailerUrl,
     onHand: Math.max(0, Math.round(item.onHand ?? 0)),
     qtyPerOrder,
+    reorderAt: reorderAtFor(item),
     quantity: qtyPerOrder,
     state: ordered ? "ordered" : "stocked",
     orderInFlight: ordered,
@@ -165,6 +173,10 @@ export function restockPlacement(
     return { bucket: "order_now", nudgeArrive: true, ...runway };
   }
 
+  if (current.onHand <= reorderAtFor(current)) {
+    return { bucket: "order_now", nudgeArrive: false, ...runway };
+  }
+
   if (!runway.orderByDate) {
     return { bucket: "stocked", nudgeArrive: false, ...runway };
   }
@@ -273,18 +285,18 @@ export function usedWhere(
 
 export function defaultConsumableFields(now = new Date()): Pick<
   SupplyAutomation,
-  "sku" | "retailerUrl" | "quantity" | "onHand" | "qtyPerOrder" | "leadTimeDays" | "installedAt" | "lifespanValue" | "lifespanUnit" | "orderByDate" | "nextOrderDate" | "orderInFlight" | "state" | "expectedArrivalDate"
+  "sku" | "retailerUrl" | "quantity" | "onHand" | "qtyPerOrder" | "reorderAt" | "leadTimeDays" | "installedAt" | "lifespanValue" | "lifespanUnit" | "orderByDate" | "nextOrderDate" | "orderInFlight" | "state" | "expectedArrivalDate"
 > {
-  const installedAt = toISODate(now);
-  const orderByDate = deriveOrderByDate(installedAt, 12, "months");
+  const orderByDate = toISODate(now);
   return {
     sku: "",
     retailerUrl: "",
     quantity: DEFAULT_QUANTITY,
     onHand: 0,
     qtyPerOrder: DEFAULT_QUANTITY,
+    reorderAt: DEFAULT_REORDER_AT,
     leadTimeDays: DEFAULT_LEAD_TIME_DAYS,
-    installedAt,
+    installedAt: "",
     lifespanValue: 12,
     lifespanUnit: "months",
     orderByDate,

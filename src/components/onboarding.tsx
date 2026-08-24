@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Star } from "lucide-react";
+import { BrandLockup } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
@@ -101,11 +101,12 @@ export function Onboarding({
     <div className="flex min-h-dvh flex-col bg-background px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
         <div className="h-1 overflow-hidden rounded-full bg-secondary">
-          <div className="h-full bg-primary transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
+          <div className="h-full bg-brand transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
         </div>
-        <div className="mt-4 flex items-center gap-2 text-primary">
-          <Star className="size-5 fill-current" />
-          <span className="text-sm font-medium tracking-wide">Cuidala</span>
+        <div className="mt-8">
+          <div className={step === 0 ? "brand-enter" : undefined}>
+            <BrandLockup size={step === 0 ? "md" : "sm"} />
+          </div>
         </div>
 
         {step === 0 ? (
@@ -118,7 +119,7 @@ export function Onboarding({
             </Button>
             <button
               type="button"
-              className="mt-4 text-[13px] font-medium text-primary"
+              className="mt-4 text-[13px] font-medium text-brand"
               disabled={busy}
               onClick={() => void finish(sampleHomeAnswers())}
             >
@@ -188,7 +189,7 @@ export function Onboarding({
                 ))}
               </div>
             ) : (
-              <button type="button" className="mt-4 text-[15px] font-medium text-primary" onClick={() => setAdding(true)}>
+              <button type="button" className="mt-4 text-[15px] font-medium text-brand" onClick={() => setAdding(true)}>
                 + Add room
               </button>
             )}
@@ -266,12 +267,12 @@ function Screen({
   onSkip?: () => void;
 }) {
   return (
-    <div className="flex flex-1 flex-col pt-8">
-      <h1 className="font-heading text-3xl leading-tight tracking-tight">{title}</h1>
+    <div className="flex flex-1 flex-col pt-10">
+      <h1 className="ui-heading text-[28px] leading-tight font-semibold tracking-tight">{title}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{copy}</p>
       <div className="mt-6 flex flex-1 flex-col">{children}</div>
       {onSkip ? (
-        <button type="button" className="mt-4 text-[13px] font-medium text-primary" onClick={onSkip}>
+        <button type="button" className="mt-4 text-[13px] font-medium text-brand" onClick={onSkip}>
           Skip
         </button>
       ) : null}
@@ -297,7 +298,7 @@ function ChoiceGrid({
           onClick={() => onChange(item.id)}
           className={cn(
             "min-h-14 rounded-2xl border px-4 text-left text-[17px] font-medium",
-            value === item.id ? "border-primary bg-primary/10" : "border-border bg-card",
+            value === item.id ? "border-brand bg-brand-cream/60" : "border-border bg-card",
           )}
         >
           {item.label}

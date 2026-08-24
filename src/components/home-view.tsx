@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Household, RestockDigestSettings } from "@/lib/types";
+import { BrandLockup, BrandMark } from "@/components/brand-logo";
 import { ZipField } from "@/components/zip-prompt";
 import { climateLabel, deriveClimate } from "@/lib/climate";
 import { notifyPermission, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
@@ -73,7 +74,12 @@ export function HomeView({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 pb-8">
+      <header className="pt-2">
+        <BrandLockup size="sm" />
+        <h1 className="ui-heading mt-5 text-[34px] font-semibold tracking-tight">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Household on this iPhone</p>
+      </header>
       <Field label="Home name">
         <Input value={home} onChange={(event) => setHome(event.target.value)} className="h-12" />
       </Field>
@@ -112,7 +118,7 @@ export function HomeView({
       </Field>
 
       {restockDigest && onUpdateDigest ? (
-        <div className="rounded-2xl bg-white p-4">
+        <div className="rounded-2xl bg-card p-4">
           <p className="font-medium">Weekly restock digest</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Sunday 9:00 AM local by default. Sends only when something is in Order now or coming up this week.
@@ -121,7 +127,7 @@ export function HomeView({
           {permission === "prompt" ? (
             <button
               type="button"
-              className="mt-3 h-12 w-full rounded-xl bg-primary text-sm font-medium text-primary-foreground"
+              className="mt-3 h-12 w-full rounded-xl bg-foreground text-sm font-medium text-background"
               onClick={() => void requestNotifyPermission().then(setPermission)}
             >
               Allow notifications
@@ -167,7 +173,7 @@ export function HomeView({
         </div>
       ) : null}
 
-      <div className="rounded-2xl bg-white p-4">
+      <div className="rounded-2xl bg-card p-4">
         <p className="font-medium">Require Face ID</p>
         <p className="mt-1 text-xs text-muted-foreground">
           {canLock
@@ -214,7 +220,7 @@ export function HomeView({
         Hand phone to {household.cleanerName || "cleaner"}
       </Button>
 
-      <div className="rounded-2xl bg-white p-4">
+      <div className="rounded-2xl bg-card p-4">
         <p className="font-medium">Your data</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Everything Cuidala knows about your home is stored on this iPhone, encrypted with a key kept
@@ -237,6 +243,7 @@ export function HomeView({
       <AlertDialog open={confirmErase} onOpenChange={setConfirmErase}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <BrandMark size="sm" className="mx-auto mb-2" />
             <AlertDialogTitle>Erase everything?</AlertDialogTitle>
             <AlertDialogDescription>
               Rooms, chores, consumables, history, and reminders on this iPhone will be deleted. This cannot be undone.

@@ -6,6 +6,7 @@ import type {
   Household,
   LockSettings,
   RestockDigestSettings,
+  SavedRetailerLink,
   WeatherStatus,
 } from "@/lib/types";
 
@@ -54,6 +55,7 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
   | "lockSettings"
   | "householdRole"
   | "restockDigest"
+  | "savedRetailerLinks"
 > &
   T {
   return {
@@ -67,6 +69,7 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
     lockSettings: { ...DEFAULT_LOCK_SETTINGS, ...partial.lockSettings },
     householdRole: partial.householdRole ?? "owner",
     ...partial,
+    savedRetailerLinks: (partial.savedRetailerLinks ?? []) as SavedRetailerLink[],
     restockDigest: { ...DEFAULT_RESTOCK_DIGEST, ...partial.restockDigest } satisfies RestockDigestSettings,
   };
 }

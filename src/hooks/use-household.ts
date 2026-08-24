@@ -14,6 +14,7 @@ import {
 } from "@/lib/storage";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
+import { applyDutySave } from "@/lib/household-update";
 import type { DutyDraft, Household } from "@/lib/types";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
@@ -22,6 +23,7 @@ import { dutyFromPlaybookTask, PLAYBOOKS } from "@/lib/playbooks";
 import { addDays, toISODate } from "@/lib/dates";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import { requestNotifyPermission } from "@/lib/notifications";
+import { rememberRetailerLink } from "@/lib/retailer";
 import {
   consumeLinkedUnit,
   defaultConsumableFields,
@@ -31,7 +33,6 @@ import {
   restoreLinkedUnit,
   saveRetailerLink,
 } from "@/lib/restock";
-import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY } from "@/lib/supply";
 import type { RestockDigestSettings } from "@/lib/types";
 
 function uid() {
@@ -118,104 +119,14 @@ export function useHousehold() {
   const saveDuty = useCallback(
     (duty: DutyDraft) => {
       update((current) => {
-        const { supplyAutomation, ...rest } = duty;
-        const id = rest.id ?? uid();
-        const kind = rest.kind ?? (supplyAutomation ? "replacement" : "chore");
-        const title = sanitizeText(rest.title, TEXT_LIMITS.title);
-        const notes = sanitizeText(rest.notes, TEXT_LIMITS.notes);
-        const nodeId = rest.nodeId || rest.room;
-        const nodeType = rest.nodeType || "room";
-        const nextDuty = rest.id
-          ? current.duties.map((existing) =>
-              existing.id === id
-                ? {
-                    ...existing,
-                    ...rest,
-                    title,
-                    notes,
-                    nodeId,
-                    nodeType,
-                    id: existing.id,
-                    kind,
-                    createdAt: existing.createdAt,
-                    archived: existing.archived,
-                  }
-                : existing,
-            )
-          : [
-              ...current.duties,
-              {
-                ...rest,
-                title,
-                notes,
-                nodeId,
-                nodeType,
-                id,
-                kind,
-                createdAt: new Date().toISOString(),
-                archived: false,
-              },
-            ];
-
-        const existing = current.supplyAutomations.find(
-          (item) => item.id === supplyAutomation?.id || linkedDutyIdsFor(item).includes(id),
-        );
-        const defaults = defaultConsumableFields();
-        const without = current.supplyAutomations.filter((item) => item !== existing);
-        const firstConsumable = !existing && Boolean(supplyAutomation);
-        const supplyAutomations =
-          supplyAutomation === undefined
-            ? current.supplyAutomations
-            : supplyAutomation === null
-              ? without
-              : [
-                  ...without,
-                  {
-                    ...defaults,
-                    ...existing,
-                    id: supplyAutomation.id ?? existing?.id ?? uid(),
-                    dutyId: existing?.dutyId ?? id,
-                    linkedDutyIds: [...new Set([id, ...(existing?.linkedDutyIds ?? []), ...(supplyAutomation.linkedDutyIds ?? [])])],
-                    room: rest.room,
-                    nodeId,
-                    nodeType,
-                    itemName: sanitizeText(supplyAutomation.itemName, TEXT_LIMITS.title) || title,
-                    sku: sanitizeText(supplyAutomation.sku ?? existing?.sku, TEXT_LIMITS.sku),
-                    retailerUrl: sanitizeText(supplyAutomation.retailerUrl ?? existing?.retailerUrl, TEXT_LIMITS.url),
-                    quantity: Math.min(
-                      99,
-                      Math.max(1, supplyAutomation.qtyPerOrder ?? supplyAutomation.quantity ?? existing?.qtyPerOrder ?? DEFAULT_QUANTITY),
-                    ),
-                    onHand: Math.max(0, supplyAutomation.onHand ?? existing?.onHand ?? 0),
-                    qtyPerOrder: Math.min(
-                      99,
-                      Math.max(1, supplyAutomation.qtyPerOrder ?? supplyAutomation.quantity ?? existing?.qtyPerOrder ?? DEFAULT_QUANTITY),
-                    ),
-                    leadTimeDays: Math.min(90, Math.max(0, supplyAutomation.leadTimeDays ?? existing?.leadTimeDays ?? DEFAULT_LEAD_TIME_DAYS)),
-                    installedAt: supplyAutomation.installedAt ?? existing?.installedAt ?? defaults.installedAt,
-                    lifespanValue: Math.max(1, supplyAutomation.lifespanValue ?? existing?.lifespanValue ?? 12),
-                    lifespanUnit: supplyAutomation.lifespanUnit ?? existing?.lifespanUnit ?? "months",
-                    orderByDate: supplyAutomation.orderByDate ?? existing?.orderByDate ?? defaults.orderByDate,
-                    nextOrderDate: supplyAutomation.orderByDate ?? existing?.nextOrderDate ?? defaults.nextOrderDate,
-                    orderInFlight: existing?.orderInFlight ?? false,
-                    state: existing?.state ?? "stocked",
-                    expectedArrivalDate: existing?.expectedArrivalDate ?? null,
-                    createdAt: existing?.createdAt ?? new Date().toISOString(),
-                  },
-                ];
-        if (firstConsumable && !current.restockDigest.permissionAsked) {
+        const next = applyDutySave(current, duty);
+        if (
+          next.supplyAutomations.length > current.supplyAutomations.length &&
+          !current.restockDigest.permissionAsked
+        ) {
           void requestNotifyPermission();
         }
-
-        return {
-          ...current,
-          version: 7,
-          duties: nextDuty,
-          supplyAutomations,
-          restockDigest: firstConsumable
-            ? { ...current.restockDigest, permissionAsked: true }
-            : current.restockDigest,
-        };
+        return next;
       });
     },
     [update],
@@ -252,6 +163,7 @@ export function useHousehold() {
         supplyAutomations: current.supplyAutomations.map((item) =>
           item.id === id ? saveRetailerLink(item, url) : item,
         ),
+        savedRetailerLinks: rememberRetailerLink(current.savedRetailerLinks, url),
       }));
     },
     [update],
@@ -260,12 +172,14 @@ export function useHousehold() {
   const attachSharedLink = useCallback(
     (url: string, consumableId?: string) => {
       update((current) => {
+        const savedRetailerLinks = rememberRetailerLink(current.savedRetailerLinks, url);
         if (consumableId) {
           return {
             ...current,
             supplyAutomations: current.supplyAutomations.map((item) =>
               item.id === consumableId ? saveRetailerLink(item, url) : item,
             ),
+            savedRetailerLinks,
           };
         }
         const defaults = defaultConsumableFields();
@@ -286,6 +200,7 @@ export function useHousehold() {
               createdAt: new Date().toISOString(),
             },
           ],
+          savedRetailerLinks,
           restockDigest: current.restockDigest.permissionAsked
             ? current.restockDigest
             : { ...current.restockDigest, permissionAsked: true },

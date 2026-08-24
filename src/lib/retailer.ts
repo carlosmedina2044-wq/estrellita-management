@@ -1,3 +1,6 @@
+import { TEXT_LIMITS } from "@/lib/sanitize";
+import type { SavedRetailerLink } from "@/lib/types";
+
 const ASIN = /^[A-Z0-9]{10}$/i;
 const AMAZON_HOST = /(^|\.)amazon\.(com|ca|com\.mx|co\.uk|de|fr|es|it|nl|se|pl|com\.au|co\.jp|in|sg|ae|sa|com\.br)$/i;
 const SHORT_HOST = /^(amzn\.to|a\.co)$/i;
@@ -13,7 +16,11 @@ const KNOWN_RETAILER_HOSTS = [
   /(^|\.)chewy\.com$/i,
   /(^|\.)costco\.com$/i,
   /(^|\.)acehardware\.com$/i,
+  /(^|\.)ebay\.(com|ca|co\.uk|com\.au|de|fr|it|es)$/i,
 ];
+
+const TRACKING_PARAM = /^(utm_|fbclid|gclid|mc_|ref_|tag$|camp$|_encoding$)/i;
+export const MAX_SAVED_RETAILER_LINKS = 12;
 
 export function isKnownRetailerUrl(value: string): boolean {
   try {
@@ -71,6 +78,54 @@ function searchQuery(name: string): string {
 export function retailerSearchUrl(chipId: RetailerChip["id"], name: string): string {
   const chip = RETAILER_CHIPS.find((item) => item.id === chipId);
   return (chip ?? RETAILER_CHIPS[0]).searchUrl(searchQuery(name));
+}
+
+/** Search the item on an arbitrary store host the user typed (ebay.com, etc.). */
+export function searchUrlOnHost(host: string, name: string): string {
+  const h = host.replace(/^www\./i, "").toLowerCase();
+  const q = encodeURIComponent(searchQuery(name));
+  if (AMAZON_HOST.test(h) || SHORT_HOST.test(h)) return `https://www.amazon.com/s?k=${q}`;
+  if (/(^|\.)homedepot\.com$/i.test(h)) return `https://www.homedepot.com/s/${q}`;
+  if (/(^|\.)walmart\.com$/i.test(h)) return `https://www.walmart.com/search?q=${q}`;
+  if (/(^|\.)target\.com$/i.test(h)) return `https://www.target.com/s?searchTerm=${q}`;
+  if (/(^|\.)chewy\.com$/i.test(h)) return `https://www.chewy.com/s?query=${q}`;
+  if (/(^|\.)ebay\.(com|ca|co\.uk|com\.au|de|fr|it|es)$/i.test(h)) {
+    return `https://${h}/sch/i.html?_nkw=${q}`;
+  }
+  return `https://${h}/search?q=${q}`;
+}
+
+function isBareStoreUrl(value: string): boolean {
+  try {
+    const url = new URL(value.includes("://") ? value : `https://${value}`);
+    return url.pathname === "/" || url.pathname === "";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * User-typed store or listing. Bare hosts (ebay.com) are remembered as the store
+ * and opened as a search for the item name. Full listing URLs are saved and opened as-is.
+ */
+export function resolveRetailerEntry(
+  input: string,
+  itemName = "",
+): { ok: true; saveUrl: string; openUrl: string } | { ok: false; error: string } {
+  const trimmed = input.trim();
+  if (!trimmed) return { ok: false, error: "Type a store like ebay.com, or paste a link." };
+  const parsed = parseRetailerInput(trimmed);
+  if (!parsed.ok) return parsed;
+  const saveUrl = normalizeSavedRetailerUrl(parsed.url) ?? parsed.url;
+  if (isBareStoreUrl(parsed.url) && itemName.trim()) {
+    try {
+      const host = new URL(parsed.url.includes("://") ? parsed.url : `https://${parsed.url}`).hostname;
+      return { ok: true, saveUrl, openUrl: searchUrlOnHost(host, itemName) };
+    } catch {
+      return { ok: true, saveUrl, openUrl: saveUrl };
+    }
+  }
+  return { ok: true, saveUrl, openUrl: saveUrl };
 }
 
 export function amazonUrlFromAsin(asin: string): string {
@@ -152,4 +207,65 @@ export function extractSharedUrl(input: { url?: string | null; text?: string | n
     if (parsed.ok && isKnownRetailerUrl(parsed.url)) return parsed.url;
   }
   return null;
+}
+
+/**
+ * Canonical household-saved URL: https, no www, no hash, no tracking params.
+ * Returns null for empty or unparseable input.
+ */
+export function normalizeSavedRetailerUrl(input: string): string | null {
+  const parsed = parseRetailerInput(input);
+  if (!parsed.ok) return null;
+  try {
+    const url = new URL(parsed.url);
+    url.hash = "";
+    url.username = "";
+    url.password = "";
+    url.protocol = "https:";
+    url.hostname = url.hostname.replace(/^www\./i, "").toLowerCase();
+    for (const key of [...url.searchParams.keys()]) {
+      if (TRACKING_PARAM.test(key)) url.searchParams.delete(key);
+    }
+    if (url.pathname === "/") url.pathname = "";
+    const href = url.toString().replace(/\/$/, "");
+    const cleaned = href.slice(0, TEXT_LIMITS.url);
+    return cleaned.length > 0 ? cleaned : null;
+  } catch {
+    return null;
+  }
+}
+
+export function savedRetailerLabel(url: string): string {
+  try {
+    const parsed = new URL(url.includes("://") ? url : `https://${url}`);
+    const host = parsed.hostname.replace(/^www\./i, "");
+    const path = parsed.pathname.replace(/\/$/, "");
+    if (!path) return host;
+    if (path.length <= 22) return `${host}${path}`;
+    return `${host}${path.slice(0, 19)}…`;
+  } catch {
+    return url;
+  }
+}
+
+export function rememberRetailerLink(
+  links: SavedRetailerLink[],
+  rawUrl: string,
+  now = new Date(),
+): SavedRetailerLink[] {
+  const url = normalizeSavedRetailerUrl(rawUrl);
+  if (!url) return links;
+  const existing = links.find((item) => item.url === url);
+  const next: SavedRetailerLink = existing
+    ? { url, lastUsedAt: now.toISOString(), useCount: existing.useCount + 1 }
+    : { url, lastUsedAt: now.toISOString(), useCount: 1 };
+  return [next, ...links.filter((item) => item.url !== url)].slice(0, MAX_SAVED_RETAILER_LINKS);
+}
+
+export function sortedSavedRetailerLinks(links: SavedRetailerLink[]): SavedRetailerLink[] {
+  return [...links].sort((a, b) => {
+    const byTime = b.lastUsedAt.localeCompare(a.lastUsedAt);
+    if (byTime !== 0) return byTime;
+    return b.useCount - a.useCount;
+  });
 }

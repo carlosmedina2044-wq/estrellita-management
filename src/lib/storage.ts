@@ -24,6 +24,7 @@ import { deleteDeviceKey, loadOrCreateDeviceKey } from "@/lib/native/device-key"
 import { kvGet, kvRemove, kvSet } from "@/lib/native/kv";
 import { syncScheduledNotifications } from "@/lib/notifications";
 import { asArray, asId, isPlainObject, sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
+import { rememberRetailerLink, normalizeSavedRetailerUrl } from "@/lib/retailer";
 import { deriveOrderByDate } from "@/lib/supply";
 import type {
   Audience,
@@ -41,6 +42,7 @@ import type {
   LifespanUnit,
   LockSettings,
   PlaybookDecision,
+  SavedRetailerLink,
   SupplyAutomation,
   Visit,
   WeatherFire,
@@ -76,6 +78,7 @@ let didHydrate = false;
 let lastLoad: HouseholdLoad | null = null;
 let key: CryptoKey | null = null;
 let persistChain: Promise<void> = Promise.resolve();
+let persistOk = true;
 let notifyTimer: ReturnType<typeof setTimeout> | null = null;
 
 function cloneEmpty(): Household {
@@ -196,10 +199,12 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     typeof raw.nodeId === "string" && /^[A-Za-z0-9_-]{2,64}$/.test(raw.nodeId)
       ? raw.nodeId
       : (duty?.nodeId ?? room);
-  const installedAt = asIsoDate(raw.installedAt, todayISO()) ?? todayISO();
+  const installedAt = asIsoDate(raw.installedAt) ?? "";
   const lifespanUnit = asEnum(raw.lifespanUnit, LIFESPAN_UNITS, "months");
   const lifespanValue = asInt(raw.lifespanValue, 6, 1, 120);
-  const derived = deriveOrderByDate(installedAt, lifespanValue, lifespanUnit);
+  const derived = installedAt
+    ? deriveOrderByDate(installedAt, lifespanValue, lifespanUnit)
+    : (asIsoDate(raw.orderByDate, asIsoDate(raw.nextOrderDate)) ?? todayISO());
   const orderByDate = asIsoDate(raw.orderByDate, asIsoDate(raw.nextOrderDate, derived)) ?? derived;
   const linkedDutyIds = [
     dutyId,
@@ -222,6 +227,7 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     quantity,
     onHand: asInt(raw.onHand, 0, 0, 999),
     qtyPerOrder: quantity,
+    reorderAt: asInt(raw.reorderAt, 0, 0, 99),
     leadTimeDays: asInt(raw.leadTimeDays, 14, 0, 90),
     installedAt,
     lifespanValue,
@@ -380,6 +386,22 @@ function migrateWeatherFire(raw: unknown): WeatherFire | null {
   return { triggerId: raw.triggerId, firedAt: raw.firedAt };
 }
 
+function migrateSavedRetailerLink(raw: unknown): SavedRetailerLink | null {
+  if (typeof raw === "string") {
+    const url = normalizeSavedRetailerUrl(raw);
+    if (!url) return null;
+    return { url, lastUsedAt: new Date(0).toISOString(), useCount: 1 };
+  }
+  if (!isPlainObject(raw)) return null;
+  const url = normalizeSavedRetailerUrl(typeof raw.url === "string" ? raw.url : "");
+  if (!url) return null;
+  return {
+    url,
+    lastUsedAt: asIsoDateTime(raw.lastUsedAt, new Date(0).toISOString()),
+    useCount: asInt(raw.useCount, 1, 1, 9999),
+  };
+}
+
 function migrate(raw: Record<string, unknown>): Household {
   const duties = asArray(raw.duties)
     .map(migrateDuty)
@@ -435,6 +457,16 @@ function migrate(raw: Record<string, unknown>): Household {
   const weatherFires = asArray(raw.weatherFires)
     .map(migrateWeatherFire)
     .filter((item): item is WeatherFire => Boolean(item));
+  const savedFromField = asArray(raw.savedRetailerLinks)
+    .map(migrateSavedRetailerLink)
+    .filter((item): item is SavedRetailerLink => Boolean(item));
+  const savedRetailerLinks =
+    savedFromField.length > 0
+      ? savedFromField
+      : supplyAutomations.reduce(
+          (links, item) => rememberRetailerLink(links, item.retailerUrl),
+          [] as SavedRetailerLink[],
+        );
   const homeType =
     raw.homeType === "townhouse" ||
     raw.homeType === "condo" ||
@@ -463,6 +495,7 @@ function migrate(raw: Record<string, unknown>): Household {
     completions,
     visits,
     supplyAutomations,
+    savedRetailerLinks,
     playbookDecisions,
     weatherFires,
     weatherStatus: isPlainObject(raw.weatherStatus)
@@ -518,8 +551,11 @@ function write(next: Household) {
   notifyChange();
   persistChain = persistChain
     .then(() => persist(next))
+    .then(() => {
+      persistOk = true;
+    })
     .catch(() => {
-      // Keep the in-memory copy; the next write retries the whole envelope.
+      persistOk = false;
     });
 }
 
@@ -566,7 +602,18 @@ function legacyLockedVaultPresent(): boolean {
  */
 export async function hydrateHousehold(): Promise<HouseholdLoad> {
   didHydrate = true;
-  memory = null;
+  await persistChain.catch(() => {});
+  if (!persistOk && memory) {
+    persistChain = persist(memory)
+      .then(() => {
+        persistOk = true;
+      })
+      .catch(() => {
+        persistOk = false;
+      });
+    lastLoad = { ok: true, legacyLockedVault: false };
+    return lastLoad;
+  }
   try {
     key = await loadOrCreateDeviceKey();
     let raw = await kvGet(VAULT_STORAGE_KEY);
@@ -634,6 +681,7 @@ export async function eraseHousehold(): Promise<void> {
   }
   key = null;
   memory = cloneEmpty();
+  persistOk = true;
   lastLoad = { ok: true, legacyLockedVault: false };
   notifyChange();
   void syncScheduledNotifications(memory).catch(() => {});

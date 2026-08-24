@@ -41,6 +41,7 @@ test("migrates a pre-release household and drops account/PIN fields", () => {
   assert.equal(supply.retailerUrl, "https://www.amazon.com/dp/B0FILTER12");
   assert.equal("amazonOneClick" in supply, false);
   assert.ok(household.rooms.some((room) => room.system === "whole-home"));
+  assert.equal(household.savedRetailerLinks.some((item) => item.url.includes("amazon.com")), true);
 });
 
 test("unknown room ids fall back to a generic room, not a specific house", () => {
@@ -69,4 +70,37 @@ test("drops orphaned consumables and control characters", () => {
 test("rejects non-object payloads", () => {
   assert.throws(() => parseStored("[]"));
   assert.throws(() => parseStored("null"));
+});
+
+test("keeps an explicit empty installedAt and household saved retailer links", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      duties: [
+        {
+          id: "duty-0004",
+          title: "Replace filter",
+          room: "kitchen",
+          frequency: "quarterly",
+          kind: "replacement",
+          createdAt: "2026-08-23T12:00:00.000Z",
+        },
+      ],
+      supplyAutomations: [
+        {
+          id: "sup-00004",
+          dutyId: "duty-0004",
+          itemName: "Filter",
+          onHand: 0,
+          installedAt: "",
+          leadTimeDays: 14,
+        },
+      ],
+      savedRetailerLinks: [{ url: "https://www.ebay.com/itm/99", useCount: 2, lastUsedAt: "2026-08-23T12:00:00.000Z" }],
+    }),
+  );
+  assert.equal(household.supplyAutomations[0]?.installedAt, "");
+  assert.equal(household.supplyAutomations[0]?.reorderAt, 0);
+  assert.equal(household.savedRetailerLinks[0]?.url, "https://ebay.com/itm/99");
+  assert.equal(household.savedRetailerLinks[0]?.useCount, 2);
 });

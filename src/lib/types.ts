@@ -168,6 +168,12 @@ export type RestockDigestSettings = {
   permissionAsked: boolean;
 };
 
+export type SavedRetailerLink = {
+  url: string;
+  lastUsedAt: string;
+  useCount: number;
+};
+
 export type SupplyAutomation = {
   id: string;
   dutyId: string;
@@ -181,6 +187,7 @@ export type SupplyAutomation = {
   quantity: number;
   onHand: number;
   qtyPerOrder: number;
+  reorderAt: number;
   leadTimeDays: number;
   installedAt: string;
   lifespanValue: number;
@@ -203,6 +210,7 @@ export type SupplyAutomationInput = {
   quantity?: number;
   onHand?: number;
   qtyPerOrder?: number;
+  reorderAt?: number;
   leadTimeDays: number;
   installedAt?: string;
   lifespanValue?: number;
@@ -268,6 +276,7 @@ export type Household = {
   completions: Completion[];
   visits: Visit[];
   supplyAutomations: SupplyAutomation[];
+  savedRetailerLinks: SavedRetailerLink[];
   playbookDecisions: PlaybookDecision[];
   weatherFires: WeatherFire[];
   weatherStatus: WeatherStatus;

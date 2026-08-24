@@ -17,18 +17,18 @@ export default function manifest() {
         url: "url",
       },
     },
-    background_color: "#F5F5F7",
-    theme_color: "#F5F5F7",
+    background_color: "#F7F3EC",
+    theme_color: "#F7F3EC",
     orientation: "portrait",
     icons: [
       {
-        src: "/icon",
+        src: "/icon.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icon",
+        src: "/icon.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

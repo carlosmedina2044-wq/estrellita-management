@@ -23,6 +23,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
+import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved-retailer-field";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
 import type { Duty, DutyDraft, Household, Room, SupplyAutomation } from "@/lib/types";
 
@@ -31,6 +32,8 @@ type Draft = {
   room: Room;
   leadTimeDays: string;
   onHand: string;
+  reorderAt: string;
+  retailerUrl: string;
 };
 
 function emptyDraft(room: Room): Draft {
@@ -39,6 +42,8 @@ function emptyDraft(room: Room): Draft {
     room,
     leadTimeDays: String(DEFAULT_LEAD_TIME_DAYS),
     onHand: "0",
+    reorderAt: "0",
+    retailerUrl: "",
   };
 }
 
@@ -82,6 +87,8 @@ export function ConsumableForm({
             room: automation.room || duty?.room || defaultRoom,
             leadTimeDays: String(automation.leadTimeDays ?? DEFAULT_LEAD_TIME_DAYS),
             onHand: String(automation.onHand ?? 0),
+            reorderAt: String(automation.reorderAt ?? 0),
+            retailerUrl: automation.retailerUrl ?? "",
           }
         : emptyDraft(defaultRoom),
     );
@@ -96,6 +103,12 @@ export function ConsumableForm({
     if (!itemName) {
       setFormError("Name the item to order.");
       toast.error("Name the item to order.");
+      return;
+    }
+    const link = parseOptionalRetailerUrl(draft.retailerUrl);
+    if (!link.ok) {
+      setFormError(link.error);
+      toast.error(link.error);
       return;
     }
     setFormError(null);
@@ -119,10 +132,12 @@ export function ConsumableForm({
         itemName,
         leadTimeDays: Math.min(90, Math.max(0, Number(draft.leadTimeDays) || DEFAULT_LEAD_TIME_DAYS)),
         onHand: Math.max(0, Number(draft.onHand) || 0),
-        retailerUrl: automation?.retailerUrl,
+        reorderAt: Math.min(99, Math.max(0, Math.round(Number(draft.reorderAt)) || 0)),
+        retailerUrl: link.url || automation?.retailerUrl,
         linkedDutyIds: automation?.linkedDutyIds,
       },
     });
+    toast.success(automation ? "Saved" : "Added to Restock");
     closeAfterClick();
   }
 
@@ -144,6 +159,13 @@ export function ConsumableForm({
               placeholder="HVAC filter 16x25x1"
               className="h-12"
               autoFocus={!automation}
+            />
+          </Field>
+          <Field label="Where you order it">
+            <SavedRetailerField
+              value={draft.retailerUrl}
+              saved={household.savedRetailerLinks ?? []}
+              onChange={(retailerUrl) => setDraft((current) => ({ ...current, retailerUrl }))}
             />
           </Field>
           <Field label="Where it’s used">
@@ -174,15 +196,6 @@ export function ConsumableForm({
             </Select>
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Lead time (days)">
-              <Input
-                type="number"
-                min={0}
-                value={draft.leadTimeDays}
-                onChange={(event) => setDraft((current) => ({ ...current, leadTimeDays: event.target.value }))}
-                className="h-12"
-              />
-            </Field>
             <Field label="On hand">
               <Input
                 type="number"
@@ -192,10 +205,29 @@ export function ConsumableForm({
                 className="h-12"
               />
             </Field>
+            <Field label="Order at or below">
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                value={draft.reorderAt}
+                onChange={(event) => setDraft((current) => ({ ...current, reorderAt: event.target.value }))}
+                className="h-12"
+              />
+            </Field>
           </div>
           <p className="text-[13px] text-muted-foreground">
-            Save a product link later with Share, or tap Save this link after you find it.
+            When on hand is this many or fewer, it shows on Today with Order. 0 means order when you’re out.
           </p>
+          <Field label="Lead time (days)">
+            <Input
+              type="number"
+              min={0}
+              value={draft.leadTimeDays}
+              onChange={(event) => setDraft((current) => ({ ...current, leadTimeDays: event.target.value }))}
+              className="h-12"
+            />
+          </Field>
           {automation ? (
             <RestockOrderButton
               item={automation}

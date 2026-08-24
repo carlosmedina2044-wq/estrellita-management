@@ -15,8 +15,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { openExternalUrl } from "@/lib/native/open-url";
-import { parseRetailerInput, retailerSearchUrl, retailerUrlFor, RETAILER_CHIPS } from "@/lib/retailer";
-import { restockPlacement } from "@/lib/restock";
+import {
+  resolveRetailerEntry,
+  retailerSearchUrl,
+  retailerUrlFor,
+  RETAILER_CHIPS,
+  savedRetailerLabel,
+  sortedSavedRetailerLinks,
+} from "@/lib/retailer";
+import { restockPlacement, reorderAtFor } from "@/lib/restock";
 import { formatDueDate } from "@/lib/dates";
 import type { Household, SupplyAutomation } from "@/lib/types";
 
@@ -27,23 +34,26 @@ export function RestockOrderButton({
   onReceived,
   onSaveLink,
   className,
+  compact,
 }: {
   item: SupplyAutomation;
-  household: Pick<Household, "duties" | "completions">;
+  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks">;
   onOrdered?: () => void;
   onReceived?: (qty: number) => void;
   onSaveLink?: (url: string) => void;
   className?: string;
+  compact?: boolean;
 }) {
   const [ask, setAsk] = useState(false);
   const [receive, setReceive] = useState(false);
-  const [savingLink, setSavingLink] = useState(false);
   const [linkDraft, setLinkDraft] = useState(item.retailerUrl || "");
   const [qtyDraft, setQtyDraft] = useState(String(item.qtyPerOrder || 1));
   const placement = restockPlacement(item, household);
   const href = retailerUrlFor(item);
   const arriving = placement.bucket === "ordered";
-  const primary = href ? "Order" : "Find it";
+  const savedLinks = sortedSavedRetailerLinks(household.savedRetailerLinks ?? []).filter(
+    (entry) => entry.url !== href,
+  );
 
   async function openHref(url: string) {
     const opened = await openExternalUrl(url);
@@ -51,6 +61,12 @@ export function RestockOrderButton({
       toast.error("Couldn’t open the retailer. Check your browser pop-up setting.");
     }
     setAsk(true);
+  }
+
+  function useEntry(saveUrl: string, openUrl: string) {
+    setLinkDraft(saveUrl);
+    onSaveLink?.(saveUrl);
+    void openHref(openUrl);
   }
 
   if (arriving) {
@@ -76,27 +92,44 @@ export function RestockOrderButton({
   return (
     <>
       {href ? (
-        <Button type="button" className={className ?? "h-10"} onClick={() => void openHref(href)}>
-          {primary}
+        <Button type="button" className={className ?? (compact ? "h-12" : "h-10")} onClick={() => void openHref(href)}>
+          Order
         </Button>
       ) : (
-        <div className="grid gap-2">
-          <p className="text-[13px] font-medium">{primary}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {RETAILER_CHIPS.map((chip) => (
-              <Button
-                key={chip.id}
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="h-8 rounded-full"
-                onClick={() => void openHref(retailerSearchUrl(chip.id, item.itemName))}
-              >
-                {chip.label}
-              </Button>
-            ))}
-          </div>
+        <p className="text-[13px] font-medium">Find it</p>
+      )}
+      {href && compact ? null : (
+      <div className="mt-2 grid gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          {!href
+            ? RETAILER_CHIPS.map((chip) => (
+                <Button
+                  key={chip.id}
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 rounded-full"
+                  onClick={() => void openHref(retailerSearchUrl(chip.id, item.itemName))}
+                >
+                  {chip.label}
+                </Button>
+              ))
+            : null}
+          {savedLinks.slice(0, 6).map((entry) => (
+            <Button
+              key={entry.url}
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="h-8 max-w-full rounded-full"
+              onClick={() => useEntry(entry.url, entry.url)}
+            >
+              <span className="truncate">{savedRetailerLabel(entry.url)}</span>
+            </Button>
+          ))}
         </div>
+        <CustomStoreSearch itemName={item.itemName} onSearch={useEntry} />
+      </div>
       )}
       {placement.nudgeArrive ? (
         <p className="mt-2 text-[13px] text-muted-foreground">Did it arrive?</p>
@@ -115,39 +148,38 @@ export function RestockOrderButton({
               {item.itemName}. Yes sets expected arrival and hides it from Order now until it should be here.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {savingLink ? (
+          {onSaveLink ? (
             <div className="grid gap-2">
               <Input
                 value={linkDraft}
                 onChange={(event) => setLinkDraft(event.target.value)}
-                placeholder="https://…"
+                placeholder="ebay.com or paste the listing"
                 className="h-11"
+                inputMode="url"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
               />
               <Button
                 type="button"
                 variant="secondary"
                 onClick={() => {
-                  const parsed = parseRetailerInput(linkDraft);
-                  if (!parsed.ok) {
-                    toast.error(parsed.error);
+                  const resolved = resolveRetailerEntry(linkDraft, item.itemName);
+                  if (!resolved.ok) {
+                    toast.error(resolved.error);
                     return;
                   }
-                  onSaveLink?.(parsed.url);
-                  setSavingLink(false);
+                  onSaveLink(resolved.saveUrl);
+                  setLinkDraft(resolved.saveUrl);
                   toast.success("Link saved");
                 }}
               >
-                Save link
+                Save this link
               </Button>
             </div>
           ) : null}
           <AlertDialogFooter>
             <AlertDialogCancel>Not yet</AlertDialogCancel>
-            {onSaveLink && !savingLink ? (
-              <Button type="button" variant="secondary" onClick={() => setSavingLink(true)}>
-                Save this link
-              </Button>
-            ) : null}
             {onOrdered ? (
               <AlertDialogAction
                 onClick={() => {
@@ -169,6 +201,53 @@ export function RestockOrderButton({
         onConfirm={() => onReceived?.(Math.max(1, Number(qtyDraft) || item.qtyPerOrder || 1))}
       />
     </>
+  );
+}
+
+function CustomStoreSearch({
+  itemName,
+  onSearch,
+}: {
+  itemName: string;
+  onSearch: (saveUrl: string, openUrl: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+
+  function go() {
+    const resolved = resolveRetailerEntry(draft, itemName);
+    if (!resolved.ok) {
+      toast.error(resolved.error);
+      return;
+    }
+    onSearch(resolved.saveUrl, resolved.openUrl);
+    setDraft("");
+  }
+
+  return (
+    <div className="grid gap-1.5">
+      <p className="text-[13px] text-muted-foreground">Or any other store</p>
+      <div className="flex gap-2">
+        <Input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="ebay.com or paste a link"
+          className="h-10 min-w-0 flex-1"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              go();
+            }
+          }}
+        />
+        <Button type="button" variant="secondary" className="h-10 shrink-0 px-3" onClick={go}>
+          Search
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -219,6 +298,13 @@ export function OrderByLine({
   const placement = restockPlacement(item, household);
   if (placement.bucket === "ordered" && item.expectedArrivalDate) {
     return <>Arriving ~{formatDueDate(item.expectedArrivalDate)}</>;
+  }
+  if (placement.bucket === "order_now" && item.onHand <= reorderAtFor(item)) {
+    return (
+      <>
+        On hand {item.onHand} · order now
+      </>
+    );
   }
   if (placement.orderByDate) return <>Order by {formatDueDate(placement.orderByDate)}</>;
   return <>Stocked</>;

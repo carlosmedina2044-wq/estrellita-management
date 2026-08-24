@@ -29,6 +29,7 @@ import { AUDIENCES, EFFORTS, FREQUENCIES, WEEKDAYS } from "@/lib/constants";
 import { todayISO } from "@/lib/dates";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { RestockOrderButton } from "@/components/restock-order-button";
+import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved-retailer-field";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
 import type {
   Audience,
@@ -57,6 +58,8 @@ type Draft = {
   itemName: string;
   leadTimeDays: string;
   onHand: string;
+  reorderAt: string;
+  retailerUrl: string;
 };
 
 const emptyDraft: Draft = {
@@ -74,6 +77,8 @@ const emptyDraft: Draft = {
   itemName: "",
   leadTimeDays: String(DEFAULT_LEAD_TIME_DAYS),
   onHand: "0",
+  reorderAt: "0",
+  retailerUrl: "",
 };
 
 function fromDuty(duty: Duty, automation?: SupplyAutomation | null): Draft {
@@ -92,6 +97,8 @@ function fromDuty(duty: Duty, automation?: SupplyAutomation | null): Draft {
     itemName: automation?.itemName ?? duty.title,
     leadTimeDays: String(automation?.leadTimeDays ?? DEFAULT_LEAD_TIME_DAYS),
     onHand: String(automation?.onHand ?? 0),
+    reorderAt: String(automation?.reorderAt ?? 0),
+    retailerUrl: automation?.retailerUrl ?? "",
   };
 }
 
@@ -172,6 +179,13 @@ export function DutyForm({
       toast.error("Name the item to order.");
       return;
     }
+    const link = draft.trackSupply ? parseOptionalRetailerUrl(draft.retailerUrl) : { ok: true as const, url: "" };
+    if (!link.ok) {
+      setShowSupply(true);
+      setFormError(link.error);
+      toast.error(link.error);
+      return;
+    }
     setFormError(null);
     onSave({
       id: duty?.id,
@@ -194,7 +208,8 @@ export function DutyForm({
             itemName: draft.itemName.trim() || title,
             leadTimeDays: Math.min(90, Math.max(0, Number(draft.leadTimeDays) || DEFAULT_LEAD_TIME_DAYS)),
             onHand: Math.max(0, Number(draft.onHand) || 0),
-            retailerUrl: supplyAutomation?.retailerUrl,
+            reorderAt: Math.min(99, Math.max(0, Math.round(Number(draft.reorderAt)) || 0)),
+            retailerUrl: link.url || supplyAutomation?.retailerUrl,
             linkedDutyIds: supplyAutomation?.linkedDutyIds,
           }
         : null,
@@ -405,17 +420,6 @@ export function DutyForm({
                   />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Lead time (days)">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={draft.leadTimeDays}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, leadTimeDays: event.target.value }))
-                      }
-                      className="h-12"
-                    />
-                  </Field>
                   <Field label="On hand">
                     <Input
                       type="number"
@@ -427,10 +431,40 @@ export function DutyForm({
                       className="h-12"
                     />
                   </Field>
+                  <Field label="Order at or below">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={99}
+                      value={draft.reorderAt}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, reorderAt: event.target.value }))
+                      }
+                      className="h-12"
+                    />
+                  </Field>
                 </div>
                 <p className="text-[13px] text-muted-foreground">
-                  Save a product link later from Share, or after you tap Find it.
+                  When on hand is this many or fewer, it shows on Today with Order. 0 means order when you’re out.
                 </p>
+                <Field label="Lead time (days)">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={draft.leadTimeDays}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, leadTimeDays: event.target.value }))
+                    }
+                    className="h-12"
+                  />
+                </Field>
+                <Field label="Where you order it">
+                  <SavedRetailerField
+                    value={draft.retailerUrl}
+                    saved={household.savedRetailerLinks ?? []}
+                    onChange={(retailerUrl) => setDraft((current) => ({ ...current, retailerUrl }))}
+                  />
+                </Field>
                 {supplyAutomation ? (
                   <RestockOrderButton
                     item={supplyAutomation}

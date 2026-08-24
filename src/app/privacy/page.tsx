@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLockup } from "@/components/brand-logo";
 
 export const metadata = { title: "Privacy policy — Cuidala" };
 
@@ -8,6 +9,7 @@ export default function PrivacyPage() {
       <Link href="/" className="text-sm font-medium text-primary">
         ← Back
       </Link>
+      <BrandLockup size="sm" />
       <h1 className="ui-heading text-[28px] font-semibold tracking-tight">Privacy policy</h1>
       <p className="text-sm text-muted-foreground">Effective August 2026</p>
 

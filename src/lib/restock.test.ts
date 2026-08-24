@@ -46,6 +46,7 @@ function item(partial: Partial<SupplyAutomation> = {}): SupplyAutomation {
     quantity: 1,
     onHand: 0,
     qtyPerOrder: 1,
+    reorderAt: 0,
     leadTimeDays: 14,
     installedAt: "2026-01-01",
     lifespanValue: 3,
@@ -89,27 +90,66 @@ test("order now when order-by is today or earlier", () => {
   assert.equal(placement.bucket, "order_now");
 });
 
-test("coming up when order-by is within 21 days", () => {
+test("0 on-hand is Order now even when the next change is months out", () => {
+  const later = duty({
+    id: "d-far",
+    title: "Swap filter",
+    frequency: "once",
+    dueDate: "2026-12-01",
+  });
+  const empty = item({
+    dutyId: "d-far",
+    linkedDutyIds: ["d-far"],
+    onHand: 0,
+    reorderAt: 0,
+    installedAt: "2026-08-23",
+    leadTimeDays: 14,
+  });
+  assert.equal(restockPlacement(empty, { duties: [later], completions: [] }, now).bucket, "order_now");
+});
+
+test("reorder threshold: order when on-hand is at or below the number they set", () => {
+  const later = duty({
+    id: "d-th",
+    title: "Swap filter",
+    frequency: "once",
+    dueDate: "2026-12-01",
+  });
+  const ctx = { duties: [later], completions: [] };
+  assert.equal(
+    restockPlacement(item({ dutyId: "d-th", linkedDutyIds: ["d-th"], onHand: 1, reorderAt: 0 }), ctx, now).bucket,
+    "stocked",
+  );
+  assert.equal(
+    restockPlacement(item({ dutyId: "d-th", linkedDutyIds: ["d-th"], onHand: 1, reorderAt: 1 }), ctx, now).bucket,
+    "order_now",
+  );
+  assert.equal(
+    restockPlacement(item({ dutyId: "d-th", linkedDutyIds: ["d-th"], onHand: 2, reorderAt: 1 }), ctx, now).bucket,
+    "stocked",
+  );
+});
+
+test("coming up when stock is above the threshold but order-by is within 21 days", () => {
   const farTask = duty({
     id: "d2",
     title: "Swap filter",
-    frequency: "once",
-    dueDate: "2026-09-20",
+    frequency: "monthly",
+    monthDay: 1,
   });
-  const supply = item({ dutyId: "d2", linkedDutyIds: ["d2"], onHand: 0, leadTimeDays: 14 });
+  const supply = item({ dutyId: "d2", linkedDutyIds: ["d2"], onHand: 1, reorderAt: 0, leadTimeDays: 21 });
   const placement = restockPlacement(supply, { duties: [farTask], completions: [] }, now);
-  assert.equal(placement.orderByDate, "2026-09-06");
   assert.equal(placement.bucket, "coming_up");
 });
 
-test("stocked when order-by is more than 21 days out", () => {
+test("stocked when above threshold and order-by is more than 21 days out", () => {
   const later = duty({
     id: "d3",
     title: "Swap filter",
     frequency: "once",
     dueDate: "2026-12-01",
   });
-  const supply = item({ dutyId: "d3", linkedDutyIds: ["d3"], onHand: 0, leadTimeDays: 14 });
+  const supply = item({ dutyId: "d3", linkedDutyIds: ["d3"], onHand: 1, reorderAt: 0, leadTimeDays: 14 });
   const placement = restockPlacement(supply, { duties: [later], completions: [] }, now);
   assert.equal(placement.bucket, "stocked");
 });
@@ -121,11 +161,11 @@ test("completing a linked task decrements on-hand and re-buckets", () => {
     frequency: "once",
     dueDate: "2026-12-01",
   });
-  const before = item({ dutyId: "d4", linkedDutyIds: ["d4"], onHand: 1, leadTimeDays: 14 });
+  const before = item({ dutyId: "d4", linkedDutyIds: ["d4"], onHand: 1, reorderAt: 0, leadTimeDays: 14 });
   assert.equal(restockPlacement(before, { duties: [later], completions: [] }, now).bucket, "stocked");
   const after = consumeLinkedUnit(before);
   assert.equal(after.onHand, 0);
-  assert.equal(restockPlacement(after, { duties: [later], completions: [] }, now).bucket, "stocked");
+  assert.equal(restockPlacement(after, { duties: [later], completions: [] }, now).bucket, "order_now");
   const soon = duty({
     id: "d5",
     title: "Swap filter",
@@ -213,6 +253,8 @@ test("digest candidates include order now and coming up within 7 days", () => {
     dutyId: "d8",
     linkedDutyIds: ["d8"],
     itemName: "Salt",
+    onHand: 2,
+    reorderAt: 0,
   });
   const farDuty = duty({ id: "d8", title: "Add salt", frequency: "once", dueDate: "2026-12-01" });
   const found = digestCandidates(

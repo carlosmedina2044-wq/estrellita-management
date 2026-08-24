@@ -25,6 +25,7 @@ function item(partial: Partial<SupplyAutomation> = {}): SupplyAutomation {
     quantity: 1,
     onHand: 0,
     qtyPerOrder: 1,
+    reorderAt: 0,
     installedAt: "2026-06-01",
     lifespanValue: 3,
     lifespanUnit: "months",

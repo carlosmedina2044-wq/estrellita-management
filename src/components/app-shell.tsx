@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Home, Leaf, Package, Settings, Sun, Wallet } from "lucide-react";
+import { BrandLockup } from "@/components/brand-logo";
 import { BudgetView } from "@/components/budget-view";
 import { CleanerVisit } from "@/components/cleaner-visit";
 import { FaceLock } from "@/components/face-lock";
@@ -280,8 +281,9 @@ export function AppShell() {
         ) : null}
         {tab === "home" ? (
           <div className="flex flex-col gap-4 pb-8">
-            <header>
-              <h1 className="ui-heading text-[34px] font-semibold tracking-tight">{household.householdName}</h1>
+            <header className="pt-2">
+              <BrandLockup size="sm" />
+              <h1 className="ui-heading mt-5 text-[34px] font-semibold tracking-tight">{household.householdName}</h1>
               <button type="button" className="mt-2 text-sm font-medium text-primary" onClick={() => setTab("budget")}>
                 Next 90 days: ~${Math.round(ninety).toLocaleString()}
               </button>
@@ -376,7 +378,7 @@ export function AppShell() {
       />
 
       <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40">
-        <div className="pointer-events-auto mx-auto grid max-w-lg grid-cols-6 border-t border-black/6 bg-[#f5f5f7]/95 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="pointer-events-auto mx-auto grid max-w-lg grid-cols-6 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
           <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
           <NavButton label="Home" icon={<Home className="size-5" />} active={tab === "home"} onClick={() => setTab("home")} />
           <NavButton
@@ -397,10 +399,13 @@ export function AppShell() {
 
 function OpeningScreen() {
   return (
-    <div suppressHydrationWarning className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
-      <p className="text-sm font-medium text-primary">Cuidala</p>
-      <h1 className="ui-heading mt-2 text-[28px] font-semibold tracking-tight">Opening…</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Loading this household on the device.</p>
+    <div
+      suppressHydrationWarning
+      className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-8"
+    >
+      <div className="brand-enter">
+        <BrandLockup size="md" />
+      </div>
     </div>
   );
 }
@@ -432,7 +437,8 @@ function LoadFailed({
 }) {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
-      <h1 className="ui-heading text-[28px] font-semibold tracking-tight">Couldn’t load the house</h1>
+      <BrandLockup size="sm" />
+      <h1 className="ui-heading mt-5 text-[28px] font-semibold tracking-tight">Couldn’t load the house</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         {reason === "unavailable"
           ? "Saved household data couldn’t be read right now. Try again, or erase this device’s copy and start over."
