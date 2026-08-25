@@ -5,23 +5,50 @@ const KEY_ID = "cuidala-device-key-v1";
 const LEGACY_KEY_IDS = ["estrellita-device-key-v1"];
 
 /**
- * Returns the device's AES key, creating it on first use.
+ * iOS: stored in the Keychain by capacitor-secure-storage-plugin.
+ * Accessibility is kSecAttrAccessibleAfterFirstUnlock (not ThisDeviceOnly).
+ * The item migrates through encrypted iCloud/Finder backups and Quick Start.
+ * Face ID is an app-lock UI gate, not a cryptographic unlock of this key.
+ * See docs/RESIDUAL_RISKS.md.
  *
- * iOS: stored in the Keychain by capacitor-secure-storage-plugin. The item is
- * device-scoped and protected by the device passcode; it is not included in
- * unencrypted backups and does not sync to iCloud Keychain. It is not wrapped
- * in `kSecAccessControlBiometryCurrentSet`, so Face ID is an app-lock (UI gate)
- * rather than a cryptographic unlock of the AES key. See docs/RESIDUAL_RISKS.md.
- *
- * Web (development only): stored in localStorage. The web build is a dev shell,
- * not a shipping surface, and this is documented in the README.
+ * Web (development only): stored in localStorage. The web build is a dev shell.
  */
-export async function loadOrCreateDeviceKey(): Promise<CryptoKey> {
+export class DeviceKeyError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message);
+    this.name = "DeviceKeyError";
+    if (options?.cause !== undefined) (this as Error & { cause?: unknown }).cause = options.cause;
+  }
+}
+
+/** Plugin rejection when the Keychain item is genuinely absent. */
+export function isMissingKeychainItemError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /item with given key does not exist/i.test(message);
+}
+
+/** Read the existing AES key. Null only when the item is absent. Other errors throw. */
+export async function loadDeviceKey(): Promise<CryptoKey | null> {
   const existing = await readRaw();
   if (existing) return importRawKey(existing);
+  return null;
+}
+
+/** Generate and persist a new AES key. Call only when no vault exists. */
+export async function createDeviceKey(): Promise<CryptoKey> {
   const raw = generateRawKey();
   await writeRaw(raw);
   return importRawKey(raw);
+}
+
+/**
+ * Returns the device's AES key, creating it on first use.
+ * Hydration must not call this while a vault already exists.
+ */
+export async function loadOrCreateDeviceKey(): Promise<CryptoKey> {
+  const existing = await loadDeviceKey();
+  if (existing) return existing;
+  return createDeviceKey();
 }
 
 export async function deleteDeviceKey(): Promise<void> {
@@ -49,8 +76,9 @@ async function readId(id: string): Promise<Uint8Array | null> {
     try {
       const result = await SecureStoragePlugin.get({ key: id });
       return result.value ? b64ToBytes(result.value) : null;
-    } catch {
-      return null;
+    } catch (error) {
+      if (isMissingKeychainItemError(error)) return null;
+      throw new DeviceKeyError("Could not read the device key", { cause: error });
     }
   }
   if (typeof window === "undefined") return null;

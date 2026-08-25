@@ -1,5 +1,6 @@
 import { catalogEntry, type CatalogCost } from "@/lib/asset-catalog";
 import { blendedCostFor } from "@/lib/costs";
+import { COST_SOURCE_LABEL } from "@/lib/costs/quotes";
 import { addCalendarMonths, parseISODate, toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
 import { linkedDutyIdsFor, runwayFor } from "@/lib/restock";
@@ -58,7 +59,7 @@ export function forecastSourceTag(source: ForecastSource): "Paid" | "Your estima
 export function forecastSourceBlurb(source: ForecastSource): string {
   if (source === "lastPaid") return "Based on what you last paid.";
   if (source === "user") return "Based on your estimate.";
-  return "Based on national averages for this appliance type. Tap to enter your own estimate.";
+  return `Based on ${COST_SOURCE_LABEL}. Tap to enter your own estimate.`;
 }
 
 export function formatCostRange(cost: CatalogCost): string {
@@ -191,6 +192,8 @@ export function buildForecast(
     if (!inHorizon(month, start, horizonMonths)) continue;
 
     const userCost = asset.replacementCostEstimate ?? asset.purchasePrice;
+    const quoteOnly = type === "roof";
+    if (userCost == null && quoteOnly) continue;
     const cost = userCost != null ? singleCost(userCost) : catalog.defaultReplacementCost;
     const item: ForecastItem = {
       kind: "replacement",

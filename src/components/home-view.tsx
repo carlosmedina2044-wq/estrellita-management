@@ -17,16 +17,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
-import type { Household, RestockDigestSettings } from "@/lib/types";
+import { verifyDeviceOwner } from "@/lib/native/biometrics";
+import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
+import { notifyPermission, plannedNotifications, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
+import type { ClimateZone, Household, RestockDigestSettings } from "@/lib/types";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
 import { ZipSheet } from "@/components/zip-prompt";
-import { climateLabel, deriveClimate } from "@/lib/climate";
-import { notifyPermission, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
 import { toast } from "sonner";
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
+
+function problemMailto(household: Household): string {
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  const ios = ua.match(/OS (\d+[._]\d+)/)?.[1]?.replace("_", ".") ?? "unknown";
+  const model = ua.match(/\((iPhone[^;]*)/)?.[1] ?? "iPhone";
+  const rooms = household.rooms.filter((room) => !room.system).length;
+  const duties = household.duties.filter((duty) => !duty.archived).length;
+  const items = household.supplyAutomations.length;
+  const pending = plannedNotifications(household).length;
+  const body = [
+    "Describe what happened:",
+    "",
+    "",
+    "---",
+    `App ${APP_VERSION}`,
+    `iOS ${ios}`,
+    `Device ${model}`,
+    `Counts rooms=${rooms} duties=${duties} items=${items} pendingNotifications=${pending}`,
+  ].join("\n");
+  return `mailto:support@cuidala.app?subject=${encodeURIComponent("Cuidala problem")}&body=${encodeURIComponent(body)}`;
+}
 
 export function HomeView({
   household,
@@ -132,8 +154,33 @@ export function HomeView({
                 ? `${household.location.placeName ? `${household.location.placeName} · ` : ""}${climateLabel(deriveClimate(household.location))}`
                 : "Not set"}
             </p>
-            <p className="mt-1 text-[13px] text-muted-foreground">Used for weather alerts and seasonal timing.</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">Used for Apple Weather and which seasonal jobs apply here.</p>
           </button>
+          <div className="ui-group-row grid gap-1.5 px-4 py-3">
+            <Label className="text-[13px] font-medium text-muted-foreground">Climate zone</Label>
+            <select
+              className="h-11 rounded-xl bg-secondary px-3 text-[15px]"
+              value={household.location.climateZoneOverride ?? "auto"}
+              onChange={(event) => {
+                const value = event.target.value;
+                const override = value === "auto" ? undefined : (value as ClimateZone);
+                void onUpdate({
+                  location: {
+                    ...household.location,
+                    climateZoneOverride: override,
+                    climateZone: override ?? deriveClimate({ ...household.location, climateZoneOverride: undefined }),
+                  },
+                });
+              }}
+            >
+              <option value="auto">Auto ({climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined }))})</option>
+              {CLIMATE_ZONES.map((zone) => (
+                <option key={zone} value={zone}>
+                  {climateLabel(zone)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </section>
 
@@ -202,11 +249,18 @@ export function HomeView({
           type="button"
           disabled={!canLock}
           className="mt-3 h-12 w-full rounded-xl bg-secondary text-sm font-medium disabled:opacity-50"
-          onClick={() =>
-            void onUpdate({
-              lockSettings: { ...household.lockSettings, requireFaceId: !household.lockSettings.requireFaceId },
-            })
-          }
+          onClick={() => {
+            void (async () => {
+              const turningOff = household.lockSettings.requireFaceId;
+              if (turningOff && canLock) {
+                const ok = await verifyDeviceOwner("Turn off app lock");
+                if (!ok) return;
+              }
+              await onUpdate({
+                lockSettings: { ...household.lockSettings, requireFaceId: !household.lockSettings.requireFaceId },
+              });
+            })();
+          }}
         >
           {household.lockSettings.requireFaceId && canLock ? "On" : "Off"}
         </button>
@@ -246,21 +300,51 @@ export function HomeView({
       </Button>
 
       {onImportBackup ? (
-        <BackupPanel mode={onExportBackup ? "full" : "import-only"} onExport={onExportBackup} onImport={onImportBackup} />
+        <BackupPanel
+          mode={onExportBackup ? "full" : "import-only"}
+          onExport={onExportBackup}
+          onImport={onImportBackup}
+          replaceCounts={{
+            chores: household.duties.filter((duty) => !duty.archived).length,
+            items: household.supplyAutomations.length,
+          }}
+        />
       ) : null}
+
+      <section>
+        <h2 className="ui-heading mb-2 text-[20px] font-semibold">Cuidala Pro</h2>
+        <div className="rounded-2xl bg-card p-4">
+          <p className="font-medium">Coming soon</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            A one-time unlock around $14.99 to $19.99. Not for sale yet. No subscription.
+          </p>
+          <ul className="mt-2 list-disc pl-5 text-[13px] text-muted-foreground">
+            <li>Home Report you can share</li>
+            <li>More than 3 warranties</li>
+            <li>Budget beyond 30 days</li>
+            <li>Seasonal playbook packs</li>
+          </ul>
+        </div>
+      </section>
 
       <div className="rounded-2xl bg-card p-4">
         <p className="font-medium">Your data</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Everything about your home is stored on this iPhone, encrypted with a key kept
-          in the device Keychain. There is no account and no server copy. An iCloud device backup restores
-          the encrypted home but not that key. Use Back up my home before you switch phones. Deleting the
-          app deletes the data.
+          Everything about your home is stored on this iPhone, encrypted with a key kept in the device
+          Keychain. Your home moves to your next iPhone with your normal iCloud backup. The passphrase
+          file is extra protection. There is no account and no server copy. Deleting the app deletes the data.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-primary">
+          <Link href="/how-it-works">How Cuidala works</Link>
           <Link href="/privacy">Privacy policy</Link>
-          <Link href="/terms">Terms of use</Link>
+          <Link href="/terms">Additional terms</Link>
         </div>
+        <a
+          className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-secondary text-sm font-medium"
+          href={problemMailto(household)}
+        >
+          Report a problem
+        </a>
         <Button
           variant="secondary"
           className="mt-3 h-12 w-full text-destructive"

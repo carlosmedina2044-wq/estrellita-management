@@ -10,7 +10,13 @@ import {
 } from "@/lib/crypto";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { emptyHomeTree } from "@/lib/home-model";
-import { deleteDeviceKey, loadOrCreateDeviceKey } from "@/lib/native/device-key";
+import {
+  createDeviceKey,
+  deleteDeviceKey,
+  DeviceKeyError,
+  loadDeviceKey,
+  loadOrCreateDeviceKey,
+} from "@/lib/native/device-key";
 import { kvGet, kvRemove, kvSet } from "@/lib/native/kv";
 import { syncScheduledNotifications } from "@/lib/notifications";
 import { isPlainObject } from "@/lib/sanitize";
@@ -21,10 +27,14 @@ export type HouseholdLoad =
   | { ok: true; legacyLockedVault: boolean }
   | { ok: false; reason: "corrupt" | "unavailable" | "key-mismatch" };
 
+export const PERSIST_FAILED_EVENT = "cuidala-persist-failed";
+
 type VaultIO = {
   kvGet: typeof kvGet;
   kvSet: typeof kvSet;
   kvRemove: typeof kvRemove;
+  loadDeviceKey: typeof loadDeviceKey;
+  createDeviceKey: typeof createDeviceKey;
   loadOrCreateDeviceKey: typeof loadOrCreateDeviceKey;
   deleteDeviceKey: typeof deleteDeviceKey;
 };
@@ -33,6 +43,8 @@ const defaultIO = (): VaultIO => ({
   kvGet,
   kvSet,
   kvRemove,
+  loadDeviceKey,
+  createDeviceKey,
   loadOrCreateDeviceKey,
   deleteDeviceKey,
 });
@@ -88,7 +100,13 @@ function notifyChange() {
 }
 
 async function persist(next: Household) {
-  if (!key) key = await io.loadOrCreateDeviceKey();
+  if (!key) {
+    const existingVault = (await io.kvGet(VAULT_STORAGE_KEY)) ?? (await io.kvGet(PREVIOUS_VAULT_KEY));
+    if (existingVault) {
+      throw new DeviceKeyError("Refusing to mint a new key while a vault exists");
+    }
+    key = await io.createDeviceKey();
+  }
   const envelope = await encryptJson(key, JSON.stringify(next));
   await io.kvSet(VAULT_STORAGE_KEY, JSON.stringify(envelope));
   scheduleNotificationSync(next);
@@ -110,7 +128,11 @@ function write(next: Household) {
       persistOk = true;
     })
     .catch(() => {
+      const firstFailure = persistOk;
       persistOk = false;
+      if (firstFailure && typeof window !== "undefined") {
+        window.dispatchEvent(new Event(PERSIST_FAILED_EVENT));
+      }
     });
 }
 
@@ -170,7 +192,6 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
     return lastLoad;
   }
   try {
-    key = await io.loadOrCreateDeviceKey();
     let raw = await io.kvGet(VAULT_STORAGE_KEY);
     let fromPreviousKey = false;
     if (!raw) {
@@ -178,6 +199,18 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
       fromPreviousKey = Boolean(raw);
     }
     if (raw) {
+      // Vault exists: never mint a new key. Missing key → key-mismatch.
+      // Unexpected Keychain errors fail closed as unavailable.
+      try {
+        key = await io.loadDeviceKey();
+      } catch {
+        lastLoad = { ok: false, reason: "unavailable" };
+        return lastLoad;
+      }
+      if (!key) {
+        lastLoad = { ok: false, reason: "key-mismatch" };
+        return lastLoad;
+      }
       const envelope = parseEnvelopeJson(raw);
       if (!envelope) {
         lastLoad = { ok: false, reason: "corrupt" };
@@ -213,7 +246,7 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
     lastLoad = { ok: true, legacyLockedVault: legacyLockedVaultPresent() };
     return lastLoad;
   } catch (error) {
-    lastLoad = { ok: false, reason: error instanceof DOMException ? "unavailable" : "corrupt" };
+    lastLoad = { ok: false, reason: error instanceof DOMException || error instanceof DeviceKeyError ? "unavailable" : "corrupt" };
     return lastLoad;
   }
 }

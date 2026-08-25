@@ -7,14 +7,9 @@
 <key>NSFaceIDUsageDescription</key>
 <string>Cuidala uses Face ID to lock your home’s chores and restock list so only you can open them.</string>
 <key>NSLocationWhenInUseUsageDescription</key>
-<string>Cuidala uses your location once during setup to pick weather-based and seasonal tasks. Only coordinates rounded to about one kilometre are kept.</string>
+<string>Cuidala uses your location during setup to pick seasonal tasks and fetch a local forecast from Apple Weather. ZIP and climate stay on this iPhone.</string>
 <key>ITSAppUsesNonExemptEncryption</key>
 <false/>
-<key>WKAppBoundDomains</key>
-<array>
-  <string>api.open-meteo.com</string>
-  <string>geocoding-api.open-meteo.com</string>
-</array>
 <key>NSAppTransportSecurity</key>
 <dict>
   <key>NSAllowsArbitraryLoads</key>

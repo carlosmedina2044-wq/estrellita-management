@@ -28,6 +28,7 @@ import {
 } from "@/lib/onboarding/restock-walk";
 import { RETAILER_CHIPS } from "@/lib/retailer";
 import { geocodeUsZip } from "@/lib/weather/client";
+import { isNative } from "@/lib/native/platform";
 import type { HomeAttributes, HomeLocation, HomeType, RetailerId, Tenure } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -163,26 +164,44 @@ export function Onboarding({
   }
 
   async function requestLocation() {
-    if (!navigator.geolocation) {
-      afterLocation(location);
-      return;
-    }
     setBusy(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+    try {
+      if (isNative()) {
+        const { Geolocation } = await import("@capacitor/geolocation");
+        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 });
         const nextLat = roundCoord(position.coords.latitude);
         const nextLng = roundCoord(position.coords.longitude);
         setLat(nextLat);
         setLng(nextLng);
-        setBusy(false);
         afterLocation({ ...location, lat: nextLat, lng: nextLng, climateZone: deriveClimate({ postalCode, lat: nextLat, lng: nextLng }) });
-      },
-      () => {
-        setBusy(false);
+        return;
+      }
+      if (!navigator.geolocation) {
         afterLocation(location);
-      },
-      { enableHighAccuracy: false, timeout: 8000 },
-    );
+        return;
+      }
+      await new Promise<void>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const nextLat = roundCoord(position.coords.latitude);
+            const nextLng = roundCoord(position.coords.longitude);
+            setLat(nextLat);
+            setLng(nextLng);
+            afterLocation({ ...location, lat: nextLat, lng: nextLng, climateZone: deriveClimate({ postalCode, lat: nextLat, lng: nextLng }) });
+            resolve();
+          },
+          () => {
+            afterLocation(location);
+            resolve();
+          },
+          { enableHighAccuracy: false, timeout: 8000 },
+        );
+      });
+    } catch {
+      afterLocation(location);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function continueFromZip() {
@@ -243,10 +262,10 @@ export function Onboarding({
             >
               Use a sample home instead
             </Button>
-            <p className="mt-auto pt-8 text-[13px] leading-5 text-muted-foreground">
+            <p className="mt-auto pt-8 text-sm leading-5 text-muted-foreground">
               Cuidala keeps your home data on this iPhone, encrypted. No account, no server copy.
-              iCloud backup restores the encrypted home but not the key. Make a backup in Settings before
-              you switch phones. See Settings for the privacy policy.
+              Your home moves to your next iPhone with your normal iCloud backup. A passphrase file in
+              Settings is extra protection. See Settings for the privacy policy.
             </p>
           </Screen>
         ) : null}
@@ -375,7 +394,7 @@ export function Onboarding({
         {step === 4 ? (
           <Screen
             title="Where is it?"
-            copy="ZIP is only for weather and seasonal tasks. We’ll show what that climate means for your house next."
+            copy="ZIP is for climate and seasonal tasks. Weather comes from Apple Weather on this iPhone."
             onSkip={() => {
               afterLocation({ ...location, postalCode: undefined });
             }}
@@ -406,7 +425,7 @@ export function Onboarding({
         {step === 5 ? (
           <Screen
             title={preview.headline}
-            copy="What this climate means for your house. These jobs show up on Seasonal when they’re due."
+            copy={`Mapped to ${preview.zoneLabel}. What this climate means for your house. These jobs show up on Seasonal when they’re due.`}
           >
             <ul className="grid gap-2">
               {preview.beats.map((beat) => (
@@ -416,7 +435,7 @@ export function Onboarding({
               ))}
             </ul>
             <p className="mt-4 text-[13px] leading-5 text-muted-foreground">
-              This home lives only on this iPhone. Before you switch phones, make an encrypted backup in Settings.
+              This home lives only on this iPhone. Your home moves to your next iPhone with your normal iCloud backup.
             </p>
             <div className="mt-auto flex gap-3 pt-6">
               <Button variant="secondary" className="h-14 flex-1" onClick={() => go(4)}>

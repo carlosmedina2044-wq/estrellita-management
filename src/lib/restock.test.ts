@@ -709,3 +709,107 @@ test("migration drops garbage inventory fields; valid values survive backup rest
   assert.equal(restored.supplyAutomations[0]?.lastConfirmedAt, "2026-08-01");
   assert.equal(restored.supplyAutomations[0]?.observedRatePerDay, 0.05);
 });
+
+test("no check-ins: rate holds the default duty cadence", () => {
+  const supply = item({ onHand: 2, lastConfirmedLevel: undefined, lastConfirmedAt: undefined, observedRatePerDay: undefined });
+  const rate = ratePerDayFor(supply, household);
+  assert.ok(rate);
+  assert.equal(rate?.source, "duty");
+  assert.equal(Math.round((rate?.rate ?? 0) * 90), 1);
+});
+
+test("single arrival sets observed lead time", () => {
+  const ordered = markConsumableOrdered(item(), { expectedArrivalDate: "2026-08-10", qty: 1 }, new Date(2026, 7, 1));
+  const days = observedLeadTimeDays(ordered, new Date(2026, 7, 12));
+  assert.equal(days, 11);
+  const learned = applyLearnedLeadTime(ordered, days ?? 11);
+  assert.equal(learned.leadTimeDays, 11);
+});
+
+test("Never came then reorder surfaces order_now again", () => {
+  const ordered = markConsumableOrdered(item({ onHand: 0 }), { expectedArrivalDate: "2026-08-25", qty: 1 }, now);
+  assert.equal(restockPlacement(ordered, household, now).bucket, "ordered");
+  const missing = neverCameConsumable(ordered);
+  assert.equal(missing.state, "stocked");
+  assert.equal(missing.expectedArrivalDate, null);
+  assert.equal(restockPlacement(missing, household, now).bucket, "order_now");
+});
+
+test("no install date and no lifespan still places from on-hand", () => {
+  const supply = item({
+    installedAt: "",
+    lifespanValue: 0,
+    dutyId: "",
+    linkedDutyIds: [],
+    onHand: 0,
+    reorderAt: 0,
+  });
+  const placement = restockPlacement(supply, { duties: [], completions: [] }, now);
+  assert.equal(placement.bucket, "order_now");
+});
+
+test("runway crossing zero today is order_now", () => {
+  const supply = item({
+    onHand: 0,
+    lastConfirmedLevel: 0,
+    lastConfirmedAt: toISODate(now),
+    observedRatePerDay: 0.05,
+  });
+  assert.equal(runwayDaysFor(supply, household, now), 0);
+  assert.equal(restockPlacement(supply, household, now).bucket, "order_now");
+});
+
+test("check-in reporting more stock is a refill, not a faster rate", () => {
+  const supply = item({
+    onHand: 1,
+    lastConfirmedLevel: 0.2,
+    lastConfirmedAt: "2026-07-01",
+    observedRatePerDay: 0.02,
+  });
+  const before = ratePerDayFor(supply, household);
+  const refilled = applyCheckin(supply, "plenty", household, now);
+  assert.ok((refilled.lastConfirmedLevel ?? 0) >= (supply.lastConfirmedLevel ?? 0));
+  const after = ratePerDayFor(refilled, household);
+  assert.ok(after);
+  assert.ok((after?.rate ?? 1) <= (before?.rate ?? 0) * 1.01 + 0.01);
+});
+
+test("placement invariants: buckets are exclusive and ordered items stay ordered in grace", () => {
+  const samples = [
+    item({ id: "a", state: "ordered", orderInFlight: true, expectedArrivalDate: "2026-08-24", onHand: 0 }),
+    item({ id: "b", onHand: 0, state: "stocked" }),
+    item({ id: "c", onHand: 3, reorderAt: 0, leadTimeDays: 1, lifespanValue: 12, lifespanUnit: "months", installedAt: "2026-01-01" }),
+  ];
+  for (const sample of samples) {
+    const placement = restockPlacement(sample, household, now);
+    const buckets: Array<typeof placement.bucket> = ["order_now", "coming_up", "stocked", "ordered"];
+    assert.equal(buckets.includes(placement.bucket), true);
+    if (sample.state === "ordered" && sample.expectedArrivalDate) {
+      assert.equal(placement.bucket === "ordered" || placement.nudgeArrive, true);
+    }
+  }
+});
+
+test("seeded fuzz of 500 restock sequences stays in a known bucket", () => {
+  let seed = 20260824;
+  const rand = () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 0x100000000;
+  };
+  for (let i = 0; i < 500; i += 1) {
+    const onHand = Math.floor(rand() * 4);
+    const ordered = rand() > 0.7;
+    const supply = item({
+      id: `fuzz-${i}`,
+      onHand,
+      state: ordered ? "ordered" : "stocked",
+      orderInFlight: ordered,
+      expectedArrivalDate: ordered ? "2026-08-24" : null,
+      reorderAt: Math.floor(rand() * 2),
+      leadTimeDays: 1 + Math.floor(rand() * 21),
+      lifespanValue: 1 + Math.floor(rand() * 12),
+    });
+    const placement = restockPlacement(supply, household, now);
+    assert.equal(["order_now", "coming_up", "stocked", "ordered"].includes(placement.bucket), true);
+  }
+});

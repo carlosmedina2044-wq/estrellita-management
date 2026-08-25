@@ -20,6 +20,7 @@ import {
   type TimelineEntryState,
   type WindowState,
 } from "@/lib/playbooks";
+import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import type { Household } from "@/lib/types";
 
 const CHIP = "rounded-full px-2 py-0.5 text-[11px] font-medium";
@@ -58,7 +59,7 @@ function watchCaption(item: WeatherWatchItem): string {
     const metric = hitMetricLine(item);
     return metric ? `Expected ${weekday} · ${metric}` : `Expected ${weekday}`;
   }
-  return "Fired this week — tasks were added to Today";
+  return "Fired this week. Tasks were added to Today.";
 }
 
 function stateChip(state: WindowState) {
@@ -139,6 +140,7 @@ export function SeasonalView({
     <div className="flex flex-col gap-5 pb-8">
       <div>
         <PageHeader title="Seasonal" subtitle={subtitle} />
+        {forecast ? <AppleWeatherAttribution className="mt-1 text-[11px] text-muted-foreground" /> : null}
         {showWeatherError ? (
           <p className="mt-2 text-[13px] text-muted-foreground">
             Couldn&apos;t refresh weather. Seasonal lists still work.

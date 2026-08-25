@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 /**
  * The app ships as a static bundle inside the Capacitor iOS shell. There is no
- * server: weather is fetched from the client, and all data stays on device.
+ * server: weather is fetched on-device via WeatherKit, and all data stays on device.
  * Security headers for the web shell are set by the host (see vercel.json);
  * the Content-Security-Policy is also emitted as a meta tag in app/layout.tsx
  * so it applies inside the WKWebView bundle.

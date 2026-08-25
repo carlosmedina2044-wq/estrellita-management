@@ -7,6 +7,7 @@ import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import {
   DEFAULT_ATTRIBUTES,
   DEFAULT_LOCK_SETTINGS,
+  DEFAULT_TEACHING,
   DEFAULT_WEATHER_STATUS,
   withHouseholdDefaults,
 } from "@/lib/household-defaults";
@@ -19,6 +20,7 @@ import {
   type Completion,
   type Consumable,
   type Duty,
+  type DutyCaution,
   type DutyKind,
   type Frequency,
   type HomeAsset,
@@ -125,7 +127,20 @@ function migrateDuty(raw: unknown): Duty | null {
     playbookId: typeof raw.playbookId === "string" ? raw.playbookId : undefined,
     weatherTriggerId: typeof raw.weatherTriggerId === "string" ? raw.weatherTriggerId : undefined,
     buyLocally: raw.buyLocally === true ? true : undefined,
+    caution: asCaution(raw.caution),
+    rolledCompletions:
+      typeof raw.rolledCompletions === "number" && Number.isFinite(raw.rolledCompletions) && raw.rolledCompletions > 0
+        ? Math.min(10_000, Math.round(raw.rolledCompletions))
+        : undefined,
   };
+}
+
+const CAUTIONS: DutyCaution[] = ["gas", "electrical", "roof", "ladder", "structural", "pest"];
+
+function asCaution(value: unknown): DutyCaution | undefined {
+  return typeof value === "string" && (CAUTIONS as readonly string[]).includes(value)
+    ? (value as DutyCaution)
+    : undefined;
 }
 
 function asActualCost(value: unknown): number | undefined {
@@ -409,6 +424,14 @@ function migrateLocation(raw: unknown): HomeLocation {
     postalCode: typeof raw.postalCode === "string" ? sanitizeText(raw.postalCode, 16) : undefined,
     placeName: typeof raw.placeName === "string" ? sanitizeText(raw.placeName, TEXT_LIMITS.name) || undefined : undefined,
     climateZone,
+    climateZoneOverride:
+      raw.climateZoneOverride === "hot-arid" ||
+      raw.climateZoneOverride === "cold" ||
+      raw.climateZoneOverride === "humid-subtropical" ||
+      raw.climateZoneOverride === "marine" ||
+      raw.climateZoneOverride === "mixed"
+        ? raw.climateZoneOverride
+        : undefined,
   };
 }
 
@@ -475,12 +498,49 @@ function migrateSavedRetailerLink(raw: unknown): SavedRetailerLink | null {
   };
 }
 
+const COMPLETION_RETENTION_MS = 24 * 30 * 86_400_000;
+
+function rollOldCompletions(
+  duties: Duty[],
+  completions: Completion[],
+  now = new Date(),
+): { duties: Duty[]; completions: Completion[] } {
+  const cutoff = now.getTime() - COMPLETION_RETENTION_MS;
+  const latestByDuty = new Map<string, Completion>();
+  for (const item of completions) {
+    const current = latestByDuty.get(item.dutyId);
+    if (!current || item.completedAt > current.completedAt) latestByDuty.set(item.dutyId, item);
+  }
+  const kept: Completion[] = [];
+  const rolled = new Map<string, number>();
+  for (const item of completions) {
+    const latest = latestByDuty.get(item.dutyId);
+    const age = Date.parse(item.completedAt);
+    const keepLatest = latest?.id === item.id;
+    const recent = Number.isFinite(age) && age >= cutoff;
+    if (keepLatest || recent) {
+      kept.push(item);
+    } else {
+      rolled.set(item.dutyId, (rolled.get(item.dutyId) ?? 0) + 1);
+    }
+  }
+  if (rolled.size === 0) return { duties, completions: kept };
+  return {
+    completions: kept,
+    duties: duties.map((duty) => {
+      const extra = rolled.get(duty.id);
+      if (!extra) return duty;
+      return { ...duty, rolledCompletions: (duty.rolledCompletions ?? 0) + extra };
+    }),
+  };
+}
+
 export function migrateHousehold(raw: Record<string, unknown>): Household {
   const duties = asArray(raw.duties)
     .map(migrateDuty)
     .filter((item): item is Duty => Boolean(item));
 
-  const completions = asArray(raw.completions)
+  const rawCompletions = asArray(raw.completions)
     .map(migrateCompletion)
     .filter((item): item is Completion => Boolean(item));
 
@@ -492,12 +552,14 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     .map(migrateVisit)
     .filter((item): item is Visit => Boolean(item));
 
-  const supplyAutomations = asArray(raw.supplyAutomations ?? raw.reorderRules)
-    .map((item) => migrateAutomation(item, duties))
-    .filter((item): item is SupplyAutomation => Boolean(item))
-    .filter((item) => duties.some((duty) => duty.id === item.dutyId));
+  const { completions, duties: dutiesWithRollup } = rollOldCompletions(duties, rawCompletions);
 
-  const withKind = duties.map((duty) =>
+  const supplyAutomations = asArray(raw.supplyAutomations ?? raw.reorderRules)
+    .map((item) => migrateAutomation(item, dutiesWithRollup))
+    .filter((item): item is SupplyAutomation => Boolean(item))
+    .filter((item) => dutiesWithRollup.some((duty) => duty.id === item.dutyId));
+
+  const withKind = dutiesWithRollup.map((duty) =>
     supplyAutomations.some((item) => item.dutyId === duty.id)
       ? { ...duty, kind: "replacement" as DutyKind }
       : duty,
@@ -614,6 +676,18 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
           permissionAsked: raw.restockDigest.permissionAsked === true,
         }
       : { ...DEFAULT_RESTOCK_DIGEST },
+    teaching: isPlainObject(raw.teaching)
+      ? {
+          startedAt:
+            typeof raw.teaching.startedAt === "string" ? asIsoDate(raw.teaching.startedAt) : null,
+          checkedChore: raw.teaching.checkedChore === true,
+          openedRestock: raw.teaching.openedRestock === true,
+          setDigestOrZip: raw.teaching.setDigestOrZip === true,
+        }
+      : { ...DEFAULT_TEACHING },
+    seenTips: asArray(raw.seenTips)
+      .filter((item): item is string => typeof item === "string" && item.length > 0 && item.length < 64)
+      .slice(0, 32),
   });
 }
 

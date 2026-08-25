@@ -4,6 +4,7 @@ import { DEFAULT_ATTRIBUTES } from "@/lib/household-defaults";
 import {
   matchingPlaybooks,
   monthInWindow,
+  PLAYBOOK_CONTENT_VERSION,
   PLAYBOOKS,
   playbookApplies,
   playbookProgress,
@@ -17,9 +18,9 @@ import {
   evaluateTriggers,
   onCooldown,
   weatherWatch,
+  WEATHER_TRIGGERS,
   type WeatherForecast,
 } from "@/lib/weather/provider";
-import { WEATHER_TRIGGERS } from "@/lib/weather/provider";
 import type { Duty, Household } from "@/lib/types";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 
@@ -43,6 +44,16 @@ function home(partial: Partial<Household> = {}): Household {
     ...partial,
   });
 }
+
+test("playbooks JSON has a contentVersion and dust-season HVAC", () => {
+  assert.ok(PLAYBOOK_CONTENT_VERSION.length > 0);
+  assert.ok(PLAYBOOKS.some((item) => item.id === "hot-arid-dust-hvac"));
+  assert.ok(PLAYBOOKS.some((item) => item.tasks.some((task) => /drip/i.test(task.title))));
+  assert.equal(
+    WEATHER_TRIGGERS.some((item) => item.id === "poor-air" || item.id === "dust-advisory"),
+    false,
+  );
+});
 
 function stubDuty(partial: Pick<Duty, "id" | "title"> & Partial<Duty>): Duty {
   return {

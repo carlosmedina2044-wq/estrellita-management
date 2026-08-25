@@ -14,13 +14,21 @@ import { HouseMapSheet } from "@/components/house-map-sheet";
 import { Onboarding } from "@/components/onboarding";
 import { RestockView } from "@/components/restock-view";
 import { SeasonalView } from "@/components/seasonal-view";
-import { ShareLinkSheet } from "@/components/share-link-sheet";
 import { TodayView } from "@/components/today-view";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useHousehold } from "@/hooks/use-household";
 import { digestPayload } from "@/lib/digest";
-import { OPEN_RESTOCK_EVENT, showLocalNotification } from "@/lib/notifications";
-import { extractSharedUrl } from "@/lib/retailer";
+import { OPEN_RESTOCK_EVENT, overdueChoreCount, showLocalNotification } from "@/lib/notifications";
 import { groupRestock } from "@/lib/restock";
 import { applyPostalCode } from "@/lib/climate";
 import { next90DaysSpend, roomsWithNearReplacement } from "@/lib/forecast";
@@ -29,9 +37,11 @@ import { detectLockMethod, verifyDeviceOwner, type LockMethod } from "@/lib/nati
 import { isNative } from "@/lib/native/platform";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
-import { forCleanerSession } from "@/lib/storage";
-import type { AppNavigateTarget, Household, Tab } from "@/lib/types";
+import { forCleanerSession, PERSIST_FAILED_EVENT } from "@/lib/storage";
+import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_REENGAGE, withTeaching } from "@/lib/teaching";
+import type { AppNavigateTarget, Tab } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const LOCK_MS = { immediate: 0, "2min": 120_000, "15min": 900_000 } as const;
 
@@ -50,7 +60,6 @@ export function AppShell() {
     neverCameSupply,
     changeSupplyArrival,
     applySupplyLeadTime,
-    attachSharedLink,
     updateRestockDigest,
     deleteDuty,
     completeDuty,
@@ -92,7 +101,7 @@ export function AppShell() {
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [roomOpen, setRoomOpen] = useState<string | null>(null);
-  const [sharedUrl, setSharedUrl] = useState<string | null>(() => readSharedUrlFromLocation());
+  const [confirmErase, setConfirmErase] = useState(false);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" || isNative()) return;
@@ -114,32 +123,54 @@ export function AppShell() {
 
   useEffect(() => {
     if (!household.onboarded || !household.lockSettings?.requireFaceId || !canLock) return;
+    if (household.mode === "cleaner") return;
     const ms = LOCK_MS[household.lockSettings.lockAfter];
-    let timer: number | undefined;
-    const arm = () => {
-      if (timer) window.clearTimeout(timer);
-      if (household.lockSettings.lockAfter === "immediate") {
-        const onHide = () => {
-          if (document.hidden) setLocked(true);
-        };
-        document.addEventListener("visibilitychange", onHide);
-        return () => document.removeEventListener("visibilitychange", onHide);
-      }
-      const onHide = () => {
-        if (document.hidden) {
-          timer = window.setTimeout(() => setLocked(true), ms);
-        } else if (timer) {
-          window.clearTimeout(timer);
-        }
-      };
-      document.addEventListener("visibilitychange", onHide);
-      return () => {
-        document.removeEventListener("visibilitychange", onHide);
-        if (timer) window.clearTimeout(timer);
-      };
+    let hiddenAt: number | null = null;
+
+    const onInactive = () => {
+      hiddenAt = Date.now();
+      if (household.lockSettings.lockAfter === "immediate") setLocked(true);
     };
-    return arm();
-  }, [household.onboarded, household.lockSettings, canLock]);
+    const onActive = () => {
+      if (hiddenAt == null) return;
+      if (Date.now() - hiddenAt >= ms) setLocked(true);
+      hiddenAt = null;
+    };
+
+    const onVis = () => {
+      if (document.hidden) onInactive();
+      else onActive();
+    };
+    document.addEventListener("visibilitychange", onVis);
+
+    let removeNative: (() => void) | undefined;
+    if (isNative()) {
+      void import("@capacitor/app").then(({ App }) =>
+        App.addListener("appStateChange", ({ isActive }) => {
+          if (isActive) onActive();
+          else onInactive();
+        }).then((handle) => {
+          removeNative = () => void handle.remove();
+        }),
+      );
+    }
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      removeNative?.();
+    };
+  }, [household.onboarded, household.lockSettings, household.mode, canLock]);
+
+  useEffect(() => {
+    const onFail = () => toast.error("Couldn’t save. Try again, or back up in Settings.");
+    window.addEventListener(PERSIST_FAILED_EVENT, onFail);
+    return () => window.removeEventListener(PERSIST_FAILED_EVENT, onFail);
+  }, []);
+
+  useEffect(() => {
+    if (tab !== "restock" || household.teaching.openedRestock) return;
+    updateTree((current) => withTeaching(current, { openedRestock: true }));
+  }, [tab, household.teaching.openedRestock, updateTree]);
 
   useEffect(() => {
     if (!household.onboarded) return;
@@ -229,7 +260,7 @@ export function AppShell() {
 
   useEffect(() => {
     if (!household.onboarded || isNative()) return;
-    const payload = digestPayload(household);
+    const payload = digestPayload(household, new Date(), overdueChoreCount(household));
     if (!payload.shouldSend) return;
     if (showLocalNotification(payload.title, payload.body)) {
       updateRestockDigest({ lastSentOn: payload.sentOn });
@@ -241,6 +272,11 @@ export function AppShell() {
     [household, hydrated],
   );
   const ninety = useMemo(() => (hydrated ? next90DaysSpend(household) : 0), [household, hydrated]);
+  const restockGroups = useMemo(
+    () => (hydrated ? groupRestock(household.supplyAutomations, household) : null),
+    [household, hydrated],
+  );
+  const summary = useMemo(() => (hydrated ? homeSummary(household) : null), [household, hydrated]);
 
   if (!hydrated) {
     return <OpeningScreen />;
@@ -251,8 +287,11 @@ export function AppShell() {
       <LoadFailed
         reason={loadError.reason}
         onRetry={() => void retryLoad()}
-        onStartFresh={() => void eraseEverything()}
+        onStartFresh={() => setConfirmErase(true)}
         onImport={importBackup}
+        confirmErase={confirmErase}
+        onConfirmEraseChange={setConfirmErase}
+        onErase={() => void eraseEverything()}
       />
     );
   }
@@ -266,7 +305,12 @@ export function AppShell() {
   }
 
   if (locked && household.lockSettings.requireFaceId && canLock) {
-    return <FaceLock method={lockMethod ?? "none"} onUnlocked={() => setLocked(false)} />;
+    return <FaceLock
+      method={lockMethod ?? "none"}
+      onUnlocked={() => setLocked(false)}
+      showTip={!hasSeenTip(household, TIP_LOCK_REENGAGE)}
+      onDismissTip={() => updateTree((current) => markTipSeen(current, TIP_LOCK_REENGAGE))}
+    />;
   }
 
   if (household.mode === "cleaner") {
@@ -300,6 +344,7 @@ export function AppShell() {
     onChangeArrival: changeSupplyArrival,
     onApplyLeadTime: applySupplyLeadTime,
     onCheckin: checkinSupply,
+    onMarkTip: (tip: string) => updateTree((current) => markTipSeen(current, tip)),
   };
 
   return (
@@ -318,6 +363,14 @@ export function AppShell() {
             onDeleteDuty={deleteDuty}
             onStartCleanerVisit={startCleanerVisit}
             onOpenHome={() => setTab("home")}
+            onOpenSettings={() => setTab("settings")}
+            showTeaching={teachingCardVisible(household)}
+            onDismissTeaching={() =>
+              updateTree((current) =>
+                withTeaching(current, { checkedChore: true, openedRestock: true, setDigestOrZip: true }),
+              )
+            }
+            onOpenDigest={() => setTab("settings")}
             {...restockHandlers}
             onOpenRestock={() => navigate({ tab: "restock" })}
             onNavigate={navigate}
@@ -347,7 +400,7 @@ export function AppShell() {
                       ? `Next 90 days: ~$${Math.round(ninety).toLocaleString()}`
                       : "Budget: add costs to see the next 90 days"}
                   </button>
-                  <HomeStatusLine household={household} />
+                  <HomeStatusLine summary={summary} />
                 </div>
               }
               action={
@@ -437,19 +490,6 @@ export function AppShell() {
         ) : null}
       </main>
 
-      <ShareLinkSheet
-        open={Boolean(sharedUrl) && household.onboarded}
-        url={sharedUrl}
-        household={household}
-        onOpenChange={(open) => {
-          if (!open) setSharedUrl(null);
-        }}
-        onPick={(id) => {
-          if (sharedUrl) attachSharedLink(sharedUrl, id);
-          setSharedUrl(null);
-        }}
-      />
-
       <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40">
         <div className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-5 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
           <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
@@ -458,7 +498,7 @@ export function AppShell() {
             label="Restock"
             icon={<Package className="size-5" />}
             active={tab === "restock"}
-            badge={groupRestock(household.supplyAutomations, household).order_now.length}
+            badge={restockGroups?.order_now.length ?? 0}
             onClick={() => setTab("restock")}
           />
           <NavButton label="Budget" icon={<Wallet className="size-5" />} active={tab === "budget"} onClick={() => setTab("budget")} />
@@ -485,17 +525,7 @@ function OpeningScreen() {
 function initialTab(): Tab {
   if (typeof window === "undefined") return "today";
   const params = new URLSearchParams(window.location.search);
-  return params.get("tab") === "restock" || readSharedUrlFromLocation() ? "restock" : "today";
-}
-
-function readSharedUrlFromLocation(): string | null {
-  if (typeof window === "undefined") return null;
-  const params = new URLSearchParams(window.location.search);
-  return extractSharedUrl({
-    url: params.get("restockUrl") || params.get("url"),
-    text: params.get("text"),
-    title: params.get("title"),
-  });
+  return params.get("tab") === "restock" ? "restock" : "today";
 }
 
 function LoadFailed({
@@ -503,11 +533,17 @@ function LoadFailed({
   onRetry,
   onStartFresh,
   onImport,
+  confirmErase,
+  onConfirmEraseChange,
+  onErase,
 }: {
   reason: "corrupt" | "unavailable" | "key-mismatch";
   onRetry: () => void;
   onStartFresh: () => void;
   onImport: (raw: string, passphrase: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  confirmErase: boolean;
+  onConfirmEraseChange: (open: boolean) => void;
+  onErase: () => void;
 }) {
   const keyMismatch = reason === "key-mismatch";
   return (
@@ -518,7 +554,7 @@ function LoadFailed({
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         {keyMismatch
-          ? "A restored iCloud backup includes the encrypted home but not the Keychain key. Restore from a Cuidala backup file, or erase this copy and start over."
+          ? "Cuidala can’t find the Keychain item that unlocks this home. Restore from a Cuidala backup file, or erase this copy and start over."
           : reason === "unavailable"
             ? "Saved household data couldn’t be read right now. Try again, or erase this device’s copy and start over."
             : "Saved household data on this device looks damaged. Nothing was overwritten. You can try again, restore a backup, or erase it and start over."}
@@ -527,11 +563,28 @@ function LoadFailed({
         <Button className="h-12" onClick={onRetry}>
           Try again
         </Button>
-        <BackupPanel mode="import-only" onImport={onImport} />
+        <BackupPanel mode="import-only" onImport={onImport} replaceCounts={{ chores: 0, items: 0 }} />
         <Button variant="secondary" className="h-12 text-destructive" onClick={onStartFresh}>
           Erase and start over
         </Button>
       </div>
+      <AlertDialog open={confirmErase} onOpenChange={onConfirmEraseChange}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <BrandMark size="sm" className="mx-auto mb-2" />
+            <AlertDialogTitle>Erase everything?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Rooms, chores, items, history, and reminders on this iPhone will be deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-white" onClick={onErase}>
+              Erase
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -569,15 +622,14 @@ function NavButton({
   );
 }
 
-function HomeStatusLine({ household }: { household: Household }) {
-  const status = homeSummary(household);
-  if (status.total === 0 && status.reorderPending === 0) {
+function HomeStatusLine({ summary }: { summary: ReturnType<typeof homeSummary> | null }) {
+  if (!summary || (summary.total === 0 && summary.reorderPending === 0)) {
     return <span>All caught up</span>;
   }
   const parts: Array<{ key: string; text: string; urgent?: boolean }> = [];
-  if (status.overdue) parts.push({ key: "overdue", text: `${status.overdue} overdue`, urgent: true });
-  if (status.dueSoon) parts.push({ key: "soon", text: `${status.dueSoon} due soon` });
-  if (status.reorderPending) parts.push({ key: "reorder", text: `${status.reorderPending} to reorder` });
+  if (summary.overdue) parts.push({ key: "overdue", text: `${summary.overdue} overdue`, urgent: true });
+  if (summary.dueSoon) parts.push({ key: "soon", text: `${summary.dueSoon} due soon` });
+  if (summary.reorderPending) parts.push({ key: "reorder", text: `${summary.reorderPending} to reorder` });
   return (
     <span>
       {parts.map((part, index) => (

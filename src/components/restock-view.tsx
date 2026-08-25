@@ -11,6 +11,7 @@ import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/component
 import { SupplyCheckinSheet } from "@/components/supply-checkin-sheet";
 import { SupplyGauge } from "@/components/supply-gauge";
 import { Button } from "@/components/ui/button";
+import { TeachingTip } from "@/components/teaching-tip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatDueDate } from "@/lib/dates";
 import { roomName } from "@/lib/home-model";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { isOrdered } from "@/lib/supply";
+import { hasSeenTip, isAfterFirstDay, TIP_WALK_AFTER_DAY_ONE } from "@/lib/teaching";
 import type { AppNavigateTarget, Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -153,6 +155,13 @@ export function RestockView({
         <div className="rounded-2xl bg-card px-4 py-5">
           <p className="text-[17px] font-medium">Walk your house</p>
           <p className="mt-1 text-sm text-muted-foreground">Room by room. Tap what you buy, add anything we missed. We’ll ask for sizes.</p>
+          {isAfterFirstDay(household) && !hasSeenTip(household, TIP_WALK_AFTER_DAY_ONE) && restock.onMarkTip ? (
+            <div className="mt-3">
+              <TeachingTip onDismiss={() => restock.onMarkTip?.(TIP_WALK_AFTER_DAY_ONE)}>
+                Walk anytime. Filters, batteries, soap. Takes a few minutes.
+              </TeachingTip>
+            </div>
+          ) : null}
           <div className="mt-3">
             <RestockWalkPicker
               picks={walkPicks}

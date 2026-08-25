@@ -3,31 +3,16 @@
 <plist version="1.0">
 <dict>
   <!--
-    Cuidala has no accounts and no first-party server. The only data that
-    leaves the device is a rounded coordinate (or ZIP) sent to Open-Meteo
-    with no identifier attached. That is "Coarse Location", not linked to
-    identity and not used for tracking. Everything else stays on device and is
-    not "collected" in the App Store Connect sense.
+    Cuidala has no accounts and no first-party server. Weather uses Apple
+    WeatherKit (Apple-collected). ZIP and climate stay on device. Nothing else
+    leaves the phone, so App Store Connect can be Data Not Collected.
   -->
   <key>NSPrivacyTracking</key>
   <false/>
   <key>NSPrivacyTrackingDomains</key>
   <array/>
   <key>NSPrivacyCollectedDataTypes</key>
-  <array>
-    <dict>
-      <key>NSPrivacyCollectedDataType</key>
-      <string>NSPrivacyCollectedDataTypeCoarseLocation</string>
-      <key>NSPrivacyCollectedDataTypeLinked</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypeTracking</key>
-      <false/>
-      <key>NSPrivacyCollectedDataTypePurposes</key>
-      <array>
-        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-      </array>
-    </dict>
-  </array>
+  <array/>
   <key>NSPrivacyAccessedAPITypes</key>
   <array>
     <dict>

@@ -8,6 +8,7 @@ import type {
   RestockDigestSettings,
   RetailerId,
   SavedRetailerLink,
+  TeachingProgress,
   WeatherStatus,
 } from "@/lib/types";
 
@@ -40,6 +41,13 @@ export const DEFAULT_WEATHER_STATUS: WeatherStatus = {
   lastError: null,
 };
 
+export const DEFAULT_TEACHING: TeachingProgress = {
+  startedAt: null,
+  checkedChore: false,
+  openedRestock: false,
+  setDigestOrZip: false,
+};
+
 export function defaultHomeType(): HomeType {
   return "house";
 }
@@ -59,6 +67,8 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
   | "restockDigest"
   | "savedRetailerLinks"
   | "preferredRetailers"
+  | "teaching"
+  | "seenTips"
 > &
   T {
   return {
@@ -76,5 +86,7 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
     savedRetailerLinks: (partial.savedRetailerLinks ?? []) as SavedRetailerLink[],
     preferredRetailers: (partial.preferredRetailers ?? []) as RetailerId[],
     restockDigest: { ...DEFAULT_RESTOCK_DIGEST, ...partial.restockDigest } satisfies RestockDigestSettings,
+    teaching: { ...DEFAULT_TEACHING, ...partial.teaching } satisfies TeachingProgress,
+    seenTips: partial.seenTips ?? [],
   };
 }

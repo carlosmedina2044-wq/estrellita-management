@@ -5,6 +5,7 @@ import { EXTERIOR_ID, WHOLE_HOME_ID } from "@/lib/home-model";
 import { normalizeAssetType } from "@/lib/asset-catalog";
 import type {
   Duty,
+  DutyCaution,
   HomeAttributes,
   Household,
   NodeType,
@@ -22,6 +23,7 @@ export type PlaybookTaskDef = {
   estimatedCost?: number;
   isDiy?: boolean;
   consumables?: string[];
+  caution?: DutyCaution;
 };
 
 export type Playbook = {
@@ -41,7 +43,16 @@ export type Playbook = {
   tasks: PlaybookTaskDef[];
 };
 
-export const PLAYBOOKS = playbookSeed as Playbook[];
+type PlaybookFile = { contentVersion: string; playbooks: Playbook[] } | Playbook[];
+
+function playbooksFromSeed(seed: PlaybookFile): { version: string; playbooks: Playbook[] } {
+  if (Array.isArray(seed)) return { version: "2026.08.24", playbooks: seed };
+  return { version: seed.contentVersion, playbooks: seed.playbooks };
+}
+
+const loaded = playbooksFromSeed(playbookSeed as PlaybookFile);
+export const PLAYBOOK_CONTENT_VERSION = loaded.version;
+export const PLAYBOOKS = loaded.playbooks;
 
 export function taskKey(playbookId: string, title: string): string {
   return `${playbookId}:${title}`;
@@ -274,5 +285,6 @@ export function dutyFromPlaybookTask(
     estimatedMinutes: task.estimatedMinutes,
     origin,
     playbookId: playbook.id,
+    caution: task.caution,
   };
 }

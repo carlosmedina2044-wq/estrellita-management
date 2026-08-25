@@ -106,6 +106,8 @@ export type HomeLocation = {
   postalCode?: string;
   placeName?: string;
   climateZone?: ClimateZone;
+  /** User override. When set, deriveClimate returns this instead of ZIP/coords. */
+  climateZoneOverride?: ClimateZone;
 };
 
 export type HomeAttributes = {
@@ -164,7 +166,11 @@ export type Duty = {
   playbookId?: string;
   weatherTriggerId?: string;
   buyLocally?: boolean;
+  caution?: DutyCaution;
+  rolledCompletions?: number;
 };
+
+export type DutyCaution = "gas" | "electrical" | "roof" | "ladder" | "structural" | "pest";
 
 export type RestockState = "stocked" | "order_now" | "ordered";
 
@@ -341,6 +347,15 @@ export type Household = {
   restockDigest: RestockDigestSettings;
   /** Days of slack added to lead time before an item surfaces in Order now. Default 7. */
   restockSafetyBufferDays?: number;
+  teaching: TeachingProgress;
+  seenTips: string[];
+};
+
+export type TeachingProgress = {
+  startedAt: string | null;
+  checkedChore: boolean;
+  openedRestock: boolean;
+  setDigestOrZip: boolean;
 };
 
 export type DutyDraft = Omit<Duty, "id" | "createdAt" | "archived"> & {

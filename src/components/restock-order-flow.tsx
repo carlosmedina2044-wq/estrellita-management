@@ -38,8 +38,10 @@ import {
   type RestockFlowHandlers,
 } from "@/lib/restock";
 import { leadTimeDaysFor } from "@/lib/supply";
+import { hasSeenTip, TIP_ARRIVAL } from "@/lib/teaching";
 import type { Household, SupplyAutomation } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { TeachingTip } from "@/components/teaching-tip";
 
 const LOOKING_MS = 30 * 60 * 1000;
 const lookingUntil = new Map<string, number>();
@@ -64,6 +66,7 @@ export function restockButtonProps(item: SupplyAutomation, handlers: RestockFlow
     onApplyLeadTime: handlers.onApplyLeadTime
       ? (days: number) => handlers.onApplyLeadTime?.(item.id, days)
       : undefined,
+    onMarkTip: handlers.onMarkTip,
   };
 }
 
@@ -78,6 +81,7 @@ export function RestockOrderButton({
   onNeverCame,
   onChangeArrival,
   onApplyLeadTime,
+  onMarkTip,
   onAddSize,
   className,
   compact,
@@ -87,7 +91,7 @@ export function RestockOrderButton({
   subdued,
 }: {
   item: SupplyAutomation;
-  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers" | "restockSafetyBufferDays">;
+  household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers" | "restockSafetyBufferDays" | "seenTips">;
   onOrdered?: (details: MarkOrderedDetails) => void;
   onReceived?: (qty: number, paid?: number) => void;
   onSaveLink?: (url: string) => void;
@@ -96,6 +100,7 @@ export function RestockOrderButton({
   onNeverCame?: () => void;
   onChangeArrival?: (date: string) => void;
   onApplyLeadTime?: (days: number) => void;
+  onMarkTip?: (tip: string) => void;
   onAddSize?: () => void;
   className?: string;
   compact?: boolean;
@@ -337,6 +342,8 @@ export function RestockOrderButton({
         open={ask}
         item={item}
         retailer={pendingRetailer}
+        showArrivalTip={!hasSeenTip(household, TIP_ARRIVAL)}
+        onDismissArrivalTip={() => onMarkTip?.(TIP_ARRIVAL)}
         onOpenChange={setAsk}
         onJustLooking={() => {
           lookingUntil.set(item.id, Date.now() + LOOKING_MS);
@@ -357,6 +364,8 @@ function OrderConfirmSheet({
   open,
   item,
   retailer,
+  showArrivalTip,
+  onDismissArrivalTip,
   onOpenChange,
   onJustLooking,
   onConfirm,
@@ -364,6 +373,8 @@ function OrderConfirmSheet({
   open: boolean;
   item: SupplyAutomation;
   retailer?: string;
+  showArrivalTip?: boolean;
+  onDismissArrivalTip?: () => void;
   onOpenChange: (open: boolean) => void;
   onJustLooking: () => void;
   onConfirm: (details: MarkOrderedDetails) => void;
@@ -421,6 +432,11 @@ function OrderConfirmSheet({
               <SheetDescription>We’ll check in the day after it arrives.</SheetDescription>
             </SheetHeader>
             <div className="grid gap-4 px-4 pb-4">
+              {showArrivalTip ? (
+                <TeachingTip onDismiss={() => onDismissArrivalTip?.()}>
+                  Pick the day it should get here. We check in the day after, then you mark it received.
+                </TeachingTip>
+              ) : null}
               <ArrivalChips
                 offset={offset}
                 dateDraft={dateDraft}

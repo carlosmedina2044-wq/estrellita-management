@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
-import { arrivalCheckAt, itemReminderCap, plannedNotifications } from "@/lib/notifications";
+import { arrivalCheckAt, capacitorWeekday, itemReminderCap, plannedNotifications } from "@/lib/notifications";
 import { markConsumableOrdered, receiveConsumable } from "@/lib/restock";
 import type { Duty, Household, SupplyAutomation } from "@/lib/types";
 
@@ -122,8 +122,9 @@ test("ordered items schedule Did it arrive? before order-by reminders", () => {
   assert.equal(arrival?.body, "Tap to mark it received. The install chore is waiting on it.");
   assert.equal(arrival?.extra?.tab, "restock");
   assert.equal(arrival?.extra?.itemId, "s1");
-  assert.equal(arrival?.schedule.at.getDate(), 26);
-  assert.equal(arrival?.schedule.at.getHours(), 18);
+  assert.ok(arrival && "at" in arrival.schedule);
+  assert.equal(arrival && "at" in arrival.schedule ? arrival.schedule.at.getDate() : 0, 26);
+  assert.equal(arrival && "at" in arrival.schedule ? arrival.schedule.at.getHours() : 0, 18);
   assert.ok(orderBy);
   assert.ok(notices.indexOf(arrival!) < notices.indexOf(orderBy!));
 });
@@ -164,4 +165,71 @@ test("received items leave the arrival bucket so the notice cannot re-fire", () 
     notices.some((notice) => notice.extra?.action === "receive"),
     false,
   );
+});
+
+test("weekly digest repeats on weekday and hour, not a single at date", () => {
+  const notices = plannedNotifications(
+    household({
+      restockDigest: { enabled: true, weekday: 0, hour: 9, lastSentOn: null, permissionAsked: true },
+      supplyAutomations: [item({ onHand: 0, orderByDate: "2026-08-20", nextOrderDate: "2026-08-20", state: "stocked" })],
+    }),
+    now,
+  );
+  const digest = notices.find((notice) => notice.id === 1);
+  assert.ok(digest);
+  assert.equal("repeats" in digest!.schedule && digest!.schedule.repeats, true);
+  assert.ok("on" in digest!.schedule);
+  if ("on" in digest!.schedule) {
+    assert.equal(digest.schedule.on.weekday, capacitorWeekday(0));
+    assert.equal(digest.schedule.on.hour, 9);
+  }
+});
+
+test("weekly digest includes overdue chores even with nothing to order", () => {
+  const overdueDuty = duty({
+    id: "overdue-1",
+    title: "Clean gutters",
+    frequency: "once",
+    dueDate: "2026-08-01",
+  });
+  const notices = plannedNotifications(
+    household({
+      restockDigest: { enabled: true, weekday: 0, hour: 9, lastSentOn: null, permissionAsked: true },
+      duties: [overdueDuty],
+      supplyAutomations: [],
+    }),
+    now,
+  );
+  const digest = notices.find((notice) => notice.id === 1);
+  assert.ok(digest);
+  assert.match(digest!.title, /chore still open/);
+  assert.equal("repeats" in digest!.schedule && digest!.schedule.repeats, true);
+});
+
+test("unanswered order reminder gets a still-to-order follow-up", () => {
+  const notices = plannedNotifications(
+    household({
+      supplyAutomations: [
+        item({
+          onHand: 0,
+          orderByDate: "2026-08-25",
+          nextOrderDate: "2026-08-25",
+          state: "stocked",
+          leadTimeDays: 0,
+          dutyId: "",
+          linkedDutyIds: [],
+          installedAt: "",
+          lifespanValue: 0,
+        }),
+      ],
+    }),
+    now,
+  );
+  const follow = notices.find((notice) => notice.extra?.action === "followup");
+  assert.ok(follow);
+  assert.match(follow!.title, /Still to order/);
+  assert.ok("at" in follow!.schedule);
+  if ("at" in follow!.schedule) {
+    assert.equal(follow.schedule.at.getDate(), 28);
+  }
 });

@@ -1,597 +1,635 @@
-[
-  {
-    "id": "all-safety",
-    "name": "Whole-home safety",
-    "season": "any",
-    "climateZones": "all",
-    "tasks": [
-      {
-        "title": "Test smoke and CO detectors",
-        "description": "Press the test button on every detector. Replace any that fail.",
-        "nodeType": "assetType",
-        "target": "smoke_detector",
-        "estimatedMinutes": 15,
-        "isDiy": true
-      },
-      {
-        "title": "Clean dryer vent",
-        "description": "Pull the dryer out and vacuum the vent hose and wall duct.",
-        "nodeType": "assetType",
-        "target": "dryer",
-        "estimatedMinutes": 30,
-        "estimatedCost": 0,
-        "isDiy": true
-      },
-      {
-        "title": "Flush the water heater",
-        "description": "Drain a few gallons to clear sediment. Hire a pro if the valve is stuck.",
-        "nodeType": "assetType",
-        "target": "water_heater",
-        "estimatedMinutes": 45,
-        "estimatedCost": 150,
-        "isDiy": true
-      },
-      {
-        "title": "Clean refrigerator coils",
-        "description": "Unplug and vacuum the condenser coils.",
-        "nodeType": "assetType",
-        "target": "refrigerator",
-        "estimatedMinutes": 20,
-        "isDiy": true
-      },
-      {
-        "title": "Test GFCI outlets",
-        "description": "Press test/reset on kitchen, bath, garage, and exterior GFCIs.",
-        "nodeType": "home",
-        "estimatedMinutes": 10,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "new-home",
-    "name": "New Home",
-    "season": "any",
-    "climateZones": "all",
-    "tenure": "new",
-    "requires": {},
-    "tasks": [
-      {
-        "title": "Find and label the main water shutoff.",
-        "description": "You want to know this before a pipe bursts, not during.",
-        "nodeType": "home",
-        "estimatedMinutes": 15,
-        "isDiy": true
-      },
-      {
-        "title": "Label the breaker panel.",
-        "nodeType": "home",
-        "estimatedMinutes": 30,
-        "isDiy": true
-      },
-      {
-        "title": "Change or rekey the exterior locks.",
-        "description": "About $80, or a DIY rekey kit.",
-        "nodeType": "home",
-        "estimatedMinutes": 40,
-        "estimatedCost": 80,
-        "isDiy": true
-      },
-      {
-        "title": "Test every smoke and CO detector and note the battery types.",
-        "nodeType": "assetType",
-        "target": "smoke_detector",
-        "estimatedMinutes": 15,
-        "isDiy": true
-      },
-      {
-        "title": "Replace the HVAC filter and record the size.",
-        "description": "Put the size in the item’s Size or spec field so the next order is the right one.",
-        "nodeType": "assetType",
-        "target": "hvac_system",
-        "estimatedMinutes": 10,
-        "isDiy": true
-      },
-      {
-        "title": "Find the water heater and note its age from the serial plate.",
-        "nodeType": "assetType",
-        "target": "water_heater",
-        "estimatedMinutes": 10,
-        "isDiy": true
-      },
-      {
-        "title": "Photograph the electrical panel, shutoffs, and appliance nameplates.",
-        "description": "Parked in Notes for now.",
-        "nodeType": "home",
-        "estimatedMinutes": 20,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "hot-arid-presummer",
-    "name": "Pre-summer AC service",
-    "season": "summer",
-    "climateZones": [
-      "hot-arid"
-    ],
-    "triggerMonth": 4,
-    "earlyMonth": 2,
-    "lateMonth": 6,
-    "why": "AC techs book solid by May. A tune-up now costs a service call; a July failure costs emergency rates and a brutal wait.",
-    "tasks": [
-      {
-        "title": "Service the AC and replace the filter",
-        "description": "Book a tune-up before first 100° days. Swap the filter now.",
-        "nodeType": "assetType",
-        "target": "hvac_system",
-        "estimatedMinutes": 20,
-        "estimatedCost": 180,
-        "isDiy": false,
-        "consumables": [
-          "HVAC filter"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "hot-arid-monsoon",
-    "name": "Monsoon prep",
-    "season": "monsoon",
-    "climateZones": [
-      "hot-arid"
-    ],
-    "triggerMonth": 6,
-    "earlyMonth": 5,
-    "lateMonth": 8,
-    "why": "Monsoon storms arrive fast. Clear drainage and secured loose items prevent the most common summer damage claims.",
-    "tasks": [
-      {
-        "title": "Check roof and drainage",
-        "description": "Clear scuppers and look for cracked mastic before the first storm.",
-        "nodeType": "assetType",
-        "target": "roof",
-        "estimatedMinutes": 40,
-        "isDiy": true
-      },
-      {
-        "title": "Stage patio furniture and flashlights",
-        "description": "Tie down or store furniture. Put flashlights and a charged battery pack by the door.",
-        "nodeType": "exterior",
-        "estimatedMinutes": 25,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "hot-arid-post-monsoon",
-    "name": "Post-monsoon roof and gutter check",
-    "season": "fall",
-    "climateZones": [
-      "hot-arid"
-    ],
-    "triggerMonth": 10,
-    "earlyMonth": 9,
-    "lateMonth": 12,
-    "why": "Monsoon debris left on roofs and in gutters bakes in and causes leaks the following summer.",
-    "requires": {
-      "hasGutters": true
+{
+  "contentVersion": "2026.08.24",
+  "playbooks": [
+    {
+      "id": "all-safety",
+      "name": "Whole-home safety",
+      "season": "any",
+      "climateZones": "all",
+      "tasks": [
+        {
+          "title": "Test smoke and CO detectors",
+          "description": "Press the test button on every detector. Replace any that fail.",
+          "nodeType": "assetType",
+          "target": "smoke_detector",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        },
+        {
+          "title": "Clean dryer vent",
+          "description": "Pull the dryer out and vacuum the vent hose and wall duct.",
+          "nodeType": "assetType",
+          "target": "dryer",
+          "estimatedMinutes": 30,
+          "estimatedCost": 0,
+          "isDiy": true
+        },
+        {
+          "title": "Flush the water heater",
+          "description": "Drain a few gallons to clear sediment. Hire a pro if the valve is stuck.",
+          "nodeType": "assetType",
+          "target": "water_heater",
+          "estimatedMinutes": 45,
+          "estimatedCost": 150,
+          "isDiy": true
+        },
+        {
+          "title": "Clean refrigerator coils",
+          "description": "Unplug and vacuum the condenser coils.",
+          "nodeType": "assetType",
+          "target": "refrigerator",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        },
+        {
+          "title": "Test GFCI outlets",
+          "description": "Press test/reset on kitchen, bath, garage, and exterior GFCIs.",
+          "nodeType": "home",
+          "estimatedMinutes": 10,
+          "isDiy": true,
+          "caution": "electrical"
+        }
+      ]
     },
-    "tasks": [
-      {
-        "title": "Inspect roof and gutters after monsoon",
-        "description": "Look for displaced gravel, clogged downspouts, and stained ceilings.",
-        "nodeType": "exterior",
-        "estimatedMinutes": 35,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "hot-arid-cooler",
-    "name": "Evaporative cooler startup",
-    "season": "spring",
-    "climateZones": [
-      "hot-arid"
-    ],
-    "triggerMonth": 4,
-    "earlyMonth": 3,
-    "lateMonth": 6,
-    "why": "Fresh pads and a clean reservoir before first heat — mid-season startup problems always land on the hottest week.",
-    "requires": {
-      "hasEvaporativeCooler": true
+    {
+      "id": "new-home",
+      "name": "New Home",
+      "season": "any",
+      "climateZones": "all",
+      "tenure": "new",
+      "requires": {},
+      "tasks": [
+        {
+          "title": "Find and label the main water shutoff.",
+          "description": "You want to know this before a pipe bursts, not during.",
+          "nodeType": "home",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        },
+        {
+          "title": "Label the breaker panel.",
+          "nodeType": "home",
+          "estimatedMinutes": 30,
+          "isDiy": true
+        },
+        {
+          "title": "Change or rekey the exterior locks.",
+          "description": "About $80, or a DIY rekey kit.",
+          "nodeType": "home",
+          "estimatedMinutes": 40,
+          "estimatedCost": 80,
+          "isDiy": true
+        },
+        {
+          "title": "Test every smoke and CO detector and note the battery types.",
+          "nodeType": "assetType",
+          "target": "smoke_detector",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        },
+        {
+          "title": "Replace the HVAC filter and record the size.",
+          "description": "Put the size in the item’s Size or spec field so the next order is the right one.",
+          "nodeType": "assetType",
+          "target": "hvac_system",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        },
+        {
+          "title": "Find the water heater and note its age from the serial plate.",
+          "nodeType": "assetType",
+          "target": "water_heater",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        },
+        {
+          "title": "Photograph the electrical panel, shutoffs, and appliance nameplates.",
+          "description": "Parked in Notes for now.",
+          "nodeType": "home",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
     },
-    "tasks": [
-      {
-        "title": "Start up the evaporative cooler",
-        "description": "Replace pads, flush the reservoir, and confirm the pump primes.",
-        "nodeType": "assetType",
-        "target": "evaporative_cooler",
-        "estimatedMinutes": 45,
-        "isDiy": true,
-        "consumables": [
-          "Cooler pads"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "hot-arid-cooler-winter",
-    "name": "Winterize evaporative cooler",
-    "season": "winter",
-    "climateZones": [
-      "hot-arid"
-    ],
-    "triggerMonth": 11,
-    "earlyMonth": 10,
-    "lateMonth": 1,
-    "why": "An un-winterized cooler grows scale and mineral damage over winter and shortens pad and pump life.",
-    "requires": {
-      "hasEvaporativeCooler": true
+    {
+      "id": "hot-arid-presummer",
+      "name": "Pre-summer AC service",
+      "season": "summer",
+      "climateZones": [
+        "hot-arid"
+      ],
+      "triggerMonth": 4,
+      "earlyMonth": 2,
+      "lateMonth": 6,
+      "why": "AC techs book solid by May. A tune-up now costs a service call; a July failure costs emergency rates and a brutal wait.",
+      "tasks": [
+        {
+          "title": "Service the AC and replace the filter",
+          "description": "Book a tune-up before first 100° days. Swap the filter now.",
+          "nodeType": "assetType",
+          "target": "hvac_system",
+          "estimatedMinutes": 20,
+          "estimatedCost": 180,
+          "isDiy": false,
+          "consumables": [
+            "HVAC filter"
+          ]
+        }
+      ]
     },
-    "tasks": [
-      {
-        "title": "Winterize the evaporative cooler",
-        "description": "Drain the reservoir, disconnect the water line, and cover the unit.",
-        "nodeType": "assetType",
-        "target": "evaporative_cooler",
-        "estimatedMinutes": 30,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "hot-arid-irrigation",
-    "name": "Irrigation seasonal adjustment",
-    "season": "summer",
-    "climateZones": [
-      "hot-arid"
-    ],
-    "triggerMonth": 5,
-    "earlyMonth": 4,
-    "lateMonth": 7,
-    "why": "Summer watering needs change fast in the desert. A seasonal adjustment saves water and keeps plants alive through June.",
-    "requires": {
-      "hasIrrigation": true
+    {
+      "id": "hot-arid-monsoon",
+      "name": "Monsoon prep",
+      "season": "monsoon",
+      "climateZones": [
+        "hot-arid"
+      ],
+      "triggerMonth": 6,
+      "earlyMonth": 5,
+      "lateMonth": 8,
+      "why": "Monsoon storms arrive fast. Clear drainage and secured loose items prevent the most common summer damage claims.",
+      "tasks": [
+        {
+          "title": "Check roof and drainage",
+          "description": "Clear scuppers and look for cracked mastic before the first storm.",
+          "nodeType": "assetType",
+          "target": "roof",
+          "estimatedMinutes": 40,
+          "isDiy": true,
+          "caution": "roof"
+        },
+        {
+          "title": "Stage patio furniture and flashlights",
+          "description": "Tie down or store furniture. Put flashlights and a charged battery pack by the door.",
+          "nodeType": "exterior",
+          "estimatedMinutes": 25,
+          "isDiy": true
+        }
+      ]
     },
-    "tasks": [
-      {
-        "title": "Adjust irrigation for summer",
-        "description": "Increase runtime before heat, then check for broken heads after the first cycle.",
-        "nodeType": "assetType",
-        "target": "irrigation_system",
-        "estimatedMinutes": 20,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "hot-arid-uv",
-    "name": "UV caulk and paint inspection",
-    "season": "spring",
-    "climateZones": [
-      "hot-arid"
-    ],
-    "triggerMonth": 3,
-    "earlyMonth": 2,
-    "lateMonth": 5,
-    "why": "Desert UV destroys caulk and paint faster than anywhere else. Small touch-ups now prevent stucco and window leaks.",
-    "tasks": [
-      {
-        "title": "Inspect exterior caulk and paint for UV damage",
-        "description": "Walk south and west walls. Recaulk cracked joints around windows.",
-        "nodeType": "exterior",
-        "estimatedMinutes": 40,
-        "estimatedCost": 40,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "cold-furnace",
-    "name": "Furnace service",
-    "season": "fall",
-    "climateZones": [
-      "cold"
-    ],
-    "triggerMonth": 9,
-    "earlyMonth": 8,
-    "lateMonth": 11,
-    "why": "Furnace techs book out once the first cold snap hits. A fall service is the cheapest insurance against a mid-winter failure.",
-    "tasks": [
-      {
-        "title": "Service the furnace",
-        "description": "Replace the filter and book a combustion check before first freeze.",
-        "nodeType": "assetType",
-        "target": "furnace",
-        "estimatedMinutes": 20,
-        "estimatedCost": 160,
-        "isDiy": false,
-        "consumables": [
-          "Furnace filter"
-        ]
-      }
-    ]
-  },
-  {
-    "id": "cold-winterize",
-    "name": "Winterize outdoor water",
-    "season": "fall",
-    "climateZones": [
-      "cold"
-    ],
-    "triggerMonth": 10,
-    "earlyMonth": 9,
-    "lateMonth": 11,
-    "why": "One hard freeze with a connected hose can split a pipe inside the wall. Ten minutes now prevents a four-figure repair.",
-    "tasks": [
-      {
-        "title": "Winterize outdoor faucets",
-        "description": "Shut interior valves, open hose bibs, and store hoses.",
-        "nodeType": "exterior",
-        "estimatedMinutes": 20,
-        "isDiy": true
+    {
+      "id": "hot-arid-post-monsoon",
+      "name": "Post-monsoon roof and gutter check",
+      "season": "fall",
+      "climateZones": [
+        "hot-arid"
+      ],
+      "triggerMonth": 10,
+      "earlyMonth": 9,
+      "lateMonth": 12,
+      "why": "Monsoon debris left on roofs and in gutters bakes in and causes leaks the following summer.",
+      "requires": {
+        "hasGutters": true
       },
-      {
-        "title": "Blow out or shut down irrigation",
-        "description": "Have the system blown out, or close the backflow and drain the lines.",
-        "nodeType": "assetType",
-        "target": "irrigation_system",
-        "estimatedMinutes": 30,
-        "estimatedCost": 120,
-        "isDiy": false
-      }
-    ]
-  },
-  {
-    "id": "cold-gutters",
-    "name": "Fall gutter cleaning",
-    "season": "fall",
-    "climateZones": [
-      "cold"
-    ],
-    "triggerMonth": 10,
-    "earlyMonth": 9,
-    "lateMonth": 11,
-    "why": "Leaf-clogged gutters cause ice dams that force water under shingles all winter.",
-    "requires": {
-      "hasGutters": true
+      "tasks": [
+        {
+          "title": "Inspect roof and gutters after monsoon",
+          "description": "Look for displaced gravel, clogged downspouts, and stained ceilings.",
+          "nodeType": "exterior",
+          "estimatedMinutes": 35,
+          "isDiy": true
+        }
+      ]
     },
-    "tasks": [
-      {
-        "title": "Clean gutters before freeze",
-        "description": "Clear leaves so ice dams do not form.",
-        "nodeType": "exterior",
-        "estimatedMinutes": 60,
-        "estimatedCost": 200,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "cold-chimney",
-    "name": "Chimney inspection",
-    "season": "fall",
-    "climateZones": [
-      "cold"
-    ],
-    "triggerMonth": 9,
-    "earlyMonth": 8,
-    "lateMonth": 12,
-    "why": "Creosote buildup is the leading cause of chimney fires. Inspect before the first fire of the season.",
-    "requires": {
-      "hasFireplace": true
+    {
+      "id": "hot-arid-cooler",
+      "name": "Evaporative cooler startup",
+      "season": "spring",
+      "climateZones": [
+        "hot-arid"
+      ],
+      "triggerMonth": 4,
+      "earlyMonth": 3,
+      "lateMonth": 6,
+      "why": "Fresh pads and a clean reservoir before first heat — mid-season startup problems always land on the hottest week.",
+      "requires": {
+        "hasEvaporativeCooler": true
+      },
+      "tasks": [
+        {
+          "title": "Start up the evaporative cooler",
+          "description": "Replace pads, flush the reservoir, and confirm the pump primes.",
+          "nodeType": "assetType",
+          "target": "evaporative_cooler",
+          "estimatedMinutes": 45,
+          "isDiy": true,
+          "consumables": [
+            "Cooler pads"
+          ]
+        }
+      ]
     },
-    "tasks": [
-      {
-        "title": "Inspect the chimney",
-        "description": "Have a sweep check the flue before the first fire.",
-        "nodeType": "home",
-        "estimatedMinutes": 15,
-        "estimatedCost": 180,
-        "isDiy": false
-      }
-    ]
-  },
-  {
-    "id": "cold-snow",
-    "name": "Snow equipment prep",
-    "season": "fall",
-    "climateZones": [
-      "cold"
-    ],
-    "triggerMonth": 11,
-    "earlyMonth": 10,
-    "lateMonth": 12,
-    "why": "Snow equipment fails the first time you need it. Fuel, oil, and a test run before the first storm.",
-    "tasks": [
-      {
-        "title": "Prep snow equipment",
-        "description": "Fuel the blower, find shovels, and stage ice melt by the door.",
-        "nodeType": "exterior",
-        "estimatedMinutes": 20,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "cold-sump",
-    "name": "Spring sump pump test",
-    "season": "spring",
-    "climateZones": [
-      "cold"
-    ],
-    "triggerMonth": 3,
-    "earlyMonth": 2,
-    "lateMonth": 5,
-    "why": "Spring melt is when sump pumps fail. A test now beats discovering a dead pump with water rising.",
-    "requires": {
-      "hasBasement": true
+    {
+      "id": "hot-arid-cooler-winter",
+      "name": "Winterize evaporative cooler",
+      "season": "winter",
+      "climateZones": [
+        "hot-arid"
+      ],
+      "triggerMonth": 11,
+      "earlyMonth": 10,
+      "lateMonth": 1,
+      "why": "An un-winterized cooler grows scale and mineral damage over winter and shortens pad and pump life.",
+      "requires": {
+        "hasEvaporativeCooler": true
+      },
+      "tasks": [
+        {
+          "title": "Winterize the evaporative cooler",
+          "description": "Drain the reservoir, disconnect the water line, and cover the unit.",
+          "nodeType": "assetType",
+          "target": "evaporative_cooler",
+          "estimatedMinutes": 30,
+          "isDiy": true
+        }
+      ]
     },
-    "tasks": [
-      {
-        "title": "Test the sump pump",
-        "description": "Pour a bucket of water into the pit and confirm it kicks on.",
-        "nodeType": "assetType",
-        "target": "sump_pump",
-        "estimatedMinutes": 15,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "humid-hurricane",
-    "name": "Hurricane prep",
-    "season": "summer",
-    "climateZones": [
-      "humid-subtropical"
-    ],
-    "triggerMonth": 6,
-    "earlyMonth": 5,
-    "lateMonth": 9,
-    "why": "Season runs June through November. Supplies and a plan before the first named storm — stores empty out fast.",
-    "tasks": [
-      {
-        "title": "Stage hurricane supplies",
-        "description": "Water, flashlights, charged batteries, and a go-bag before storm season.",
-        "nodeType": "home",
-        "estimatedMinutes": 40,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "humid-mold",
-    "name": "Dehumidifier and mold checks",
-    "season": "summer",
-    "climateZones": [
-      "humid-subtropical"
-    ],
-    "triggerMonth": 5,
-    "earlyMonth": 4,
-    "lateMonth": 8,
-    "why": "Humidity season feeds mold in weeks. Dehumidifier checks now prevent remediation bills later.",
-    "tasks": [
-      {
-        "title": "Check humidity and hidden mold",
-        "description": "Look under sinks and around the AC closet. Empty dehumidifier tanks.",
-        "nodeType": "home",
-        "estimatedMinutes": 25,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "humid-termite",
-    "name": "Termite inspection",
-    "season": "spring",
-    "climateZones": [
-      "humid-subtropical"
-    ],
-    "triggerMonth": 4,
-    "earlyMonth": 3,
-    "lateMonth": 6,
-    "why": "Spring swarm season is when infestations start. An annual inspection is a fraction of treatment cost.",
-    "tasks": [
-      {
-        "title": "Schedule a termite inspection",
-        "description": "Have the perimeter and attic checked before swarm season.",
-        "nodeType": "home",
-        "estimatedMinutes": 10,
-        "estimatedCost": 120,
-        "isDiy": false
-      }
-    ]
-  },
-  {
-    "id": "humid-ac-drain",
-    "name": "AC drain line flush",
-    "season": "spring",
-    "climateZones": [
-      "humid-subtropical"
-    ],
-    "triggerMonth": 4,
-    "earlyMonth": 3,
-    "lateMonth": 6,
-    "why": "A clogged AC drain line backs condensate into the ceiling. A cup of vinegar now beats a drywall repair.",
-    "tasks": [
-      {
-        "title": "Flush the AC condensate drain",
-        "description": "Pour vinegar through the drain to prevent a backup.",
-        "nodeType": "assetType",
-        "target": "hvac_system",
-        "estimatedMinutes": 15,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "marine-moss",
-    "name": "Moss and gutter management",
-    "season": "fall",
-    "climateZones": [
-      "marine"
-    ],
-    "triggerMonth": 10,
-    "earlyMonth": 9,
-    "lateMonth": 12,
-    "why": "Wet season feeds roof moss that lifts shingles. Treat before the rains set in.",
-    "requires": {
-      "hasGutters": true
+    {
+      "id": "hot-arid-irrigation",
+      "name": "Irrigation seasonal adjustment",
+      "season": "summer",
+      "climateZones": [
+        "hot-arid"
+      ],
+      "triggerMonth": 5,
+      "earlyMonth": 4,
+      "lateMonth": 7,
+      "why": "Summer watering needs change fast in the desert. A seasonal adjustment saves water and keeps plants alive through June.",
+      "requires": {
+        "hasIrrigation": true
+      },
+      "tasks": [
+        {
+          "title": "Adjust irrigation for summer",
+          "description": "Increase runtime before heat, then check for broken heads after the first cycle.",
+          "nodeType": "assetType",
+          "target": "irrigation_system",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        },
+        {
+          "title": "Walk drip lines and emitters",
+          "description": "Look for clogged emitters, chewed tubing, and dry spots. Flush the filter.",
+          "nodeType": "assetType",
+          "target": "irrigation_system",
+          "estimatedMinutes": 25,
+          "isDiy": true
+        }
+      ]
     },
-    "tasks": [
-      {
-        "title": "Clear moss and gutters",
-        "description": "Clean gutters and treat moss on the north roof face.",
-        "nodeType": "exterior",
-        "estimatedMinutes": 60,
-        "estimatedCost": 180,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "marine-roof",
-    "name": "Post-storm roof inspection",
-    "season": "spring",
-    "climateZones": [
-      "marine"
-    ],
-    "triggerMonth": 4,
-    "earlyMonth": 3,
-    "lateMonth": 5,
-    "why": "Winter storms loosen flashing and shingles. A spring check catches damage while it is still small.",
-    "tasks": [
-      {
-        "title": "Inspect the roof after storm season",
-        "description": "Look for lifted shingles and stained sheathing.",
-        "nodeType": "assetType",
-        "target": "roof",
-        "estimatedMinutes": 30,
-        "isDiy": true
-      }
-    ]
-  },
-  {
-    "id": "marine-wood",
-    "name": "Exterior wood sealing",
-    "season": "summer",
-    "climateZones": [
-      "marine"
-    ],
-    "triggerMonth": 7,
-    "earlyMonth": 6,
-    "lateMonth": 9,
-    "why": "Exterior wood only seals well when dry. The summer window is short — miss it and decks absorb a whole wet season.",
-    "tasks": [
-      {
-        "title": "Seal exterior wood",
-        "description": "Recoat decks and trim while the weather is dry.",
-        "nodeType": "exterior",
-        "estimatedMinutes": 120,
-        "estimatedCost": 80,
-        "isDiy": true
-      }
-    ]
-  }
-]
+    {
+      "id": "hot-arid-dust-hvac",
+      "name": "Dust-season HVAC filter",
+      "season": "spring",
+      "climateZones": [
+        "hot-arid"
+      ],
+      "triggerMonth": 4,
+      "earlyMonth": 3,
+      "lateMonth": 6,
+      "why": "Spring dust loads filters in a week. A clean filter before the first 100° day is cheaper than a service call.",
+      "tasks": [
+        {
+          "title": "Replace HVAC filter before dust season",
+          "description": "Swap the filter and set a reminder for 30 days. Recirculate if the air is brown.",
+          "nodeType": "assetType",
+          "target": "hvac_system",
+          "estimatedMinutes": 10,
+          "isDiy": true,
+          "consumables": [
+            "HVAC filter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hot-arid-uv",
+      "name": "UV caulk and paint inspection",
+      "season": "spring",
+      "climateZones": [
+        "hot-arid"
+      ],
+      "triggerMonth": 3,
+      "earlyMonth": 2,
+      "lateMonth": 5,
+      "why": "Desert UV destroys caulk and paint faster than anywhere else. Small touch-ups now prevent stucco and window leaks.",
+      "tasks": [
+        {
+          "title": "Inspect exterior caulk and paint for UV damage",
+          "description": "Walk south and west walls. Recaulk cracked joints around windows.",
+          "nodeType": "exterior",
+          "estimatedMinutes": 40,
+          "estimatedCost": 40,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "cold-furnace",
+      "name": "Furnace service",
+      "season": "fall",
+      "climateZones": [
+        "cold"
+      ],
+      "triggerMonth": 9,
+      "earlyMonth": 8,
+      "lateMonth": 11,
+      "why": "Furnace techs book out once the first cold snap hits. A fall service is the cheapest insurance against a mid-winter failure.",
+      "tasks": [
+        {
+          "title": "Service the furnace",
+          "description": "Replace the filter and book a combustion check before first freeze.",
+          "nodeType": "assetType",
+          "target": "furnace",
+          "estimatedMinutes": 20,
+          "estimatedCost": 160,
+          "isDiy": false,
+          "consumables": [
+            "Furnace filter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cold-winterize",
+      "name": "Winterize outdoor water",
+      "season": "fall",
+      "climateZones": [
+        "cold"
+      ],
+      "triggerMonth": 10,
+      "earlyMonth": 9,
+      "lateMonth": 11,
+      "why": "One hard freeze with a connected hose can split a pipe inside the wall. Ten minutes now prevents a four-figure repair.",
+      "tasks": [
+        {
+          "title": "Winterize outdoor faucets",
+          "description": "Shut interior valves, open hose bibs, and store hoses.",
+          "nodeType": "exterior",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        },
+        {
+          "title": "Blow out or shut down irrigation",
+          "description": "Have the system blown out, or close the backflow and drain the lines.",
+          "nodeType": "assetType",
+          "target": "irrigation_system",
+          "estimatedMinutes": 30,
+          "estimatedCost": 120,
+          "isDiy": false
+        }
+      ]
+    },
+    {
+      "id": "cold-gutters",
+      "name": "Fall gutter cleaning",
+      "season": "fall",
+      "climateZones": [
+        "cold"
+      ],
+      "triggerMonth": 10,
+      "earlyMonth": 9,
+      "lateMonth": 11,
+      "why": "Leaf-clogged gutters cause ice dams that force water under shingles all winter.",
+      "requires": {
+        "hasGutters": true
+      },
+      "tasks": [
+        {
+          "title": "Clean gutters before freeze",
+          "description": "Clear leaves so ice dams do not form.",
+          "nodeType": "exterior",
+          "estimatedMinutes": 60,
+          "estimatedCost": 200,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "cold-chimney",
+      "name": "Chimney inspection",
+      "season": "fall",
+      "climateZones": [
+        "cold"
+      ],
+      "triggerMonth": 9,
+      "earlyMonth": 8,
+      "lateMonth": 12,
+      "why": "Creosote buildup is the leading cause of chimney fires. Inspect before the first fire of the season.",
+      "requires": {
+        "hasFireplace": true
+      },
+      "tasks": [
+        {
+          "title": "Inspect the chimney",
+          "description": "Have a sweep check the flue before the first fire.",
+          "nodeType": "home",
+          "estimatedMinutes": 15,
+          "estimatedCost": 180,
+          "isDiy": false
+        }
+      ]
+    },
+    {
+      "id": "cold-snow",
+      "name": "Snow equipment prep",
+      "season": "fall",
+      "climateZones": [
+        "cold"
+      ],
+      "triggerMonth": 11,
+      "earlyMonth": 10,
+      "lateMonth": 12,
+      "why": "Snow equipment fails the first time you need it. Fuel, oil, and a test run before the first storm.",
+      "tasks": [
+        {
+          "title": "Prep snow equipment",
+          "description": "Fuel the blower, find shovels, and stage ice melt by the door.",
+          "nodeType": "exterior",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "cold-sump",
+      "name": "Spring sump pump test",
+      "season": "spring",
+      "climateZones": [
+        "cold"
+      ],
+      "triggerMonth": 3,
+      "earlyMonth": 2,
+      "lateMonth": 5,
+      "why": "Spring melt is when sump pumps fail. A test now beats discovering a dead pump with water rising.",
+      "requires": {
+        "hasBasement": true
+      },
+      "tasks": [
+        {
+          "title": "Test the sump pump",
+          "description": "Pour a bucket of water into the pit and confirm it kicks on.",
+          "nodeType": "assetType",
+          "target": "sump_pump",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "humid-hurricane",
+      "name": "Hurricane prep",
+      "season": "summer",
+      "climateZones": [
+        "humid-subtropical"
+      ],
+      "triggerMonth": 6,
+      "earlyMonth": 5,
+      "lateMonth": 9,
+      "why": "Season runs June through November. Supplies and a plan before the first named storm — stores empty out fast.",
+      "tasks": [
+        {
+          "title": "Stage hurricane supplies",
+          "description": "Water, flashlights, charged batteries, and a go-bag before storm season.",
+          "nodeType": "home",
+          "estimatedMinutes": 40,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "humid-mold",
+      "name": "Dehumidifier and mold checks",
+      "season": "summer",
+      "climateZones": [
+        "humid-subtropical"
+      ],
+      "triggerMonth": 5,
+      "earlyMonth": 4,
+      "lateMonth": 8,
+      "why": "Humidity season feeds mold in weeks. Dehumidifier checks now prevent remediation bills later.",
+      "tasks": [
+        {
+          "title": "Check humidity and hidden mold",
+          "description": "Look under sinks and around the AC closet. Empty dehumidifier tanks.",
+          "nodeType": "home",
+          "estimatedMinutes": 25,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "humid-termite",
+      "name": "Termite inspection",
+      "season": "spring",
+      "climateZones": [
+        "humid-subtropical"
+      ],
+      "triggerMonth": 4,
+      "earlyMonth": 3,
+      "lateMonth": 6,
+      "why": "Spring swarm season is when infestations start. An annual inspection is a fraction of treatment cost.",
+      "tasks": [
+        {
+          "title": "Schedule a termite inspection",
+          "description": "Have the perimeter and attic checked before swarm season.",
+          "nodeType": "home",
+          "estimatedMinutes": 10,
+          "estimatedCost": 120,
+          "isDiy": false
+        }
+      ]
+    },
+    {
+      "id": "humid-ac-drain",
+      "name": "AC drain line flush",
+      "season": "spring",
+      "climateZones": [
+        "humid-subtropical"
+      ],
+      "triggerMonth": 4,
+      "earlyMonth": 3,
+      "lateMonth": 6,
+      "why": "A clogged AC drain line backs condensate into the ceiling. A cup of vinegar now beats a drywall repair.",
+      "tasks": [
+        {
+          "title": "Flush the AC condensate drain",
+          "description": "Pour vinegar through the drain to prevent a backup.",
+          "nodeType": "assetType",
+          "target": "hvac_system",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "marine-moss",
+      "name": "Moss and gutter management",
+      "season": "fall",
+      "climateZones": [
+        "marine"
+      ],
+      "triggerMonth": 10,
+      "earlyMonth": 9,
+      "lateMonth": 12,
+      "why": "Wet season feeds roof moss that lifts shingles. Treat before the rains set in.",
+      "requires": {
+        "hasGutters": true
+      },
+      "tasks": [
+        {
+          "title": "Clear moss and gutters",
+          "description": "Clean gutters and treat moss on the north roof face.",
+          "nodeType": "exterior",
+          "estimatedMinutes": 60,
+          "estimatedCost": 180,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "marine-roof",
+      "name": "Post-storm roof inspection",
+      "season": "spring",
+      "climateZones": [
+        "marine"
+      ],
+      "triggerMonth": 4,
+      "earlyMonth": 3,
+      "lateMonth": 5,
+      "why": "Winter storms loosen flashing and shingles. A spring check catches damage while it is still small.",
+      "tasks": [
+        {
+          "title": "Inspect the roof after storm season",
+          "description": "Look for lifted shingles and stained sheathing.",
+          "nodeType": "assetType",
+          "target": "roof",
+          "estimatedMinutes": 30,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "marine-wood",
+      "name": "Exterior wood sealing",
+      "season": "summer",
+      "climateZones": [
+        "marine"
+      ],
+      "triggerMonth": 7,
+      "earlyMonth": 6,
+      "lateMonth": 9,
+      "why": "Exterior wood only seals well when dry. The summer window is short — miss it and decks absorb a whole wet season.",
+      "tasks": [
+        {
+          "title": "Seal exterior wood",
+          "description": "Recoat decks and trim while the weather is dry.",
+          "nodeType": "exterior",
+          "estimatedMinutes": 120,
+          "estimatedCost": 80,
+          "isDiy": true
+        }
+      ]
+    }
+  ]
+}

@@ -37,7 +37,7 @@ export function climatePayoff(
   const matches = PLAYBOOKS.filter(
     (playbook) => playbook.climateZones !== "all" && playbookApplies(playbook, { location, attributes, tenure }),
   ).sort((a, b) => (a.triggerMonth ?? 99) - (b.triggerMonth ?? 99));
-  const beats = matches.slice(0, 4).map((playbook) => {
+  const beats = matches.slice(0, 6).map((playbook) => {
     const when = playbook.triggerMonth ? MONTHS[playbook.triggerMonth - 1] : playbook.name;
     const what = playbook.tasks[0]?.title ?? playbook.name;
     return `${when}: ${what}`;

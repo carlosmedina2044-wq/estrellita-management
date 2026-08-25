@@ -1,3 +1,19 @@
+/**
+ * restockPlacement() bucket rules
+ *
+ * | Condition                                         | Bucket     |
+ * |---------------------------------------------------|------------|
+ * | ordered + expectedArrival within ARRIVAL_GRACE    | ordered    |
+ * | ordered + past grace                              | order_now (nudgeArrive) |
+ * | onHand <= reorderAt (explicit reorder or no rate) | order_now  |
+ * | no effective orderBy                              | stocked    |
+ * | orderBy <= today                                  | order_now  |
+ * | orderBy within COMING_UP_DAYS                     | coming_up  |
+ * | otherwise                                         | stocked    |
+ *
+ * Runway and rate: no check-ins keeps the default rate (duty cadence or
+ * lifespan). A check-in that reports more stock than predicted is a refill.
+ */
 import { addCalendarMonths, addCalendarYears, addDays, parseISODate, startOfDay, toISODate } from "@/lib/dates";
 import { isDoneThisPeriod, isOverdue, lastCompletion, nextDueDate } from "@/lib/duties";
 import { retailerUrlFor } from "@/lib/retailer";
@@ -602,6 +618,7 @@ export type RestockFlowHandlers = {
   onChangeArrival?: (id: string, date: string) => void;
   onApplyLeadTime?: (id: string, days: number) => void;
   onCheckin?: (id: string, level: CheckinLevel) => void;
+  onMarkTip?: (tip: string) => void;
 };
 
 export const ARRIVAL_OFFSETS = [

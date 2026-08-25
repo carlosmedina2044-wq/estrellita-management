@@ -4,7 +4,7 @@ import { addDays, toISODate } from "@/lib/dates";
 import { attributesMatch, dutyFromPlaybookTask, resolvePlaybookTarget, type Playbook, type PlaybookTaskDef } from "@/lib/playbooks";
 import type { HomeAttributes, HomeLocation, Household, WeatherFire } from "@/lib/types";
 
-export type WeatherMetric = "tempMinF" | "tempMaxF" | "windMph" | "precipIn" | "aqi" | "dustAdvisory";
+export type WeatherMetric = "tempMinF" | "tempMaxF" | "windMph" | "precipIn";
 
 export type DailyWeather = {
   date: string;
@@ -12,8 +12,6 @@ export type DailyWeather = {
   tempMaxF: number;
   windMph: number;
   precipIn: number;
-  aqi?: number;
-  dustAdvisory?: boolean;
 };
 
 export type WeatherForecast = {
@@ -36,53 +34,14 @@ export interface WeatherProvider {
   fetchForecast(lat: number, lng: number): Promise<WeatherForecast>;
 }
 
-function cToF(celsius: number): number {
-  return (celsius * 9) / 5 + 32;
-}
-
-function mmToIn(mm: number): number {
-  return mm / 25.4;
-}
-
-export class OpenMeteoProvider implements WeatherProvider {
-  constructor(private readonly fetchImpl: typeof fetch = fetch) {}
+/** Test/web stand-in. Production iOS uses WeatherKitProvider. */
+export class MockWeatherProvider implements WeatherProvider {
+  constructor(private readonly forecast: WeatherForecast) {}
 
   async fetchForecast(lat: number, lng: number): Promise<WeatherForecast> {
-    const url = new URL("https://api.open-meteo.com/v1/forecast");
-    url.searchParams.set("latitude", String(lat));
-    url.searchParams.set("longitude", String(lng));
-    url.searchParams.set("daily", "temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max");
-    url.searchParams.set("wind_speed_unit", "mph");
-    url.searchParams.set("timezone", "auto");
-    url.searchParams.set("forecast_days", "7");
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    try {
-      const response = await this.fetchImpl(url, { signal: controller.signal });
-      if (!response.ok) throw new Error(`Weather HTTP ${response.status}`);
-      const payload = (await response.json()) as {
-        daily?: {
-          time?: string[];
-          temperature_2m_max?: number[];
-          temperature_2m_min?: number[];
-          precipitation_sum?: number[];
-          wind_speed_10m_max?: number[];
-        };
-      };
-      const daily = payload.daily;
-      if (!daily?.time?.length) throw new Error("Weather payload missing daily data");
-      const days: DailyWeather[] = daily.time.map((date, index) => ({
-        date,
-        tempMaxF: cToF(daily.temperature_2m_max?.[index] ?? 0),
-        tempMinF: cToF(daily.temperature_2m_min?.[index] ?? 0),
-        precipIn: mmToIn(daily.precipitation_sum?.[index] ?? 0),
-        windMph: daily.wind_speed_10m_max?.[index] ?? 0,
-      }));
-      return { days, fetchedAt: new Date().toISOString() };
-    } finally {
-      clearTimeout(timer);
-    }
+    void lat;
+    void lng;
+    return this.forecast;
   }
 }
 
@@ -96,10 +55,6 @@ export function metricValue(day: DailyWeather, metric: WeatherMetric): number {
       return day.windMph;
     case "precipIn":
       return day.precipIn;
-    case "aqi":
-      return day.aqi ?? 0;
-    case "dustAdvisory":
-      return day.dustAdvisory ? 1 : 0;
   }
 }
 
@@ -173,8 +128,6 @@ export function weatherLine(forecast: WeatherForecast | null, fallback = "Add yo
   const today = forecast?.days[0];
   if (!today) return fallback;
   const bits = [`${Math.round(today.tempMaxF)}° today`];
-  if (today.dustAdvisory) bits.push("dust advisory");
-  if ((today.aqi ?? 0) > 150) bits.push("poor air");
   if (today.precipIn > 0.5) bits.push("rain");
   return bits.join(" · ");
 }

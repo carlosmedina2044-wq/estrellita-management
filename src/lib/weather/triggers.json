@@ -96,39 +96,5 @@
         "isDiy": true
       }
     ]
-  },
-  {
-    "id": "poor-air",
-    "name": "Poor air quality",
-    "condition": { "metric": "aqi", "op": ">", "value": 150, "withinDays": 1 },
-    "cooldownDays": 3,
-    "tasks": [
-      {
-        "title": "Check air purifier and HVAC filters",
-        "description": "Replace if dirty and close windows. Recirculate indoor air.",
-        "nodeType": "assetType",
-        "target": "air_purifier",
-        "estimatedMinutes": 15,
-        "isDiy": true,
-        "consumables": ["Air purifier filter", "HVAC filter"]
-      }
-    ]
-  },
-  {
-    "id": "dust-advisory",
-    "name": "Dust advisory",
-    "condition": { "metric": "dustAdvisory", "op": ">=", "value": 1, "withinDays": 1 },
-    "cooldownDays": 3,
-    "tasks": [
-      {
-        "title": "Close vents and check filters",
-        "description": "Shut windows, set HVAC to recirculate, and inspect filters after the storm.",
-        "nodeType": "assetType",
-        "target": "hvac_system",
-        "estimatedMinutes": 15,
-        "isDiy": true,
-        "consumables": ["HVAC filter"]
-      }
-    ]
   }
 ]

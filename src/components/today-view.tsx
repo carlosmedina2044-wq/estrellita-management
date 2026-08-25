@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, Map, Share2, UserRound } from "lucide-react";
+import { CalendarDays, Map, Settings, Share2, UserRound } from "lucide-react";
+import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { DayCalendar } from "@/components/day-calendar";
@@ -34,7 +35,7 @@ import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 
 const SCOPES: { id: OutstandingScope; label: string }[] = [
   { id: "daily", label: "Today" },
@@ -54,6 +55,10 @@ export function TodayView({
   onDeleteDuty,
   onStartCleanerVisit,
   onOpenHome,
+  onOpenSettings,
+  showTeaching,
+  onDismissTeaching,
+  onOpenDigest,
   onReorderRooms,
   onChangeTree,
   onOpenRestock,
@@ -73,6 +78,10 @@ export function TodayView({
   onDeleteDuty: (id: string) => void;
   onStartCleanerVisit: () => void;
   onOpenHome?: () => void;
+  onOpenSettings?: () => void;
+  showTeaching?: boolean;
+  onDismissTeaching?: () => void;
+  onOpenDigest?: () => void;
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
   onOpenRestock?: () => void;
@@ -241,7 +250,7 @@ export function TodayView({
           needsZip && onSavePostalCode ? (
             <button
               type="button"
-              className="text-left text-[13px] font-medium text-primary"
+              className="text-left text-sm font-medium text-primary"
               onClick={() => setZipOpen(true)}
             >
               {weatherLine ?? "Add your ZIP for weather"}
@@ -250,7 +259,42 @@ export function TodayView({
             (weatherLine ?? listSummary)
           )
         }
+        action={
+          onOpenSettings ? (
+            <button
+              type="button"
+              aria-label="Settings"
+              onClick={onOpenSettings}
+              className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+            >
+              <Settings className="size-5" />
+            </button>
+          ) : undefined
+        }
       />
+      {weatherLine && !needsZip ? <AppleWeatherAttribution /> : null}
+
+      {showTeaching ? (
+        <div className="rounded-2xl bg-card px-4 py-4">
+          <p className="text-[17px] font-medium">First three things</p>
+          <ul className="mt-2 grid gap-1 text-sm text-muted-foreground">
+            <li>{household.teaching.checkedChore ? "✓" : "○"} Check off one chore</li>
+            <li>{household.teaching.openedRestock ? "✓" : "○"} Open Restock and see what is running low</li>
+            <li>{household.teaching.setDigestOrZip ? "✓" : "○"} Turn on the weekly digest, or add a ZIP</li>
+          </ul>
+          <div className="mt-3 flex gap-2">
+            <Button className="h-10 flex-1" onClick={() => onOpenRestock?.()}>
+              Open Restock
+            </Button>
+            <Button variant="secondary" className="h-10 flex-1" onClick={() => onOpenDigest?.()}>
+              Digest
+            </Button>
+          </div>
+          <button type="button" className="mt-2 text-[13px] text-muted-foreground" onClick={onDismissTeaching}>
+            Hide this
+          </button>
+        </div>
+      ) : null}
 
       <AttentionTiles
         overdue={summary.overdue}
@@ -639,7 +683,10 @@ function AttentionTiles({
         aria-label="All clear. Nothing due, nothing to order"
       >
         <p className="ui-heading text-[28px] font-semibold leading-none">All clear</p>
-        <p className="mt-1 text-[13px] text-muted-foreground">Nothing due, nothing to order.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Chores show up here when they are due. Restock items appear when it is time to order.
+          Weekly digest and seasonal jobs fill this list as you add a ZIP and turn on reminders.
+        </p>
       </button>
     );
   }
@@ -676,8 +723,8 @@ function EmptyToday({ onAdd, calendar }: { onAdd: () => void; calendar?: boolean
       <p className="ui-heading mt-4 text-[20px] font-semibold">Clear day</p>
       <p className="mt-1 text-sm text-muted-foreground">
         {calendar
-          ? "Nothing is due on this day. Pick another date or add a duty."
-          : "Add the jobs you need to complete, or check the house map."}
+          ? "Nothing is due on this day. Daily chores show on their weekday. Seasonal jobs show in their window."
+          : "Nothing is due today. Daily chores show on their weekday. Seasonal jobs show in their window. Restock items show when it is time to order."}
       </p>
       <Button className="mt-5 h-11" onClick={onAdd}>
         Add a duty

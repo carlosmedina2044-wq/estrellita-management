@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyGuide } from "@/components/budget/empty-guide";
+import { TeachingTip } from "@/components/teaching-tip";
 import { FundHero } from "@/components/budget/hero";
 import { DeferSheet, FundSheet, LogPurchaseSheet, ViewOptionsSheet } from "@/components/budget/sheets";
 import { QuarterTimeline } from "@/components/budget/timeline";
@@ -22,6 +23,7 @@ import {
 } from "@/lib/budget";
 import { BIG_TICKET_THRESHOLD, buildForecast, formatCostRange, monthsUntil, type ForecastItem } from "@/lib/forecast";
 import { shareText } from "@/lib/native/share";
+import { hasSeenTip, markTipSeen, TIP_BUDGET_PRICES } from "@/lib/teaching";
 import type { AppNavigateTarget, Household } from "@/lib/types";
 
 function updateAsset(
@@ -103,11 +105,18 @@ export function BudgetView({
       />
 
       {empty ? (
-        <EmptyGuide
-          assets={household.assets}
-          onUpdateAsset={(assetId, patch) => onChange((current) => updateAsset(current, assetId, patch))}
-          onGoHome={() => onNavigate?.({ tab: "home" })}
-        />
+        <>
+          {!hasSeenTip(household, TIP_BUDGET_PRICES) ? (
+            <TeachingTip onDismiss={() => onChange((current) => markTipSeen(current, TIP_BUDGET_PRICES))}>
+              Add a date or a replacement cost on a big item and this tab becomes a forecast.
+            </TeachingTip>
+          ) : null}
+          <EmptyGuide
+            assets={household.assets}
+            onUpdateAsset={(assetId, patch) => onChange((current) => updateAsset(current, assetId, patch))}
+            onGoHome={() => onNavigate?.({ tab: "home" })}
+          />
+        </>
       ) : (
         <>
           <FundHero health={health} onEditFund={() => setFundOpen(true)} />

@@ -1,4 +1,5 @@
 import { addDays, parseISODate } from "@/lib/dates";
+import { isOverdueFor } from "@/lib/duties";
 import { itemNameWithSize } from "@/lib/item-label";
 import { digestCandidates, linkedDutyIdsFor, restockPlacement } from "@/lib/restock";
 import { digestCopy } from "@/lib/digest";
@@ -14,12 +15,17 @@ const MAX_PENDING = 64;
 const MAX_ITEM_REMINDERS = 50; // iOS caps pending local notifications at 64.
 const REMINDER_HOUR = 9;
 const ARRIVAL_HOUR = 18;
+export const ORDER_FOLLOWUP_DAYS = 3;
+
+export type NotificationSchedule =
+  | { at: Date; repeats?: false }
+  | { on: { weekday: number; hour: number; minute?: number }; repeats: true };
 
 export type PlannedNotification = {
   id: number;
   title: string;
   body: string;
-  schedule: { at: Date };
+  schedule: NotificationSchedule;
   extra?: Record<string, string>;
 };
 
@@ -55,12 +61,9 @@ function stableId(value: string): number {
   return ITEM_ID_BASE + (Math.abs(hash) % 1_000_000);
 }
 
-function nextDigestDate(weekday: number, hour: number, now = new Date()): Date {
-  const candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, 0, 0, 0);
-  const add = (weekday - candidate.getDay() + 7) % 7;
-  candidate.setDate(candidate.getDate() + add);
-  if (candidate.getTime() <= now.getTime()) candidate.setDate(candidate.getDate() + 7);
-  return candidate;
+/** Capacitor/iOS weekday is 1 = Sunday … 7 = Saturday. JS getDay is 0–6. */
+export function capacitorWeekday(jsWeekday: number): number {
+  return (jsWeekday % 7) + 1;
 }
 
 export function arrivalCheckAt(expectedArrivalDate: string): Date {
@@ -78,6 +81,10 @@ function hasLinkedDuty(item: SupplyAutomation, household: Household): boolean {
   return household.duties.some((duty) => !duty.archived && ids.has(duty.id));
 }
 
+function scheduleAt(at: Date): NotificationSchedule {
+  return { at };
+}
+
 function arrivalNotice(item: SupplyAutomation, household: Household, now: Date): PlannedNotification | null {
   const placement = restockPlacement(item, household, now);
   if (placement.bucket !== "ordered" || !item.expectedArrivalDate) return null;
@@ -89,27 +96,57 @@ function arrivalNotice(item: SupplyAutomation, household: Household, now: Date):
     body: hasLinkedDuty(item, household)
       ? "Tap to mark it received. The install chore is waiting on it."
       : "Tap to mark it received.",
-    schedule: { at },
+    schedule: scheduleAt(at),
     extra: { tab: "restock", itemId: item.id, action: "receive" },
   };
+}
+
+export function overdueChoreCount(household: Household, now = new Date()): number {
+  return household.duties.filter((duty) => !duty.archived && isOverdueFor(duty, household, now)).length;
+}
+
+export function orderFollowUpAt(orderByDate: string, now = new Date()): Date | null {
+  const due = new Date(parseISODate(orderByDate));
+  due.setHours(REMINDER_HOUR, 0, 0, 0);
+  const follow = addDays(due, ORDER_FOLLOWUP_DAYS);
+  follow.setHours(REMINDER_HOUR, 0, 0, 0);
+  if (follow.getTime() <= now.getTime()) return null;
+  return follow;
 }
 
 export function plannedNotifications(household: Household, now = new Date()): PlannedNotification[] {
   const notifications: PlannedNotification[] = [];
 
   if (household.restockDigest.enabled) {
-    const at = nextDigestDate(household.restockDigest.weekday, household.restockDigest.hour, now);
-    const items = digestCandidates(household.supplyAutomations, household, at);
-    if (items.length > 0) {
-      const copy = digestCopy(items);
-      notifications.push({ id: DIGEST_ID, title: copy.title, body: copy.body, schedule: { at }, extra: { tab: "restock" } });
+    const items = digestCandidates(household.supplyAutomations, household, now);
+    const overdue = overdueChoreCount(household, now);
+    if (items.length > 0 || overdue > 0) {
+      const copy = digestCopy(items, overdue);
+      notifications.push({
+        id: DIGEST_ID,
+        title: copy.title,
+        body: copy.body,
+        schedule: {
+          on: {
+            weekday: capacitorWeekday(household.restockDigest.weekday),
+            hour: household.restockDigest.hour,
+            minute: 0,
+          },
+          repeats: true,
+        },
+        extra: { tab: "restock" },
+      });
     }
   }
 
   const arrivals = household.supplyAutomations
     .map((item) => arrivalNotice(item, household, now))
     .filter((notice): notice is PlannedNotification => Boolean(notice))
-    .sort((a, b) => a.schedule.at.getTime() - b.schedule.at.getTime());
+    .sort((a, b) => {
+      const aAt = "at" in a.schedule ? a.schedule.at.getTime() : 0;
+      const bAt = "at" in b.schedule ? b.schedule.at.getTime() : 0;
+      return aAt - bAt;
+    });
   const arrivalRoom = Math.max(0, MAX_PENDING - notifications.length);
   notifications.push(...arrivals.slice(0, arrivalRoom));
 
@@ -120,7 +157,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
     .map(({ item, placement }) => {
       const due = new Date(parseISODate(placement.orderByDate!));
       due.setHours(REMINDER_HOUR, 0, 0, 0);
-      return { item, due };
+      return { item, due, orderByDate: placement.orderByDate! };
     })
     .filter(({ due }) => due.getTime() > now.getTime())
     .sort((a, b) => a.due.getTime() - b.due.getTime())
@@ -131,8 +168,30 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
       id: stableId(item.id),
       title: `Order ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
       body: "Order today so it arrives before you run out.",
-      schedule: { at: due },
+      schedule: scheduleAt(due),
       extra: { tab: "restock", itemId: item.id },
+    });
+  }
+
+  const followRoom = Math.max(0, MAX_PENDING - notifications.length);
+  const followUps = household.supplyAutomations
+    .map((item) => ({ item, placement: restockPlacement(item, household, now) }))
+    .filter(({ placement }) => placement.orderByDate && placement.bucket !== "ordered")
+    .map(({ item, placement }) => {
+      const at = orderFollowUpAt(placement.orderByDate!, now);
+      return at ? { item, at } : null;
+    })
+    .filter((entry): entry is { item: SupplyAutomation; at: Date } => Boolean(entry))
+    .sort((a, b) => a.at.getTime() - b.at.getTime())
+    .slice(0, followRoom);
+
+  for (const { item, at } of followUps) {
+    notifications.push({
+      id: stableId(`followup:${item.id}`),
+      title: `Still to order: ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
+      body: "No rush. Tap when you want to order.",
+      schedule: scheduleAt(at),
+      extra: { tab: "restock", itemId: item.id, action: "followup" },
     });
   }
 
@@ -142,7 +201,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
       id: stableId(notice.id),
       title: notice.title,
       body: notice.body,
-      schedule: { at: notice.at },
+      schedule: scheduleAt(notice.at),
       extra: notice.extra,
     });
   }

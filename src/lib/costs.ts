@@ -1,5 +1,6 @@
 import { linkedDutyIdsFor } from "@/lib/restock";
 import { parseISODate, toISODate } from "@/lib/dates";
+import { isQuoteOnlyDuty } from "@/lib/costs/quotes";
 import type { Completion, Duty, Household, SupplyAutomation } from "@/lib/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -21,12 +22,13 @@ export function realCostFor(dutyId: string, completions: Completion[]): number |
 }
 
 export function blendedCostFor(
-  duty: Pick<Duty, "id" | "estimatedCost">,
+  duty: Pick<Duty, "id" | "estimatedCost" | "caution" | "title">,
   completions: Completion[],
 ): { cost: number; source: "actual" | "estimate" } | null {
   const actual = realCostFor(duty.id, completions);
   if (actual != null) return { cost: actual, source: "actual" };
   if (duty.estimatedCost != null && duty.estimatedCost > 0) {
+    if (isQuoteOnlyDuty(duty)) return null;
     return { cost: duty.estimatedCost, source: "estimate" };
   }
   return null;

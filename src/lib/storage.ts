@@ -9,6 +9,7 @@ export {
   hydrateHousehold,
   importHouseholdBackup,
   installVaultIOForTests,
+  PERSIST_FAILED_EVENT,
   resetVaultForTests,
   subscribeHousehold,
   updateHousehold,

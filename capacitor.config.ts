@@ -13,7 +13,8 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: "automatic",
     preferredContentMode: "recommended",
-    limitsNavigationsToAppBoundDomains: true,
+    // WeatherKit is native. No WKWebView weather hosts, so no app-bound domains.
+    limitsNavigationsToAppBoundDomains: false,
     scheme: "Cuidala",
   },
   plugins: {

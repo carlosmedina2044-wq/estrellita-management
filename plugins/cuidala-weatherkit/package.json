@@ -1,0 +1,16 @@
+{
+  "name": "cuidala-weatherkit",
+  "version": "1.0.0",
+  "description": "Native Apple WeatherKit wrapper for Cuidala. No server JWT.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": ["src", "ios", "Package.swift"],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

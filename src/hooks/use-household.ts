@@ -129,6 +129,13 @@ export function useHousehold() {
             })),
           restockDigest: { ...DEFAULT_RESTOCK_DIGEST },
           preferredRetailers: input.answers.preferredRetailers ?? [],
+          teaching: {
+            startedAt: toISODate(new Date()),
+            checkedChore: false,
+            openedRestock: false,
+            setDigestOrZip: Boolean(generated.location.postalCode),
+          },
+          seenTips: [],
         }),
         input.answers.restockPicks ?? [],
       );
@@ -317,6 +324,10 @@ export function useHousehold() {
       update((current) => ({
         ...current,
         restockDigest: { ...current.restockDigest, ...patch },
+        teaching:
+          patch.enabled === true || patch.permissionAsked === true
+            ? { ...current.teaching, setDigestOrZip: true }
+            : current.teaching,
       }));
     },
     [update],
@@ -342,6 +353,9 @@ export function useHousehold() {
     (dutyId: string) => {
       update((current) => ({
         ...current,
+        teaching: current.teaching.checkedChore
+          ? current.teaching
+          : { ...current.teaching, checkedChore: true },
         completions: [
           ...current.completions,
           {
@@ -445,16 +459,17 @@ export function useHousehold() {
       if (!isValidUsZip(postalCode)) {
         return { ok: false as const, error: "Enter a 5-digit US ZIP" };
       }
-      let coords: { lat: number; lng: number } | undefined;
+      let coords: { lat: number; lng: number; placeName?: string } | undefined;
       try {
         const result = await fetchForecastFor({ postalCode });
-        if (result) coords = { lat: result.lat, lng: result.lng };
+        if (result) coords = { lat: result.lat, lng: result.lng, placeName: result.placeName };
       } catch {
         // Climate still persists if weather lookup is offline.
       }
       update((current) => ({
         ...current,
         location: applyPostalCode(current.location, postalCode, coords),
+        teaching: { ...current.teaching, setDigestOrZip: true },
       }));
       return { ok: true as const };
     },

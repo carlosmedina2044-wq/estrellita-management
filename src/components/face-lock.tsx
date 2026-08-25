@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BrandMark } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
+import { TeachingTip } from "@/components/teaching-tip";
 import { verifyDeviceOwner } from "@/lib/native/biometrics";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 
@@ -10,7 +11,17 @@ import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
  * App lock. Resolves only when the system confirms Face ID / Touch ID / passcode.
  * If verification fails or is cancelled the app stays locked; there is no bypass.
  */
-export function FaceLock({ method, onUnlocked }: { method: LockMethod; onUnlocked: () => void }) {
+export function FaceLock({
+  method,
+  onUnlocked,
+  showTip,
+  onDismissTip,
+}: {
+  method: LockMethod;
+  onUnlocked: () => void;
+  showTip?: boolean;
+  onDismissTip?: () => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,6 +48,13 @@ export function FaceLock({ method, onUnlocked }: { method: LockMethod; onUnlocke
       </div>
       <h1 className="ui-heading mt-10 text-[20px] font-semibold tracking-tight">Locked</h1>
       <p className="mt-2 max-w-xs text-sm text-muted-foreground">{lockMethodLabel(method).prompt}</p>
+      {showTip ? (
+        <div className="mt-4 w-full max-w-xs text-left">
+          <TeachingTip onDismiss={() => onDismissTip?.()}>
+            The lock comes back after you leave the app. It keeps the house private if you hand the phone over.
+          </TeachingTip>
+        </div>
+      ) : null}
       <Button className="mt-8 h-14 w-full max-w-xs" disabled={busy} onClick={() => void unlock()}>
         {busy ? "Waiting…" : "Unlock"}
       </Button>

@@ -1,0 +1,13 @@
+{
+  "label": "national typical, 2026",
+  "reviewed": "2026-08",
+  "items": {
+    "hvac_filter": { "low": 12, "typical": 22, "high": 40 },
+    "water_heater_flush": { "low": 0, "typical": 150, "high": 280 },
+    "furnace_service": { "low": 90, "typical": 160, "high": 280 },
+    "gutter_cleaning": { "low": 120, "typical": 180, "high": 320 },
+    "hvac_system_replace": { "low": 4500, "typical": 7500, "high": 12000 },
+    "water_heater_replace": { "low": 900, "typical": 1600, "high": 2800 }
+  },
+  "quoteOnly": ["gas", "electrical", "roof", "structural", "pest"]
+}

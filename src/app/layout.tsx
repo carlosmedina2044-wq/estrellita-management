@@ -6,8 +6,9 @@ import "./globals.css";
 // Enforced in the bundled WKWebView and on the web shell alike.
 // script-src keeps 'unsafe-inline' because Next.js static export emits inline
 // hydration bootstrap scripts whose hashes change per build. Compensating
-// controls: no third-party scripts, no HTML rendered from user input, and
-// connect-src pinned to Open-Meteo forecast + geocoding (see docs/RESIDUAL_RISKS.md).
+// controls: no third-party scripts, no HTML rendered from user input.
+// WeatherKit is native (not WKWebView fetch). frame-ancestors is ignored in
+// meta tags so it is omitted.
 const CSP = [
   "default-src 'self'",
   // next dev needs eval for React refresh; production/static export does not.
@@ -15,13 +16,12 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  "connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com",
+  "connect-src 'self'",
   "worker-src 'self'",
   "manifest-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  "frame-ancestors 'none'",
 ].join("; ");
 
 export const metadata: Metadata = {

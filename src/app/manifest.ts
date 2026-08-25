@@ -7,16 +7,6 @@ export default function manifest() {
     description: "Home maintenance, restock, and seasonal checklists.",
     start_url: "/",
     display: "standalone",
-    share_target: {
-      action: "/share",
-      method: "GET",
-      enctype: "application/x-www-form-urlencoded",
-      params: {
-        title: "title",
-        text: "text",
-        url: "url",
-      },
-    },
     background_color: "#F7F3EC",
     theme_color: "#F7F3EC",
     orientation: "portrait",
