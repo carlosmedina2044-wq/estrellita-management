@@ -34,7 +34,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | Face ID and location usage strings present in shipped Info.plist | App Store 5.1.1 | `ios/App/App/Info.plist` | File inspection | VERIFIED |
 | Export compliance | App Store | `ITSAppUsesNonExemptEncryption=false`. Encryption is WebCrypto (AES-GCM, PBKDF2) provided by Apple inside WebKit, plus iOS Keychain. No custom crypto library is shipped. | Info.plist + this row | VERIFIED (config) |
 | Input limits and control-char stripping | ASVS V5 | `sanitize.ts`, `migrateHousehold` | `storage.test.ts` | VERIFIED |
-| Dependency audit, secret scan, OSV, Semgrep | Supply chain | `.github/workflows/security.yml` | CI: `npm audit --omit=dev --audit-level=moderate`. Known exception: `@capacitor/cli → xcode → uuid` moderate, dev-only, not in the shipped bundle. | VERIFIED |
+| Dependency audit, secret scan, OSV, Semgrep | Supply chain | `.github/workflows/security.yml` | CI: `npm audit --omit=dev --audit-level=moderate`. OSV pinned to `osv-scanner-action@v2.5.1`. Known exception: `@capacitor/cli → xcode → uuid` (`GHSA-w5hq-g745-h8pq`) in `osv-scanner.toml`; not in the shipped bundle. | VERIFIED |
 | Forecast, playbooks, restock math, onboarding, backups | Product | `src/lib/**` | Unit tests including weather-fire idempotence, restock invariants, climate ZIP-3 table, WeatherKit provider mock | VERIFIED |
 | Typical costs labeled and reviewed | Q3 | `src/lib/costs/sources.json` ("national typical, 2026"); quote-only for gas/electrical/roof/structural/pest | Review this file annually | VERIFIED (file) |
 | Portrait-only iPhone | Product | `Info.plist` `UISupportedInterfaceOrientations` portrait; `TARGETED_DEVICE_FAMILY = 1` | File inspection | VERIFIED |

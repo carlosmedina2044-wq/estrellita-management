@@ -1,0 +1,5 @@
+# uuid@7 is a transitive of @capacitor/cli (dev-only). It is not in the
+# shipped iOS bundle. Same exception as `npm audit --omit=dev`.
+[[IgnoredVulns]]
+id = "GHSA-w5hq-g745-h8pq"
+reason = "dev-only via @capacitor/cli → xcode → uuid; not shipped"
