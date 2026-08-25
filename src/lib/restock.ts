@@ -548,6 +548,10 @@ export function orderNowCostCaption(items: SupplyAutomation[]): string | null {
   return priced.length < items.length ? `at least ${label}` : label;
 }
 
+export function orderNowOnHandCaption(onHand: number): string {
+  return onHand <= 0 ? "None on hand" : `On hand ${onHand}`;
+}
+
 export function digestCandidates(
   items: SupplyAutomation[],
   household: RestockHousehold,

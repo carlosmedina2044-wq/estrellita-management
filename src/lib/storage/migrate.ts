@@ -198,7 +198,7 @@ function migrateVisit(raw: unknown): Visit | null {
   if (!id) return null;
   return {
     id,
-    cleanerName: sanitizeText(raw.cleanerName, TEXT_LIMITS.name) || "Cleaner",
+    cleanerName: sanitizeText(raw.cleanerName, TEXT_LIMITS.name) || "",
     startedAt: asIsoDateTime(raw.startedAt, new Date().toISOString()),
     endedAt: typeof raw.endedAt === "string" ? asIsoDateTime(raw.endedAt, "") || null : null,
   };
@@ -317,13 +317,21 @@ function migrateFloor(raw: unknown, index: number): HomeFloor | null {
   return { id, name, sortOrder: asInt(raw.sortOrder, index, 0, 99) };
 }
 
+const LEGACY_SYSTEM_ROOM_NAMES: Record<string, string> = {
+  "HVAC/Utility": "Home systems",
+  "Exterior/Yard": "Outdoors",
+};
+
 function migrateHomeRoom(raw: unknown, index: number): HomeRoom | null {
   if (!isPlainObject(raw)) return null;
   const id = asSlugId(raw.id, `room-${index}`);
-  const name = sanitizeText(raw.name, TEXT_LIMITS.name);
+  let name = sanitizeText(raw.name, TEXT_LIMITS.name);
   if (!name) return null;
   const system =
     raw.system === "whole-home" || raw.system === "exterior" ? raw.system : undefined;
+  if (system) {
+    name = LEGACY_SYSTEM_ROOM_NAMES[name] ?? name;
+  }
   return {
     id,
     floorId: typeof raw.floorId === "string" ? asSlugId(raw.floorId, raw.floorId) : null,

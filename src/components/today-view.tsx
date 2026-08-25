@@ -659,7 +659,7 @@ function AttentionTiles({
         >
           <p className={cn("ui-heading text-[28px] font-semibold leading-none", tile.countClass)}>{tile.count}</p>
           <p className="mt-1 text-[13px] text-muted-foreground">
-            {"costLine" in tile && tile.costLine ? tile.costLine : tile.label}
+            {"costLine" in tile && tile.costLine ? `${tile.label} · ${tile.costLine}` : tile.label}
           </p>
         </button>
       ))}

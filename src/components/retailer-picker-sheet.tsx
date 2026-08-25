@@ -32,6 +32,7 @@ export function RetailerPickerSheet({
   onPreferRetailer,
   onAddSize,
   onOpened,
+  onAlreadyOrdered,
 }: {
   open: boolean;
   item: SupplyAutomation;
@@ -41,6 +42,7 @@ export function RetailerPickerSheet({
   onPreferRetailer?: (retailer: string) => void;
   onAddSize?: () => void;
   onOpened?: (retailer?: string) => void;
+  onAlreadyOrdered?: () => void;
 }) {
   const href = retailerUrlFor(item);
   const size = (item.sku || item.sizeSpec || "").trim();
@@ -141,6 +143,19 @@ export function RetailerPickerSheet({
           <p className="text-[13px] text-muted-foreground">
             You check out on the store’s site. Cuidala never sees your payment.
           </p>
+          {onAlreadyOrdered ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="h-12 w-full"
+              onClick={() => {
+                onOpenChange(false);
+                onAlreadyOrdered();
+              }}
+            >
+              I already ordered it
+            </Button>
+          ) : null}
         </div>
       </SheetContent>
     </Sheet>

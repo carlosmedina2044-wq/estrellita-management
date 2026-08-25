@@ -10,7 +10,7 @@ import {
   fundHealth,
   spendingSummary,
 } from "@/lib/budget";
-import { buildForecast, formatCostRange, formatMoney } from "@/lib/forecast";
+import { buildForecast, formatCostRange, formatMoney, type ForecastItem, type ForecastResult } from "@/lib/forecast";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { parseStored } from "@/lib/storage";
 import type { HomeAsset, Household } from "@/lib/types";
@@ -237,6 +237,73 @@ test("insights flag overdue risk, backlog, and seasonal spikes", () => {
   const insights = budgetInsights(home, forecast, now);
   assert.ok(insights.some((item) => item.id === "urgency" && /Roof/.test(item.body)));
   assert.ok(insights.some((item) => item.id === "backlog" && /overdue/.test(item.body)));
+});
+
+function seasonalItem(label: string, mid: number): ForecastItem {
+  return {
+    kind: "task",
+    nodeId: "n",
+    nodeType: "room",
+    label,
+    month: "2026-09",
+    cost: { low: mid, mid, high: mid },
+    confidence: "high",
+    source: "user",
+  };
+}
+
+function seasonalForecast(items: ForecastItem[]): ForecastResult {
+  const months = [
+    "2026-08",
+    "2026-09",
+    "2026-10",
+    "2026-11",
+    "2026-12",
+    "2027-01",
+    "2027-02",
+    "2027-03",
+    "2027-04",
+    "2027-05",
+    "2027-06",
+    "2027-07",
+  ].map((month) => {
+    const monthItems = items.filter((item) => item.month === month);
+    const total = monthItems.reduce((sum, item) => sum + item.cost.mid, 0);
+    return { month, recurring: total, replacements: 0, total, items: monthItems };
+  });
+  return {
+    horizonMonths: 12,
+    monthly: months,
+    totals: { recurring: 0, replacements: 0, total: 0 },
+    suggestedMonthlySetAside: 0,
+    bigTicket: [],
+    missingData: [],
+  };
+}
+
+function seasonalBody(items: ForecastItem[]): string {
+  const insight = budgetInsights(household(), seasonalForecast(items), now).find((item) => item.id === "seasonal");
+  assert.ok(insight);
+  assert.equal(insight.body.includes("most expensive"), false);
+  return insight.body;
+}
+
+test("seasonal insight dedupes names, uses and for two, and caps a long list", () => {
+  assert.match(seasonalBody([seasonalItem("Pet food", 120), seasonalItem("Pet food", 80)]), /^Pet food all hit in September\.$/);
+  assert.equal(
+    seasonalBody([seasonalItem("Restock pet food", 200), seasonalItem("Flush the water heater", 100)]),
+    "Restock pet food and Flush the water heater all hit in September.",
+  );
+  assert.equal(
+    seasonalBody([
+      seasonalItem("A", 500),
+      seasonalItem("B", 400),
+      seasonalItem("C", 300),
+      seasonalItem("D", 200),
+      seasonalItem("E", 100),
+    ]),
+    "A, B, and C and 2 more all hit in September.",
+  );
 });
 
 test("migrates purchases and a maintenance fund from stored JSON", () => {

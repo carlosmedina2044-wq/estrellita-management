@@ -240,3 +240,19 @@ test("v7 households migrate to v8 with empty preferredRetailers", () => {
   assert.equal(household.supplyAutomations[0]?.orderedQty, 2);
   assert.equal(household.supplyAutomations[0]?.observedLeadTimeDays, 4);
 });
+
+test("renames leftover HVAC/Utility system rooms and leaves custom names", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      floors: [{ id: "main", name: "Main", sortOrder: 0 }],
+      rooms: [
+        { id: "whole-home", floorId: null, name: "HVAC/Utility", type: "other", sortOrder: 0, system: "whole-home" },
+        { id: "exterior", floorId: null, name: "Garage & utility", type: "other", sortOrder: 1, system: "exterior" },
+        { id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 2 },
+      ],
+    }),
+  );
+  assert.equal(household.rooms.find((room) => room.system === "whole-home")?.name, "Home systems");
+  assert.equal(household.rooms.find((room) => room.system === "exterior")?.name, "Garage & utility");
+});

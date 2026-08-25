@@ -30,6 +30,7 @@ import {
   ARRIVAL_OFFSETS,
   closestArrivalOffset,
   observedLeadTimeDays,
+  orderNowOnHandCaption,
   reorderAtFor,
   restockPlacement,
   shouldOfferLeadTime,
@@ -161,22 +162,28 @@ export function RestockOrderButton({
       if (document.visibilityState === "visible") go();
     };
     document.addEventListener("visibilitychange", onVis);
-    let handle: { remove: () => Promise<void> } | undefined;
+    const handles: Array<{ remove: () => Promise<void> }> = [];
     let cancelled = false;
     if (isNative()) {
-      void import("@capacitor/app").then(({ App }) => {
-        if (cancelled) return;
-        return App.addListener("appStateChange", ({ isActive }) => {
+      void import("@capacitor/app").then(({ App }) =>
+        App.addListener("appStateChange", ({ isActive }) => {
           if (isActive) go();
-        }).then((listener) => {
-          handle = listener;
-        });
-      });
+        }).then((l) => {
+          if (!cancelled) handles.push(l);
+          else void l.remove();
+        }),
+      );
+      void import("@capacitor/browser").then(({ Browser }) =>
+        Browser.addListener("browserFinished", go).then((l) => {
+          if (!cancelled) handles.push(l);
+          else void l.remove();
+        }),
+      );
     }
     return () => {
       cancelled = true;
       document.removeEventListener("visibilitychange", onVis);
-      void handle?.remove();
+      for (const h of handles) void h.remove();
     };
   }, [waitingResume, item.id]);
 
@@ -196,7 +203,7 @@ export function RestockOrderButton({
       <div className="grid gap-2">
         <p className="text-[13px] text-muted-foreground">Did it arrive?</p>
         {onReceived ? (
-          <Button type="button" className={className ?? "h-10"} onClick={() => setReceive(true)}>
+          <Button type="button" className={className ?? (compact ? "h-9 w-auto self-start px-4" : "h-10")} onClick={() => setReceive(true)}>
             Received
           </Button>
         ) : null}
@@ -234,7 +241,7 @@ export function RestockOrderButton({
           ) : null}
         </div>
         {onReceived ? (
-          <Button type="button" className={className ?? "h-10"} onClick={() => setReceive(true)}>
+          <Button type="button" className={className ?? (compact ? "h-9 w-auto self-start px-4" : "h-10")} onClick={() => setReceive(true)}>
             Received
           </Button>
         ) : null}
@@ -295,7 +302,7 @@ export function RestockOrderButton({
       <Button
         type="button"
         variant={subdued ? "secondary" : "default"}
-        className={className ?? (compact ? "h-12" : "h-10")}
+        className={className ?? (compact ? "h-9 w-auto self-start px-4" : "h-10")}
         onClick={() => setPicker(true)}
       >
         Order
@@ -312,6 +319,10 @@ export function RestockOrderButton({
         onSaveLink={onSaveLink}
         onPreferRetailer={onPreferRetailer}
         onAddSize={onAddSize}
+        onAlreadyOrdered={() => {
+          rememberRetailer();
+          setAsk(true);
+        }}
         onOpened={(retailer) => {
           rememberRetailer(retailer);
           if (!isNative() && document.visibilityState === "visible") {
@@ -626,7 +637,7 @@ export function OrderByLine({
   if (placement.bucket === "order_now" && item.onHand <= reorderAtFor(item)) {
     return (
       <>
-        On hand {item.onHand} · order now
+        {orderNowOnHandCaption(item.onHand)}
       </>
     );
   }

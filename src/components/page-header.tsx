@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { BrandMark } from "@/components/brand-logo";
 
 export function PageHeader({
   title,
@@ -18,7 +19,7 @@ export function PageHeader({
         <h1 className="ui-heading text-[28px] font-semibold tracking-tight">{title}</h1>
         {subtitle ? <div className="mt-1 text-[13px] text-muted-foreground">{subtitle}</div> : null}
       </div>
-      {action ? <div className="shrink-0 pt-1">{action}</div> : null}
+      <div className="shrink-0 pt-1">{action ? action : <BrandMark size="sm" className="opacity-90" />}</div>
     </header>
   );
 }

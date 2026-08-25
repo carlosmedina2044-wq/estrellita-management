@@ -117,20 +117,29 @@ function seasonalInsight(forecast: ForecastResult): BudgetInsight | null {
   const top = scored[0];
   const mean = scored.reduce((sum, item) => sum + item.total, 0) / scored.length;
   if (!top || top.total < 50 || top.total < mean * 1.25) return null;
-  const names = [...new Set(top.items.map(itemName))].slice(0, 3);
+  let names = top.items.map(itemName);
+  names = [...new Set(names.map((n) => n.trim()))];
+  const extra = names.length > 3 ? names.length - 3 : 0;
+  const shown = names.slice(0, 3);
+  const joined =
+    shown.length === 0
+      ? "Several jobs"
+      : shown.length === 2
+        ? `${shown[0]} and ${shown[1]}`
+        : shown.join(", ").replace(/, ([^,]*)$/, ", and $1");
+  const list = extra > 0 ? `${joined} and ${extra} more` : joined;
   const monthName = top.peak
     ? new Date(Number(top.peak.month.slice(0, 4)), Number(top.peak.month.slice(5, 7)) - 1, 1).toLocaleDateString(
         "en-US",
         { month: "long" },
       )
     : null;
-  const list = names.length ? names.join(", ").replace(/, ([^,]*)$/, ", and $1") : "Several jobs";
   const when = monthName ? ` all hit in ${monthName}` : "";
   return {
     id: "seasonal",
     tone: "info",
     title: `${top.season.label} is your most expensive stretch`,
-    body: `${top.season.label} is your most expensive quarter. ${list}${when}.`,
+    body: `${list}${when}.`,
   };
 }
 

@@ -17,6 +17,7 @@ import {
   groupRestock,
   markConsumableOrdered,
   orderNowCostCaption,
+  orderNowOnHandCaption,
   neverCameConsumable,
   observedLeadTimeDays,
   partStatusForDuty,
@@ -414,6 +415,12 @@ test("order now tile sums known prices and prefixes at least when some are missi
     "at least ~$18",
   );
   assert.equal(orderNowCostCaption([item()]), null);
+});
+
+test("order-now on-hand line drops the section-header echo", () => {
+  assert.equal(orderNowOnHandCaption(0), "None on hand");
+  assert.equal(orderNowOnHandCaption(2), "On hand 2");
+  assert.equal(orderNowOnHandCaption(2).includes("order now"), false);
 });
 
 const modelNow = new Date(2026, 7, 24);
