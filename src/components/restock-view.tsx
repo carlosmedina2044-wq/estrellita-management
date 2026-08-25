@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, MoreHorizontal, Package } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
@@ -23,6 +24,7 @@ import {
   type RestockWalkGroup,
 } from "@/lib/onboarding/restock-walk";
 import {
+  CHECKIN_OPTIONS,
   checkinDue,
   digestCandidates,
   groupRestock,
@@ -32,6 +34,7 @@ import {
   type RestockFlowHandlers,
 } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
+import { isOrdered } from "@/lib/supply";
 import type { AppNavigateTarget, Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -109,25 +112,21 @@ export function RestockView({
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="pt-1">
-        <p className="text-sm text-muted-foreground">{household.householdName}</p>
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Restock</h1>
-          {household.supplyAutomations.length > 0 && onWalkHouse ? (
+      <PageHeader
+        title="Restock"
+        action={
+          household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
               type="button"
-              className="mt-1 grid size-10 place-items-center rounded-full bg-secondary"
+              className="grid size-10 place-items-center rounded-full bg-secondary"
               aria-label="More"
               onClick={() => setMenuOpen(true)}
             >
               <MoreHorizontal className="size-5" />
             </button>
-          ) : null}
-        </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Tracks what’s running out and when to order. You check out at the store.
-        </p>
-      </header>
+          ) : null
+        }
+      />
 
       <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
         <SheetContent side="bottom" className="gap-0">
@@ -190,7 +189,10 @@ export function RestockView({
       ) : household.supplyAutomations.length === 0 ? (
         <div className="rounded-2xl bg-card px-4 py-5">
           <p className="text-[17px] font-medium">Restock is empty</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-[15px] text-muted-foreground">
+            Tracks what’s running out and when to order. You check out at the store.
+          </p>
+          <p className="mt-2 text-[15px] text-muted-foreground">
             Walk the house once. HVAC filter, water filter, smoke-detector batteries. This tab stays useful after that.
           </p>
           {onWalkHouse ? (
@@ -294,42 +296,35 @@ export function RestockView({
       ) : null}
 
       <Section id="restock-order_now" title="Order now" count={groups.order_now.length}>
-        {groups.order_now.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nothing to order right now.</p>
-        ) : (
-          groups.order_now.map((item) => (
-            <RestockRow
-              key={item.id}
-              household={household}
-              item={item}
-              onOpen={() => openItem(item)}
-              onAddSize={() => openItem(item, { size: true })}
-              onOpenCheckin={() => setCheckinItem(item)}
-              autoReceive={focus?.action === "receive" && focus.itemId === item.id}
-              {...restock}
-            />
-          ))
-        )}
+        {groups.order_now.map((item) => (
+          <RestockRow
+            key={item.id}
+            household={household}
+            item={item}
+            onOpen={() => openItem(item)}
+            onAddSize={() => openItem(item, { size: true })}
+            onOpenCheckin={() => setCheckinItem(item)}
+            autoReceive={focus?.action === "receive" && focus.itemId === item.id}
+            {...restock}
+          />
+        ))}
       </Section>
 
       <Section id="restock-coming_up" title="Coming up" count={groups.coming_up.length}>
-        {groups.coming_up.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nothing in the next three weeks.</p>
-        ) : (
-          groups.coming_up.map((item) => (
-            <RestockRow
-              key={item.id}
-              household={household}
-              item={item}
-              onOpen={() => openItem(item)}
-              onAddSize={() => openItem(item, { size: true })}
-              onOpenCheckin={() => setCheckinItem(item)}
-              {...restock}
-            />
-          ))
-        )}
+        {groups.coming_up.map((item) => (
+          <RestockRow
+            key={item.id}
+            household={household}
+            item={item}
+            onOpen={() => openItem(item)}
+            onAddSize={() => openItem(item, { size: true })}
+            onOpenCheckin={() => setCheckinItem(item)}
+            {...restock}
+          />
+        ))}
       </Section>
 
+      {groups.stocked.length > 0 ? (
       <section id="restock-stocked">
         <button
           type="button"
@@ -337,32 +332,29 @@ export function RestockView({
           onClick={() => setStockedOpen((current) => !current)}
           aria-expanded={stockedOpen}
         >
-          <h2 className="ui-heading text-[22px] font-semibold">Stocked</h2>
-          <span className="inline-flex items-center gap-1 text-[13px] font-medium text-muted-foreground">
+          <h2 className="ui-heading text-[20px] font-semibold">Stocked</h2>
+          <span className="inline-flex items-center gap-1 text-[13px] text-muted-foreground">
             {groups.stocked.length}
             <ChevronDown className={cn("size-4 transition-transform", stockedOpen && "rotate-180")} />
           </span>
         </button>
         {stockedOpen ? (
           <div className="ui-group">
-            {groups.stocked.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">No stocked items yet.</p>
-            ) : (
-              groups.stocked.map((item) => (
-                <RestockRow
-                  key={item.id}
-                  household={household}
-                  item={item}
-                  onOpen={() => openItem(item)}
-                  onAddSize={() => openItem(item, { size: true })}
-                  onOpenCheckin={() => setCheckinItem(item)}
-                  {...restock}
-                />
-              ))
-            )}
+            {groups.stocked.map((item) => (
+              <RestockRow
+                key={item.id}
+                household={household}
+                item={item}
+                onOpen={() => openItem(item)}
+                onAddSize={() => openItem(item, { size: true })}
+                onOpenCheckin={() => setCheckinItem(item)}
+                {...restock}
+              />
+            ))}
           </div>
         ) : null}
       </section>
+      ) : null}
 
       <Button className="h-12 rounded-full" onClick={() => createGuard.tryOpen(() => {
         setEditingCustom(null);
@@ -450,11 +442,12 @@ function Section({
   count: number;
   children: React.ReactNode;
 }) {
+  if (count === 0) return null;
   return (
     <section id={id}>
       <header className="mb-2 flex items-baseline justify-between gap-3 px-1">
-        <h2 className="ui-heading text-[22px] font-semibold">{title}</h2>
-        <span className="text-[13px] font-medium text-muted-foreground">{count}</span>
+        <h2 className="ui-heading text-[20px] font-semibold">{title}</h2>
+        <span className="text-[13px] text-muted-foreground">{count}</span>
       </header>
       <div className="ui-group">{children}</div>
     </section>
@@ -513,12 +506,31 @@ function RestockRow({
           />
         </div>
       ) : null}
+      {!item.lastConfirmedAt && !isOrdered(item) ? (
+        <div className="mt-2 pl-7">
+          <p className="text-[13px] font-medium">How much is left?</p>
+          <div className="mt-2 flex gap-2">
+            {CHECKIN_OPTIONS.map((option) => (
+              <Button
+                key={option.level}
+                type="button"
+                variant="secondary"
+                className="h-11 flex-1"
+                onClick={() => restock.onCheckin?.(item.id, option.level)}
+              >
+                {option.short}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="mt-2 pl-7">
         <RestockOrderButton
           item={item}
           household={household}
           onAddSize={onAddSize ?? onOpen}
           autoReceive={autoReceive}
+          subdued={placement.bucket !== "order_now"}
           {...restockButtonProps(item, restock)}
         />
       </div>

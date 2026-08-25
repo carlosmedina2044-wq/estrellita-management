@@ -129,6 +129,8 @@ export function applyDutySave(current: Household, duty: DutyDraft, now = new Dat
               createdAt: existing?.createdAt ?? now.toISOString(),
               preferredRetailer: supplyAutomation.preferredRetailer ?? existing?.preferredRetailer,
               unitCost: supplyAutomation.unitCost ?? existing?.unitCost,
+              lastConfirmedLevel: supplyAutomation.lastConfirmedLevel ?? existing?.lastConfirmedLevel,
+              lastConfirmedAt: supplyAutomation.lastConfirmedAt ?? existing?.lastConfirmedAt,
             },
           ];
 

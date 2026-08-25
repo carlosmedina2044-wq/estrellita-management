@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -73,12 +73,10 @@ export function QuarterTimeline({
   const max = Math.max(1, ...windowMonths.map((month) => month.total));
   const selected = forecast.monthly.find((month) => month.month === openMonth) ?? windowMonths[0];
   const defaultMonth = windowMonths.find((month) => month.total >= avg * 2 && month.total > 0)?.month ?? windowMonths[0]?.month ?? "";
-
-  useEffect(() => {
-    if (!windowMonths.some((month) => month.month === openMonth) && defaultMonth) {
-      setOpenMonth(defaultMonth);
-    }
-  }, [windowMonths, openMonth, defaultMonth]);
+  const monthInWindow = windowMonths.some((month) => month.month === openMonth);
+  if (!monthInWindow && defaultMonth && openMonth !== defaultMonth) {
+    setOpenMonth(defaultMonth);
+  }
 
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -135,7 +133,7 @@ export function QuarterTimeline({
                   {month.total ? `$${Math.round(month.total).toLocaleString()}` : "—"}
                 </span>
                 <span
-                  className={cn("w-full rounded-md", spike ? "bg-[#ff9f0a]" : "bg-primary")}
+                  className={cn("w-full rounded-md", spike ? "bg-warning" : "bg-primary")}
                   style={{ height: `${height}%` }}
                 />
                 <span className="text-[13px] text-muted-foreground">{shortMonth(month.month)}</span>
@@ -271,11 +269,11 @@ function ForecastRow({
       <p className="text-sm font-medium">{item.label}</p>
       <p className="text-sm text-muted-foreground">{formatCostRange(item.cost)}</p>
       {item.source === "catalog" && item.kind === "replacement" ? (
-        <button type="button" className="mt-1 text-left text-[12px] leading-4 text-muted-foreground" onClick={onEdit}>
+        <button type="button" className="mt-1 text-left text-[13px] leading-4 text-muted-foreground" onClick={onEdit}>
           {forecastSourceBlurb(item.source)}
         </button>
       ) : (
-        <p className="mt-1 text-[12px] text-muted-foreground">
+        <p className="mt-1 text-[13px] text-muted-foreground">
           {item.source === "catalog" ? "Typical supply price." : forecastSourceTag(item.source)}
         </p>
       )}

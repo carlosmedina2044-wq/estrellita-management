@@ -104,6 +104,15 @@ export function nodeStatus(
   return status;
 }
 
+export function statusText(status: Pick<NodeStatus, "overdue" | "dueSoon" | "total" | "reorderPending">): string {
+  if (status.total === 0 && status.reorderPending === 0) return "All caught up";
+  const parts: string[] = [];
+  if (status.overdue) parts.push(`${status.overdue} overdue`);
+  if (status.dueSoon) parts.push(`${status.dueSoon} due soon`);
+  if (status.reorderPending) parts.push(`${status.reorderPending} to reorder`);
+  return parts.join(" · ");
+}
+
 export type HomeSummary = NodeStatus & {
   dueToday: number;
   orderNow: number;

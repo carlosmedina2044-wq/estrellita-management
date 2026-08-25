@@ -1,5 +1,6 @@
 import { userRooms, WHOLE_HOME_ID } from "@/lib/home-model";
 import { applyDutySave } from "@/lib/household-update";
+import { applyCheckin, type CheckinLevel } from "@/lib/restock";
 import { DEFAULT_LEAD_TIME_DAYS, deriveOrderByDate } from "@/lib/supply";
 import { toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
@@ -38,6 +39,7 @@ export type CustomRestockItem = {
   intervalMonths: 1 | 3 | 6 | 12;
   retailer?: RetailerId | string;
   group: RestockWalkGroup;
+  checkin?: CheckinLevel;
 };
 
 export type CustomRestockPick = { id: `custom:${string}`; custom: CustomRestockItem };
@@ -383,7 +385,7 @@ function applyCustomPick(household: Household, pick: CustomRestockPick, now: Dat
   const dutyTitle = `${cadence.dutyPrefix} ${itemName}`;
   const existing = household.duties.find((duty) => duty.title === dutyTitle && !duty.archived);
   const orderByDate = deriveOrderByDate(today, cadence.lifespanValue, cadence.lifespanUnit);
-  return applyDutySave(
+  const next = applyDutySave(
     household,
     {
       title: existing?.title ?? dutyTitle,
@@ -417,6 +419,16 @@ function applyCustomPick(household: Household, pick: CustomRestockPick, now: Dat
     },
     now,
   );
+  const level = custom.checkin;
+  if (!level) return next;
+  const created = next.supplyAutomations.find((entry) => trackedBaseName(entry.itemName) === trackedBaseName(itemName));
+  if (!created) return next;
+  return {
+    ...next,
+    supplyAutomations: next.supplyAutomations.map((entry) =>
+      entry.id === created.id ? applyCheckin(entry, level, next, now) : entry,
+    ),
+  };
 }
 
 /** Seeds Restock from a short “walk your house” catalog so day one isn’t empty. */

@@ -8,6 +8,7 @@ import { FundHero } from "@/components/budget/hero";
 import { DeferSheet, FundSheet, LogPurchaseSheet, ViewOptionsSheet } from "@/components/budget/sheets";
 import { QuarterTimeline } from "@/components/budget/timeline";
 import { InsightsList, SpendingSection, UpcomingExpenses } from "@/components/budget/upcoming";
+import { PageHeader } from "@/components/page-header";
 import { Input } from "@/components/ui/input";
 import {
   applyDeferAsset,
@@ -86,21 +87,20 @@ export function BudgetView({
 
   return (
     <div className="flex min-w-0 flex-col gap-5 pb-8">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-muted-foreground">Home finances</p>
-          <h1 className="ui-heading text-[34px] font-semibold tracking-tight">Budget</h1>
-          <p className="mt-1 text-[13px] text-muted-foreground">{updated}</p>
-        </div>
-        <button
-          type="button"
-          className="flex size-11 items-center justify-center rounded-full text-foreground"
-          aria-label="View options"
-          onClick={() => setOptionsOpen(true)}
-        >
-          <MoreHorizontal className="size-5" />
-        </button>
-      </header>
+      <PageHeader
+        title="Budget"
+        subtitle={updated}
+        action={
+          <button
+            type="button"
+            className="flex size-11 items-center justify-center rounded-full text-foreground"
+            aria-label="View options"
+            onClick={() => setOptionsOpen(true)}
+          >
+            <MoreHorizontal className="size-5" />
+          </button>
+        }
+      />
 
       {empty ? (
         <EmptyGuide

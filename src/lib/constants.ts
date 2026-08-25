@@ -42,6 +42,15 @@ export function audienceLabel(audience: Audience): string {
   return AUDIENCES.find((item) => item.id === audience)?.label ?? audience;
 }
 
+export function frequencyLabelShort(frequency: Frequency): string {
+  if (frequency === "daily") return "Daily";
+  if (frequency === "weekly") return "Weekly";
+  if (frequency === "monthly") return "Monthly";
+  if (frequency === "quarterly") return "Quarterly";
+  if (frequency === "yearly") return "Yearly";
+  return "One time";
+}
+
 export function frequencyLabel(frequency: Frequency, weekday: number, monthDay: number): string {
   if (frequency === "daily") return "Daily";
   if (frequency === "weekly") return `Weekly · ${WEEKDAYS[weekday] ?? "Sunday"}`;

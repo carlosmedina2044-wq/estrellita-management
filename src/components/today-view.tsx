@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays, Map, Share2, UserRound } from "lucide-react";
-import { BrandMark, BrandLockup } from "@/components/brand-logo";
+import { BrandMark } from "@/components/brand-logo";
+import { PageHeader } from "@/components/page-header";
 import { DayCalendar } from "@/components/day-calendar";
 import { CostPrompt } from "@/components/cost-prompt";
 import { ConsumableForm } from "@/components/consumable-form";
@@ -26,6 +27,7 @@ import {
   todaysOpenDuties,
   type OutstandingScope,
 } from "@/lib/duties";
+import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
@@ -35,9 +37,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const SCOPES: { id: OutstandingScope; label: string }[] = [
-  { id: "daily", label: "Daily" },
-  { id: "weekly", label: "Weekly" },
-  { id: "monthly", label: "Monthly" },
+  { id: "daily", label: "Today" },
+  { id: "weekly", label: "This week" },
+  { id: "monthly", label: "This month" },
 ];
 
 export function TodayView({
@@ -197,7 +199,8 @@ export function TodayView({
   const restockItems = [...restock.ordered, ...restock.order_now].slice(0, 3);
   const restockHeader = restock.order_now.length > 0 ? "Order now" : "On the way";
   const showRestock = restock.order_now.length + restock.ordered.length > 0;
-  const hasCleaner = household.cleanerName.trim().length > 0;
+  const hasCleanerDuties = household.duties.some((duty) => duty.audience !== "me");
+  const hasCleaner = Boolean(household.cleanerName.trim());
   const orderItem = orderItemId
     ? household.supplyAutomations.find((item) => item.id === orderItemId) ?? null
     : null;
@@ -207,7 +210,7 @@ export function TodayView({
         return match ? shouldPromptCost(item, match, now, household) : false;
       })
     : [];
-  const greeting = household.ownerName ? `Hi, ${household.ownerName}` : "Today";
+  const greeting = todayGreeting(household.ownerName);
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
   const listSummary = viewingCalendar
     ? calendarIsToday
@@ -231,22 +234,23 @@ export function TodayView({
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="pt-2">
-        <BrandLockup size="sm" />
-        <p className="mt-5 text-sm text-muted-foreground">{greeting} · {headingDate}</p>
-        <h1 className="ui-heading text-[34px] font-semibold tracking-tight">{household.householdName}</h1>
-        {needsZip && onSavePostalCode ? (
-          <button
-            type="button"
-            className="mt-1 text-left text-sm font-medium text-primary"
-            onClick={() => setZipOpen(true)}
-          >
-            {weatherLine ?? "Add your ZIP for weather"}
-          </button>
-        ) : (
-          <p className="mt-1 text-sm text-muted-foreground">{weatherLine ?? listSummary}</p>
-        )}
-      </header>
+      <PageHeader
+        eyebrow={greeting}
+        title={headingDate}
+        subtitle={
+          needsZip && onSavePostalCode ? (
+            <button
+              type="button"
+              className="text-left text-[13px] font-medium text-primary"
+              onClick={() => setZipOpen(true)}
+            >
+              {weatherLine ?? "Add your ZIP for weather"}
+            </button>
+          ) : (
+            (weatherLine ?? listSummary)
+          )
+        }
+      />
 
       <AttentionTiles
         overdue={summary.overdue}
@@ -315,8 +319,9 @@ export function TodayView({
         />
       ) : null}
 
+      {hasCleanerDuties ? (
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        {(hasCleaner ? (["all", "me", "cleaner"] as const) : (["all", "me"] as const)).map((item) => (
+        {(["all", "me", "cleaner"] as const).map((item) => (
           <button
             key={item}
             type="button"
@@ -327,15 +332,16 @@ export function TodayView({
                 : "h-8 shrink-0 rounded-full bg-secondary px-3.5 text-[13px] font-medium text-secondary-foreground"
             }
           >
-            {item === "all" ? "All" : item === "me" ? "For me" : "For cleaner"}
+            {item === "all" ? "All" : item === "me" ? "Mine" : "Cleaner's"}
           </button>
         ))}
       </div>
+      ) : null}
 
       {firstOfMonth ? (
         <section className="rounded-2xl bg-accent px-4 py-4">
           <p className="text-[13px] font-medium text-primary">First of the month</p>
-          <p className="ui-heading mt-1 text-[22px] font-semibold">This month’s list</p>
+          <p className="ui-heading mt-1 text-[20px] font-semibold">This month’s list</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {monthPlan.length === 0
               ? "Nothing scheduled for this month yet."
@@ -347,7 +353,7 @@ export function TodayView({
       {household.supplyAutomations.length === 0 ? (
         <section className="rounded-2xl bg-white px-4 py-4">
           <p className="text-[13px] font-medium text-muted-foreground">Restock</p>
-          <p className="ui-heading mt-1 text-[22px] font-semibold">Track a filter or battery</p>
+          <p className="ui-heading mt-1 text-[20px] font-semibold">Track a filter or battery</p>
           <p className="mt-1 text-sm text-muted-foreground">
             We’ll remind you when to order so it arrives before you run out. Checkout happens on the retailer’s site.
           </p>
@@ -590,7 +596,8 @@ function AttentionTiles({
           count: overdue,
           label: "overdue",
           onClick: onOverdue,
-          className: "border-destructive/40 bg-destructive/8",
+          countClass: "text-destructive",
+          className: "border-destructive/30 bg-destructive/8",
         }
       : null,
     dueToday > 0
@@ -599,7 +606,7 @@ function AttentionTiles({
           count: dueToday,
           label: "due today",
           onClick: onDueToday,
-          className: "border-primary/30 bg-primary/8",
+          countClass: "text-foreground",
         }
       : null,
     orderNow > 0
@@ -609,16 +616,16 @@ function AttentionTiles({
           label: "to order",
           costLine: orderNowCost,
           onClick: onOrder,
-          className: "border-[#ff9f0a]/40 bg-[#ff9f0a]/10",
+          countClass: "text-warning",
         }
       : null,
     arriving > 0
       ? {
           key: "arriving",
           count: arriving,
-          label: "arriving",
+          label: "on the way",
           onClick: onArriving,
-          className: "border-border bg-secondary",
+          countClass: "text-muted-foreground",
         }
       : null,
   ].filter((tile): tile is NonNullable<typeof tile> => Boolean(tile));
@@ -628,7 +635,7 @@ function AttentionTiles({
       <button
         type="button"
         onClick={onAllClear}
-        className="rounded-2xl border border-[#34c759]/40 bg-[#34c759]/8 px-4 py-4 text-left"
+        className="rounded-2xl border border-success/30 bg-success/8 px-4 py-4 text-left"
         aria-label="All clear. Nothing due, nothing to order"
       >
         <p className="ui-heading text-[28px] font-semibold leading-none">All clear</p>
@@ -645,9 +652,12 @@ function AttentionTiles({
           type="button"
           onClick={tile.onClick}
           aria-label={`${tile.count} ${tile.label}`}
-          className={cn("rounded-2xl border px-4 py-3 text-left", tile.className)}
+          className={cn(
+            "rounded-2xl border border-border bg-card px-4 py-3 text-left",
+            "className" in tile ? tile.className : null,
+          )}
         >
-          <p className="ui-heading text-[28px] font-semibold leading-none">{tile.count}</p>
+          <p className={cn("ui-heading text-[28px] font-semibold leading-none", tile.countClass)}>{tile.count}</p>
           <p className="mt-1 text-[13px] text-muted-foreground">
             {"costLine" in tile && tile.costLine ? tile.costLine : tile.label}
           </p>
@@ -663,7 +673,7 @@ function EmptyToday({ onAdd, calendar }: { onAdd: () => void; calendar?: boolean
       <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
         <BrandMark size="sm" />
       </span>
-      <p className="ui-heading mt-4 text-[22px] font-semibold">Clear day</p>
+      <p className="ui-heading mt-4 text-[20px] font-semibold">Clear day</p>
       <p className="mt-1 text-sm text-muted-foreground">
         {calendar
           ? "Nothing is due on this day. Pick another date or add a duty."

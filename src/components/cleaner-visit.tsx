@@ -51,7 +51,7 @@ export function CleanerVisit({
     <div className="app-frame px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <header className="pt-1">
         <p className="text-sm text-muted-foreground">Cleaner visit</p>
-        <h1 className="ui-heading text-[34px] font-semibold tracking-tight">
+        <h1 className="ui-heading text-[28px] font-semibold tracking-tight">
           {open.length === 0 ? "All caught up" : `${open.length} left`}
         </h1>
       </header>
@@ -59,7 +59,7 @@ export function CleanerVisit({
       {next ? (
         <div className="mt-4 rounded-2xl bg-white p-4">
           <p className="text-[13px] font-medium text-muted-foreground">Next up</p>
-          <p className="ui-heading mt-1 text-[22px] font-semibold">{next.title}</p>
+          <p className="ui-heading mt-1 text-[20px] font-semibold">{next.title}</p>
           <Button className="mt-3 h-11 w-full" onClick={() => onComplete(next.id)}>
             Done. Next
           </Button>
@@ -76,7 +76,7 @@ export function CleanerVisit({
             >
               Map
             </button>
-            <h2 className="ui-heading text-[22px] font-semibold">{selectedRoom.name}</h2>
+            <h2 className="ui-heading text-[20px] font-semibold">{selectedRoom.name}</h2>
             <div className="ui-group">
               {roomOpen.length === 0 ? (
                 <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nothing left here.</p>

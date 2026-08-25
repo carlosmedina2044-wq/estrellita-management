@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Type scale: 28 page title · 20 section · 17 card title · 15 body · 13 caption · 11 micro. Do not introduce other pixel sizes. */
+/* Buttons: primary (terracotta) for the main action, secondary for everything else. Never bg-foreground. */
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -27,6 +30,8 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -68,11 +73,13 @@
   --accent: #f4ebe0;
   --accent-foreground: #a34d20;
   --destructive: #ff3b30;
+  --success: #57843b;
+  --warning: #b07a1f;
   --border: rgb(61 40 20 / 10%);
   --input: rgb(61 40 20 / 10%);
   --ring: #c45c26;
   --chart-1: #c45c26;
-  --chart-2: #34c759;
+  --chart-2: #57843b;
   --chart-3: #c4a574;
   --chart-4: #8b6914;
   --chart-5: #8e8e93;
@@ -105,6 +112,8 @@
   --accent: #3d2e24;
   --accent-foreground: #e07a45;
   --destructive: #ff453a;
+  --success: #7fae5c;
+  --warning: #d09a3e;
   --border: rgb(255 245 230 / 12%);
   --input: rgb(255 245 230 / 14%);
   --ring: #d4784a;
@@ -297,62 +306,6 @@ html.keyboard-open [data-slot="sheet-footer"] {
   border-top: 1px solid rgb(61 40 20 / 8%);
 }
 
-.room-hero-scene {
-  position: relative;
-}
-
-.room-hero-layer {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-}
-
-.room-hero {
-  position: absolute;
-  inset: 0;
-  transform-origin: center center;
-  transform: translate3d(var(--hero-dx), var(--hero-dy), 0) scale(var(--hero-sx), var(--hero-sy));
-  will-change: transform;
-}
-
-.room-hero.is-animated {
-  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.room-hero.is-lifted {
-  transform: translate3d(0, 0, 0) scale(1, 1);
-  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.12));
-}
-
-.room-hero-panel {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: 16px;
-  background: var(--card);
-  color: var(--card-foreground);
-  border: 1px solid rgb(61 40 20 / 8%);
-  box-shadow: 0 8px 28px rgb(61 40 20 / 8%);
-}
-
-.room-hero-tasks {
-  display: flex;
-  min-height: 0;
-  flex: 1;
-  flex-direction: column;
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.room-hero-tasks.is-revealed {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity 150ms ease-out,
-    transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
 .brand-enter {
   animation: brand-enter 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -400,17 +353,6 @@ html.keyboard-open [data-slot="sheet-footer"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .room-hero,
-  .room-hero.is-animated,
-  .room-hero.is-lifted,
-  .room-hero-tasks,
-  .room-hero-tasks.is-revealed {
-    transition: none;
-    transform: none;
-    filter: none;
-    opacity: 1;
-  }
-
   .brand-enter {
     animation: none;
   }

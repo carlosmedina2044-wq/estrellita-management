@@ -83,6 +83,7 @@ export function RestockOrderButton({
   autoReceive,
   autoPicker,
   onPickerOpenChange,
+  subdued,
 }: {
   item: SupplyAutomation;
   household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers" | "restockSafetyBufferDays">;
@@ -100,6 +101,7 @@ export function RestockOrderButton({
   autoReceive?: boolean;
   autoPicker?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
+  subdued?: boolean;
 }) {
   const [picker, setPicker] = useState(false);
   const [ask, setAsk] = useState(false);
@@ -290,7 +292,12 @@ export function RestockOrderButton({
 
   return (
     <>
-      <Button type="button" className={className ?? (compact ? "h-12" : "h-10")} onClick={() => setPicker(true)}>
+      <Button
+        type="button"
+        variant={subdued ? "secondary" : "default"}
+        className={className ?? (compact ? "h-12" : "h-10")}
+        onClick={() => setPicker(true)}
+      >
         Order
       </Button>
 

@@ -33,7 +33,7 @@ export function ShareLinkSheet({
         <div className="grid gap-2 px-4 pb-4">
           <p className="text-sm text-muted-foreground break-all">{url}</p>
           {household.supplyAutomations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No consumables yet. Save as a new item.</p>
+            <p className="text-sm text-muted-foreground">No items yet. Save as a new item.</p>
           ) : (
             household.supplyAutomations.map((item) => (
               <button
@@ -52,7 +52,7 @@ export function ShareLinkSheet({
         </div>
         <SheetFooter>
           <Button className="h-12" onClick={() => onPick()}>
-            New consumable
+            New item
           </Button>
         </SheetFooter>
       </SheetContent>

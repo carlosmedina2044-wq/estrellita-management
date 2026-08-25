@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Home, Leaf, Package, Settings, Sun, Wallet } from "lucide-react";
-import { BrandLockup } from "@/components/brand-logo";
+import { BrandMark } from "@/components/brand-logo";
+import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
 import { BudgetView } from "@/components/budget-view";
 import { CleanerVisit } from "@/components/cleaner-visit";
@@ -23,12 +24,13 @@ import { extractSharedUrl } from "@/lib/retailer";
 import { groupRestock } from "@/lib/restock";
 import { applyPostalCode } from "@/lib/climate";
 import { next90DaysSpend, roomsWithNearReplacement } from "@/lib/forecast";
+import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
 import { forCleanerSession } from "@/lib/storage";
-import type { AppNavigateTarget, Tab } from "@/lib/types";
+import type { AppNavigateTarget, Household, Tab } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const LOCK_MS = { immediate: 0, "2min": 120_000, "15min": 900_000 } as const;
@@ -67,6 +69,7 @@ export function AppShell() {
     applyRestockWalk,
     acceptPlaybook,
     declinePlaybook,
+    reconsiderPlaybook,
   } = useHousehold();
   const [tab, setTab] = useState<Tab>(() => initialTab());
   const [nav, setNav] = useState<AppNavigateTarget | null>(null);
@@ -301,7 +304,7 @@ export function AppShell() {
 
   return (
     <div className="app-frame">
-      <main className="app-shell-main min-w-0 flex-1 px-4 pt-[max(1.25rem,env(safe-area-inset-top))]">
+      <main className="app-shell-main min-w-0 flex-1 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
         {tab === "today" ? (
           <TodayView
             household={household}
@@ -335,15 +338,29 @@ export function AppShell() {
         ) : null}
         {tab === "home" ? (
           <div className="flex flex-col gap-4 pb-8">
-            <header className="pt-2">
-              <BrandLockup size="sm" />
-              <h1 className="ui-heading mt-5 text-[34px] font-semibold tracking-tight">{household.householdName}</h1>
-              <button type="button" className="mt-2 text-sm font-medium text-primary" onClick={() => setTab("budget")}>
-                {ninety > 0
-                  ? `Next 90 days: ~$${Math.round(ninety).toLocaleString()}`
-                  : "Budget: add costs to see the next 90 days"}
-              </button>
-            </header>
+            <PageHeader
+              title={household.householdName}
+              subtitle={
+                <div className="grid gap-1">
+                  <button type="button" className="text-left text-[13px] font-medium text-primary" onClick={() => setTab("budget")}>
+                    {ninety > 0
+                      ? `Next 90 days: ~$${Math.round(ninety).toLocaleString()}`
+                      : "Budget: add costs to see the next 90 days"}
+                  </button>
+                  <HomeStatusLine household={household} />
+                </div>
+              }
+              action={
+                <button
+                  type="button"
+                  aria-label="Settings"
+                  onClick={() => setTab("settings")}
+                  className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+                >
+                  <Settings className="size-5" />
+                </button>
+              }
+            />
             <HomeMapView
               household={household}
               now={new Date()}
@@ -387,12 +404,14 @@ export function AppShell() {
         {tab === "seasonal" ? (
           <SeasonalView
             household={household}
+            forecast={forecast}
             weatherLine={weather.text}
             needsZip={weather.needsZip}
             weatherError={weatherError ?? household.weatherStatus.lastError}
             onSavePostalCode={savePostalCode}
             onAccept={acceptPlaybook}
             onDecline={declinePlaybook}
+            onReconsider={reconsiderPlaybook}
             onToggleAttribute={(key) =>
               updateHome({ attributes: { ...household.attributes, [key]: !household.attributes[key] } })
             }
@@ -432,7 +451,7 @@ export function AppShell() {
       />
 
       <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40">
-        <div className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-6 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-5 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
           <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
           <NavButton label="Home" icon={<Home className="size-5" />} active={tab === "home"} onClick={() => setTab("home")} />
           <NavButton
@@ -444,7 +463,6 @@ export function AppShell() {
           />
           <NavButton label="Budget" icon={<Wallet className="size-5" />} active={tab === "budget"} onClick={() => setTab("budget")} />
           <NavButton label="Seasonal" icon={<Leaf className="size-5" />} active={tab === "seasonal"} onClick={() => setTab("seasonal")} />
-          <NavButton label="Settings" icon={<Settings className="size-5" />} active={tab === "settings"} onClick={() => setTab("settings")} />
         </div>
       </nav>
     </div>
@@ -458,7 +476,7 @@ function OpeningScreen() {
       className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-8"
     >
       <div className="brand-enter">
-        <BrandLockup size="md" />
+        <BrandMark size="md" />
       </div>
     </div>
   );
@@ -494,7 +512,7 @@ function LoadFailed({
   const keyMismatch = reason === "key-mismatch";
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
-      <BrandLockup size="sm" />
+      <BrandMark size="sm" />
       <h1 className="ui-heading mt-5 text-[28px] font-semibold tracking-tight">
         {keyMismatch ? "This iPhone doesn’t have the key" : "Couldn’t load the house"}
       </h1>
@@ -536,17 +554,38 @@ function NavButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative flex min-h-12 flex-col items-center justify-center gap-0.5 text-[10px] font-medium",
+        "relative flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
         active ? "text-primary" : "text-muted-foreground",
       )}
     >
       {icon}
       {label}
       {badge ? (
-        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
           {badge}
         </span>
       ) : null}
     </button>
+  );
+}
+
+function HomeStatusLine({ household }: { household: Household }) {
+  const status = homeSummary(household);
+  if (status.total === 0 && status.reorderPending === 0) {
+    return <span>All caught up</span>;
+  }
+  const parts: Array<{ key: string; text: string; urgent?: boolean }> = [];
+  if (status.overdue) parts.push({ key: "overdue", text: `${status.overdue} overdue`, urgent: true });
+  if (status.dueSoon) parts.push({ key: "soon", text: `${status.dueSoon} due soon` });
+  if (status.reorderPending) parts.push({ key: "reorder", text: `${status.reorderPending} to reorder` });
+  return (
+    <span>
+      {parts.map((part, index) => (
+        <span key={part.key}>
+          {index > 0 ? " · " : null}
+          <span className={part.urgent ? "text-destructive" : undefined}>{part.text}</span>
+        </span>
+      ))}
+    </span>
   );
 }

@@ -176,3 +176,50 @@ test("custom walk pick seeds Restock in the chosen room with user origin", () =>
   ]);
   assert.equal(twice.supplyAutomations.filter((entry) => entry.itemName === "Water softener salt").length, 1);
 });
+
+test("custom walk pick check-in stamps lastConfirmed and out sets onHand 0", () => {
+  const household = seededHousehold();
+  const room = household.rooms.find((entry) => !entry.system) ?? household.rooms[0]!;
+  const now = new Date(2026, 5, 1);
+  const half = applyRestockPicks(
+    household,
+    [
+      {
+        id: "custom:salt-half",
+        custom: {
+          itemName: "Water softener salt",
+          roomId: room.id,
+          intervalMonths: 1,
+          group: "whole-home",
+          checkin: "half",
+        },
+      },
+    ],
+    now,
+  );
+  const halfItem = half.supplyAutomations.find((entry) => entry.itemName === "Water softener salt");
+  assert.equal(halfItem?.lastConfirmedLevel, 0.5);
+  assert.equal(halfItem?.lastConfirmedAt, "2026-06-01");
+  assert.equal(halfItem?.onHand, 1);
+
+  const out = applyRestockPicks(
+    household,
+    [
+      {
+        id: "custom:tabs-out",
+        custom: {
+          itemName: "Dishwasher tabs",
+          roomId: room.id,
+          intervalMonths: 1,
+          group: "kitchen",
+          checkin: "out",
+        },
+      },
+    ],
+    now,
+  );
+  const outItem = out.supplyAutomations.find((entry) => entry.itemName === "Dishwasher tabs");
+  assert.equal(outItem?.lastConfirmedLevel, 0);
+  assert.equal(outItem?.lastConfirmedAt, "2026-06-01");
+  assert.equal(outItem?.onHand, 0);
+});

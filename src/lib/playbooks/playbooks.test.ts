@@ -1,10 +1,26 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { DEFAULT_ATTRIBUTES } from "@/lib/household-defaults";
-import { matchingPlaybooks, playbookApplies, PLAYBOOKS } from "@/lib/playbooks";
-import { conditionHits, evaluateTriggers, onCooldown, type WeatherForecast } from "@/lib/weather/provider";
+import {
+  matchingPlaybooks,
+  monthInWindow,
+  PLAYBOOKS,
+  playbookApplies,
+  playbookProgress,
+  seasonYearFor,
+  seasonalTimeline,
+  windowFor,
+  windowState,
+} from "@/lib/playbooks";
+import {
+  conditionHits,
+  evaluateTriggers,
+  onCooldown,
+  weatherWatch,
+  type WeatherForecast,
+} from "@/lib/weather/provider";
 import { WEATHER_TRIGGERS } from "@/lib/weather/provider";
-import type { Household } from "@/lib/types";
+import type { Duty, Household } from "@/lib/types";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 
 function home(partial: Partial<Household> = {}): Household {
@@ -28,6 +44,26 @@ function home(partial: Partial<Household> = {}): Household {
   });
 }
 
+function stubDuty(partial: Pick<Duty, "id" | "title"> & Partial<Duty>): Duty {
+  return {
+    notes: "",
+    room: "whole-home",
+    nodeId: "home",
+    nodeType: "home",
+    audience: "me",
+    effort: "medium",
+    frequency: "once",
+    kind: "chore",
+    weekday: 0,
+    monthDay: 1,
+    dueDate: "2026-08-01",
+    priority: "medium",
+    createdAt: "2026-04-01T00:00:00.000Z",
+    archived: false,
+    ...partial,
+  };
+}
+
 test("tenure-gated playbook only applies when tenure is new", () => {
   const playbook = PLAYBOOKS.find((item) => item.id === "new-home");
   assert.ok(playbook);
@@ -41,7 +77,9 @@ test("old vault with no tenure does not get the new-home playbook", () => {
   assert.ok(playbook);
   assert.equal(playbookApplies(playbook, home()), false);
   assert.equal(
-    matchingPlaybooks(home({ location: { climateZone: "mixed" } }), 8).some((item) => item.id === "new-home"),
+    matchingPlaybooks(home({ location: { climateZone: "mixed" } }), new Date(2026, 7, 1)).some(
+      (item) => item.playbook.id === "new-home",
+    ),
     false,
   );
   assert.equal(
@@ -65,11 +103,11 @@ test("declining individual new-home tasks persists like any other playbook", () 
       },
     ],
   });
-  const matched = matchingPlaybooks(declined, 8).find((item) => item.id === "new-home");
+  const matched = matchingPlaybooks(declined, new Date(year, 7, 1)).find((item) => item.playbook.id === "new-home");
   assert.ok(matched);
   const decision = declined.playbookDecisions.find((item) => item.playbookId === "new-home");
   assert.deepEqual(decision?.declinedTaskKeys, ["Change or rekey the exterior locks."]);
-  const remaining = matched.tasks.filter((task) => !decision?.declinedTaskKeys.includes(task.title));
+  const remaining = matched.playbook.tasks.filter((task) => !decision?.declinedTaskKeys.includes(task.title));
   assert.equal(remaining.some((task) => task.title === "Change or rekey the exterior locks."), false);
   assert.ok(remaining.length > 0);
 });
@@ -79,10 +117,10 @@ test("Tucson-area home surfaces monsoon and pre-summer AC", () => {
     location: { lat: 32.22, lng: -110.97, postalCode: "85701", climateZone: "hot-arid" },
     attributes: { ...DEFAULT_ATTRIBUTES, hasYard: true, hasIrrigation: true },
   });
-  const april = matchingPlaybooks(tucson, 4);
-  const june = matchingPlaybooks(tucson, 6);
-  assert.ok(april.some((item) => item.id === "hot-arid-presummer"));
-  assert.ok(june.some((item) => item.id === "hot-arid-monsoon"));
+  const april = matchingPlaybooks(tucson, new Date(2026, 3, 15));
+  const june = matchingPlaybooks(tucson, new Date(2026, 5, 15));
+  assert.ok(april.some((item) => item.playbook.id === "hot-arid-presummer"));
+  assert.ok(june.some((item) => item.playbook.id === "hot-arid-monsoon"));
 });
 
 test("Minneapolis home surfaces winterization and not monsoon", () => {
@@ -90,9 +128,9 @@ test("Minneapolis home surfaces winterization and not monsoon", () => {
     location: { lat: 44.98, lng: -93.27, postalCode: "55401", climateZone: "cold" },
     attributes: { ...DEFAULT_ATTRIBUTES, hasGutters: true, hasFireplace: true, hasBasement: true },
   });
-  const october = matchingPlaybooks(mpls, 10);
-  assert.ok(october.some((item) => item.id === "cold-winterize"));
-  assert.ok(!october.some((item) => item.id.includes("monsoon")));
+  const october = matchingPlaybooks(mpls, new Date(2026, 9, 15));
+  assert.ok(october.some((item) => item.playbook.id === "cold-winterize"));
+  assert.ok(!october.some((item) => item.playbook.id.includes("monsoon")));
   assert.equal(
     playbookApplies(
       { id: "hot-arid-monsoon", name: "Monsoon", season: "monsoon", climateZones: ["hot-arid"], tasks: [] },
@@ -162,4 +200,161 @@ test("firing twice with the same weatherFires state appends nothing", () => {
   const second = evaluateTriggers(home({ weatherFires: first.fires }), forecast, now);
   assert.equal(second.duties.length, 0);
   assert.equal(second.fires.length, 0);
+});
+
+test("windowFor defaults wrap around the year", () => {
+  assert.deepEqual(windowFor({ id: "a", name: "A", season: "spring", climateZones: "all", triggerMonth: 4, tasks: [] }), {
+    early: 3,
+    ideal: 4,
+    late: 6,
+  });
+  assert.deepEqual(windowFor({ id: "b", name: "B", season: "winter", climateZones: "all", triggerMonth: 1, tasks: [] }), {
+    early: 12,
+    ideal: 1,
+    late: 3,
+  });
+  assert.deepEqual(
+    windowFor({
+      id: "c",
+      name: "C",
+      season: "winter",
+      climateZones: "all",
+      triggerMonth: 11,
+      lateMonth: 1,
+      tasks: [],
+    }),
+    { early: 10, ideal: 11, late: 1 },
+  );
+});
+
+test("monthInWindow handles wrapped windows", () => {
+  const window = { early: 10, ideal: 11, late: 1 };
+  assert.equal(monthInWindow(10, window), true);
+  assert.equal(monthInWindow(11, window), true);
+  assert.equal(monthInWindow(12, window), true);
+  assert.equal(monthInWindow(1, window), true);
+  assert.equal(monthInWindow(2, window), false);
+  assert.equal(monthInWindow(9, window), false);
+});
+
+test("windowState walks get-ahead, ideal, late, and closed", () => {
+  const presummer = PLAYBOOKS.find((item) => item.id === "hot-arid-presummer");
+  assert.ok(presummer);
+  assert.equal(windowState(presummer, 2), "get_ahead");
+  assert.equal(windowState(presummer, 3), "get_ahead");
+  assert.equal(windowState(presummer, 4), "ideal");
+  assert.equal(windowState(presummer, 5), "late");
+  assert.equal(windowState(presummer, 6), "late");
+  assert.equal(windowState(presummer, 7), "closed");
+
+  const coolerWinter = PLAYBOOKS.find((item) => item.id === "hot-arid-cooler-winter");
+  assert.ok(coolerWinter);
+  assert.equal(windowState(coolerWinter, 10), "get_ahead");
+  assert.equal(windowState(coolerWinter, 11), "ideal");
+  assert.equal(windowState(coolerWinter, 12), "late");
+  assert.equal(windowState(coolerWinter, 1), "late");
+  assert.equal(windowState(coolerWinter, 2), "closed");
+});
+
+test("seasonYearFor uses the year the wrapped window opened", () => {
+  const coolerWinter = PLAYBOOKS.find((item) => item.id === "hot-arid-cooler-winter");
+  const presummer = PLAYBOOKS.find((item) => item.id === "hot-arid-presummer");
+  assert.ok(coolerWinter);
+  assert.ok(presummer);
+  assert.equal(seasonYearFor(coolerWinter, new Date(2027, 0, 15)), 2026);
+  assert.equal(seasonYearFor(coolerWinter, new Date(2026, 10, 15)), 2026);
+  assert.equal(seasonYearFor(presummer, new Date(2026, 4, 15)), 2026);
+  assert.equal(seasonYearFor(presummer, new Date(2027, 0, 15)), 2027);
+});
+
+test("matchingPlaybooks returns late playbooks until the window closes", () => {
+  const tucson = home({
+    location: { lat: 32.22, lng: -110.97, postalCode: "85701", climateZone: "hot-arid" },
+  });
+  const may = matchingPlaybooks(tucson, new Date(2026, 4, 15));
+  const presummer = may.find((item) => item.playbook.id === "hot-arid-presummer");
+  assert.ok(presummer);
+  assert.equal(presummer.state, "late");
+  const july = matchingPlaybooks(tucson, new Date(2026, 6, 15));
+  assert.equal(
+    july.some((item) => item.playbook.id === "hot-arid-presummer"),
+    false,
+  );
+});
+
+test("matchingPlaybooks hides a declined playbook for its season year", () => {
+  const tucson = home({
+    location: { lat: 32.22, lng: -110.97, postalCode: "85701", climateZone: "hot-arid" },
+    attributes: { ...DEFAULT_ATTRIBUTES, hasEvaporativeCooler: true },
+    playbookDecisions: [{ playbookId: "hot-arid-cooler-winter", year: 2026, declinedTaskKeys: ["*"], disabled: true }],
+  });
+  const matched = matchingPlaybooks(tucson, new Date(2027, 0, 15));
+  assert.equal(
+    matched.some((item) => item.playbook.id === "hot-arid-cooler-winter"),
+    false,
+  );
+});
+
+test("playbookProgress counts completions and names the next undone duty", () => {
+  const household = home({
+    duties: [
+      stubDuty({ id: "d1", title: "First", playbookId: "hot-arid-presummer" }),
+      stubDuty({ id: "d2", title: "Second", playbookId: "hot-arid-presummer" }),
+      stubDuty({ id: "d3", title: "Third", playbookId: "hot-arid-presummer" }),
+    ],
+    completions: [
+      { id: "c1", dutyId: "d1", actor: "me", visitId: null, completedAt: "2026-04-02T00:00:00.000Z" },
+      { id: "c2", dutyId: "d2", actor: "me", visitId: null, completedAt: "2026-04-03T00:00:00.000Z" },
+    ],
+  });
+  assert.deepEqual(playbookProgress(household, "hot-arid-presummer", 2026), {
+    done: 2,
+    total: 3,
+    nextTitle: "Third",
+  });
+});
+
+test("seasonalTimeline rolls 12 months and places playbooks on their ideal month", () => {
+  const duties = [
+    stubDuty({
+      id: "d1",
+      title: "Service the AC and replace the filter",
+      playbookId: "hot-arid-presummer",
+      createdAt: "2027-04-01T00:00:00.000Z",
+    }),
+  ];
+  const tucson = home({
+    location: { lat: 32.22, lng: -110.97, postalCode: "85701", climateZone: "hot-arid" },
+    attributes: { ...DEFAULT_ATTRIBUTES, hasGutters: true },
+    playbookDecisions: [{ playbookId: "hot-arid-presummer", year: 2027, declinedTaskKeys: [] }],
+    duties,
+    completions: [{ id: "c1", dutyId: "d1", actor: "me", visitId: null, completedAt: "2026-04-10T00:00:00.000Z" }],
+  });
+  const timeline = seasonalTimeline(tucson, new Date(2026, 7, 15));
+  assert.equal(timeline[0]?.month, 8);
+  const apr = timeline.find((row) => row.month === 4 && row.year === 2027);
+  assert.ok(apr?.entries.some((entry) => entry.playbook.id === "hot-arid-presummer" && entry.state === "done"));
+  const jun = timeline.find((row) => row.month === 6 && row.year === 2027);
+  assert.ok(jun?.entries.some((entry) => entry.playbook.id === "hot-arid-monsoon"));
+  const oct = timeline.find((row) => row.month === 10 && row.year === 2026);
+  assert.ok(oct?.entries.some((entry) => entry.playbook.id === "hot-arid-post-monsoon"));
+});
+
+test("weatherWatch lists a freeze hit and drops requires-gated triggers", () => {
+  const forecast: WeatherForecast = {
+    fetchedAt: "2026-01-01T00:00:00.000Z",
+    days: [
+      { date: "2026-01-01", tempMinF: 40, tempMaxF: 55, windMph: 5, precipIn: 0 },
+      { date: "2026-01-02", tempMinF: 24, tempMaxF: 38, windMph: 5, precipIn: 0 },
+    ],
+  };
+  const now = new Date(2026, 0, 1);
+  const result = weatherWatch(forecast, home({ attributes: { ...DEFAULT_ATTRIBUTES, hasPool: false } }), now);
+  assert.ok(result.active.some((item) => item.trigger.id === "hard-freeze" && item.hitDay?.date === "2026-01-02"));
+  const gated = WEATHER_TRIGGERS.filter((trigger) => trigger.requires && Object.keys(trigger.requires).length > 0);
+  for (const trigger of gated) {
+    assert.equal(result.watching.includes(trigger.name), false);
+  }
+  assert.ok(result.watching.includes("Hard freeze"));
+  assert.ok(result.watching.includes("Heat wave"));
 });

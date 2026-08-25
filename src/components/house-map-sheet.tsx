@@ -191,7 +191,7 @@ export function HouseMapSheet({
                 )}
                 {roomConsumables.length > 0 ? (
                   <section>
-                    <h3 className="mb-2 text-[13px] font-medium text-muted-foreground">Consumables</h3>
+                    <h3 className="mb-2 text-[13px] font-medium text-muted-foreground">Items</h3>
                     <ul className="grid gap-2">
                       {roomConsumables.map((item) => (
                         <li key={item.id} className="rounded-2xl bg-white px-4 py-3 text-sm">

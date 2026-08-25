@@ -228,8 +228,8 @@ export function generateHomeFromAnswers(
   const houseLike = answers.homeType === "house" || answers.homeType === "townhouse";
   const rooms: HomeRoom[] = [
     ...systemRooms({
-      wholeHome: houseLike ? "HVAC/Utility" : "Whole Home",
-      exterior: houseLike ? "Exterior/Yard" : "Exterior",
+      wholeHome: houseLike ? "Home systems" : "Whole Home",
+      exterior: houseLike ? "Outdoors" : "Exterior",
     }),
   ];
   if (chosenRooms) {
@@ -412,7 +412,7 @@ export function generateHomeFromAnswers(
     duties,
     seasonalSuggestions: matchingPlaybooks(
       { location, attributes, playbookDecisions: [], tenure: answers.tenure },
-      now.getMonth() + 1,
+      now,
     ),
   };
 }

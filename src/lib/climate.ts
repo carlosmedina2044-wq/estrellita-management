@@ -94,13 +94,13 @@ export function roundCoord(value: number): number {
 export function climateLabel(zone: ClimateZone): string {
   switch (zone) {
     case "hot-arid":
-      return "Hot-arid";
+      return "Desert";
     case "cold":
       return "Cold";
     case "humid-subtropical":
-      return "Humid subtropical";
+      return "Humid";
     case "marine":
-      return "Marine / temperate";
+      return "Marine";
     default:
       return "Mixed";
   }

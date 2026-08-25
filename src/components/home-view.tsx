@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { HomeEditor } from "@/components/home-editor";
 import {
@@ -18,9 +18,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 import type { Household, RestockDigestSettings } from "@/lib/types";
-import { BrandLockup, BrandMark } from "@/components/brand-logo";
+import { BrandMark } from "@/components/brand-logo";
+import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
-import { ZipField } from "@/components/zip-prompt";
+import { ZipSheet } from "@/components/zip-prompt";
 import { climateLabel, deriveClimate } from "@/lib/climate";
 import { notifyPermission, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
 import { toast } from "sonner";
@@ -64,6 +65,7 @@ export function HomeView({
   const [owner, setOwner] = useState(household.ownerName);
   const [cleaner, setCleaner] = useState(household.cleanerName);
   const [confirmErase, setConfirmErase] = useState(false);
+  const [zipOpen, setZipOpen] = useState(false);
   const [permission, setPermission] = useState<NotifyPermission>("prompt");
 
   useEffect(() => {
@@ -87,103 +89,106 @@ export function HomeView({
 
   return (
     <div className="flex flex-col gap-5 pb-8">
-      <header className="pt-2">
-        <BrandLockup size="sm" />
-        <h1 className="ui-heading mt-5 text-[34px] font-semibold tracking-tight">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Household on this iPhone</p>
-      </header>
-      <Field label="Home name">
-        <Input value={home} onChange={(event) => setHome(event.target.value)} className="h-12" />
-      </Field>
-      <Field label="Your name">
-        <Input value={owner} onChange={(event) => setOwner(event.target.value)} className="h-12" />
-      </Field>
-      <Field label="Cleaning service / person">
-        <Input
-          value={cleaner}
-          onChange={(event) => setCleaner(event.target.value)}
-          placeholder="Cleaner"
-          className="h-12"
-        />
-      </Field>
-      <Field label="ZIP (weather + climate)">
-        {household.location.postalCode ? (
-          <p className="text-sm text-muted-foreground">
-            {household.location.placeName ? `${household.location.placeName} · ` : ""}
-            {climateLabel(deriveClimate(household.location))} · {household.location.postalCode}
-          </p>
-        ) : (
-          <p className="text-sm text-muted-foreground">Used for weather and seasonal jobs. 5-digit US ZIP.</p>
-        )}
-        <ZipField
-          value={household.location.postalCode}
-          onSave={async (zip) => {
-            if (onSavePostalCode) {
-              const result = await onSavePostalCode(zip);
-              if (result.ok) toast.success("ZIP saved");
-              return result;
-            }
-            await onUpdate({ location: { ...household.location, postalCode: zip } });
-            toast.success("ZIP saved");
-            return { ok: true };
-          }}
-        />
-      </Field>
+      <PageHeader title="Settings" subtitle="Everything stays on this iPhone." />
+      <section>
+        <h2 className="ui-heading mb-2 text-[20px] font-semibold">Household</h2>
+        <div className="ui-group">
+          <div className="ui-group-row grid gap-1.5 px-4 py-3">
+            <Label className="text-[13px] font-medium text-muted-foreground">Home name</Label>
+            <Input
+              value={home}
+              onChange={(event) => setHome(event.target.value)}
+              placeholder="e.g. Our house"
+              className="h-12"
+            />
+          </div>
+          <div className="ui-group-row grid gap-1.5 px-4 py-3">
+            <Label className="text-[13px] font-medium text-muted-foreground">Your name</Label>
+            <Input
+              value={owner}
+              onChange={(event) => setOwner(event.target.value)}
+              placeholder="Your first name"
+              className="h-12"
+            />
+          </div>
+          <div className="ui-group-row grid gap-1.5 px-4 py-3">
+            <Label className="text-[13px] font-medium text-muted-foreground">Cleaner</Label>
+            <Input
+              value={cleaner}
+              onChange={(event) => setCleaner(event.target.value)}
+              placeholder="Name or company (optional)"
+              className="h-12"
+            />
+          </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="ui-heading mb-2 text-[20px] font-semibold">Location</h2>
+        <div className="ui-group">
+          <button type="button" className="ui-group-row w-full px-4 py-3 text-left" onClick={() => setZipOpen(true)}>
+            <p className="text-[15px] font-medium">ZIP code</p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              {household.location.postalCode
+                ? `${household.location.placeName ? `${household.location.placeName} · ` : ""}${climateLabel(deriveClimate(household.location))}`
+                : "Not set"}
+            </p>
+            <p className="mt-1 text-[13px] text-muted-foreground">Used for weather alerts and seasonal timing.</p>
+          </button>
+        </div>
+      </section>
 
       {restockDigest && onUpdateDigest ? (
-        <div className="rounded-2xl bg-card p-4">
-          <p className="font-medium">Weekly restock digest</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Sunday 9:00 AM local by default. Sends only when something is in Order now or coming up this week.
-            Per-item “order by” reminders arrive the morning the order should go out.
-          </p>
-          {permission === "prompt" ? (
+        <section>
+          <h2 className="ui-heading mb-2 text-[20px] font-semibold">Notifications</h2>
+          <div className="rounded-2xl bg-card p-4">
+            <p className="font-medium">Weekly restock digest</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              A weekly summary of what to order, sent only when something needs ordering.
+            </p>
+            {permission === "prompt" ? (
+              <Button className="mt-3 h-11 w-full" onClick={() => void requestNotifyPermission().then(setPermission)}>
+                Allow notifications
+              </Button>
+            ) : permission === "denied" ? (
+              <p className="mt-3 text-[13px] text-destructive">
+                Notifications are off for Cuidala in iOS Settings. Turn them on there to get reminders.
+              </p>
+            ) : null}
             <button
               type="button"
-              className="mt-3 h-12 w-full rounded-xl bg-foreground text-sm font-medium text-background"
-              onClick={() => void requestNotifyPermission().then(setPermission)}
+              className="mt-3 h-12 w-full rounded-xl bg-secondary text-[15px] font-medium"
+              onClick={() => onUpdateDigest({ enabled: !restockDigest.enabled })}
             >
-              Allow notifications
+              {restockDigest.enabled ? "On" : "Off"}
             </button>
-          ) : permission === "denied" ? (
-            <p className="mt-3 text-xs text-destructive">
-              Notifications are off for Cuidala in iOS Settings. Turn them on there to get reminders.
-            </p>
-          ) : null}
-          <button
-            type="button"
-            className="mt-3 h-12 w-full rounded-xl bg-secondary text-sm font-medium"
-            onClick={() => onUpdateDigest({ enabled: !restockDigest.enabled })}
-          >
-            {restockDigest.enabled ? "On" : "Off"}
-          </button>
-          {restockDigest.enabled ? (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <select
-                className="h-11 rounded-xl bg-secondary px-3 text-sm"
-                value={restockDigest.weekday}
-                onChange={(event) => onUpdateDigest({ weekday: Number(event.target.value) })}
-              >
-                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => (
-                  <option key={day} value={index}>
-                    {day}
-                  </option>
-                ))}
-              </select>
-              <select
-                className="h-11 rounded-xl bg-secondary px-3 text-sm"
-                value={restockDigest.hour}
-                onChange={(event) => onUpdateDigest({ hour: Number(event.target.value) })}
-              >
-                {Array.from({ length: 24 }, (_, hour) => (
-                  <option key={hour} value={hour}>
-                    {`${String(hour).padStart(2, "0")}:00`}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-        </div>
+            {restockDigest.enabled ? (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <select
+                  className="h-11 rounded-xl bg-secondary px-3 text-[15px]"
+                  value={restockDigest.weekday}
+                  onChange={(event) => onUpdateDigest({ weekday: Number(event.target.value) })}
+                >
+                  {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => (
+                    <option key={day} value={index}>
+                      {day}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-11 rounded-xl bg-secondary px-3 text-[15px]"
+                  value={restockDigest.hour}
+                  onChange={(event) => onUpdateDigest({ hour: Number(event.target.value) })}
+                >
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <option key={hour} value={hour}>
+                      {`${String(hour).padStart(2, "0")}:00`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </div>
+        </section>
       ) : null}
 
       <div className="rounded-2xl bg-card p-4">
@@ -237,7 +242,7 @@ export function HomeView({
       </Button>
 
       <Button variant="secondary" className="h-12" onClick={onStartCleanerVisit}>
-        Hand phone to {household.cleanerName || "cleaner"}
+        Hand phone to {household.cleanerName || "Cleaner"}
       </Button>
 
       {onImportBackup ? (
@@ -272,7 +277,7 @@ export function HomeView({
             <BrandMark size="sm" className="mx-auto mb-2" />
             <AlertDialogTitle>Erase everything?</AlertDialogTitle>
             <AlertDialogDescription>
-              Rooms, chores, consumables, history, and reminders on this iPhone will be deleted. This cannot be undone.
+              Rooms, chores, items, history, and reminders on this iPhone will be deleted. This cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -288,15 +293,33 @@ export function HomeView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-      {children}
+      {onSavePostalCode ? (
+        <ZipSheet
+          open={zipOpen}
+          initialZip={household.location.postalCode}
+          onOpenChange={setZipOpen}
+          onSave={async (zip) => {
+            const result = await onSavePostalCode(zip);
+            if (result.ok) toast.success("ZIP saved");
+            return result;
+          }}
+        />
+      ) : (
+        <ZipSheet
+          open={zipOpen}
+          initialZip={household.location.postalCode}
+          onOpenChange={setZipOpen}
+          onSave={async (zip) => {
+            await onUpdate({ location: { ...household.location, postalCode: zip } });
+            toast.success("ZIP saved");
+            return { ok: true };
+          }}
+        />
+      )}
+      <div className="mt-6 flex flex-col items-center gap-1 pb-2">
+        <BrandMark size="sm" />
+        <p className="text-[11px] text-muted-foreground">Cuidala</p>
+      </div>
     </div>
   );
 }

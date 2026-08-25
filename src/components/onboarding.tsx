@@ -243,7 +243,7 @@ export function Onboarding({
             >
               Use a sample home instead
             </Button>
-            <p className="mt-auto pt-8 text-[12px] leading-5 text-muted-foreground">
+            <p className="mt-auto pt-8 text-[13px] leading-5 text-muted-foreground">
               Cuidala keeps your home data on this iPhone, encrypted. No account, no server copy.
               iCloud backup restores the encrypted home but not the key. Make a backup in Settings before
               you switch phones. See Settings for the privacy policy.
@@ -415,7 +415,7 @@ export function Onboarding({
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-[12px] leading-5 text-muted-foreground">
+            <p className="mt-4 text-[13px] leading-5 text-muted-foreground">
               This home lives only on this iPhone. Before you switch phones, make an encrypted backup in Settings.
             </p>
             <div className="mt-auto flex gap-3 pt-6">

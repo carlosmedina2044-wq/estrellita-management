@@ -43,11 +43,11 @@ export function roomTemplateFor(homeType: HomeType): RoomChoice[] {
     {
       key: "exterior",
       type: "patio",
-      name: "Exterior/Yard",
+      name: "Outdoors",
       enabled: houseLike,
       system: "exterior",
     },
-    { key: "utility", type: "other", name: "HVAC/Utility", enabled: true, system: "whole-home" },
+    { key: "utility", type: "other", name: "Home systems", enabled: true, system: "whole-home" },
   ];
 }
 

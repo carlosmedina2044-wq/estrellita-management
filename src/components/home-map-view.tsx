@@ -3,21 +3,14 @@
 import { Package } from "lucide-react";
 import { RoomTypeIcon } from "@/components/room-type-icon";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
-import { homeSummary, nodeStatus, statusTone, type NodeStatus } from "@/lib/node-status";
+import { nodeStatus, statusText, type NodeStatus } from "@/lib/node-status";
 import type { HomeRoom, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const TONE: Record<ReturnType<typeof statusTone>, string> = {
-  green: "border-[#34c759]/50 bg-[#34c759]/8",
-  amber: "border-[#ff9f0a]/50 bg-[#ff9f0a]/10",
-  red: "border-destructive/50 bg-destructive/8",
-};
 
 export function HomeMapView({
   household,
   now,
   selectedId,
-  replacementRooms,
   onSelectRoom,
   onReorder,
 }: {
@@ -28,22 +21,21 @@ export function HomeMapView({
   onSelectRoom: (roomId: string) => void;
   onReorder?: (floorId: string | null, orderedIds: string[]) => void;
 }) {
-  const summary = homeSummary(household, now);
   const floors = floorsInOrder(household);
   const system = systemRoomList(household);
+  const extraNullRooms = household.rooms.some((room) => room.floorId === null && !room.system);
+  const hideFloorHeader = floors.length === 1 && !extraNullRooms;
 
   return (
     <div className="flex flex-col gap-5">
-      <StatusLine status={summary} label="Whole house" />
       {system.length > 0 ? (
         <section>
-          <h2 className="ui-heading mb-2 text-[17px] font-semibold">Whole Home & Exterior</h2>
+          <h2 className="ui-heading mb-2 text-[17px] font-semibold">Whole home</h2>
           <TileGrid
             rooms={system}
             household={household}
             now={now}
             selectedId={selectedId}
-            replacementRooms={replacementRooms}
             onSelectRoom={onSelectRoom}
             onReorder={onReorder ? (ids) => onReorder(null, ids) : undefined}
           />
@@ -54,12 +46,14 @@ export function HomeMapView({
         const floorStatus = nodeStatus(household, floor.id, "floor", now);
         return (
           <section key={floor.id}>
-            <header className="mb-2 flex items-baseline justify-between gap-3">
-              <h2 className="ui-heading text-[17px] font-semibold">{floor.name}</h2>
-              <StatusLine status={floorStatus} compact />
-            </header>
+            {hideFloorHeader ? null : (
+              <header className="mb-2 flex items-baseline justify-between gap-3">
+                <h2 className="ui-heading text-[17px] font-semibold">{floor.name}</h2>
+                <StatusLine status={floorStatus} compact />
+              </header>
+            )}
             {rooms.length === 0 ? (
-              <p className="rounded-2xl bg-white px-4 py-6 text-center text-sm text-muted-foreground">
+              <p className="rounded-2xl bg-white px-4 py-6 text-center text-[15px] text-muted-foreground">
                 No rooms on this floor yet.
               </p>
             ) : (
@@ -68,7 +62,6 @@ export function HomeMapView({
                 household={household}
                 now={now}
                 selectedId={selectedId}
-                replacementRooms={replacementRooms}
                 onSelectRoom={onSelectRoom}
                 onReorder={onReorder ? (ids) => onReorder(floor.id, ids) : undefined}
               />
@@ -80,12 +73,24 @@ export function HomeMapView({
   );
 }
 
+function roomCaption(status: NodeStatus) {
+  if (status.overdue > 0) {
+    return { text: `${status.overdue} overdue`, className: "text-destructive" };
+  }
+  if (status.dueSoon > 0) {
+    return { text: `${status.dueSoon} due soon`, className: "text-warning" };
+  }
+  if (status.total > 0) {
+    return { text: `${status.total} to do`, className: "text-muted-foreground" };
+  }
+  return { text: "All caught up", className: "text-muted-foreground" };
+}
+
 function TileGrid({
   rooms,
   household,
   now,
   selectedId,
-  replacementRooms,
   onSelectRoom,
   onReorder,
 }: {
@@ -93,7 +98,6 @@ function TileGrid({
   household: Household;
   now: Date;
   selectedId?: string | null;
-  replacementRooms?: Set<string>;
   onSelectRoom: (roomId: string) => void;
   onReorder?: (orderedIds: string[]) => void;
 }) {
@@ -101,7 +105,8 @@ function TileGrid({
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {rooms.map((room) => {
         const status = nodeStatus(household, room.id, "room", now);
-        const tone = statusTone(status);
+        const caption = roomCaption(status);
+        const overdue = status.overdue > 0;
         return (
           <button
             key={room.id}
@@ -131,7 +136,7 @@ function TileGrid({
             onClick={() => onSelectRoom(room.id)}
             className={cn(
               "flex min-h-20 items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-left",
-              TONE[tone],
+              overdue ? "border-destructive/30 bg-destructive/8" : "border-border bg-card",
               selectedId === room.id && "ring-2 ring-primary",
             )}
           >
@@ -139,26 +144,15 @@ function TileGrid({
               <RoomTypeIcon room={room} className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
               <span className="min-w-0">
                 <span className="block text-[17px] font-medium leading-snug">{room.name}</span>
-                <span className="mt-0.5 block text-[12px] text-muted-foreground">
-                  {status.total === 0
-                    ? room.system
-                      ? "Always here"
-                      : "No outstanding tasks"
-                    : `${status.total} outstanding`}
-                </span>
+                <span className={cn("mt-0.5 block text-[13px]", caption.className)}>{caption.text}</span>
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
-              {replacementRooms?.has(room.id) ? (
-                <span className="text-[13px] font-semibold text-[#ff9f0a]" aria-label="Replacement in next 6 months">
-                  $
-                </span>
-              ) : null}
               {status.reorderPending > 0 ? (
-                <Package className="size-4 text-[#ff9f0a]" aria-label="Reorder pending" />
+                <Package className="size-4 text-warning" aria-label="Reorder pending" />
               ) : null}
               {status.total > 0 ? (
-                <span className="flex size-6 items-center justify-center rounded-full bg-white text-[12px] font-semibold">
+                <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-[13px] font-semibold text-foreground">
                   {status.total}
                 </span>
               ) : null}
@@ -172,29 +166,14 @@ function TileGrid({
 
 function StatusLine({
   status,
-  label,
   compact,
 }: {
   status: NodeStatus;
-  label?: string;
   compact?: boolean;
 }) {
-  const tone = statusTone(status);
-  const text =
-    status.total === 0 && status.reorderPending === 0
-      ? "All clear"
-      : `${status.overdue ? `${status.overdue} overdue` : ""}${
-          status.overdue && status.dueSoon ? " · " : ""
-        }${status.dueSoon ? `${status.dueSoon} due soon` : ""}${
-          status.reorderPending ? ` · ${status.reorderPending} to reorder` : ""
-        }`.replace(/^[ ·]+/, "");
+  const text = statusText(status);
   if (compact) {
     return <span className="text-[13px] text-muted-foreground">{text}</span>;
   }
-  return (
-    <div className={cn("rounded-2xl border px-4 py-3", TONE[tone])}>
-      {label ? <p className="text-[13px] font-medium text-muted-foreground">{label}</p> : null}
-      <p className="ui-heading text-[22px] font-semibold">{text}</p>
-    </div>
-  );
+  return <span className="text-[13px] text-muted-foreground">{text}</span>;
 }

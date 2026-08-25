@@ -222,7 +222,7 @@ export function HomeEditor({
         />
         {roomHints.length > 0 ? (
           <p className="text-xs text-muted-foreground">
-            Suggested consumables: {roomHints.map((item) => item.itemName).join(", ")}
+            Suggested items: {roomHints.map((item) => item.itemName).join(", ")}
           </p>
         ) : null}
         <Button type="button" className="h-11" onClick={addRoom}>
@@ -296,7 +296,7 @@ export function HomeEditor({
         </div>
         {assetHints.length > 0 ? (
           <p className="text-xs text-muted-foreground">
-            Suggested consumables: {assetHints.map((item) => item.itemName).join(", ")}
+            Suggested items: {assetHints.map((item) => item.itemName).join(", ")}
           </p>
         ) : null}
         <Button

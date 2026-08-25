@@ -3,15 +3,8 @@
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import type { CheckinLevel } from "@/lib/restock";
+import { CHECKIN_OPTIONS, type CheckinLevel } from "@/lib/restock";
 import type { SupplyAutomation } from "@/lib/types";
-
-const OPTIONS: { label: string; level: CheckinLevel }[] = [
-  { label: "Plenty left", level: "plenty" },
-  { label: "About half", level: "half" },
-  { label: "Running low", level: "low" },
-  { label: "Out", level: "out" },
-];
 
 export function SupplyCheckinSheet({
   item,
@@ -29,7 +22,7 @@ export function SupplyCheckinSheet({
           <SheetTitle>How much is left?</SheetTitle>
         </SheetHeader>
         <div className="flex flex-col gap-2 px-4 pb-4">
-          {OPTIONS.map((option) => (
+          {CHECKIN_OPTIONS.map((option) => (
             <Button
               key={option.level}
               type="button"

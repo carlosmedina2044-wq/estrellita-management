@@ -1,4 +1,4 @@
-import { audienceLabel, frequencyLabel } from "@/lib/constants";
+import { frequencyLabelShort } from "@/lib/constants";
 import { roomName } from "@/lib/home-model";
 import {
   addDays,
@@ -160,17 +160,24 @@ export function dutySubtitle(
   now = new Date(),
   installedAt?: string | null,
   household?: Pick<Household, "rooms" | "floors" | "assets">,
+  overdue?: boolean,
 ): string {
-  const cadence = frequencyLabel(duty.frequency, duty.weekday, duty.monthDay);
+  const late = overdue ?? isOverdue(duty, completions, now, installedAt);
   const next = nextDueDate(duty, completions, now, installedAt);
-  const dueBit =
-    duty.frequency === "once" && duty.dueDate
-      ? `Due ${duty.dueDate}`
-      : duty.frequency === "quarterly" || duty.frequency === "yearly"
-        ? `${cadence} · Due ${next ? formatDueDate(toISODate(next)) : "—"}`
-        : cadence;
   const place = household ? roomName(household, duty.room) : duty.room;
-  return `${place} · ${dueBit} · ${audienceLabel(duty.audience)}`;
+  const parts = [place];
+  if (late && next) {
+    parts.push(`Was due ${formatDueDate(toISODate(next))}`);
+  } else {
+    parts.push(frequencyLabelShort(duty.frequency));
+    if (duty.frequency === "quarterly" || duty.frequency === "yearly") {
+      parts.push(`Due ${next ? formatDueDate(toISODate(next)) : "—"}`);
+    } else if (duty.frequency === "once" && duty.dueDate) {
+      parts.push(`Due ${formatDueDate(duty.dueDate)}`);
+    }
+  }
+  if (duty.audience === "cleaner") parts.push("Cleaner");
+  return parts.join(" · ");
 }
 
 export function sortDuties(duties: Duty[], household?: Pick<Household, "rooms">): Duty[] {

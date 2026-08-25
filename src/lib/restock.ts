@@ -16,6 +16,12 @@ export const CHECKIN_LEVELS = {
   out: 0,
 } as const;
 export type CheckinLevel = keyof typeof CHECKIN_LEVELS;
+export const CHECKIN_OPTIONS: { level: CheckinLevel; label: string; short: string }[] = [
+  { level: "plenty", label: "Plenty left", short: "Full" },
+  { level: "half", label: "About half", short: "Half" },
+  { level: "low", label: "Running low", short: "Low" },
+  { level: "out", label: "Out", short: "Out" },
+];
 /** Don't re-ask for a check-in if the estimate was confirmed within this many days. */
 export const CHECKIN_STALE_DAYS = 30;
 
@@ -87,8 +93,8 @@ export function partStatusForDuty(
     const overdue = isOverdue(duty, household.completions, now, installedAt);
     const next = nextDueDate(duty, household.completions, now, installedAt);
     const dueSoon = Boolean(next) && startOfDay(next!) <= startOfDay(addDays(now, 7));
-    if (overdue || dueSoon) return { kind: "install_today", label: "Install today" };
-    return { kind: "part_on_hand", label: "Part on hand" };
+    if (overdue || dueSoon) return { kind: "install_today", label: "Supplies ready" };
+    return { kind: "part_on_hand", label: "Supplies on hand" };
   }
   return null;
 }
@@ -726,7 +732,7 @@ export function usedWhere(
   if (!duty) return "";
   const room = household.rooms.find((entry) => entry.id === duty.room || entry.id === duty.nodeId);
   const roomLabel = room?.name ?? duty.room;
-  return `${roomLabel} → ${duty.title}`;
+  return roomLabel;
 }
 
 export function defaultConsumableFields(now = new Date()): Pick<

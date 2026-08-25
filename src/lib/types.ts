@@ -240,6 +240,8 @@ export type SupplyAutomationInput = {
   linkedDutyIds?: string[];
   preferredRetailer?: RetailerId | string;
   unitCost?: number;
+  lastConfirmedLevel?: number;
+  lastConfirmedAt?: string;
 };
 
 export type Completion = {

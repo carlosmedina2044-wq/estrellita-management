@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BrandLockup } from "@/components/brand-logo";
+import { BrandMark } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { verifyDeviceOwner } from "@/lib/native/biometrics";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
@@ -33,9 +33,9 @@ export function FaceLock({ method, onUnlocked }: { method: LockMethod; onUnlocke
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-8 text-center">
       <div className="brand-enter">
-        <BrandLockup size="md" />
+        <BrandMark size="md" />
       </div>
-      <h1 className="ui-heading mt-10 text-[22px] font-semibold tracking-tight">Locked</h1>
+      <h1 className="ui-heading mt-10 text-[20px] font-semibold tracking-tight">Locked</h1>
       <p className="mt-2 max-w-xs text-sm text-muted-foreground">{lockMethodLabel(method).prompt}</p>
       <Button className="mt-8 h-14 w-full max-w-xs" disabled={busy} onClick={() => void unlock()}>
         {busy ? "Waiting…" : "Unlock"}

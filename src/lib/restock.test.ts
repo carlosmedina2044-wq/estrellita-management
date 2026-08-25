@@ -388,8 +388,16 @@ test("replacement duties show part, arriving, order-first, and install-today chi
     "install_today",
   );
   assert.equal(
+    partStatusForDuty(change, { ...house, supplyAutomations: [item({ onHand: 1 })] }, now)?.label,
+    "Supplies ready",
+  );
+  assert.equal(
     partStatusForDuty(far, { duties: [far], completions: [], supplyAutomations: [item({ onHand: 1 })] }, now)?.kind,
     "part_on_hand",
+  );
+  assert.equal(
+    partStatusForDuty(far, { duties: [far], completions: [], supplyAutomations: [item({ onHand: 1 })] }, now)?.label,
+    "Supplies on hand",
   );
   const ordered = markConsumableOrdered(item({ onHand: 0 }), { expectedArrivalDate: "2026-08-25", qty: 1 }, now);
   assert.equal(partStatusForDuty(change, { ...house, supplyAutomations: [ordered] }, now)?.kind, "arriving");

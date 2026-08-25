@@ -4,7 +4,6 @@
     "name": "Whole-home safety",
     "season": "any",
     "climateZones": "all",
-    "triggerMonth": 1,
     "tasks": [
       {
         "title": "Test smoke and CO detectors",
@@ -113,8 +112,13 @@
     "id": "hot-arid-presummer",
     "name": "Pre-summer AC service",
     "season": "summer",
-    "climateZones": ["hot-arid"],
+    "climateZones": [
+      "hot-arid"
+    ],
     "triggerMonth": 4,
+    "earlyMonth": 2,
+    "lateMonth": 6,
+    "why": "AC techs book solid by May. A tune-up now costs a service call; a July failure costs emergency rates and a brutal wait.",
     "tasks": [
       {
         "title": "Service the AC and replace the filter",
@@ -124,7 +128,9 @@
         "estimatedMinutes": 20,
         "estimatedCost": 180,
         "isDiy": false,
-        "consumables": ["HVAC filter"]
+        "consumables": [
+          "HVAC filter"
+        ]
       }
     ]
   },
@@ -132,8 +138,13 @@
     "id": "hot-arid-monsoon",
     "name": "Monsoon prep",
     "season": "monsoon",
-    "climateZones": ["hot-arid"],
+    "climateZones": [
+      "hot-arid"
+    ],
     "triggerMonth": 6,
+    "earlyMonth": 5,
+    "lateMonth": 8,
+    "why": "Monsoon storms arrive fast. Clear drainage and secured loose items prevent the most common summer damage claims.",
     "tasks": [
       {
         "title": "Check roof and drainage",
@@ -156,9 +167,16 @@
     "id": "hot-arid-post-monsoon",
     "name": "Post-monsoon roof and gutter check",
     "season": "fall",
-    "climateZones": ["hot-arid"],
+    "climateZones": [
+      "hot-arid"
+    ],
     "triggerMonth": 10,
-    "requires": { "hasGutters": true },
+    "earlyMonth": 9,
+    "lateMonth": 12,
+    "why": "Monsoon debris left on roofs and in gutters bakes in and causes leaks the following summer.",
+    "requires": {
+      "hasGutters": true
+    },
     "tasks": [
       {
         "title": "Inspect roof and gutters after monsoon",
@@ -173,9 +191,16 @@
     "id": "hot-arid-cooler",
     "name": "Evaporative cooler startup",
     "season": "spring",
-    "climateZones": ["hot-arid"],
+    "climateZones": [
+      "hot-arid"
+    ],
     "triggerMonth": 4,
-    "requires": { "hasEvaporativeCooler": true },
+    "earlyMonth": 3,
+    "lateMonth": 6,
+    "why": "Fresh pads and a clean reservoir before first heat — mid-season startup problems always land on the hottest week.",
+    "requires": {
+      "hasEvaporativeCooler": true
+    },
     "tasks": [
       {
         "title": "Start up the evaporative cooler",
@@ -184,7 +209,9 @@
         "target": "evaporative_cooler",
         "estimatedMinutes": 45,
         "isDiy": true,
-        "consumables": ["Cooler pads"]
+        "consumables": [
+          "Cooler pads"
+        ]
       }
     ]
   },
@@ -192,9 +219,16 @@
     "id": "hot-arid-cooler-winter",
     "name": "Winterize evaporative cooler",
     "season": "winter",
-    "climateZones": ["hot-arid"],
+    "climateZones": [
+      "hot-arid"
+    ],
     "triggerMonth": 11,
-    "requires": { "hasEvaporativeCooler": true },
+    "earlyMonth": 10,
+    "lateMonth": 1,
+    "why": "An un-winterized cooler grows scale and mineral damage over winter and shortens pad and pump life.",
+    "requires": {
+      "hasEvaporativeCooler": true
+    },
     "tasks": [
       {
         "title": "Winterize the evaporative cooler",
@@ -210,9 +244,16 @@
     "id": "hot-arid-irrigation",
     "name": "Irrigation seasonal adjustment",
     "season": "summer",
-    "climateZones": ["hot-arid"],
+    "climateZones": [
+      "hot-arid"
+    ],
     "triggerMonth": 5,
-    "requires": { "hasIrrigation": true },
+    "earlyMonth": 4,
+    "lateMonth": 7,
+    "why": "Summer watering needs change fast in the desert. A seasonal adjustment saves water and keeps plants alive through June.",
+    "requires": {
+      "hasIrrigation": true
+    },
     "tasks": [
       {
         "title": "Adjust irrigation for summer",
@@ -228,8 +269,13 @@
     "id": "hot-arid-uv",
     "name": "UV caulk and paint inspection",
     "season": "spring",
-    "climateZones": ["hot-arid"],
+    "climateZones": [
+      "hot-arid"
+    ],
     "triggerMonth": 3,
+    "earlyMonth": 2,
+    "lateMonth": 5,
+    "why": "Desert UV destroys caulk and paint faster than anywhere else. Small touch-ups now prevent stucco and window leaks.",
     "tasks": [
       {
         "title": "Inspect exterior caulk and paint for UV damage",
@@ -245,8 +291,13 @@
     "id": "cold-furnace",
     "name": "Furnace service",
     "season": "fall",
-    "climateZones": ["cold"],
+    "climateZones": [
+      "cold"
+    ],
     "triggerMonth": 9,
+    "earlyMonth": 8,
+    "lateMonth": 11,
+    "why": "Furnace techs book out once the first cold snap hits. A fall service is the cheapest insurance against a mid-winter failure.",
     "tasks": [
       {
         "title": "Service the furnace",
@@ -256,7 +307,9 @@
         "estimatedMinutes": 20,
         "estimatedCost": 160,
         "isDiy": false,
-        "consumables": ["Furnace filter"]
+        "consumables": [
+          "Furnace filter"
+        ]
       }
     ]
   },
@@ -264,8 +317,13 @@
     "id": "cold-winterize",
     "name": "Winterize outdoor water",
     "season": "fall",
-    "climateZones": ["cold"],
+    "climateZones": [
+      "cold"
+    ],
     "triggerMonth": 10,
+    "earlyMonth": 9,
+    "lateMonth": 11,
+    "why": "One hard freeze with a connected hose can split a pipe inside the wall. Ten minutes now prevents a four-figure repair.",
     "tasks": [
       {
         "title": "Winterize outdoor faucets",
@@ -289,9 +347,16 @@
     "id": "cold-gutters",
     "name": "Fall gutter cleaning",
     "season": "fall",
-    "climateZones": ["cold"],
+    "climateZones": [
+      "cold"
+    ],
     "triggerMonth": 10,
-    "requires": { "hasGutters": true },
+    "earlyMonth": 9,
+    "lateMonth": 11,
+    "why": "Leaf-clogged gutters cause ice dams that force water under shingles all winter.",
+    "requires": {
+      "hasGutters": true
+    },
     "tasks": [
       {
         "title": "Clean gutters before freeze",
@@ -307,9 +372,16 @@
     "id": "cold-chimney",
     "name": "Chimney inspection",
     "season": "fall",
-    "climateZones": ["cold"],
+    "climateZones": [
+      "cold"
+    ],
     "triggerMonth": 9,
-    "requires": { "hasFireplace": true },
+    "earlyMonth": 8,
+    "lateMonth": 12,
+    "why": "Creosote buildup is the leading cause of chimney fires. Inspect before the first fire of the season.",
+    "requires": {
+      "hasFireplace": true
+    },
     "tasks": [
       {
         "title": "Inspect the chimney",
@@ -325,8 +397,13 @@
     "id": "cold-snow",
     "name": "Snow equipment prep",
     "season": "fall",
-    "climateZones": ["cold"],
+    "climateZones": [
+      "cold"
+    ],
     "triggerMonth": 11,
+    "earlyMonth": 10,
+    "lateMonth": 12,
+    "why": "Snow equipment fails the first time you need it. Fuel, oil, and a test run before the first storm.",
     "tasks": [
       {
         "title": "Prep snow equipment",
@@ -341,9 +418,16 @@
     "id": "cold-sump",
     "name": "Spring sump pump test",
     "season": "spring",
-    "climateZones": ["cold"],
+    "climateZones": [
+      "cold"
+    ],
     "triggerMonth": 3,
-    "requires": { "hasBasement": true },
+    "earlyMonth": 2,
+    "lateMonth": 5,
+    "why": "Spring melt is when sump pumps fail. A test now beats discovering a dead pump with water rising.",
+    "requires": {
+      "hasBasement": true
+    },
     "tasks": [
       {
         "title": "Test the sump pump",
@@ -359,8 +443,13 @@
     "id": "humid-hurricane",
     "name": "Hurricane prep",
     "season": "summer",
-    "climateZones": ["humid-subtropical"],
+    "climateZones": [
+      "humid-subtropical"
+    ],
     "triggerMonth": 6,
+    "earlyMonth": 5,
+    "lateMonth": 9,
+    "why": "Season runs June through November. Supplies and a plan before the first named storm — stores empty out fast.",
     "tasks": [
       {
         "title": "Stage hurricane supplies",
@@ -375,8 +464,13 @@
     "id": "humid-mold",
     "name": "Dehumidifier and mold checks",
     "season": "summer",
-    "climateZones": ["humid-subtropical"],
+    "climateZones": [
+      "humid-subtropical"
+    ],
     "triggerMonth": 5,
+    "earlyMonth": 4,
+    "lateMonth": 8,
+    "why": "Humidity season feeds mold in weeks. Dehumidifier checks now prevent remediation bills later.",
     "tasks": [
       {
         "title": "Check humidity and hidden mold",
@@ -391,8 +485,13 @@
     "id": "humid-termite",
     "name": "Termite inspection",
     "season": "spring",
-    "climateZones": ["humid-subtropical"],
+    "climateZones": [
+      "humid-subtropical"
+    ],
     "triggerMonth": 4,
+    "earlyMonth": 3,
+    "lateMonth": 6,
+    "why": "Spring swarm season is when infestations start. An annual inspection is a fraction of treatment cost.",
     "tasks": [
       {
         "title": "Schedule a termite inspection",
@@ -408,8 +507,13 @@
     "id": "humid-ac-drain",
     "name": "AC drain line flush",
     "season": "spring",
-    "climateZones": ["humid-subtropical"],
+    "climateZones": [
+      "humid-subtropical"
+    ],
     "triggerMonth": 4,
+    "earlyMonth": 3,
+    "lateMonth": 6,
+    "why": "A clogged AC drain line backs condensate into the ceiling. A cup of vinegar now beats a drywall repair.",
     "tasks": [
       {
         "title": "Flush the AC condensate drain",
@@ -425,9 +529,16 @@
     "id": "marine-moss",
     "name": "Moss and gutter management",
     "season": "fall",
-    "climateZones": ["marine"],
+    "climateZones": [
+      "marine"
+    ],
     "triggerMonth": 10,
-    "requires": { "hasGutters": true },
+    "earlyMonth": 9,
+    "lateMonth": 12,
+    "why": "Wet season feeds roof moss that lifts shingles. Treat before the rains set in.",
+    "requires": {
+      "hasGutters": true
+    },
     "tasks": [
       {
         "title": "Clear moss and gutters",
@@ -443,8 +554,13 @@
     "id": "marine-roof",
     "name": "Post-storm roof inspection",
     "season": "spring",
-    "climateZones": ["marine"],
+    "climateZones": [
+      "marine"
+    ],
     "triggerMonth": 4,
+    "earlyMonth": 3,
+    "lateMonth": 5,
+    "why": "Winter storms loosen flashing and shingles. A spring check catches damage while it is still small.",
     "tasks": [
       {
         "title": "Inspect the roof after storm season",
@@ -460,8 +576,13 @@
     "id": "marine-wood",
     "name": "Exterior wood sealing",
     "season": "summer",
-    "climateZones": ["marine"],
+    "climateZones": [
+      "marine"
+    ],
     "triggerMonth": 7,
+    "earlyMonth": 6,
+    "lateMonth": 9,
+    "why": "Exterior wood only seals well when dry. The summer window is short — miss it and decks absorb a whole wet season.",
     "tasks": [
       {
         "title": "Seal exterior wood",

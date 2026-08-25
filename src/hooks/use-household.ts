@@ -23,7 +23,7 @@ import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { generateHomeFromAnswers } from "@/lib/onboarding/generate";
 import { applyRestockPicks, type RestockPick } from "@/lib/onboarding/restock-walk";
-import { dutyFromPlaybookTask, PLAYBOOKS } from "@/lib/playbooks";
+import { dutyFromPlaybookTask, PLAYBOOKS, seasonYearFor, windowState } from "@/lib/playbooks";
 import { addDays, toISODate } from "@/lib/dates";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import { requestNotifyPermission } from "@/lib/notifications";
@@ -90,12 +90,12 @@ export function useHousehold() {
     (input: { answers: OnboardingAnswers; ownerName?: string }) => {
       const generated = generateHomeFromAnswers(input.answers);
       const seasonalDuties = generated.seasonalSuggestions
-        .filter((playbook) => playbook.climateZones === "all")
-        .flatMap((playbook) =>
-          playbook.tasks.map((task) => ({
+        .filter((item) => item.playbook.climateZones === "all")
+        .flatMap((item) =>
+          item.playbook.tasks.map((task) => ({
             id: uid(),
             createdAt: new Date().toISOString(),
-            ...dutyFromPlaybookTask(generated, playbook, task, toISODate(addDays(new Date(), 14))),
+            ...dutyFromPlaybookTask(generated, item.playbook, task, toISODate(addDays(new Date(), 14))),
           })),
         );
       const seeded = applyRestockPicks(
@@ -103,7 +103,7 @@ export function useHousehold() {
           version: 8,
           householdName: sanitizeText(generated.householdName, TEXT_LIMITS.name) || "Home",
           ownerName: sanitizeText(input.ownerName, TEXT_LIMITS.name) || "",
-          cleanerName: "Cleaner",
+          cleanerName: "",
           onboarded: true,
           mode: "owner",
           activeVisitId: null,
@@ -121,9 +121,9 @@ export function useHousehold() {
           visits: [],
           supplyAutomations: [],
           playbookDecisions: generated.seasonalSuggestions
-            .filter((playbook) => playbook.id === "new-home")
-            .map((playbook) => ({
-              playbookId: playbook.id,
+            .filter((item) => item.playbook.id === "new-home")
+            .map((item) => ({
+              playbookId: item.playbook.id,
               year: new Date().getFullYear(),
               declinedTaskKeys: [],
             })),
@@ -296,7 +296,7 @@ export function useHousehold() {
               room: current.rooms.find((room) => !room.system)?.id ?? "kitchen",
               nodeId: current.rooms.find((room) => !room.system)?.id ?? "kitchen",
               nodeType: "room" as const,
-              itemName: "New consumable",
+              itemName: "New item",
               retailerUrl: url,
               createdAt: new Date().toISOString(),
             },
@@ -478,14 +478,19 @@ export function useHousehold() {
       update((current) => {
         const def = PLAYBOOKS.find((item) => item.id === playbookId);
         if (!def) return current;
-        const year = new Date().getFullYear();
+        const now = new Date();
+        const year = seasonYearFor(def, now);
         const titles = new Set(taskTitles ?? def.tasks.map((task) => task.title));
+        const dueDate =
+          windowState(def, now.getMonth() + 1) === "late"
+            ? toISODate(addDays(now, 14))
+            : toISODate(addDays(now, 14));
         const duties = def.tasks
           .filter((task) => titles.has(task.title))
           .map((task) => ({
             id: uid(),
-            createdAt: new Date().toISOString(),
-            ...dutyFromPlaybookTask(current, def, task, toISODate(addDays(new Date(), 14))),
+            createdAt: now.toISOString(),
+            ...dutyFromPlaybookTask(current, def, task, dueDate),
           }));
         const declined = def.tasks.filter((task) => !titles.has(task.title)).map((task) => task.title);
         return {
@@ -504,13 +509,32 @@ export function useHousehold() {
   const declinePlaybook = useCallback(
     (playbookId: string) => {
       update((current) => {
-        const year = new Date().getFullYear();
+        const def = PLAYBOOKS.find((item) => item.id === playbookId);
+        const now = new Date();
+        const year = def ? seasonYearFor(def, now) : now.getFullYear();
         return {
           ...current,
           playbookDecisions: [
             ...current.playbookDecisions.filter((item) => !(item.playbookId === playbookId && item.year === year)),
-            { playbookId, year, declinedTaskKeys: ["*"] },
+            { playbookId, year, declinedTaskKeys: ["*"], disabled: true },
           ],
+        };
+      });
+    },
+    [update],
+  );
+
+  const reconsiderPlaybook = useCallback(
+    (playbookId: string) => {
+      update((current) => {
+        const def = PLAYBOOKS.find((item) => item.id === playbookId);
+        const now = new Date();
+        const year = def ? seasonYearFor(def, now) : now.getFullYear();
+        return {
+          ...current,
+          playbookDecisions: current.playbookDecisions.filter(
+            (item) => !(item.playbookId === playbookId && item.year === year),
+          ),
         };
       });
     },
@@ -618,6 +642,7 @@ export function useHousehold() {
     markAssetReplaced,
     acceptPlaybook,
     declinePlaybook,
+    reconsiderPlaybook,
     startCleanerVisit,
     endCleanerVisit,
     retryLoad,

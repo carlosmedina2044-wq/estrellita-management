@@ -186,15 +186,46 @@ export function weatherCaption(
   const today = forecast?.days[0];
   if (today) return { text: weatherLine(forecast), needsZip: false };
   if (location.placeName && location.postalCode) {
-    return { text: `${location.placeName} · ZIP ${location.postalCode}`, needsZip: false };
+    return { text: location.placeName, needsZip: false };
   }
   if (location.postalCode) {
     return {
-      text: `${climateLabel(deriveClimate(location))} · ZIP ${location.postalCode}`,
+      text: climateLabel(deriveClimate(location)),
       needsZip: false,
     };
   }
   return { text: "Add your ZIP for weather", needsZip: true };
+}
+
+export type WeatherWatchItem = {
+  trigger: WeatherTrigger;
+  hitDay: DailyWeather | null;
+  recentlyFired: boolean;
+};
+
+export function weatherWatch(
+  forecast: WeatherForecast | null,
+  household: Pick<Household, "attributes" | "weatherFires">,
+  now: Date = new Date(),
+): { active: WeatherWatchItem[]; watching: string[] } {
+  const applicable = WEATHER_TRIGGERS.filter((trigger) =>
+    attributesMatch(trigger.requires, household.attributes),
+  );
+  const watching = applicable.map((trigger) => trigger.name);
+  const active: WeatherWatchItem[] = [];
+  for (const trigger of applicable) {
+    const hitDay = forecast ? conditionHits(trigger, forecast, now) : null;
+    const recentlyFired = onCooldown(trigger, household.weatherFires, now);
+    if (!hitDay && !recentlyFired) continue;
+    active.push({ trigger, hitDay, recentlyFired });
+  }
+  active.sort((a, b) => {
+    if (a.hitDay && b.hitDay) return a.hitDay.date.localeCompare(b.hitDay.date);
+    if (a.hitDay) return -1;
+    if (b.hitDay) return 1;
+    return 0;
+  });
+  return { active, watching };
 }
 
 export function todayISOFromForecast(forecast: WeatherForecast): string {

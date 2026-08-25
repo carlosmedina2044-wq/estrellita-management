@@ -381,11 +381,11 @@ export function DutyForm({
           <Disclosure
             open={showSupply}
             onOpenChange={setShowSupply}
-            label="Consumable"
+            label="Item"
             hint={
               draft.trackSupply
-                ? draft.itemName.trim() || "This task uses a consumable"
-                : "This task uses a consumable"
+                ? draft.itemName.trim() || "This task uses an item"
+                : "This task uses an item"
             }
           >
             <label className="flex items-start gap-3 text-sm">
@@ -401,7 +401,7 @@ export function DutyForm({
                 }
               />
               <span>
-                <span className="block font-medium">This task uses a consumable</span>
+                <span className="block font-medium">This task uses an item</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
                   Tracks runway and when to order. Checkout stays on the retailer’s site.
                 </span>

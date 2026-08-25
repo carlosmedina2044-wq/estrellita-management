@@ -17,7 +17,7 @@ test("onboarding carries tenure through generate", () => {
     new Date(2026, 5, 1),
   );
   assert.equal(generated.tenure, "new");
-  assert.ok(generated.seasonalSuggestions.some((item) => item.id === "new-home"));
+  assert.ok(generated.seasonalSuggestions.some((item) => item.playbook.id === "new-home"));
 });
 
 test("settled tenure does not surface the new-home playbook", () => {
@@ -34,7 +34,7 @@ test("settled tenure does not surface the new-home playbook", () => {
     new Date(2026, 5, 1),
   );
   assert.equal(generated.tenure, "settled");
-  assert.equal(generated.seasonalSuggestions.some((item) => item.id === "new-home"), false);
+  assert.equal(generated.seasonalSuggestions.some((item) => item.playbook.id === "new-home"), false);
 });
 
 test("defaults accepted produce rooms, chores, and a seasonal suggestion", () => {
