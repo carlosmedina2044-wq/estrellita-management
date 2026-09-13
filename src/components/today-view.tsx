@@ -15,16 +15,21 @@ import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
-import { formatLongDate, formatWeekdayDate, isFirstOfMonth, sameDay, addDays, toISODate } from "@/lib/dates";
+import { formatLongDate, formatTime, formatWeekdayDate, isFirstOfMonth, sameDay, addDays, toISODate } from "@/lib/dates";
 import {
+  doneOnDay,
+  doneThisWeek,
+  doneToday,
   dutiesDueOnDate,
   isDoneThisPeriod,
   isOverdueFor,
   installedAtFor,
   monthPlanDuties,
   openDutiesInScope,
+  relativeDayLabel,
   shareText,
   todaysOpenDuties,
+  type DoneEntry,
   type OutstandingScope,
 } from "@/lib/duties";
 import { tDutyTitle } from "@/i18n/content";
@@ -147,11 +152,14 @@ export function TodayView({
         )
     : openDutiesInScope(household, scope, now, filter);
 
-  const doneOnDay = viewingCalendar
-    ? dutiesDueOnDate(household, viewDate, filter).filter((duty) =>
-        isDoneThisPeriod(duty, household.completions, viewDate, installedAtFor(household, duty.id)),
-      )
-    : [];
+  const doneTodayEntries = !viewingCalendar && scope === "daily" ? doneToday(household, now, filter) : [];
+  const doneWeek = !viewingCalendar && scope === "weekly" ? doneThisWeek(household, now, filter) : [];
+  const calendarDone = viewingCalendar ? doneOnDay(household, viewDate, filter) : [];
+  const doneEntries: DoneEntry[] = viewingCalendar
+    ? calendarDone
+    : scope === "weekly"
+      ? doneWeek.flatMap((group) => group.entries)
+      : doneTodayEntries;
 
   const monthPlan = firstOfMonth ? monthPlanDuties(household, now, filter) : [];
   const cleanerOpen = todaysOpenDuties(household, now, "cleaner");
@@ -254,7 +262,7 @@ export function TodayView({
 
   function dutyRow(
     duty: Duty,
-    extra: { done?: boolean; overdue?: boolean } = {},
+    extra: { done?: boolean; overdue?: boolean; doneMeta?: string } = {},
   ) {
     const chip = extra.done ? null : partStatusForDuty(duty, household, now);
     return (
@@ -263,6 +271,7 @@ export function TodayView({
         household={household}
         now={viewDate}
         done={extra.done}
+        doneMeta={extra.doneMeta}
         overdue={extra.overdue}
         hideOverdueChip={onlyOverdue}
         partChip={chip}
@@ -323,12 +332,38 @@ export function TodayView({
     }
   }
   const displayHeadline =
-    needCount === 0
-      ? t("today.headlineClear", { day: nextUpDay ?? "" })
-      : needCount === 1
-        ? t("today.headlineOne")
-        : t("today.headlineMany", { count: needCount });
+    needCount === 0 && doneEntries.length > 0
+      ? t("today.headlineDone", { count: doneEntries.length })
+      : needCount === 0
+        ? t("today.headlineClear", { day: nextUpDay ?? "" })
+        : needCount === 1
+          ? t("today.headlineOne")
+          : t("today.headlineMany", { count: needCount });
   const secondaryLine = [headingDate, !needsZip ? weatherLine : null].filter(Boolean).join(" · ");
+  const doneIds = new Set(doneEntries.map((entry) => entry.duty.id));
+  const leftoverCostPrompts = costPrompts.filter(
+    (item) => !doneIds.has(item.dutyId) && !open.some((duty) => duty.id === item.dutyId),
+  );
+  const includeDoneDay = scope === "weekly" && !viewingCalendar;
+  const doneHeader = viewingCalendar
+    ? calendarIsToday
+      ? t("today.doneToday")
+      : t("today.done")
+    : scope === "weekly"
+      ? t("today.doneThisWeek")
+      : t("today.doneToday");
+
+  function doneMetaFor(entry: DoneEntry): string {
+    const name =
+      entry.completion.actor === "cleaner"
+        ? household.cleanerName.trim() || t("audience.cleaner")
+        : t("audience.me");
+    const parts = [t("today.doneBy", { name }), formatTime(new Date(entry.completion.completedAt))];
+    if (includeDoneDay) {
+      parts.push(relativeDayLabel(new Date(entry.completion.completedAt), now));
+    }
+    return parts.join(" · ");
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -492,7 +527,7 @@ export function TodayView({
         </section>
       ) : null}
 
-      {listed.length === 0 && doneOnDay.length === 0 && costPrompts.length === 0 ? (
+      {listed.length === 0 && doneEntries.length === 0 && costPrompts.length === 0 ? (
         <EmptyToday
           onAdd={() => createGuard.tryOpen(() => setCreating(true))}
           calendar={viewingCalendar}
@@ -515,42 +550,48 @@ export function TodayView({
                 </div>
               </div>
             ) : null}
-            {regularListed.length > 0 || doneOnDay.length > 0 || costPrompts.length > 0 ? (
+            {regularListed.length > 0 || leftoverCostPrompts.length > 0 ? (
               <div className="ui-group">
                 {regularListed.map((duty) => (
                   <div key={duty.id} className="ui-group-row">
                     {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
                   </div>
                 ))}
-                {doneOnDay.map((duty) => {
-                  const prompt = costPrompts.find((item) => item.dutyId === duty.id);
+                {leftoverCostPrompts.map((prompt) => {
+                  const duty = household.duties.find((item) => item.id === prompt.dutyId);
+                  if (!duty) return null;
                   return (
-                  <div key={duty.id} className="ui-group-row">
-                    {dutyRow(duty, { done: true })}
-                    {prompt && onRecordCost ? (
-                      <div className="px-4 pb-3">
-                        <CostPrompt
-                          suggested={suggestedCostFor(duty, household)}
-                          onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
-                          onSkip={() => onRecordCost(prompt.id, { skip: true })}
-                        />
-                      </div>
-                    ) : null}
-                  </div>
+                    <div key={prompt.id} className="ui-group-row">
+                      {dutyRow(duty, { done: true })}
+                      {onRecordCost ? (
+                        <div className="px-4 pb-3">
+                          <CostPrompt
+                            suggested={suggestedCostFor(duty, household)}
+                            onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
+                            onSkip={() => onRecordCost(prompt.id, { skip: true })}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 })}
-                {costPrompts
-                  .filter((item) => !doneOnDay.some((duty) => duty.id === item.dutyId) && !open.some((duty) => duty.id === item.dutyId))
-                  .map((prompt) => {
-                    const duty = household.duties.find((item) => item.id === prompt.dutyId);
-                    if (!duty) return null;
+              </div>
+            ) : null}
+            {doneEntries.length > 0 ? (
+              <div>
+                <p className="mb-2 px-1 ui-caption font-medium text-muted-foreground">
+                  {doneHeader}
+                </p>
+                <div className="ui-group">
+                  {doneEntries.map((entry) => {
+                    const prompt = costPrompts.find((item) => item.dutyId === entry.duty.id);
                     return (
-                      <div key={prompt.id} className="ui-group-row">
-                        {dutyRow(duty, { done: true })}
-                        {onRecordCost ? (
+                      <div key={entry.duty.id} className="ui-group-row">
+                        {dutyRow(entry.duty, { done: true, doneMeta: doneMetaFor(entry) })}
+                        {prompt && onRecordCost ? (
                           <div className="px-4 pb-3">
                             <CostPrompt
-                              suggested={suggestedCostFor(duty, household)}
+                              suggested={suggestedCostFor(entry.duty, household)}
                               onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
                               onSkip={() => onRecordCost(prompt.id, { skip: true })}
                             />
@@ -559,6 +600,7 @@ export function TodayView({
                       </div>
                     );
                   })}
+                </div>
               </div>
             ) : null}
           </div>
