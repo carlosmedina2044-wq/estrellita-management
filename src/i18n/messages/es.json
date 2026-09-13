@@ -1118,5 +1118,8 @@
   "chore.menuAria": "Acciones de la tarea {title}",
   "today.headlineOne": "1 cosa te necesita hoy.",
   "today.headlineMany": "{count} cosas te necesitan hoy.",
-  "today.headlineClear": "Todo listo. Siguiente: {day}."
+  "today.headlineClear": "Todo listo. Siguiente: {day}.",
+  "retailer.lastTimeRow": "Última vez: {store} · {when}",
+  "seasonal.addCompact": "Añadir",
+  "seasonal.skipCompact": "Omitir"
 }

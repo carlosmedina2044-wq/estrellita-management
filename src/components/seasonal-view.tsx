@@ -395,13 +395,21 @@ function DoNowCard({
               <li key={task.title}>{tDutyTitle(task.title)}</li>
             ))}
           </ul>
-          <div className="mt-3 flex gap-2">
-            <Button className="h-11 flex-1" onClick={() => onAccept(playbook.id)}>
-              {t("seasonal.addToYear")}
+          <div className="mt-3 flex items-center gap-2">
+            <Button
+              className="h-9 flex-1 rounded-full bg-primary/12 text-primary shadow-none hover:bg-primary/18"
+              variant="secondary"
+              onClick={() => onAccept(playbook.id)}
+            >
+              {t("seasonal.addCompact")}
             </Button>
-            <Button variant="secondary" className="h-11 flex-1" onClick={() => onDecline(playbook.id)}>
-              {t("seasonal.skipYear")}
-            </Button>
+            <button
+              type="button"
+              className="inline-flex h-9 min-w-11 items-center justify-center rounded-full px-3 ui-caption font-medium text-muted-foreground active:bg-foreground/6"
+              onClick={() => onDecline(playbook.id)}
+            >
+              {t("seasonal.skipCompact")}
+            </button>
           </div>
         </>
       )}

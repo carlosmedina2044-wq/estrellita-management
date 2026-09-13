@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
+import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { formatWeekdayDate } from "@/lib/dates";
 import { openExternalUrl } from "@/lib/native/open-url";
 import {
   isProductPageUrl,
@@ -57,6 +59,8 @@ export function RetailerPickerSheet({
   const savedLinks = sortedSavedRetailerLinks(household.savedRetailerLinks ?? [])
     .filter((entry) => entry.url !== href)
     .slice(0, 4);
+  const lastChip = chips.find((chip) => chip.lastTime);
+  const lastOrderedAt = item.orderedAt ? formatWeekdayDate(item.orderedAt) : null;
 
   async function shop(openUrl: string, retailer?: string, saveUrl?: string) {
     if (retailer) onPreferRetailer?.(retailer);
@@ -73,23 +77,10 @@ export function RetailerPickerSheet({
   const body = (
     <>
       <SheetHeader className={embedded ? "px-0 pt-0" : undefined}>
-        <SheetTitle>{item.itemName}</SheetTitle>
+        <SheetTitle className="min-w-0 flex-1 truncate">{item.itemName}</SheetTitle>
         <SheetDescription className="sr-only">{t("restock.chooseStore", { name: item.itemName })}</SheetDescription>
       </SheetHeader>
-      <div className={cn("grid gap-4 pb-4", embedded ? "px-0" : "px-4")}>
-        {onAlreadyOrdered ? (
-          <Button
-            type="button"
-            variant="secondary"
-            className="h-12 w-full"
-            onClick={() => {
-              onAlreadyOrdered();
-              onOpenChange(false);
-            }}
-          >
-            {t("restock.alreadyOrdered")}
-          </Button>
-        ) : null}
+      <div className={cn("grid gap-3 pb-4", embedded ? "px-0" : "px-4")}>
         <div className="ui-caption text-muted-foreground">
           {size ? (
             size
@@ -108,59 +99,81 @@ export function RetailerPickerSheet({
             t("restock.noSizeSaved")
           )}
         </div>
-        {href ? (
-          <div className="grid gap-1">
-            <Button type="button" className="h-12 w-full" onClick={() => void shop(href, item.preferredRetailer, href)}>
-              {t("retailer.openSaved")}
-            </Button>
-            <p className="text-center ui-caption text-muted-foreground">{savedRetailerLabel(href)}</p>
-          </div>
-        ) : null}
-        <div className="grid gap-2">
-          <p className="ui-caption font-medium">{t("retailer.stores")}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {chips.map((chip) => (
-              <span key={chip.id} className="grid justify-items-center gap-0.5">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  className="h-11 rounded-full"
-                  onClick={() => void shop(chip.searchUrl(query), chip.id)}
-                >
-                  {chip.label}
-                </Button>
-                {chip.lastTime ? (
-                  <span className="ui-caption text-muted-foreground">{t("retailer.lastTime")}</span>
-                ) : null}
+
+        {lastChip || href ? (
+          <button
+            type="button"
+            className="ui-group flex w-full items-center gap-3 bg-signal-soft px-4 py-3 text-left active:bg-foreground/6"
+            onClick={() => {
+              if (href) {
+                void shop(href, item.preferredRetailer, href);
+                return;
+              }
+              if (lastChip) void shop(lastChip.searchUrl(query), lastChip.id);
+            }}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block ui-body font-medium text-foreground">
+                {t("retailer.lastTimeRow", {
+                  store: lastChip?.label ?? savedRetailerLabel(href ?? ""),
+                  when: lastOrderedAt ?? t("retailer.lastTime"),
+                })}
               </span>
-            ))}
-          </div>
-        </div>
-        {savedLinks.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {savedLinks.map((entry) => (
-              <Button
-                key={entry.url}
-                type="button"
-                size="sm"
-                variant="secondary"
-                className="h-11 max-w-full rounded-full"
-                onClick={() => void shop(entry.url, hostOf(entry.url), entry.url)}
-              >
-                <span className="truncate">{savedRetailerLabel(entry.url)}</span>
-              </Button>
-            ))}
-          </div>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </button>
         ) : null}
+
+        <div className="ui-group">
+          {chips.map((chip) => (
+            <button
+              key={chip.id}
+              type="button"
+              className="ui-group-row flex w-full items-center gap-3 px-4 text-left active:bg-foreground/6"
+              onClick={() => void shop(chip.searchUrl(query), chip.id)}
+            >
+              <span className="min-w-0 flex-1 ui-body font-medium">{chip.label}</span>
+              {chip.lastTime ? (
+                <span className="ui-caption text-muted-foreground">{t("retailer.lastTime")}</span>
+              ) : null}
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </button>
+          ))}
+          {savedLinks.map((entry) => (
+            <button
+              key={entry.url}
+              type="button"
+              className="ui-group-row flex w-full items-center gap-3 px-4 text-left active:bg-foreground/6"
+              onClick={() => void shop(entry.url, hostOf(entry.url), entry.url)}
+            >
+              <span className="min-w-0 flex-1 truncate ui-body font-medium">
+                {savedRetailerLabel(entry.url)}
+              </span>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            </button>
+          ))}
+        </div>
+
         <CustomStoreSearch
           itemName={item.itemName}
           sizeSpec={size || undefined}
           onSearch={(saveUrl, openUrl) => void shop(openUrl, hostOf(saveUrl), saveUrl)}
         />
-        <p className="ui-caption text-muted-foreground">
-          {t("retailer.privacy")}
-        </p>
+
+        <p className="ui-caption text-muted-foreground">{t("retailer.privacy")}</p>
+
+        {onAlreadyOrdered ? (
+          <button
+            type="button"
+            className="inline-flex min-h-11 w-full items-center justify-center ui-body font-medium text-primary"
+            onClick={() => {
+              onAlreadyOrdered();
+              onOpenChange(false);
+            }}
+          >
+            {t("restock.alreadyOrdered")}
+          </button>
+        ) : null}
       </div>
     </>
   );
@@ -203,13 +216,13 @@ function CustomStoreSearch({
 
   return (
     <div className="grid gap-1.5">
-      <p className="ui-caption text-muted-foreground">{t("restock.anyOtherStore")}</p>
+      <p className="ui-caption text-muted-foreground">{t("retailer.pasteLink")}</p>
       <div className="flex gap-2">
         <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={t("restock.customUrlPlaceholder")}
-          className="h-11 min-w-0 flex-1"
+          className="h-11 min-w-0 flex-1 rounded-[var(--r-input)]"
           inputMode="url"
           autoCapitalize="none"
           autoCorrect="off"

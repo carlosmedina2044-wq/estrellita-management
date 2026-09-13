@@ -47,6 +47,7 @@ export function HomeEditor({
   const [roomName, setRoomName] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [reassignTo, setReassignTo] = useState("");
+  const [editingRooms, setEditingRooms] = useState(false);
   const [assetRoom, setAssetRoom] = useState(household.rooms[0]?.id ?? "");
   const [assetType, setAssetType] = useState<AssetType>("other");
   const [assetName, setAssetName] = useState("");
@@ -167,15 +168,27 @@ export function HomeEditor({
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <p className="font-medium">{t("home.floorsAndRooms")}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-{t("home.floorsAndRoomsBody")}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-medium">{t("home.floorsAndRooms")}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("home.floorsAndRoomsBody")}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="inline-flex h-11 shrink-0 items-center px-2 ui-caption font-semibold text-primary"
+          onClick={() => {
+            setEditingRooms((current) => !current);
+            setDeleteId(null);
+          }}
+        >
+          {editingRooms ? t("common.done") : t("common.edit")}
+        </button>
       </div>
 
       {floors.map((floor) => (
-        <section key={floor.id} className="rounded-2xl bg-card p-4">
+        <section key={floor.id} className="rounded-[var(--r-container)] bg-card p-4">
           <DebouncedTextInput
             value={floor.name}
             onSchedule={(value) =>
@@ -206,20 +219,22 @@ export function HomeEditor({
                     onFlush={() => flushChange()}
                     className="h-11"
                   />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="h-11 shrink-0"
-                    onClick={() => {
-                      setDeleteId(room.id);
-                      setReassignTo(userRooms(household).find((item) => item.id !== room.id)?.id ?? "");
-                    }}
-                  >
-                    {t("home.delete")}
-                  </Button>
+                  {editingRooms ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-11 shrink-0 text-destructive"
+                      onClick={() => {
+                        setDeleteId(room.id);
+                        setReassignTo(userRooms(household).find((item) => item.id !== room.id)?.id ?? "");
+                      }}
+                    >
+                      {t("home.delete")}
+                    </Button>
+                  ) : null}
                 </div>
                 {deleteId === room.id ? (
-                  <div className="rounded-2xl bg-accent p-4">
+                  <div className="rounded-[var(--r-container)] bg-accent p-4">
                     <p className="font-medium">{t("home.deleteRoomTitle")}</p>
                     <p className="mt-1 text-sm text-muted-foreground">{t("home.deleteRoomBody")}</p>
                     <Select value={reassignTo} onValueChange={setReassignTo}>

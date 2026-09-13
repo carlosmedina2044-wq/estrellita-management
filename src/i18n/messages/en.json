@@ -1118,5 +1118,8 @@
   "chore.menuAria": "Chore actions for {title}",
   "today.headlineOne": "1 thing needs you today.",
   "today.headlineMany": "{count} things need you today.",
-  "today.headlineClear": "All clear. Next up {day}."
+  "today.headlineClear": "All clear. Next up {day}.",
+  "retailer.lastTimeRow": "Last time: {store} · {when}",
+  "seasonal.addCompact": "Add",
+  "seasonal.skipCompact": "Skip"
 }

@@ -182,11 +182,9 @@ function SheetContent({
       >
         {side === "bottom" && !reduceMotion ? (
           <div
-            className="flex min-h-11 shrink-0 cursor-grab items-start justify-center pt-2 active:cursor-grabbing"
+            className="mx-auto mt-2 h-1 w-9 shrink-0 rounded-full bg-foreground/15"
             aria-hidden
-          >
-            <div className="h-1 w-9 rounded-full bg-foreground/15" />
-          </div>
+          />
         ) : null}
         {children}
         {showCloseButton && (
@@ -195,7 +193,7 @@ function SheetContent({
               ref={closeRef}
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 size-11"
+              className="absolute top-1.5 right-2 size-11"
               aria-label={t("common.close")}
             >
               <X className="size-5" />
@@ -211,7 +209,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex shrink-0 flex-col gap-0.5 p-4 pr-14", className)}
+      className={cn("flex shrink-0 flex-row items-center gap-2 px-4 py-2 pr-14", className)}
       {...props}
     />
   )
