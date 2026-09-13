@@ -5,7 +5,7 @@ const KEY_ID = "cuidala-device-key-v1";
 const LEGACY_KEY_IDS = ["estrellita-device-key-v1"];
 
 /**
- * iOS: stored in the Keychain by capacitor-secure-storage-plugin.
+ * iOS: stored in the Keychain by CuidalaDeviceKeyPlugin (add-or-update).
  * Accessibility is kSecAttrAccessibleAfterFirstUnlock (not ThisDeviceOnly).
  * The item migrates through encrypted iCloud/Finder backups and Quick Start.
  * Face ID is an app-lock UI gate, not a cryptographic unlock of this key.
@@ -72,9 +72,9 @@ async function readRaw(): Promise<Uint8Array | null> {
 
 async function readId(id: string): Promise<Uint8Array | null> {
   if (isNative()) {
-    const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
+    const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
     try {
-      const result = await SecureStoragePlugin.get({ key: id });
+      const result = await CuidalaDeviceKey.get({ key: id });
       return result.value ? b64ToBytes(result.value) : null;
     } catch (error) {
       if (isMissingKeychainItemError(error)) return null;
@@ -89,18 +89,11 @@ async function readId(id: string): Promise<Uint8Array | null> {
 async function writeRaw(raw: Uint8Array): Promise<void> {
   const encoded = bytesToB64(raw);
   if (isNative()) {
-    const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
+    const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
     try {
-      await SecureStoragePlugin.set({ key: KEY_ID, value: encoded });
+      await CuidalaDeviceKey.set({ key: KEY_ID, value: encoded });
     } catch (error) {
-      // Leftover Keychain items survive uninstall. SwiftKeychainWrapper.set
-      // can return false for those; remove then write once.
-      await removeRaw(KEY_ID);
-      try {
-        await SecureStoragePlugin.set({ key: KEY_ID, value: encoded });
-      } catch (retryError) {
-        throw new DeviceKeyError("Could not write the device key", { cause: retryError ?? error });
-      }
+      throw new DeviceKeyError("Could not write the device key", { cause: error });
     }
     return;
   }
@@ -109,9 +102,9 @@ async function writeRaw(raw: Uint8Array): Promise<void> {
 
 async function removeRaw(id: string): Promise<void> {
   if (isNative()) {
-    const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
+    const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
     try {
-      await SecureStoragePlugin.remove({ key: id });
+      await CuidalaDeviceKey.remove({ key: id });
     } catch {
       // already gone
     }

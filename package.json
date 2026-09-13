@@ -27,6 +27,7 @@
     "capacitor-secure-storage-plugin": "^0.13.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cuidala-device-key": "file:plugins/cuidala-device-key",
     "cuidala-weatherkit": "file:plugins/cuidala-weatherkit",
     "lucide-react": "^1.33.0",
     "next": "16.3.5",
