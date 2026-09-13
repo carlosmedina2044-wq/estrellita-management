@@ -69,6 +69,11 @@ export const RETAILER_CHIPS: RetailerChip[] = [
     searchUrl: (query) => `https://www.lowes.com/search?searchTerm=${encodeURIComponent(query)}`,
   },
   {
+    id: "costco",
+    label: "Costco",
+    searchUrl: (query) => `https://www.costco.com/CatalogSearch?keyword=${encodeURIComponent(query)}`,
+  },
+  {
     id: "chewy",
     label: "Chewy",
     searchUrl: (query) => `https://www.chewy.com/s?query=${encodeURIComponent(query)}`,
@@ -133,6 +138,7 @@ export function searchUrlOnHost(host: string, name: string, sizeSpec?: string): 
   if (AMAZON_HOST.test(h) || SHORT_HOST.test(h)) return `https://www.amazon.com/s?k=${q}`;
   if (/(^|\.)homedepot\.com$/i.test(h)) return `https://www.homedepot.com/s/${q}`;
   if (/(^|\.)lowes\.com$/i.test(h)) return `https://www.lowes.com/search?searchTerm=${q}`;
+  if (/(^|\.)costco\.com$/i.test(h)) return `https://www.costco.com/CatalogSearch?keyword=${q}`;
   if (/(^|\.)walmart\.com$/i.test(h)) return `https://www.walmart.com/search?q=${q}`;
   if (/(^|\.)target\.com$/i.test(h)) return `https://www.target.com/s?searchTerm=${q}`;
   if (/(^|\.)chewy\.com$/i.test(h)) return `https://www.chewy.com/s?query=${q}`;
@@ -200,6 +206,9 @@ export function isProductPageUrl(value: string): boolean {
   if (/(^|\.)walmart\.com$/i.test(host)) return /\/ip\//i.test(path);
   if (/(^|\.)target\.com$/i.test(host)) return /\/p\//i.test(path) || /\/-/i.test(path);
   if (/(^|\.)chewy\.com$/i.test(host)) return /\/dp\//i.test(path) || Boolean(path.split("/").filter(Boolean)[1]);
+  if (/(^|\.)costco\.com$/i.test(host)) {
+    return /\.product\./i.test(path) || /\.html$/i.test(path);
+  }
   const last = path.split("/").filter(Boolean).pop() ?? "";
   return last.length > 8 && !/^search|s|shop$/i.test(last);
 }

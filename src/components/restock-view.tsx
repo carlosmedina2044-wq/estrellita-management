@@ -154,7 +154,7 @@ export function RestockView({
       {walking ? (
         <div className="rounded-2xl bg-card px-4 py-5">
           <p className="text-[17px] font-medium">Walk your house</p>
-          <p className="mt-1 text-sm text-muted-foreground">Room by room. Tap what you buy, add anything we missed. We’ll ask for sizes.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Room by room. Tap what you buy, add anything we missed. Sizes come later, when you order.</p>
           {isAfterFirstDay(household) && !hasSeenTip(household, TIP_WALK_AFTER_DAY_ONE) && restock.onMarkTip ? (
             <div className="mt-3">
               <TeachingTip onDismiss={() => restock.onMarkTip?.(TIP_WALK_AFTER_DAY_ONE)}>

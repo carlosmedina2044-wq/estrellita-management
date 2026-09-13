@@ -62,7 +62,7 @@ export type HouseholdMemberRole = "owner" | "adult" | "child";
 export type PlaybookSeason = "spring" | "summer" | "fall" | "winter" | "monsoon" | "any";
 export type AgeBucket = "new" | "mid" | "old" | "unsure";
 export type Tenure = "new" | "settled" | "longtime";
-export const RETAILER_IDS = ["amazon", "walmart", "target", "home-depot", "lowes", "chewy"] as const;
+export const RETAILER_IDS = ["amazon", "walmart", "target", "home-depot", "lowes", "costco", "chewy"] as const;
 export type RetailerId = (typeof RETAILER_IDS)[number];
 
 export type HomeFloor = {

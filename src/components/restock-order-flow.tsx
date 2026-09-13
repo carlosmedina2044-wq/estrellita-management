@@ -384,7 +384,9 @@ function OrderConfirmSheet({
   const [offset, setOffset] = useState<number | "date">(defaultOffset);
   const [dateDraft, setDateDraft] = useState(() => toISODate(addDays(new Date(), defaultOffset)));
   const [qty, setQty] = useState(Math.max(1, item.qtyPerOrder || 1));
+  const [sizeDraft, setSizeDraft] = useState("");
   const size = (item.sku || item.sizeSpec || "").trim();
+  const askSize = !size && !item.retailerUrl;
   const resetKey = `${open}:${item.id}:${item.qtyPerOrder}:${item.leadTimeDays}`;
   const [prevKey, setPrevKey] = useState(resetKey);
   if (open && prevKey !== resetKey) {
@@ -394,6 +396,7 @@ function OrderConfirmSheet({
     setOffset(next);
     setDateDraft(toISODate(addDays(new Date(), next)));
     setQty(Math.max(1, item.qtyPerOrder || 1));
+    setSizeDraft("");
   }
 
   function arrivalDate() {
@@ -414,6 +417,20 @@ function OrderConfirmSheet({
               </SheetDescription>
             </SheetHeader>
             <div className="grid gap-2 px-4 pb-4">
+              {askSize ? (
+                <div className="grid gap-1.5 pb-1">
+                  <label htmlFor="order-size" className="text-[13px] text-muted-foreground">
+                    Size or model (optional)
+                  </label>
+                  <Input
+                    id="order-size"
+                    value={sizeDraft}
+                    onChange={(event) => setSizeDraft(event.target.value)}
+                    placeholder="20x25x1"
+                    className="h-12"
+                  />
+                </div>
+              ) : null}
               <Button type="button" className="h-12" onClick={() => setStep("b")}>
                 Yes, ordered
               </Button>
@@ -473,6 +490,7 @@ function OrderConfirmSheet({
                     expectedArrivalDate: arrivalDate(),
                     qty,
                     retailer: retailer || item.preferredRetailer,
+                    sizeSpec: askSize ? sizeDraft.trim() || undefined : undefined,
                   })
                 }
               >

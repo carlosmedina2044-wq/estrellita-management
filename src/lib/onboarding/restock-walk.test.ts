@@ -54,6 +54,11 @@ test("walk-your-house picks seed Restock without duplicating", () => {
   const once = applyRestockPicks(household, SAMPLE_RESTOCK_PICKS, new Date(2026, 5, 1));
   assert.ok(once.supplyAutomations.length >= 5);
   assert.ok(once.supplyAutomations.some((item) => /HVAC filter/i.test(item.itemName)));
+  assert.equal(
+    once.supplyAutomations.every((item) => !item.sizeSpec),
+    true,
+    "default walk picks defer sizes until order",
+  );
   const twice = applyRestockPicks(once, SAMPLE_RESTOCK_PICKS, new Date(2026, 5, 1));
   assert.equal(twice.supplyAutomations.length, once.supplyAutomations.length);
 });

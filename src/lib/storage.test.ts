@@ -241,6 +241,18 @@ test("v7 households migrate to v8 with empty preferredRetailers", () => {
   assert.equal(household.supplyAutomations[0]?.observedLeadTimeDays, 4);
 });
 
+test("costco survives preferredRetailers migration", () => {
+  const household = parseStored(
+    JSON.stringify({
+      version: 8,
+      onboarded: true,
+      householdName: "Home",
+      preferredRetailers: ["amazon", "costco", "bogus"],
+    }),
+  );
+  assert.deepEqual(household.preferredRetailers, ["amazon", "costco"]);
+});
+
 test("renames leftover HVAC/Utility system rooms and leaves custom names", () => {
   const household = parseStored(
     JSON.stringify({

@@ -20,7 +20,6 @@ import { ADD_ROOM_TYPES, nextRoomKey, roomTemplateFor, type RoomChoice } from "@
 import {
   defaultWalkPicks,
   newCustomPick,
-  picksMissingSize,
   SAMPLE_RESTOCK_PICKS,
   type CustomRestockPick,
   type RestockPick,
@@ -58,7 +57,7 @@ export function Onboarding({
   const [restockPicks, setRestockPicks] = useState<RestockPick[]>(SAMPLE_RESTOCK_PICKS);
   const [walkPhase, setWalkPhase] = useState<"items" | "stores">("items");
   const [sizeBanner, setSizeBanner] = useState(false);
-  const [preferredRetailers, setPreferredRetailers] = useState<RetailerId[]>([]);
+  const [preferredRetailers, setPreferredRetailers] = useState<RetailerId[]>(["amazon", "home-depot"]);
   const [walkContext, setWalkContext] = useState(() => generateHomeFromAnswers(sampleHomeAnswers()));
   const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
   const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
@@ -149,11 +148,6 @@ export function Onboarding({
   }
 
   function continueFromWalk() {
-    const missing = picksMissingSize(restockPicks);
-    if (missing.length > 0 && !sizeBanner) {
-      setSizeBanner(true);
-      return;
-    }
     setWalkPhase("stores");
   }
 
@@ -451,7 +445,7 @@ export function Onboarding({
         {step === 6 && walkPhase === "items" ? (
           <Screen
             title="Walk your house"
-            copy="Room by room. Tap what you buy, add anything we missed. We’ll ask for sizes."
+            copy="Room by room. Tap what you buy, add anything we missed. Sizes come later, when you order."
           >
             <RestockWalkPicker
               picks={restockPicks}
@@ -513,7 +507,8 @@ export function Onboarding({
           <Screen
             title="Where do you usually shop?"
             copy="Order buttons open your stores first. You can change this any time."
-            onSkip={() => void finish({ ...answers, restockPicks, preferredRetailers: [] })}
+            onSkip={() => void finish({ ...answers, restockPicks, preferredRetailers: ["amazon", "home-depot"] })}
+            skipLabel="Keep these — I'll change it later"
           >
             <div className="flex flex-wrap gap-1.5">
               {RETAILER_CHIPS.map((chip) => {
@@ -566,11 +561,13 @@ function Screen({
   copy,
   children,
   onSkip,
+  skipLabel = "Skip",
 }: {
   title: string;
   copy: string;
   children: React.ReactNode;
   onSkip?: () => void;
+  skipLabel?: string;
 }) {
   return (
     <div className="flex flex-1 flex-col pt-10">
@@ -579,7 +576,7 @@ function Screen({
       <div className="mt-6 flex flex-1 flex-col">{children}</div>
       {onSkip ? (
         <button type="button" className="mt-4 text-[13px] font-medium text-brand" onClick={onSkip}>
-          Skip
+          {skipLabel}
         </button>
       ) : null}
     </div>

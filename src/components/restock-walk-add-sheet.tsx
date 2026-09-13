@@ -58,21 +58,17 @@ export function RestockWalkAddSheet({
   const resetKey = `${open}:${group}:${initial?.itemName ?? ""}:${initial?.roomId ?? ""}`;
   const [prevKey, setPrevKey] = useState(resetKey);
   const [itemName, setItemName] = useState(initial?.itemName ?? "");
-  const [sku, setSku] = useState(initial?.sku ?? "");
   const [intervalMonths, setIntervalMonths] = useState<CustomRestockItem["intervalMonths"]>(
     initial?.intervalMonths ?? 1,
   );
   const [roomId, setRoomId] = useState(initial?.roomId || defaultRoom);
-  const [appliedHint, setAppliedHint] = useState<string | null>(null);
   const [chipApplied, setChipApplied] = useState(false);
 
   if (open && prevKey !== resetKey) {
     setPrevKey(resetKey);
     setItemName(initial?.itemName ?? "");
-    setSku(initial?.sku ?? "");
     setIntervalMonths(initial?.intervalMonths ?? 1);
     setRoomId(initial?.roomId || defaultRoom);
-    setAppliedHint(null);
     setChipApplied(false);
   }
 
@@ -92,7 +88,6 @@ export function RestockWalkAddSheet({
     setIntervalMonths(catalogMonths(entry));
     const match = household.rooms.find((room) => entry.roomTypes?.includes(room.type));
     setRoomId(match?.id || defaultRoom);
-    setAppliedHint(entry.hint);
     setChipApplied(true);
   }
 
@@ -101,7 +96,7 @@ export function RestockWalkAddSheet({
     if (!name) return;
     onSave({
       itemName: name,
-      sku: sku.trim() || undefined,
+      sku: undefined,
       roomId,
       intervalMonths,
       retailer: undefined,
@@ -165,16 +160,6 @@ export function RestockWalkAddSheet({
                 </button>
               ))}
             </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="walk-add-size">Size or model (optional)</Label>
-            <Input
-              id="walk-add-size"
-              value={sku}
-              onChange={(event) => setSku(event.target.value)}
-              placeholder={appliedHint ?? "40 lb"}
-              className="h-12"
-            />
           </div>
           <div className="grid gap-1.5">
             <Label>Used in</Label>

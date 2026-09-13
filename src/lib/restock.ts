@@ -589,6 +589,7 @@ export function markConsumableOrdered(
 ): SupplyAutomation {
   const current = normalizeConsumable(item);
   const qty = Math.min(99, Math.max(1, Math.round(details.qty) || current.qtyPerOrder));
+  const sizeSpec = details.sizeSpec?.trim() || current.sizeSpec;
   return {
     ...current,
     state: "ordered",
@@ -599,6 +600,7 @@ export function markConsumableOrdered(
     quantity: qty,
     expectedArrivalDate: details.expectedArrivalDate,
     preferredRetailer: details.retailer || current.preferredRetailer,
+    sizeSpec: sizeSpec || undefined,
   };
 }
 
@@ -606,6 +608,7 @@ export type MarkOrderedDetails = {
   expectedArrivalDate: string;
   qty: number;
   retailer?: string;
+  sizeSpec?: string;
 };
 
 export type RestockFlowHandlers = {

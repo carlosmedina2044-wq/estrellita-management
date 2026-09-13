@@ -140,29 +140,32 @@ test("rememberRetailerLink upserts last-used first and caps the list", () => {
   assert.equal(many.length, MAX_SAVED_RETAILER_LINKS);
 });
 
-test("default chips are Amazon, Walmart, Target, Home Depot, Lowe’s, Chewy", () => {
+test("default chips are Amazon, Walmart, Target, Home Depot, Lowe’s, Costco, Chewy", () => {
   assert.deepEqual(
     RETAILER_CHIPS.map((chip) => chip.id),
-    ["amazon", "walmart", "target", "home-depot", "lowes", "chewy"],
+    ["amazon", "walmart", "target", "home-depot", "lowes", "costco", "chewy"],
   );
   assert.match(retailerSearchUrl("lowes", "caulk"), /lowes\.com\/search\?searchTerm=caulk/);
+  assert.match(retailerSearchUrl("costco", "paper towels"), /costco\.com\/CatalogSearch\?keyword=/);
   assert.equal(isProductPageUrl("https://www.lowes.com/pd/filter/123"), true);
   assert.equal(isProductPageUrl("https://www.lowes.com/search?searchTerm=filter"), false);
+  assert.equal(isKnownRetailerUrl("https://www.costco.com/kirkland-paper-towels.product.100123.html"), true);
   assert.match(searchUrlOnHost("lowes.com", "HVAC filter", "16x25x1"), /lowes\.com\/search\?searchTerm=/);
+  assert.match(searchUrlOnHost("costco.com", "HVAC filter"), /costco\.com\/CatalogSearch\?keyword=/);
 });
 
 test("orderedRetailerChips puts last-used first and keeps Chewy opt-in", () => {
   const defaultOrder = orderedRetailerChips({ preferredRetailers: [] });
   assert.deepEqual(
     defaultOrder.map((chip) => chip.id),
-    ["amazon", "walmart", "target", "home-depot", "lowes"],
+    ["amazon", "walmart", "target", "home-depot", "lowes", "costco"],
   );
   assert.equal(defaultOrder.some((chip) => chip.id === "chewy"), false);
 
   const preferred = orderedRetailerChips({ preferredRetailers: ["walmart", "amazon", "chewy"] });
   assert.deepEqual(
     preferred.map((chip) => chip.id),
-    ["walmart", "amazon", "chewy", "target", "home-depot", "lowes"],
+    ["walmart", "amazon", "chewy", "target", "home-depot", "lowes", "costco"],
   );
 
   const lastTime = orderedRetailerChips(
@@ -173,7 +176,7 @@ test("orderedRetailerChips puts last-used first and keeps Chewy opt-in", () => {
   assert.equal(lastTime[0]?.lastTime, true);
   assert.deepEqual(
     lastTime.map((chip) => chip.id),
-    ["target", "walmart", "amazon", "home-depot", "lowes"],
+    ["target", "walmart", "amazon", "home-depot", "lowes", "costco"],
   );
 
   const chewyItem = orderedRetailerChips({ preferredRetailers: [] }, { preferredRetailer: "chewy" });
