@@ -107,8 +107,12 @@ export function getLastMintedKeyId(): string | null {
 /** Read the existing AES key. Null only when the item is absent. Other errors throw. */
 export async function loadDeviceKey(options?: LoadDeviceKeyOptions): Promise<CryptoKey | null> {
   const existing = await readRaw(options?.reason ?? "Unlock Cuidala", options?.keyId);
-  if (existing) return importRawKey(existing);
-  return null;
+  if (!existing) return null;
+  try {
+    return await importRawKey(existing);
+  } finally {
+    existing.fill(0);
+  }
 }
 
 /** Generate and persist a new AES key under a fresh keyId account. Never overwrites another account. */
@@ -116,8 +120,12 @@ export async function createDeviceKey(): Promise<CryptoKey> {
   const keyId = mintKeyId();
   lastMintedKeyId = keyId;
   const raw = generateRawKey();
-  await writeRaw(raw, keyId);
-  return importRawKey(raw);
+  try {
+    await writeRaw(raw, keyId);
+    return await importRawKey(raw);
+  } finally {
+    raw.fill(0);
+  }
 }
 
 /**
