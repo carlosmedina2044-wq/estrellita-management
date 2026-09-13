@@ -1,2 +1,2 @@
 "NSFaceIDUsageDescription" = "O Cuidala usa o Face ID para proteger sua casa. Só você pode abrir.";
-"NSLocationWhenInUseUsageDescription" = "O Cuidala usa sua localização na configuração para tarefas sazonais e clima da Apple. O CEP e o clima ficam neste iPhone.";
+"NSLocationWhenInUseUsageDescription" = "O Cuidala usa sua localização na configuração para escolher tarefas sazonais e obter a previsão. Seu CEP ou localização é enviado à Apple para buscar coordenadas e o clima. O Cuidala não tem servidor.";

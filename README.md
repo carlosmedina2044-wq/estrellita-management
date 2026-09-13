@@ -2,7 +2,7 @@
 
 Home maintenance for iPhone: rooms, chores, and the filters and batteries you need to reorder. Replacement forecast lives inside Home; seasonal and weather-driven checklists live inside Today.
 
-**Local-first.** There are no accounts and no Cuidala servers. Everything lives on the device, encrypted at rest (AES-256-GCM) with a key held in the iOS Keychain behind Face ID / passcode (`WhenPasscodeSetThisDeviceOnly` + biometryCurrentSet OR devicePasscode). That key does **not** migrate via Quick Start — a backup password file is the cross-device path (see `docs/RESIDUAL_RISKS.md`). Forecasts come from Apple WeatherKit on device. ZIP stays on the phone for seasonal chores.
+**Local-first.** There are no accounts and no Cuidala servers. Everything lives on the device, encrypted at rest (AES-256-GCM) with a key held in the iOS Keychain behind Face ID / passcode (`WhenPasscodeSetThisDeviceOnly` + biometryCurrentSet OR devicePasscode). That key does **not** migrate via Quick Start — a backup password file is the cross-device path (see `docs/RESIDUAL_RISKS.md`). Forecasts come from Apple WeatherKit on device. Your ZIP or location is sent to Apple for geocoding and weather; Cuidala itself never receives that data.
 
 The UI is a Next.js app exported to static files and packaged by Capacitor into a native iOS shell. No remote code is loaded.
 
@@ -43,7 +43,7 @@ In Xcode:
 - **Price:** free for v1 (validate demand). Cuidala Pro is listed in Settings as coming later this year (Home Report, household sync, seasonal playbook packs; optional one-time unlock, no subscription, no price shown). No StoreKit in this binary.
 - **Devices:** iPhone only for v1 (`TARGETED_DEVICE_FAMILY = 1`). Portrait only. iPad is planned for a later release.
 - **Storefront:** United States only for v1.
-- **App Privacy:** Data Not Collected. WeatherKit is Apple-collected. Matches `PrivacyInfo.xcprivacy`.
+- **App Privacy:** Data Not Collected. WeatherKit and geocoding are Apple-collected (ZIP/location sent to Apple only). Matches `PrivacyInfo.xcprivacy`.
 - **Privacy policy URL:** host `out/privacy/` (e.g. on Vercel) and use that live URL in App Store Connect; the same policy is reachable in-app at Settings → Privacy policy. **Support URL** and working `support@` / `privacy@` mailboxes are required before submission (human ops — R1).
 - **Version:** ship as **1.0** (`MARKETING_VERSION`); increase `CURRENT_PROJECT_VERSION` for every upload.
 - **Archive toolchain:** build the App Store archive with **Xcode 26.2+ / iOS 26 SDK** (human ops — R5). An older Xcode archive is refused at upload.

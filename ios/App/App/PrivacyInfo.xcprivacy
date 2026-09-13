@@ -4,8 +4,9 @@
 <dict>
   <!--
     Cuidala has no accounts and no first-party server. Weather uses Apple
-    WeatherKit (Apple-collected). ZIP and climate stay on device. Nothing else
-    leaves the phone, so App Store Connect can be Data Not Collected.
+    WeatherKit (Apple-collected); ZIP or location is sent to Apple for
+    geocoding and forecasts. Nothing else leaves the phone, so App Store
+    Connect can be Data Not Collected.
   -->
   <key>NSPrivacyTracking</key>
   <false/>
