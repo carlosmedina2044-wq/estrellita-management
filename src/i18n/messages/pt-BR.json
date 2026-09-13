@@ -1115,5 +1115,8 @@
   "chore.complete": "Concluir",
   "chore.snoozeWeek": "Adiar por uma semana",
   "chore.snoozedToast": "Adiada por uma semana",
-  "chore.menuAria": "Ações da tarefa {title}"
+  "chore.menuAria": "Ações da tarefa {title}",
+  "today.headlineOne": "1 coisa precisa de você hoje.",
+  "today.headlineMany": "{count} coisas precisam de você hoje.",
+  "today.headlineClear": "Tudo certo. Próximo: {day}."
 }

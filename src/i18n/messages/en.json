@@ -1115,5 +1115,8 @@
   "chore.complete": "Complete",
   "chore.snoozeWeek": "Snooze a week",
   "chore.snoozedToast": "Snoozed for a week",
-  "chore.menuAria": "Chore actions for {title}"
+  "chore.menuAria": "Chore actions for {title}",
+  "today.headlineOne": "1 thing needs you today.",
+  "today.headlineMany": "{count} things need you today.",
+  "today.headlineClear": "All clear. Next up {day}."
 }

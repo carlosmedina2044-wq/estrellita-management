@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, Package, Settings, Share2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
-import { PageHeader } from "@/components/page-header";
 import { DayCalendar } from "@/components/day-calendar";
 import { SeasonSection } from "@/components/season-section";
 import { CostPrompt } from "@/components/cost-prompt";
@@ -16,7 +15,7 @@ import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
-import { formatLongDate, isFirstOfMonth, sameDay, addDays, toISODate } from "@/lib/dates";
+import { formatLongDate, formatWeekdayDate, isFirstOfMonth, sameDay, addDays, toISODate } from "@/lib/dates";
 import {
   dutiesDueOnDate,
   isDoneThisPeriod,
@@ -108,7 +107,6 @@ export function TodayView({
   const [creating, setCreating] = useState(false);
   const [creatingRule, setCreatingRule] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
-  const [zipBannerDismissed, setZipBannerDismissed] = useState(false);
   const [teachingHidden, setTeachingHidden] = useState(false);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
@@ -307,66 +305,71 @@ export function TodayView({
     : [];
   const greeting = todayGreeting(household.ownerName);
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
-  const zipBannerVisible = Boolean(needsZip && onSavePostalCode && !zipBannerDismissed);
+  const zipBannerVisible = Boolean(needsZip && onSavePostalCode);
   const showTeachingCard = Boolean(showTeaching && !teachingHidden && !zipBannerVisible && summary.overdue === 0);
-  const listSummary = viewingCalendar
-    ? calendarIsToday
-      ? open.length === 0
-        ? t("today.summaryClearToday")
-        : t("today.summaryCountToday", { count: open.length })
-      : open.length === 0
-        ? t("today.summaryClearDay")
-        : t("today.summaryCountDay", { count: open.length })
-    : scope === "daily"
-      ? open.length === 0
-        ? t("today.summaryClearToday")
-        : t("today.summaryCountToday", { count: open.length })
-      : scope === "weekly"
-        ? open.length === 0
-          ? t("today.summaryClearWeek")
-          : t("today.summaryCountWeek", { count: open.length })
-        : open.length === 0
-          ? t("today.summaryClearMonth")
-          : t("today.summaryCountMonth", { count: open.length });
+  const needCount = open.length;
+  let nextUpDay: string | null = null;
+  if (needCount === 0) {
+    nextUpDay = formatWeekdayDate(addDays(now, 1));
+    for (let offset = 1; offset <= 14; offset += 1) {
+      const day = addDays(now, offset);
+      const due = dutiesDueOnDate(household, day, filter).filter(
+        (duty) => !isDoneThisPeriod(duty, household.completions, day, installedAtFor(household, duty.id)),
+      );
+      if (due.length > 0) {
+        nextUpDay = formatWeekdayDate(day);
+        break;
+      }
+    }
+  }
+  const displayHeadline =
+    needCount === 0
+      ? t("today.headlineClear", { day: nextUpDay ?? "" })
+      : needCount === 1
+        ? t("today.headlineOne")
+        : t("today.headlineMany", { count: needCount });
+  const secondaryLine = [headingDate, !needsZip ? weatherLine : null].filter(Boolean).join(" · ");
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        eyebrow={greeting}
-        title={headingDate}
-        subtitle={needsZip ? listSummary : (weatherLine ?? listSummary)}
-        action={
-          onOpenSettings ? (
-            <button
-              type="button"
-              aria-label={t("common.settings")}
-              onClick={onOpenSettings}
-              className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-            >
-              <Settings className="size-5" />
-            </button>
-          ) : undefined
-        }
-      />
-      {zipBannerVisible ? (
-        <div className="rounded-2xl bg-card px-4 py-3">
-          <p className="ui-body font-medium">{t("today.addZip")}</p>
-          <p className="mt-0.5 ui-caption text-muted-foreground">
-            {weatherLine ?? t("settings.zipHelp")}
-          </p>
-          <div className="mt-2 flex gap-2">
-            <Button className="h-11 flex-1" onClick={() => setZipOpen(true)}>
-              {t("today.addZipCta")}
-            </Button>
-            <Button variant="secondary" className="h-11 flex-1" onClick={() => setZipBannerDismissed(true)}>
-              {t("common.notNow")}
-            </Button>
-          </div>
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[17px] font-semibold leading-snug text-foreground">{greeting}</p>
+          <h1 className="mt-1 text-[34px] font-bold leading-[1.15] tracking-tight text-foreground">
+            {displayHeadline}
+          </h1>
+          <p className="mt-1.5 ui-caption text-muted-foreground">{secondaryLine}</p>
         </div>
+        {onOpenSettings ? (
+          <button
+            type="button"
+            aria-label={t("common.settings")}
+            onClick={onOpenSettings}
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+          >
+            <Settings className="size-5" />
+          </button>
+        ) : null}
+      </header>
+
+      {zipBannerVisible ? (
+        <button
+          type="button"
+          onClick={() => setZipOpen(true)}
+          className="ui-group flex w-full items-center justify-between gap-3 px-4 py-3 text-left active:bg-foreground/6"
+        >
+          <span className="min-w-0">
+            <span className="block ui-body font-medium">{t("today.addZip")}</span>
+            <span className="mt-0.5 block ui-caption text-muted-foreground">
+              {t("settings.zipHelp")}
+            </span>
+          </span>
+          <span className="shrink-0 ui-caption font-semibold text-primary">{t("today.addZipCta")}</span>
+        </button>
       ) : null}
 
       {weatherLoading && !needsZip ? (
-        <div className="forecast-shimmer rounded-2xl bg-card px-4 py-4" aria-hidden>
+        <div className="forecast-shimmer rounded-[var(--r-container)] bg-card px-4 py-4" aria-hidden>
           <div className="h-3 w-24 rounded-full bg-foreground/8" />
           <div className="mt-3 h-5 w-48 rounded-full bg-foreground/8" />
           <div className="mt-2 h-3 w-36 rounded-full bg-foreground/8" />

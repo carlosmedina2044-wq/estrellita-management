@@ -1,7 +1,7 @@
 import triggerSeed from "@/lib/weather/triggers.json";
 import { tActive } from "@/i18n";
 import { tTriggerName } from "@/i18n/content";
-import { climateLabel, deriveClimate } from "@/lib/climate";
+import { deriveClimate } from "@/lib/climate";
 import { addDays, toISODate } from "@/lib/dates";
 import { attributesMatch, dutyFromPlaybookTask, resolvePlaybookTarget, type Playbook, type PlaybookTaskDef } from "@/lib/playbooks";
 import type { ClimateZone, HomeAttributes, HomeLocation, Household, WeatherFire } from "@/lib/types";
@@ -170,7 +170,7 @@ export function weatherCaption(
   }
   if (location.postalCode) {
     return {
-      text: climateLabel(deriveClimate(location)),
+      text: location.placeName || location.postalCode,
       needsZip: false,
     };
   }

@@ -121,5 +121,5 @@ test("weatherCaption never includes ZIP", () => {
   assert.equal(named.text.includes("ZIP"), false);
   assert.equal(zipOnly.text.includes("ZIP"), false);
   assert.equal(named.text, "Everett");
-  assert.equal(zipOnly.text, "Marine");
+  assert.equal(zipOnly.text, "98201");
 });
