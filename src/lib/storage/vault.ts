@@ -37,6 +37,14 @@ export const PERSIST_FAILED_EVENT = "cuidala-persist-failed";
 /** Copy of a vault that could not be opened. Hydrate never reads this key. */
 export const QUARANTINED_VAULT_KEY = "cuidala-vault-v2-unreadable";
 
+/** Thrown when a persist runs after the session has locked and no key was captured. */
+export class SessionLockedError extends Error {
+  constructor(message = "Household session is locked") {
+    super(message);
+    this.name = "SessionLockedError";
+  }
+}
+
 /** Non-sensitive fields kept while the vault session is locked (plaintext scrubbed). */
 export type VaultSessionMeta = {
   onboarded: boolean;
@@ -132,11 +140,16 @@ function captureSessionMeta(household: Household): VaultSessionMeta {
   };
 }
 
-async function persist(next: Household) {
-  if (!key) {
-    key = await resolveDeviceKeyForPersist();
+async function persist(next: Household, capturedKey: CryptoKey | null) {
+  let deviceKey = capturedKey;
+  if (!deviceKey) {
+    if (!sessionUnlocked) {
+      throw new SessionLockedError();
+    }
+    deviceKey = await resolveDeviceKeyForPersist();
+    key = deviceKey;
   }
-  const envelope = await encryptJson(key, JSON.stringify(next));
+  const envelope = await encryptJson(deviceKey, JSON.stringify(next));
   await io.kvSet(VAULT_STORAGE_KEY, JSON.stringify(envelope));
   scheduleNotificationSync(next);
 }
@@ -188,12 +201,27 @@ function scheduleNotificationSync(next: Household) {
 }
 
 function write(next: Household) {
+  if (!sessionUnlocked) {
+    persistChain = persistChain
+      .then(() => {
+        throw new SessionLockedError();
+      })
+      .catch(() => {
+        const firstFailure = persistOk;
+        persistOk = false;
+        if (firstFailure && typeof window !== "undefined") {
+          window.dispatchEvent(new Event(PERSIST_FAILED_EVENT));
+        }
+      });
+    return;
+  }
   memory = next;
   sessionMeta = captureSessionMeta(next);
   sessionUnlocked = true;
   notifyChange();
+  const keyAtWrite = key;
   persistChain = persistChain
-    .then(() => persist(next))
+    .then(() => persist(next, keyAtWrite))
     .then(() => {
       persistOk = true;
     })
@@ -225,7 +253,8 @@ export function getVaultSessionMeta(): VaultSessionMeta | null {
 }
 
 /** Clears in-memory CryptoKey and household plaintext. Ciphertext stays on disk. */
-export function lockHouseholdSession(): void {
+export async function lockHouseholdSession(): Promise<void> {
+  await flushHousehold().catch(() => {});
   key = null;
   memory = null;
   sessionUnlocked = false;
@@ -295,7 +324,7 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
     sessionUnlocked = true;
     sessionMeta = captureSessionMeta(memory);
     if (fromPreviousKey) {
-      await persist(memory);
+      await persist(memory, key);
       await io.kvRemove(PREVIOUS_VAULT_KEY);
     }
     if (typeof window !== "undefined") window.localStorage.removeItem("estrellita-audit-v1");
@@ -312,9 +341,9 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
   }
 }
 
-/** Resolves once every queued write has reached storage. */
+/** Resolves once every queued write has reached storage (failures are absorbed). */
 export function flushHousehold(): Promise<void> {
-  return persistChain;
+  return persistChain.catch(() => {});
 }
 
 async function readLegacyPlaintext(): Promise<Household | null> {
@@ -373,7 +402,7 @@ async function decryptVaultRaw(
     return lastLoad;
   }
   if (fromPreviousKey) {
-    await persist(memory);
+    await persist(memory, key);
     await io.kvRemove(PREVIOUS_VAULT_KEY);
   }
   if (typeof window !== "undefined") window.localStorage.removeItem("estrellita-audit-v1");
@@ -394,7 +423,7 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
   didHydrate = true;
   await persistChain.catch(() => {});
   if (!persistOk && memory) {
-    persistChain = persist(memory)
+    persistChain = persist(memory, key)
       .then(() => {
         persistOk = true;
       })
@@ -434,7 +463,7 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
       memory = legacy;
       sessionUnlocked = true;
       sessionMeta = captureSessionMeta(legacy);
-      await persist(legacy);
+      await persist(legacy, key);
       window.localStorage.removeItem(LEGACY_PLAINTEXT_KEY);
       lastLoad = { ok: true, legacyLockedVault: false };
       return lastLoad;
@@ -548,7 +577,7 @@ export async function importHouseholdBackup(
       sessionUnlocked = true;
       sessionMeta = captureSessionMeta(household);
       notifyChange();
-      await persist(household);
+      await persist(household, key);
     } catch {
       persistOk = false;
       return {

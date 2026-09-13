@@ -548,13 +548,119 @@ test("lock clears CryptoKey session and plaintext; unlock restores", async () =>
   assert.equal((await unlockHousehold()).ok, true);
   assert.equal(getHousehold().householdName, "Locked Home");
 
-  lockHouseholdSession();
+  await lockHouseholdSession();
   assert.equal(isHouseholdSessionUnlocked(), false);
   assert.notEqual(getHousehold().householdName, "Locked Home");
   assert.ok(store.has(VAULT_STORAGE_KEY));
 
   assert.equal((await unlockHousehold()).ok, true);
   assert.equal(getHousehold().householdName, "Locked Home");
+  resetVaultForTests();
+});
+
+test("write then lock flushes persist before clearing the key", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  let loadCalls = 0;
+  const store = new Map<string, string>([
+    [
+      VAULT_STORAGE_KEY,
+      JSON.stringify(await encryptJson(key, JSON.stringify({ householdName: "Before", onboarded: true }))),
+    ],
+  ]);
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => true,
+    loadDeviceKey: async () => {
+      loadCalls += 1;
+      return key;
+    },
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  await hydrateHousehold();
+  assert.equal((await unlockHousehold()).ok, true);
+  const loadsAfterUnlock = loadCalls;
+  updateHousehold((current) => ({ ...current, householdName: "Flushed Home" }));
+  await lockHouseholdSession();
+  assert.equal(isHouseholdSessionUnlocked(), false);
+  const sealed = store.get(VAULT_STORAGE_KEY)!;
+  const opened = JSON.parse(await decryptJson(key, parseEnvelopeJson(sealed)!));
+  assert.equal(opened.householdName, "Flushed Home");
+  assert.equal(loadCalls, loadsAfterUnlock);
+  assert.equal((await unlockHousehold()).ok, true);
+  assert.equal(getHousehold().householdName, "Flushed Home");
+  resetVaultForTests();
+});
+
+test("lock with empty persist chain does not load the device key", async () => {
+  resetVaultForTests();
+  let loadCalls = 0;
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => false,
+    loadDeviceKey: async () => {
+      loadCalls += 1;
+      return null;
+    },
+    createDeviceKey: async () => {
+      throw new Error("should not mint");
+    },
+    loadOrCreateDeviceKey: async () => {
+      throw new Error("should not mint");
+    },
+    deleteDeviceKey: async () => {},
+    kvGet: async () => null,
+    kvSet: async () => {},
+    kvRemove: async () => {},
+  });
+
+  await hydrateHousehold();
+  await lockHouseholdSession();
+  assert.equal(loadCalls, 0);
+  resetVaultForTests();
+});
+
+test("persist while locked never calls loadDeviceKey", async () => {
+  resetVaultForTests();
+  let loadCalls = 0;
+  const store = new Map<string, string>();
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => false,
+    loadDeviceKey: async () => {
+      loadCalls += 1;
+      return null;
+    },
+    createDeviceKey: async () => {
+      throw new Error("should not mint");
+    },
+    loadOrCreateDeviceKey: async () => {
+      throw new Error("should not mint");
+    },
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  await hydrateHousehold();
+  // Simulate a persist that lost the race with lock: null captured key after session lock.
+  await lockHouseholdSession();
+  const loadsAfterLock = loadCalls;
+  updateHousehold((current) => ({ ...current, householdName: "Should Not Prompt", onboarded: true }));
+  await flushHousehold();
+  assert.equal(loadCalls, loadsAfterLock);
   resetVaultForTests();
 });
 

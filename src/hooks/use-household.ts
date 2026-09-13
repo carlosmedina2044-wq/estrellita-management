@@ -636,9 +636,10 @@ export function useHousehold() {
   }, [syncFromStore]);
 
   const lockSession = useCallback(() => {
-    lockHouseholdSession();
-    setPendingUnlock(true);
-    syncFromStore();
+    void lockHouseholdSession().then(() => {
+      setPendingUnlock(true);
+      syncFromStore();
+    });
   }, [syncFromStore]);
 
   const eraseEverything = useCallback(async () => {
