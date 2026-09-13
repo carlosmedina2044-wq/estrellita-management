@@ -90,7 +90,18 @@ async function writeRaw(raw: Uint8Array): Promise<void> {
   const encoded = bytesToB64(raw);
   if (isNative()) {
     const { SecureStoragePlugin } = await import("capacitor-secure-storage-plugin");
-    await SecureStoragePlugin.set({ key: KEY_ID, value: encoded });
+    try {
+      await SecureStoragePlugin.set({ key: KEY_ID, value: encoded });
+    } catch (error) {
+      // Leftover Keychain items survive uninstall. SwiftKeychainWrapper.set
+      // can return false for those; remove then write once.
+      await removeRaw(KEY_ID);
+      try {
+        await SecureStoragePlugin.set({ key: KEY_ID, value: encoded });
+      } catch (retryError) {
+        throw new DeviceKeyError("Could not write the device key", { cause: retryError ?? error });
+      }
+    }
     return;
   }
   window.localStorage.setItem(KEY_ID, encoded);

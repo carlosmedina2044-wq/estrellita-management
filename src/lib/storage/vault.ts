@@ -113,7 +113,9 @@ async function persist(next: Household) {
 async function resolveDeviceKeyForPersist(): Promise<CryptoKey> {
   const existingVault = (await io.kvGet(VAULT_STORAGE_KEY)) ?? (await io.kvGet(PREVIOUS_VAULT_KEY));
   if (!existingVault) {
-    return io.createDeviceKey();
+    // Uninstall often leaves the Keychain item. Reuse it when there is
+    // nothing to decrypt; mint only when the item is genuinely absent.
+    return io.loadOrCreateDeviceKey();
   }
 
   let existingKey: CryptoKey | null = null;

@@ -381,6 +381,40 @@ test("S1e: persist reuses a device key that can open the existing vault", async 
   resetVaultForTests();
 });
 
+test("S1g: first persist reuses leftover Keychain when no vault exists", async () => {
+  resetVaultForTests();
+  const store = new Map<string, string>();
+  const key = await importRawKey(generateRawKey());
+  let minted = 0;
+  installVaultIOForTests({
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => {
+      minted += 1;
+      throw new Error("must not mint over leftover Keychain");
+    },
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  const first = await hydrateHousehold();
+  assert.equal(first.ok, true);
+  updateHousehold((current) => ({ ...current, householdName: "Sample Home", onboarded: true }));
+  await flushHousehold();
+
+  assert.equal(minted, 0);
+  const envelope = parseEnvelopeJson(store.get(VAULT_STORAGE_KEY) ?? "");
+  assert.ok(envelope);
+  assert.match(await decryptJson(key, envelope), /"householdName":"Sample Home"/);
+  resetVaultForTests();
+});
+
 test("S1f: persist refuses to mint when Keychain throws and a vault exists", async () => {
   resetVaultForTests();
   const store = new Map<string, string>([[VAULT_STORAGE_KEY, UNREADABLE_VAULT]]);
