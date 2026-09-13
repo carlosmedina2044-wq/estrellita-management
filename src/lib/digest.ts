@@ -18,9 +18,20 @@ export function digestCopy(
   privateNotifications = false,
 ): { title: string; body: string } {
   if (privateNotifications) {
+    const n = items.length;
+    const title =
+      overdueCount > 0 && n > 0
+        ? `${overdueCount === 1 ? "1 chore" : `${overdueCount} chores`} · ${n === 1 ? "1 to order" : `${n} to order`}`
+        : overdueCount > 0
+          ? overdueCount === 1
+            ? "1 chore still open"
+            : `${overdueCount} chores still open`
+          : n === 1
+            ? "1 thing to order this week"
+            : `${n} things to order this week`;
     return {
-      title: `Restock: ${items.length} items, ${overdueCount} chores`,
-      body: digestCopy(items, overdueCount).body,
+      title,
+      body: "Open Cuidala for details.",
     };
   }
   const n = items.length;

@@ -29,6 +29,7 @@ export function warrantyBadgeLabel(asset: Pick<HomeAsset, "warrantyUntil">, toda
 export function warrantyNotificationsFor(
   assets: Array<Pick<HomeAsset, "id" | "name" | "warrantyUntil">>,
   today = new Date(),
+  privateNotifications = false,
 ): WarrantyNotice[] {
   const notices: WarrantyNotice[] = [];
   for (const asset of assets) {
@@ -42,7 +43,9 @@ export function warrantyNotificationsFor(
     notices.push({
       id: `warranty-${asset.id}`,
       title: "Warranty ending soon",
-      body: `${asset.name} warranty ends ${formatDueDate(asset.warrantyUntil)}. If anything’s been acting up, get it looked at while it’s covered.`,
+      body: privateNotifications
+        ? "Open Cuidala for details."
+        : `${asset.name} warranty ends ${formatDueDate(asset.warrantyUntil)}. If anything’s been acting up, get it looked at while it’s covered.`,
       at,
       extra: { tab: "home" },
     });

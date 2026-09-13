@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { BrandMark } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,11 +48,11 @@ export function BackupPanel({
     if (!onExport) return;
     const error = passphraseError(passphrase);
     if (error) {
-      toast.error(error);
+      toast.error(error.replace(/passphrase/gi, "backup password"));
       return;
     }
     if (passphrase !== confirm) {
-      toast.error("Passphrases don’t match.");
+      toast.error("Backup passwords don’t match.");
       return;
     }
     setBusy(true);
@@ -64,7 +65,7 @@ export function BackupPanel({
         return;
       }
       if (offered === "cancelled") return;
-      toast.success(offered === "downloaded" ? "Backup saved" : "Backup file ready. Save it to Files or iCloud Drive");
+      toast.success(offered === "downloaded" ? "Backup saved" : "Backup file ready. Save it somewhere only you can find.");
       setPassphrase("");
       setConfirm("");
     } catch (error) {
@@ -81,7 +82,7 @@ export function BackupPanel({
     }
     const error = openPassphraseError(secret);
     if (error) {
-      toast.error(error);
+      toast.error(error.replace(/passphrase/gi, "backup password"));
       return;
     }
     setBusy(true);
@@ -103,19 +104,25 @@ export function BackupPanel({
 
   return (
     <div className="rounded-2xl bg-card p-4">
-      <p className="font-medium">{mode === "import-only" ? "Restore from a backup" : "Back up my home"}</p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Your home moves to your next iPhone with your normal iCloud backup. The passphrase file is extra
-        protection if that restore is not available. Cuidala cannot recover a forgotten passphrase.
-      </p>
+      <div className="flex items-start gap-3">
+        <BrandMark size="sm" className="mt-0.5 shrink-0" />
+        <div className="min-w-0">
+          <p className="font-medium">{mode === "import-only" ? "Restore from backup" : "Back up my home"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {mode === "import-only"
+              ? "Use a Cuidala backup file and its backup password to bring this home back."
+              : "A backup file is how you move to a new iPhone. Cuidala cannot reset a forgotten backup password."}
+          </p>
+        </div>
+      </div>
       {mode === "full" && onExport ? (
         <div className="mt-3">
-          <p className="text-sm font-medium">Create a backup</p>
+          <p className="text-sm font-medium">Create a backup password</p>
           <Input
             type="password"
             value={passphrase}
             onChange={(event) => setPassphrase(event.target.value)}
-            placeholder="Passphrase for this backup"
+            placeholder="Backup password"
             className="mt-2 h-12"
             autoComplete="new-password"
           />
@@ -123,16 +130,16 @@ export function BackupPanel({
             type="password"
             value={confirm}
             onChange={(event) => setConfirm(event.target.value)}
-            placeholder="Confirm passphrase"
+            placeholder="Confirm backup password"
             className="mt-2 h-12"
             autoComplete="new-password"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Choose a phrase you don’t use anywhere else.
-            {hint ? ` ${hint}` : ""}
+            Save this somewhere only you can find.
+            {hint ? ` ${hint.replace(/passphrase/gi, "backup password")}` : ""}
           </p>
           <Button className="mt-3 h-12 w-full" disabled={busy} onClick={() => void exportFile()}>
-            Create encrypted backup
+            Save backup file
           </Button>
         </div>
       ) : null}
@@ -167,6 +174,7 @@ export function BackupPanel({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
+            <BrandMark size="sm" className="mx-auto mb-2" />
             <AlertDialogTitle>Restore this backup?</AlertDialogTitle>
             <AlertDialogDescription>
               {`This will replace your current home (${replaceCounts?.chores ?? 0} chores, ${replaceCounts?.items ?? 0} items).`}
@@ -176,7 +184,7 @@ export function BackupPanel({
             type="password"
             value={restorePassphrase}
             onChange={(event) => setRestorePassphrase(event.target.value)}
-            placeholder="Passphrase"
+            placeholder="Backup password"
             className="h-12"
             autoFocus
             autoComplete="current-password"
@@ -194,7 +202,7 @@ export function BackupPanel({
                 setPendingFile(null);
               }}
             >
-              Replace
+              Restore
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

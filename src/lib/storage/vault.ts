@@ -14,6 +14,8 @@ import {
   createDeviceKey,
   deleteDeviceKey,
   DeviceKeyError,
+  deviceKeyRequiresInteractiveUnlock,
+  isUserCanceledKeyError,
   loadDeviceKey,
   loadOrCreateDeviceKey,
 } from "@/lib/native/device-key";
@@ -21,15 +23,28 @@ import { kvGet, kvRemove, kvSet } from "@/lib/native/kv";
 import { syncScheduledNotifications } from "@/lib/notifications";
 import { isPlainObject } from "@/lib/sanitize";
 import { EMPTY_HOUSEHOLD, migrateHousehold, parseStored } from "@/lib/storage/migrate";
-import type { Household } from "@/lib/types";
+import type { Household, LockAfter } from "@/lib/types";
 
 export type HouseholdLoad =
-  | { ok: true; legacyLockedVault: boolean }
+  | { ok: true; legacyLockedVault: boolean; pendingUnlock?: boolean }
   | { ok: false; reason: "corrupt" | "unavailable" | "key-mismatch" };
+
+export type UnlockHouseholdResult =
+  | { ok: true }
+  | { ok: false; reason: "canceled" | "auth_failed" | "key-mismatch" | "corrupt" | "unavailable" };
 
 export const PERSIST_FAILED_EVENT = "cuidala-persist-failed";
 /** Copy of a vault that could not be opened. Hydrate never reads this key. */
 export const QUARANTINED_VAULT_KEY = "cuidala-vault-v2-unreadable";
+
+/** Non-sensitive fields kept while the vault session is locked (plaintext scrubbed). */
+export type VaultSessionMeta = {
+  onboarded: boolean;
+  requireFaceId: boolean;
+  lockAfter: LockAfter;
+  mode: Household["mode"];
+  cleanerVisitActive: boolean;
+};
 
 type VaultIO = {
   kvGet: typeof kvGet;
@@ -39,6 +54,7 @@ type VaultIO = {
   createDeviceKey: typeof createDeviceKey;
   loadOrCreateDeviceKey: typeof loadOrCreateDeviceKey;
   deleteDeviceKey: typeof deleteDeviceKey;
+  requiresInteractiveUnlock: () => boolean;
 };
 
 const defaultIO = (): VaultIO => ({
@@ -49,6 +65,7 @@ const defaultIO = (): VaultIO => ({
   createDeviceKey,
   loadOrCreateDeviceKey,
   deleteDeviceKey,
+  requiresInteractiveUnlock: deviceKeyRequiresInteractiveUnlock,
 });
 
 let io: VaultIO = defaultIO();
@@ -64,6 +81,8 @@ export function resetVaultForTests() {
   didHydrate = false;
   lastLoad = null;
   key = null;
+  sessionUnlocked = true;
+  sessionMeta = null;
   persistChain = Promise.resolve();
   persistOk = true;
   if (notifyTimer) clearTimeout(notifyTimer);
@@ -75,6 +94,8 @@ let memory: Household | null = null;
 let didHydrate = false;
 let lastLoad: HouseholdLoad | null = null;
 let key: CryptoKey | null = null;
+let sessionUnlocked = true;
+let sessionMeta: VaultSessionMeta | null = null;
 let persistChain: Promise<void> = Promise.resolve();
 let persistOk = true;
 let notifyTimer: ReturnType<typeof setTimeout> | null = null;
@@ -101,6 +122,16 @@ function notifyChange() {
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }
 
+function captureSessionMeta(household: Household): VaultSessionMeta {
+  return {
+    onboarded: household.onboarded,
+    requireFaceId: Boolean(household.lockSettings?.requireFaceId),
+    lockAfter: household.lockSettings?.lockAfter ?? "2min",
+    mode: household.mode,
+    cleanerVisitActive: household.mode === "cleaner",
+  };
+}
+
 async function persist(next: Household) {
   if (!key) {
     key = await resolveDeviceKeyForPersist();
@@ -115,13 +146,16 @@ async function resolveDeviceKeyForPersist(): Promise<CryptoKey> {
   if (!existingVault) {
     // Uninstall often leaves the Keychain item. Reuse it when there is
     // nothing to decrypt; mint only when the item is genuinely absent.
-    return io.loadOrCreateDeviceKey();
+    return io.loadOrCreateDeviceKey({ reason: "Save your home on this iPhone" });
   }
 
   let existingKey: CryptoKey | null = null;
   try {
-    existingKey = await io.loadDeviceKey();
-  } catch {
+    existingKey = await io.loadDeviceKey({ reason: "Save your home on this iPhone" });
+  } catch (error) {
+    if (isUserCanceledKeyError(error)) {
+      throw new DeviceKeyError("User canceled authentication", { cause: error, code: "user_canceled" });
+    }
     throw new DeviceKeyError("Refusing to mint a new key while a vault exists");
   }
 
@@ -155,6 +189,8 @@ function scheduleNotificationSync(next: Household) {
 
 function write(next: Household) {
   memory = next;
+  sessionMeta = captureSessionMeta(next);
+  sessionUnlocked = true;
   notifyChange();
   persistChain = persistChain
     .then(() => persist(next))
@@ -172,11 +208,108 @@ function write(next: Household) {
 
 export function getHousehold(): Household {
   if (!didHydrate) return EMPTY_HOUSEHOLD;
+  if (!sessionUnlocked) return EMPTY_HOUSEHOLD;
   return memory ?? EMPTY_HOUSEHOLD;
 }
 
 export function getHouseholdLoad(): HouseholdLoad | null {
   return lastLoad;
+}
+
+export function isHouseholdSessionUnlocked(): boolean {
+  return sessionUnlocked;
+}
+
+export function getVaultSessionMeta(): VaultSessionMeta | null {
+  return sessionMeta;
+}
+
+/** Clears in-memory CryptoKey and household plaintext. Ciphertext stays on disk. */
+export function lockHouseholdSession(): void {
+  key = null;
+  memory = null;
+  sessionUnlocked = false;
+  if (lastLoad?.ok) {
+    lastLoad = { ok: true, legacyLockedVault: false, pendingUnlock: true };
+  }
+  notifyChange();
+}
+
+/**
+ * ACL Keychain get → decrypt → hydrate UI.
+ * Cancel stays locked and must not quarantine or mint.
+ */
+export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<UnlockHouseholdResult> {
+  await persistChain.catch(() => {});
+  try {
+    let raw = await io.kvGet(VAULT_STORAGE_KEY);
+    let fromPreviousKey = false;
+    if (!raw) {
+      raw = await io.kvGet(PREVIOUS_VAULT_KEY);
+      fromPreviousKey = Boolean(raw);
+    }
+    if (!raw) {
+      // No ciphertext — treat as empty unlocked session.
+      memory = cloneEmpty();
+      key = null;
+      sessionUnlocked = true;
+      sessionMeta = captureSessionMeta(memory);
+      lastLoad = { ok: true, legacyLockedVault: legacyLockedVaultPresent() };
+      notifyChange();
+      return { ok: true };
+    }
+
+    let deviceKey: CryptoKey | null = null;
+    try {
+      deviceKey = await io.loadDeviceKey({ reason });
+    } catch (error) {
+      if (isUserCanceledKeyError(error)) return { ok: false, reason: "canceled" };
+      if (error instanceof DeviceKeyError && error.code === "auth_failed") {
+        return { ok: false, reason: "auth_failed" };
+      }
+      lastLoad = { ok: false, reason: "unavailable" };
+      return { ok: false, reason: "unavailable" };
+    }
+    if (!deviceKey) {
+      lastLoad = { ok: false, reason: "key-mismatch" };
+      return { ok: false, reason: "key-mismatch" };
+    }
+
+    const envelope = parseEnvelopeJson(raw);
+    if (!envelope) {
+      lastLoad = { ok: false, reason: "corrupt" };
+      return { ok: false, reason: "corrupt" };
+    }
+
+    try {
+      memory = parseStored(await decryptJson(deviceKey, envelope));
+    } catch {
+      key = null;
+      memory = null;
+      sessionUnlocked = false;
+      lastLoad = { ok: false, reason: "key-mismatch" };
+      return { ok: false, reason: "key-mismatch" };
+    }
+
+    key = deviceKey;
+    sessionUnlocked = true;
+    sessionMeta = captureSessionMeta(memory);
+    if (fromPreviousKey) {
+      await persist(memory);
+      await io.kvRemove(PREVIOUS_VAULT_KEY);
+    }
+    if (typeof window !== "undefined") window.localStorage.removeItem("estrellita-audit-v1");
+    lastLoad = { ok: true, legacyLockedVault: false };
+    notifyChange();
+    return { ok: true };
+  } catch (error) {
+    if (isUserCanceledKeyError(error)) return { ok: false, reason: "canceled" };
+    lastLoad = {
+      ok: false,
+      reason: error instanceof DOMException || error instanceof DeviceKeyError ? "unavailable" : "corrupt",
+    };
+    return { ok: false, reason: lastLoad.reason === "unavailable" ? "unavailable" : "corrupt" };
+  }
 }
 
 /** Resolves once every queued write has reached storage. */
@@ -207,9 +340,55 @@ function legacyLockedVaultPresent(): boolean {
   return false;
 }
 
+async function decryptVaultRaw(
+  raw: string,
+  fromPreviousKey: boolean,
+  reason: string,
+): Promise<HouseholdLoad> {
+  try {
+    key = await io.loadDeviceKey({ reason });
+  } catch (error) {
+    if (isUserCanceledKeyError(error)) {
+      sessionUnlocked = false;
+      lastLoad = { ok: true, legacyLockedVault: false, pendingUnlock: true };
+      return lastLoad;
+    }
+    lastLoad = { ok: false, reason: "unavailable" };
+    return lastLoad;
+  }
+  if (!key) {
+    lastLoad = { ok: false, reason: "key-mismatch" };
+    return lastLoad;
+  }
+  const envelope = parseEnvelopeJson(raw);
+  if (!envelope) {
+    lastLoad = { ok: false, reason: "corrupt" };
+    return lastLoad;
+  }
+  try {
+    memory = parseStored(await decryptJson(key, envelope));
+  } catch {
+    key = null;
+    lastLoad = { ok: false, reason: "key-mismatch" };
+    return lastLoad;
+  }
+  if (fromPreviousKey) {
+    await persist(memory);
+    await io.kvRemove(PREVIOUS_VAULT_KEY);
+  }
+  if (typeof window !== "undefined") window.localStorage.removeItem("estrellita-audit-v1");
+  sessionUnlocked = true;
+  sessionMeta = captureSessionMeta(memory);
+  lastLoad = { ok: true, legacyLockedVault: false };
+  return lastLoad;
+}
+
 /**
  * Loads the household from encrypted storage. Never deletes anything it cannot
  * read: unreadable data is reported as `corrupt` and left in place.
+ *
+ * On native, when ciphertext exists, decrypt is deferred until `unlockHousehold`
+ * (ACL Keychain get). Cancel must not quarantine or mint.
  */
 export async function hydrateHousehold(): Promise<HouseholdLoad> {
   didHydrate = true;
@@ -222,6 +401,8 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
       .catch(() => {
         persistOk = false;
       });
+    sessionUnlocked = true;
+    sessionMeta = captureSessionMeta(memory);
     lastLoad = { ok: true, legacyLockedVault: false };
     return lastLoad;
   }
@@ -234,37 +415,16 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
       fromPreviousKey = Boolean(raw);
     }
     if (raw) {
-      // Vault exists: never mint a new key. Missing key → key-mismatch.
-      // Unexpected Keychain errors fail closed as unavailable.
-      try {
-        key = await io.loadDeviceKey();
-      } catch {
-        lastLoad = { ok: false, reason: "unavailable" };
-        return lastLoad;
-      }
-      if (!key) {
-        lastLoad = { ok: false, reason: "key-mismatch" };
-        return lastLoad;
-      }
-      const envelope = parseEnvelopeJson(raw);
-      if (!envelope) {
-        lastLoad = { ok: false, reason: "corrupt" };
-        return lastLoad;
-      }
-      try {
-        memory = parseStored(await decryptJson(key, envelope));
-      } catch {
+      if (io.requiresInteractiveUnlock()) {
+        // Detect ciphertext only — do not touch the ACL-bound key yet.
         key = null;
-        lastLoad = { ok: false, reason: "key-mismatch" };
+        memory = null;
+        sessionUnlocked = false;
+        sessionMeta = null;
+        lastLoad = { ok: true, legacyLockedVault: false, pendingUnlock: true };
         return lastLoad;
       }
-      if (fromPreviousKey) {
-        await persist(memory);
-        await io.kvRemove(PREVIOUS_VAULT_KEY);
-      }
-      if (typeof window !== "undefined") window.localStorage.removeItem("estrellita-audit-v1");
-      lastLoad = { ok: true, legacyLockedVault: false };
-      return lastLoad;
+      return decryptVaultRaw(raw, fromPreviousKey, "Unlock Cuidala");
     }
 
     // First launch on this build: pick up a plaintext household from the
@@ -272,6 +432,8 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
     const legacy = await readLegacyPlaintext();
     if (legacy) {
       memory = legacy;
+      sessionUnlocked = true;
+      sessionMeta = captureSessionMeta(legacy);
       await persist(legacy);
       window.localStorage.removeItem(LEGACY_PLAINTEXT_KEY);
       lastLoad = { ok: true, legacyLockedVault: false };
@@ -279,16 +441,22 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
     }
 
     memory = cloneEmpty();
+    sessionUnlocked = true;
+    sessionMeta = captureSessionMeta(memory);
     lastLoad = { ok: true, legacyLockedVault: legacyLockedVaultPresent() };
     return lastLoad;
   } catch (error) {
-    lastLoad = { ok: false, reason: error instanceof DOMException || error instanceof DeviceKeyError ? "unavailable" : "corrupt" };
+    lastLoad = {
+      ok: false,
+      reason: error instanceof DOMException || error instanceof DeviceKeyError ? "unavailable" : "corrupt",
+    };
     return lastLoad;
   }
 }
 
 export function updateHousehold(updater: (current: Household) => Household) {
   didHydrate = true;
+  if (!sessionUnlocked) return;
   write(updater(memory ?? cloneEmpty()));
 }
 
@@ -311,6 +479,8 @@ export async function eraseHousehold(): Promise<{ ok: boolean }> {
   }
   key = null;
   memory = cloneEmpty();
+  sessionUnlocked = true;
+  sessionMeta = captureSessionMeta(memory);
   persistOk = true;
   lastLoad = { ok: true, legacyLockedVault: false };
   notifyChange();
@@ -375,6 +545,8 @@ export async function importHouseholdBackup(
       }
       memory = household;
       didHydrate = true;
+      sessionUnlocked = true;
+      sessionMeta = captureSessionMeta(household);
       notifyChange();
       await persist(household);
     } catch {

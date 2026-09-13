@@ -21,7 +21,6 @@ let package = Package(
         .package(name: "CapacitorPreferences", path: "../../../node_modules/@capacitor/preferences"),
         .package(name: "CapacitorShare", path: "../../../node_modules/@capacitor/share"),
         .package(name: "CapgoCapacitorNativeBiometric", path: "../../../node_modules/@capgo/capacitor-native-biometric"),
-        .package(name: "CapacitorSecureStoragePlugin", path: "../../../node_modules/capacitor-secure-storage-plugin"),
         .package(name: "CuidalaDeviceKey", path: "../../../plugins/cuidala-device-key"),
         .package(name: "CuidalaWeatherkit", path: "../../../plugins/cuidala-weatherkit")
     ],
@@ -40,7 +39,6 @@ let package = Package(
                 .product(name: "CapacitorPreferences", package: "CapacitorPreferences"),
                 .product(name: "CapacitorShare", package: "CapacitorShare"),
                 .product(name: "CapgoCapacitorNativeBiometric", package: "CapgoCapacitorNativeBiometric"),
-                .product(name: "CapacitorSecureStoragePlugin", package: "CapacitorSecureStoragePlugin"),
                 .product(name: "CuidalaDeviceKey", package: "CuidalaDeviceKey"),
                 .product(name: "CuidalaWeatherkit", package: "CuidalaWeatherkit")
             ]

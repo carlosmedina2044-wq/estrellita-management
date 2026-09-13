@@ -1,3 +1,14 @@
+let activeDateLocale = "en-US";
+
+/** Used by LocaleProvider so formatters follow the in-app language. Budget currency stays USD. */
+export function setActiveDateLocale(tag: string) {
+  activeDateLocale = tag || "en-US";
+}
+
+export function getActiveDateLocale() {
+  return activeDateLocale;
+}
+
 export function toISODate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -32,7 +43,7 @@ export function daysInMonth(date: Date): number {
 }
 
 export function formatLongDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(activeDateLocale, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -40,7 +51,7 @@ export function formatLongDate(date: Date): string {
 }
 
 export function formatShortDate(value: string): string {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(activeDateLocale, {
     month: "short",
     day: "numeric",
   }).format(new Date(parseISODate(value)));
@@ -70,7 +81,7 @@ export function addCalendarYears(date: Date, years: number): Date {
 export function formatDueDate(value: string | Date): string {
   const date = typeof value === "string" ? new Date(parseISODate(value)) : value;
   const includeYear = date.getFullYear() !== new Date().getFullYear();
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(activeDateLocale, {
     month: "short",
     day: "numeric",
     year: includeYear ? "numeric" : undefined,
@@ -80,7 +91,7 @@ export function formatDueDate(value: string | Date): string {
 export function formatWeekdayDate(value: string | Date): string {
   const date = typeof value === "string" ? new Date(parseISODate(value)) : value;
   const includeYear = date.getFullYear() !== new Date().getFullYear();
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(activeDateLocale, {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -120,7 +131,7 @@ export function isFirstOfMonth(date: Date): boolean {
 }
 
 export function formatMonthTitle(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(activeDateLocale, {
     month: "long",
     year: "numeric",
   }).format(date);

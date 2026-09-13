@@ -267,7 +267,7 @@ test("two colliding hashes produce distinct IDs and keep both notifications", ()
   assert.equal(new Set(ids).size, ids.length);
 });
 
-test("privateNotifications titles never include the item name", () => {
+test("privateNotifications titles and bodies never include the item name", () => {
   const stocked = item({
     itemName: "Secret HVAC filter",
     onHand: 3,
@@ -285,11 +285,15 @@ test("privateNotifications titles never include the item name", () => {
         privateNotifications: true,
       },
       supplyAutomations: [stocked],
+      assets: [{ id: "a1", name: "Secret Fridge", roomId: "kitchen", type: "appliance", installDate: "2024-01-01", warrantyUntil: "2027-10-01" } as never],
     }),
     now,
   );
   assert.ok(notices.length > 0);
   for (const notice of notices) {
     assert.equal(notice.title.includes("Secret HVAC filter"), false);
+    assert.equal(notice.body.includes("Secret HVAC filter"), false);
+    assert.equal(notice.title.includes("Secret Fridge"), false);
+    assert.equal(notice.body.includes("Secret Fridge"), false);
   }
 });

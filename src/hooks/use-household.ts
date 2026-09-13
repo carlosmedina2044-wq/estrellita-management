@@ -8,11 +8,18 @@ import {
   eraseHousehold,
   exportHouseholdBackup,
   getHousehold,
+  getHouseholdLoad,
+  getVaultSessionMeta,
   hydrateHousehold,
   importHouseholdBackup,
+  isHouseholdSessionUnlocked,
+  lockHouseholdSession,
   subscribeHousehold,
+  unlockHousehold,
   updateHousehold,
   type HouseholdLoad,
+  type UnlockHouseholdResult,
+  type VaultSessionMeta,
 } from "@/lib/storage";
 import { applyCompletionCost, applyReceivedPrice } from "@/lib/costs";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
@@ -55,11 +62,23 @@ export function useHousehold() {
   const [hydrated, setHydrated] = useState(false);
   const [loadError, setLoadError] = useState<Exclude<HouseholdLoad, { ok: true }> | null>(null);
   const [legacyLockedVault, setLegacyLockedVault] = useState(false);
+  const [pendingUnlock, setPendingUnlock] = useState(false);
+  const [sessionMeta, setSessionMeta] = useState<VaultSessionMeta | null>(null);
+  const [sessionUnlocked, setSessionUnlocked] = useState(true);
+
+  const syncFromStore = useCallback(() => {
+    const unlocked = isHouseholdSessionUnlocked();
+    const load = getHouseholdLoad();
+    setHousehold(getHousehold());
+    setSessionMeta(getVaultSessionMeta());
+    setSessionUnlocked(unlocked);
+    setPendingUnlock(!unlocked && Boolean(load?.ok));
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     const unsubscribe = subscribeHousehold(() => {
-      if (!cancelled) setHousehold(getHousehold());
+      if (!cancelled) syncFromStore();
     });
 
     void (async () => {
@@ -67,12 +86,15 @@ export function useHousehold() {
       if (cancelled) return;
       if (!result.ok) {
         setLoadError(result);
+        setPendingUnlock(false);
         setHydrated(true);
+        syncFromStore();
         return;
       }
       setLoadError(null);
       setLegacyLockedVault(result.legacyLockedVault);
-      setHousehold(getHousehold());
+      setPendingUnlock(Boolean(result.pendingUnlock));
+      syncFromStore();
       setHydrated(true);
     })();
 
@@ -80,8 +102,7 @@ export function useHousehold() {
       cancelled = true;
       unsubscribe();
     };
-  }, []);
-
+  }, [syncFromStore]);
   const update = useCallback((updater: (current: Household) => Household) => {
     updateHousehold(updater);
   }, []);
@@ -588,22 +609,48 @@ export function useHousehold() {
     const result = await hydrateHousehold();
     if (!result.ok) {
       setLoadError(result);
+      setPendingUnlock(false);
+      syncFromStore();
       return;
     }
     setLoadError(null);
     setLegacyLockedVault(result.legacyLockedVault);
-    setHousehold(getHousehold());
-  }, []);
+    setPendingUnlock(Boolean(result.pendingUnlock));
+    syncFromStore();
+  }, [syncFromStore]);
+
+  const unlockSession = useCallback(async (reason?: string): Promise<UnlockHouseholdResult> => {
+    const result = await unlockHousehold(reason);
+    if (result.ok) {
+      setLoadError(null);
+      setPendingUnlock(false);
+      syncFromStore();
+      return result;
+    }
+    if (result.reason === "key-mismatch" || result.reason === "corrupt" || result.reason === "unavailable") {
+      setLoadError({ ok: false, reason: result.reason });
+      setPendingUnlock(false);
+    }
+    syncFromStore();
+    return result;
+  }, [syncFromStore]);
+
+  const lockSession = useCallback(() => {
+    lockHouseholdSession();
+    setPendingUnlock(true);
+    syncFromStore();
+  }, [syncFromStore]);
 
   const eraseEverything = useCallback(async () => {
     const result = await eraseHousehold();
     if (result.ok) {
       setLoadError(null);
       setLegacyLockedVault(false);
-      setHousehold(getHousehold());
+      setPendingUnlock(false);
+      syncFromStore();
     }
     return result;
-  }, []);
+  }, [syncFromStore]);
 
   const exportBackup = useCallback(async (passphrase: string) => {
     return exportHouseholdBackup(passphrase);
@@ -614,11 +661,11 @@ export function useHousehold() {
     if (result.ok) {
       setLoadError(null);
       setLegacyLockedVault(false);
-      setHousehold(getHousehold());
+      setPendingUnlock(false);
+      syncFromStore();
     }
     return result;
-  }, []);
-
+  }, [syncFromStore]);
   const applyRestockWalk = useCallback(
     (picks: RestockPick[]) => {
       update((current) => applyRestockPicks(current, picks));
@@ -636,6 +683,9 @@ export function useHousehold() {
     hydrated,
     loadError,
     legacyLockedVault,
+    pendingUnlock,
+    sessionMeta,
+    sessionUnlocked,
     activeDuties,
     completeOnboarding,
     saveDuty,
@@ -664,6 +714,8 @@ export function useHousehold() {
     startCleanerVisit,
     endCleanerVisit,
     retryLoad,
+    unlockSession,
+    lockSession,
     eraseEverything,
     exportBackup,
     importBackup,

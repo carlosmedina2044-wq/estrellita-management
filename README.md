@@ -2,7 +2,7 @@
 
 Home maintenance for iPhone: rooms, chores, and the filters and batteries you need to reorder. Replacement forecast lives inside Home; seasonal and weather-driven checklists live inside Today.
 
-**Local-first.** There are no accounts and no Cuidala servers. Everything lives on the device, encrypted at rest (AES-256-GCM) with a key held in the iOS Keychain (`kSecAttrAccessibleAfterFirstUnlock`). That key migrates with encrypted iCloud and Finder backups and Quick Start. Face ID / Touch ID / passcode is required before the home is shown and fails closed. That lock is an app-level UI gate, not a second encryption layer on the Keychain item (see `docs/RESIDUAL_RISKS.md`). Forecasts come from Apple WeatherKit on device. ZIP stays on the phone for climate zone.
+**Local-first.** There are no accounts and no Cuidala servers. Everything lives on the device, encrypted at rest (AES-256-GCM) with a key held in the iOS Keychain behind Face ID / passcode (`WhenPasscodeSetThisDeviceOnly` + biometryCurrentSet OR devicePasscode). That key does **not** migrate via Quick Start — a backup password file is the cross-device path (see `docs/RESIDUAL_RISKS.md`). Forecasts come from Apple WeatherKit on device. ZIP stays on the phone for seasonal chores.
 
 The UI is a Next.js app exported to static files and packaged by Capacitor into a native iOS shell. No remote code is loaded.
 

@@ -16,6 +16,9 @@ export async function shareText(title: string, text: string): Promise<"shared" |
   }
   try {
     await navigator.clipboard.writeText(text);
+    window.setTimeout(() => {
+      void navigator.clipboard.writeText("").catch(() => {});
+    }, 60_000);
     return "copied";
   } catch {
     return "failed";

@@ -109,9 +109,11 @@ function arrivalNotice(
     title: household.restockDigest.privateNotifications
       ? "Did your order arrive?"
       : `Did the ${item.itemName} arrive?`,
-    body: hasLinkedDuty(item, household)
-      ? "Tap to mark it received. The install chore is waiting on it."
-      : "Tap to mark it received.",
+    body: household.restockDigest.privateNotifications
+      ? "Open Cuidala for details."
+      : hasLinkedDuty(item, household)
+        ? "Tap to mark it received. The install chore is waiting on it."
+        : "Tap to mark it received.",
     schedule: scheduleAt(at),
     extra: { tab: "restock", itemId: item.id, action: "receive" },
   };
@@ -186,7 +188,9 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
       title: household.restockDigest.privateNotifications
         ? "Order a supply"
         : `Order ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
-      body: "Order today so it arrives before you run out.",
+      body: household.restockDigest.privateNotifications
+        ? "Open Cuidala for details."
+        : "Order today so it arrives before you run out.",
       schedule: scheduleAt(due),
       extra: { tab: "restock", itemId: item.id },
     });
@@ -210,14 +214,20 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
       title: household.restockDigest.privateNotifications
         ? "Still to order a supply"
         : `Still to order: ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
-      body: "No rush. Tap when you want to order.",
+      body: household.restockDigest.privateNotifications
+        ? "Open Cuidala for details."
+        : "No rush. Tap when you want to order.",
       schedule: scheduleAt(at),
       extra: { tab: "restock", itemId: item.id, action: "followup" },
     });
   }
 
   const remaining = Math.max(0, MAX_PENDING - notifications.length);
-  for (const notice of warrantyNotificationsFor(household.assets, now).slice(0, remaining)) {
+  for (const notice of warrantyNotificationsFor(
+    household.assets,
+    now,
+    household.restockDigest.privateNotifications === true,
+  ).slice(0, remaining)) {
     notifications.push({
       id: allocateId(used, notice.id),
       title: notice.title,

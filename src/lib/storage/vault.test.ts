@@ -10,10 +10,14 @@ import {
   hydrateHousehold,
   importHouseholdBackup,
   installVaultIOForTests,
+  isHouseholdSessionUnlocked,
+  lockHouseholdSession,
   QUARANTINED_VAULT_KEY,
   resetVaultForTests,
+  unlockHousehold,
   updateHousehold,
 } from "@/lib/storage/vault";
+import { DeviceKeyError } from "@/lib/native/device-key";
 
 test("hydrate retries a failed persist instead of dropping in-memory household", async () => {
   resetVaultForTests();
@@ -474,5 +478,127 @@ test("erase returns ok:false and keeps memory when kvRemove throws", async () =>
   const result = await eraseHousehold();
   assert.equal(result.ok, false);
   assert.equal(getHousehold().householdName, "Keep me");
+  resetVaultForTests();
+});
+
+test("unlock-before-decrypt: interactive hydrate does not load the device key", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Secret Home", onboarded: true })),
+  );
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, sealed]]);
+  let loads = 0;
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => true,
+    loadDeviceKey: async () => {
+      loads += 1;
+      return key;
+    },
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  const pending = await hydrateHousehold();
+  assert.equal(pending.ok, true);
+  if (pending.ok) assert.equal(pending.pendingUnlock, true);
+  assert.equal(loads, 0);
+  assert.equal(isHouseholdSessionUnlocked(), false);
+  assert.notEqual(getHousehold().householdName, "Secret Home");
+
+  const unlocked = await unlockHousehold("Unlock Cuidala");
+  assert.equal(unlocked.ok, true);
+  assert.equal(loads, 1);
+  assert.equal(isHouseholdSessionUnlocked(), true);
+  assert.equal(getHousehold().householdName, "Secret Home");
+  resetVaultForTests();
+});
+
+test("lock clears CryptoKey session and plaintext; unlock restores", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Locked Home", onboarded: true })),
+  );
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, sealed]]);
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => true,
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  await hydrateHousehold();
+  assert.equal((await unlockHousehold()).ok, true);
+  assert.equal(getHousehold().householdName, "Locked Home");
+
+  lockHouseholdSession();
+  assert.equal(isHouseholdSessionUnlocked(), false);
+  assert.notEqual(getHousehold().householdName, "Locked Home");
+  assert.ok(store.has(VAULT_STORAGE_KEY));
+
+  assert.equal((await unlockHousehold()).ok, true);
+  assert.equal(getHousehold().householdName, "Locked Home");
+  resetVaultForTests();
+});
+
+test("cancel during unlock is not missing and does not quarantine", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Still Here", onboarded: true })),
+  );
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, sealed]]);
+  let minted = 0;
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => true,
+    loadDeviceKey: async () => {
+      throw new DeviceKeyError("User canceled authentication", { code: "user_canceled" });
+    },
+    createDeviceKey: async () => {
+      minted += 1;
+      return key;
+    },
+    loadOrCreateDeviceKey: async () => {
+      minted += 1;
+      return key;
+    },
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  const pending = await hydrateHousehold();
+  assert.equal(pending.ok, true);
+  if (pending.ok) assert.equal(pending.pendingUnlock, true);
+
+  const canceled = await unlockHousehold();
+  assert.equal(canceled.ok, false);
+  if (!canceled.ok) assert.equal(canceled.reason, "canceled");
+  assert.equal(minted, 0);
+  assert.equal(store.get(VAULT_STORAGE_KEY), sealed);
+  assert.equal(store.has(QUARANTINED_VAULT_KEY), false);
+  assert.equal(isHouseholdSessionUnlocked(), false);
   resetVaultForTests();
 });

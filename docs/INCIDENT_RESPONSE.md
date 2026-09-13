@@ -16,7 +16,10 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Fresh install: Onboarding → Set up my home → rooms → ZIP (optional) → Walk your house → Today in under a few minutes (home type + tenure on one screen; no climate payoff step).
 - [ ] Fresh install: Use a sample home → every tab (Today / Home / Restock); Today list visible without scrolling; notifications prompt once; forecast within 10 s on Wi-Fi.
 - [ ] Geolocation: Allow location during onboarding. The system sheet must show **Cuidala**, not localhost.
-- [ ] App lock: Unlock UI visible first; biometrics prompt after a short delay or on Unlock tap; cancel → still locked. Passcode helper text present.
+- [ ] App lock: Unlock UI visible first; ACL Keychain prompt (not a separate boolean gate) after a short delay or on Unlock tap; cancel → still locked, vault not quarantined. Passcode helper text present.
+- [ ] Lock clears in-memory key: after background lock, household UI is blank until unlock; second unlock prompts again.
+- [ ] Upgrade migrate once: unbound v1 Keychain item is rewritten as ACL-bound v2 and legacy deleted.
+- [ ] VoiceOver / Accessibility Inspector (honest): confirm WebView names where possible; do **not** claim Assistive Access Nutrition Labels until proven.
 - [ ] Lock timer is timestamp-based: background for the lock-after interval with the screen off (JS timers suspend in WKWebView). Return → locked.
 - [ ] Immediate lock (1.3), Face ID / Touch ID / passcode hardware:
   - [ ] Unlock stays unlocked: after a successful unlock, a Face ID / notification / location sheet does not re-lock.

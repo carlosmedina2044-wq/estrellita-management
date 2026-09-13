@@ -8,7 +8,7 @@
     "start": "npx serve out",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/**/*.test.ts src/lib/*.test.ts",
+    "test": "node --import tsx --test src/lib/**/*.test.ts src/lib/*.test.ts src/i18n/i18n.test.ts",
     "cap:sync": "npm run build && npx cap sync ios",
     "cap:ios": "npx cap open ios"
   },
@@ -24,7 +24,6 @@
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.1",
     "@capgo/capacitor-native-biometric": "^8.6.7",
-    "capacitor-secure-storage-plugin": "^0.13.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cuidala-device-key": "file:plugins/cuidala-device-key",
