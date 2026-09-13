@@ -1,0 +1,197 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+import { addDays } from "@/lib/dates";
+import { withHouseholdDefaults } from "@/lib/household-defaults";
+import { closedDayRun, dayOutcome, monthRecap, todayEffort, weekProgress } from "@/lib/momentum";
+import type { Completion, Duty, Household } from "@/lib/types";
+
+function duty(partial: Partial<Duty> & Pick<Duty, "title">): Duty {
+  return {
+    id: "d1",
+    notes: "",
+    room: "kitchen",
+    nodeId: "kitchen",
+    nodeType: "room",
+    audience: "me",
+    effort: "small",
+    frequency: "daily",
+    kind: "chore",
+    weekday: 0,
+    monthDay: 1,
+    dueDate: null,
+    priority: "medium",
+    createdAt: "2026-09-01T00:00:00.000Z",
+    archived: false,
+    ...partial,
+  };
+}
+
+function completion(partial: Partial<Completion> & Pick<Completion, "dutyId" | "completedAt">): Completion {
+  return {
+    id: partial.id ?? `c-${partial.dutyId}-${partial.completedAt}`,
+    actor: "me",
+    visitId: null,
+    ...partial,
+  };
+}
+
+function household(overrides: Partial<Household> = {}): Household {
+  return withHouseholdDefaults({
+    version: 8,
+    householdName: "Casa",
+    ownerName: "Me",
+    cleanerName: "Ana",
+    onboarded: true,
+    mode: "owner",
+    activeVisitId: null,
+    homeId: "home",
+    floors: [{ id: "main", name: "Main", sortOrder: 0 }],
+    rooms: [{ id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 0 }],
+    assets: [],
+    duties: [],
+    completions: [],
+    visits: [],
+    supplyAutomations: [],
+    ...overrides,
+  });
+}
+
+function atNoon(date: Date): string {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0).toISOString();
+}
+
+test("rest day counts as closed for the run", () => {
+  const saturday = new Date(2026, 8, 12);
+  const weekly = duty({
+    id: "trash",
+    title: "Trash",
+    frequency: "weekly",
+    weekday: 6,
+    estimatedMinutes: 5,
+  });
+  const home = household({
+    duties: [weekly],
+    completions: [completion({ dutyId: "trash", completedAt: atNoon(saturday) })],
+  });
+  const sunday = new Date(2026, 8, 13);
+  assert.equal(dayOutcome(home, sunday), "rest");
+  const run = closedDayRun(home, sunday);
+  assert.ok(run.current >= 1);
+  assert.equal(run.best, 0);
+});
+
+test("grace day keeps the run", () => {
+  const daily = duty({ id: "wipe", title: "Wipe counters", estimatedMinutes: 5 });
+  const thursday = new Date(2026, 8, 10);
+  const completions = [0, 1, 3].map((offset) =>
+    completion({
+      dutyId: "wipe",
+      completedAt: atNoon(addDays(thursday, -offset)),
+    }),
+  );
+  const home = household({ duties: [daily], completions });
+  assert.equal(dayOutcome(home, thursday), "closed");
+  assert.equal(dayOutcome(home, addDays(thursday, -1)), "closed");
+  assert.equal(dayOutcome(home, addDays(thursday, -2)), "open");
+  assert.equal(dayOutcome(home, addDays(thursday, -3)), "closed");
+  const run = closedDayRun(home, thursday);
+  assert.equal(run.current, 3);
+  assert.equal(run.graceUsed, true);
+});
+
+test("two misses in a rolling seven break the run", () => {
+  const daily = duty({ id: "wipe", title: "Wipe counters" });
+  const thursday = new Date(2026, 8, 10);
+  const completions = [0, 3].map((offset) =>
+    completion({
+      dutyId: "wipe",
+      completedAt: atNoon(addDays(thursday, -offset)),
+    }),
+  );
+  const home = household({ duties: [daily], completions });
+  assert.equal(dayOutcome(home, addDays(thursday, -1)), "open");
+  assert.equal(dayOutcome(home, addDays(thursday, -2)), "open");
+  const run = closedDayRun(home, thursday);
+  assert.equal(run.current, 1);
+  assert.equal(run.graceUsed, true);
+});
+
+test("weekProgress counts a carried-over overdue item once", () => {
+  const sunday = new Date(2026, 8, 13);
+  const weekly = duty({
+    id: "trash",
+    title: "Trash",
+    frequency: "weekly",
+    weekday: 6,
+    estimatedMinutes: 8,
+  });
+  const home = household({ duties: [weekly] });
+  const progress = weekProgress(home, sunday);
+  assert.equal(progress.planned, 1);
+  assert.equal(progress.done, 0);
+  assert.equal(progress.minutes, 0);
+  const doneHome = household({
+    duties: [weekly],
+    completions: [completion({ dutyId: "trash", completedAt: atNoon(sunday) })],
+  });
+  const done = weekProgress(doneHome, sunday);
+  assert.equal(done.planned, 1);
+  assert.equal(done.done, 1);
+  assert.equal(done.minutes, 8);
+});
+
+test("todayEffort falls back to ten minutes", () => {
+  assert.equal(
+    todayEffort([
+      duty({ title: "Wipe", estimatedMinutes: 5 }),
+      duty({ id: "tidy", title: "Tidy" }),
+    ]),
+    15,
+  );
+});
+
+test("closedDayRun reads cached best without walking 24 months", () => {
+  const daily = duty({ id: "wipe", title: "Wipe counters" });
+  const today = new Date(2026, 8, 13);
+  const home = {
+    ...household({
+      duties: [daily],
+      completions: [completion({ dutyId: "wipe", completedAt: atNoon(today) })],
+    }),
+    momentum: { enabled: true, bestRun: 12 },
+  };
+  const run = closedDayRun(home, today);
+  assert.equal(run.best, 12);
+  assert.ok(run.current >= 1);
+});
+
+test("monthRecap sums completions and rooms", () => {
+  const wipe = duty({ id: "wipe", title: "Wipe", estimatedMinutes: 5 });
+  const trash = duty({
+    id: "trash",
+    title: "Trash",
+    room: "living",
+    nodeId: "living",
+    frequency: "weekly",
+    weekday: 6,
+    estimatedMinutes: 10,
+  });
+  const month = new Date(2026, 8, 13);
+  const home = household({
+    rooms: [
+      { id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 0 },
+      { id: "living", floorId: "main", name: "Living", type: "living", sortOrder: 1 },
+    ],
+    duties: [wipe, trash],
+    completions: [
+      completion({ dutyId: "wipe", completedAt: atNoon(new Date(2026, 8, 10)) }),
+      completion({ dutyId: "wipe", completedAt: atNoon(new Date(2026, 8, 11)) }),
+      completion({ dutyId: "trash", completedAt: atNoon(new Date(2026, 8, 12)) }),
+    ],
+  });
+  const recap = monthRecap(home, month);
+  assert.equal(recap.done, 3);
+  assert.equal(recap.minutes, 20);
+  assert.equal(recap.roomsTouched, 2);
+  assert.ok(recap.longestRun >= 1);
+});
