@@ -109,9 +109,25 @@ type StarterChore = {
   assetType?: AssetType;
   frequency: Duty["frequency"];
   estimatedMinutes: number;
-  weekOffset: number;
+  firstDueInDays: number;
+  topic: string;
   estimatedCost?: number;
 };
+
+function starterSchedule(starter: StarterChore, now: Date): Pick<Duty, "weekday" | "monthDay" | "dueDate"> {
+  switch (starter.frequency) {
+    case "daily":
+      return { weekday: 0, monthDay: 1, dueDate: null };
+    case "weekly":
+      return { weekday: (now.getDay() + starter.firstDueInDays) % 7, monthDay: 1, dueDate: null };
+    case "monthly":
+      return { weekday: 0, monthDay: addDays(now, starter.firstDueInDays).getDate(), dueDate: null };
+    case "quarterly":
+    case "yearly":
+    case "once":
+      return { weekday: 0, monthDay: 1, dueDate: toISODate(addDays(now, starter.firstDueInDays)) };
+  }
+}
 
 const STARTERS = starterSeed as StarterChore[];
 
@@ -381,9 +397,7 @@ export function generateHomeFromAnswers(
       effort: starter.estimatedMinutes > 20 ? "medium" : "small",
       frequency: starter.frequency,
       kind: "chore",
-      weekday: 6,
-      monthDay: 1,
-      dueDate: starter.frequency === "once" ? toISODate(addDays(now, starter.weekOffset * 7)) : toISODate(addDays(now, starter.weekOffset * 7)),
+      ...starterSchedule(starter, now),
       priority: "medium",
       createdAt: now.toISOString(),
       archived: false,
@@ -415,12 +429,4 @@ export function generateHomeFromAnswers(
       now,
     ),
   };
-}
-
-export function firstWeekDuties(duties: Duty[], now = new Date()) {
-  const end = addDays(now, 7).getTime();
-  return duties.filter((duty) => {
-    if (!duty.dueDate) return duty.frequency === "weekly" || duty.frequency === "daily";
-    return Date.parse(duty.dueDate) <= end;
-  });
 }

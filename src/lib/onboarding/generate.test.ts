@@ -1,7 +1,58 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { addDays, startOfDay } from "@/lib/dates";
+import { nextDueDate, todaysOpenDuties } from "@/lib/duties";
+import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { generateHomeFromAnswers, sampleHomeAnswers, sizeDefaults } from "@/lib/onboarding/generate";
 import { roomTemplateFor } from "@/lib/onboarding/rooms";
+import starterSeed from "@/lib/onboarding/starter-chores.json";
+import type { Household } from "@/lib/types";
+
+const DAY_ONE_TITLES = ["Wipe kitchen counters", "Clean bathrooms", "Test smoke detectors"];
+
+function seededHousehold(now: Date): Household {
+  const generated = generateHomeFromAnswers(sampleHomeAnswers(), now);
+  return withHouseholdDefaults({
+    version: 8,
+    householdName: generated.householdName,
+    ownerName: "",
+    cleanerName: "Cleaner",
+    onboarded: true,
+    mode: "owner",
+    activeVisitId: null,
+    homeId: generated.homeId,
+    homeType: generated.homeType,
+    location: generated.location,
+    attributes: generated.attributes,
+    floors: generated.floors,
+    rooms: generated.rooms,
+    assets: generated.assets,
+    consumables: generated.consumables,
+    duties: generated.duties,
+    completions: [],
+    visits: [],
+    supplyAutomations: [],
+  });
+}
+
+function assertStarterDayOne(now: Date) {
+  const home = seededHousehold(now);
+  const openTitles = todaysOpenDuties(home, now).map((duty) => duty.title).sort();
+  assert.deepEqual(openTitles, [...DAY_ONE_TITLES].sort());
+
+  for (const duty of home.duties.filter((item) => item.frequency === "quarterly")) {
+    const next = nextDueDate(duty, [], now);
+    assert.ok(next);
+    assert.ok(startOfDay(next) > startOfDay(addDays(now, 14)));
+  }
+
+  const byTitle = Object.fromEntries(starterSeed.map((item) => [item.title, item]));
+  for (const duty of home.duties.filter((item) => item.frequency === "weekly")) {
+    const starter = byTitle[duty.title];
+    assert.ok(starter);
+    assert.equal(duty.weekday, (now.getDay() + starter.firstDueInDays) % 7);
+  }
+}
 
 test("onboarding carries tenure through generate", () => {
   const generated = generateHomeFromAnswers(
@@ -112,4 +163,22 @@ test("pool and evaporative cooler extras survive when rooms are also set", () =>
   assert.equal(generated.attributes.hasEvaporativeCooler, true);
   assert.ok(generated.assets.some((asset) => asset.type === "pool_pump"));
   assert.ok(generated.assets.some((asset) => asset.type === "evaporative_cooler"));
+});
+
+test("starter seed day-one list is exact on Wednesday", () => {
+  const now = new Date(2026, 8, 16);
+  assert.equal(now.getDay(), 3);
+  assertStarterDayOne(now);
+});
+
+test("starter seed day-one list is exact on Sunday", () => {
+  const now = new Date(2026, 8, 13);
+  assert.equal(now.getDay(), 0);
+  assertStarterDayOne(now);
+});
+
+test("starter seed day-one list is exact on Saturday", () => {
+  const now = new Date(2026, 8, 12);
+  assert.equal(now.getDay(), 6);
+  assertStarterDayOne(now);
 });
