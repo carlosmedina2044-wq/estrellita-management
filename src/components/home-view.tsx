@@ -436,18 +436,6 @@ export function HomeView({
         />
       ) : null}
 
-      <section>
-        <h2 className="ui-heading mb-2 text-[20px] font-semibold">Cuidala Pro</h2>
-        <div className="rounded-2xl bg-card p-4">
-          <p className="font-medium">Later this year — optional, one-time, no subscription.</p>
-          <ul className="mt-2 list-disc pl-5 text-[13px] text-muted-foreground">
-            <li>Home Report you can share with a buyer or a contractor</li>
-            <li>Household sync across phones</li>
-            <li>More seasonal playbook packs</li>
-          </ul>
-        </div>
-      </section>
-
       <div className="rounded-2xl bg-card p-4">
         <p className="font-medium">Your data</p>
         <p className="mt-1 text-xs text-muted-foreground">

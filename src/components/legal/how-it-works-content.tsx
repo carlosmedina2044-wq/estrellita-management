@@ -5,7 +5,7 @@ export function HowItWorksContent() {
         <h2 className="font-semibold">One home, one phone</h2>
         <p className="mt-1 text-muted-foreground">
           v1 is built for a single household on a single iPhone. Your rooms, chores, and restock list live on this
-          device. Sharing across phones is a later Pro idea, not this version.
+          device. Sharing across phones is not in this version.
         </p>
       </section>
 
