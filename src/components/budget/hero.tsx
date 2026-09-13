@@ -36,12 +36,9 @@ export function FundHero({
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
       <p className="text-sm text-muted-foreground">Home maintenance fund</p>
-      <p className="ui-heading mt-1 text-[28px] font-semibold tracking-tight leading-tight">
-        {formatMoney(health.saved)} saved
-        <span className="text-[17px] font-medium text-muted-foreground">
-          {" "}
-          · {formatMoney(health.needed12)} needed in the next 12 months
-        </span>
+      <p className="ui-display mt-1">{formatMoney(health.saved)} saved</p>
+      <p className="ui-title mt-1 font-medium text-muted-foreground">
+        {formatMoney(health.needed12)} needed in the next 12 months
       </p>
       <p className="mt-2 text-sm font-medium">
         You’re {covered}% covered

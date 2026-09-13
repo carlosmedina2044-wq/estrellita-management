@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { addDays, formatMonthTitle, sameDay, startOfMonth, startOfWeek, toISODate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"] as const;
+const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
 
 export function DayCalendar({
   month,
@@ -47,7 +47,7 @@ export function DayCalendar({
         {WEEKDAYS.map((day, index) => (
           <p
             key={`${day}-${index}`}
-            className="py-1 text-center text-[11px] font-medium text-muted-foreground"
+            className="py-1 text-center ui-caption font-medium text-muted-foreground"
           >
             {day}
           </p>

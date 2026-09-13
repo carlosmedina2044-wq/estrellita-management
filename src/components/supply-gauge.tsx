@@ -27,8 +27,14 @@ export function SupplyGauge({
     urgent === "out" ? "bg-destructive" : urgent === "soon" ? "bg-warning" : "bg-foreground/20";
   const body = (
     <>
-      <span className="block h-1 w-full overflow-hidden rounded-full bg-secondary">
+      <span className="relative block h-2.5 w-full overflow-hidden rounded-full bg-secondary">
         <span className={`block h-full rounded-full ${fillClass}`} style={{ width: fill }} />
+        {urgent ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(-45deg,transparent,transparent_3px,rgb(0_0_0/18%)_3px,rgb(0_0_0/18%)_5px)]"
+          />
+        ) : null}
       </span>
       <span className="mt-1 block text-[13px] text-muted-foreground">{caption}</span>
     </>

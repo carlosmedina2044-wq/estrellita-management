@@ -2,13 +2,12 @@
 
 import { useState } from "react";
 import { Lock } from "lucide-react";
-import { DutyRow } from "@/components/duty-row";
 import { HomeMapView } from "@/components/home-map-view";
 import { Button } from "@/components/ui/button";
-import { isOverdueFor, todaysOpenDuties } from "@/lib/duties";
+import { todaysOpenDuties } from "@/lib/duties";
 import { roomById } from "@/lib/home-model";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
-import type { Duty, Household } from "@/lib/types";
+import type { Household } from "@/lib/types";
 import { toast } from "sonner";
 
 export function CleanerVisit({
@@ -16,7 +15,6 @@ export function CleanerVisit({
   ownerCheck,
   lockMethod,
   onComplete,
-  onUndo,
   onEndVisit,
 }: {
   household: Household;
@@ -40,11 +38,6 @@ export function CleanerVisit({
     const ok = await onEndVisit();
     setBusy(false);
     if (!ok) toast.error(ownerCheck ? "Couldn’t confirm the owner. Try again." : "Couldn’t end the visit.");
-  }
-
-  function toggle(duty: Duty, completed: boolean) {
-    if (completed) onUndo(duty.id);
-    else onComplete(duty.id);
   }
 
   return (
@@ -77,23 +70,9 @@ export function CleanerVisit({
               Map
             </button>
             <h2 className="ui-heading text-[20px] font-semibold">{selectedRoom.name}</h2>
-            <div className="ui-group">
-              {roomOpen.length === 0 ? (
-                <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nothing left here.</p>
-              ) : (
-                roomOpen.map((duty) => (
-                  <div key={duty.id} className="ui-group-row">
-                    <DutyRow
-                      duty={duty}
-                      household={household}
-                      now={now}
-                      overdue={isOverdueFor(duty, household, now)}
-                      onToggle={() => toggle(duty, false)}
-                    />
-                  </div>
-                ))
-              )}
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {roomOpen.length === 0 ? "Nothing left here." : `${roomOpen.length} left here. Use Done. Next above.`}
+            </p>
           </div>
         ) : (
           <HomeMapView household={household} now={now} onSelectRoom={setSelected} />

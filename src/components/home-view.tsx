@@ -156,7 +156,7 @@ export function HomeView({
   }
 
   return (
-    <div className="flex flex-col gap-5 pb-8">
+    <div className="mx-auto flex w-full max-w-[32rem] flex-col gap-5 pb-8">
       <PageHeader
         title="Settings"
         subtitle="Everything stays on this iPhone."

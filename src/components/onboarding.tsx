@@ -231,7 +231,14 @@ export function Onboarding({
   return (
     <div className="flex min-h-dvh flex-col bg-background px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
-        <div className="h-1 overflow-hidden rounded-full bg-secondary">
+        <div
+          className="h-1 overflow-hidden rounded-full bg-secondary"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+          aria-label="Setup progress"
+        >
           <div className="h-full bg-brand transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
         </div>
         <div className="mt-8">
@@ -249,7 +256,7 @@ export function Onboarding({
               Set up my home
             </Button>
             <Button
-              variant="secondary"
+              variant="ghost"
               className="mt-3 h-14 w-full text-base"
               disabled={busy}
               onClick={() => void finish(sampleHomeAnswers())}
@@ -315,7 +322,7 @@ export function Onboarding({
                         current.map((item) => (item.key === room.key ? { ...item, enabled: !item.enabled } : item)),
                       )
                     }
-                    className="size-5 accent-primary"
+                    className="size-11 shrink-0 accent-primary"
                   />
                   <Input
                     value={room.name}
