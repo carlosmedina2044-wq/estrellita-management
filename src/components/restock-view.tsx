@@ -437,7 +437,7 @@ function Section({
     <section id={id}>
       <header className="mb-2 flex items-baseline justify-between gap-3 px-1">
         <h2 className="ui-heading ui-card font-semibold">{title}</h2>
-        <span className="ui-caption text-muted-foreground">{count}</span>
+        <span className="ui-caption num text-muted-foreground">{count}</span>
       </header>
       <div className="ui-group">{children}</div>
     </section>
@@ -502,7 +502,7 @@ function RestockRow({
       ) : null}
       {placement.bucket === "stocked" ? (
         orderBy ? (
-          <span className="shrink-0 ui-caption tabular-nums text-muted-foreground">{orderBy}</span>
+          <span className="shrink-0 ui-caption num text-muted-foreground">{orderBy}</span>
         ) : null
       ) : (
         <div className="shrink-0">

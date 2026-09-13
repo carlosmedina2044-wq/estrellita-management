@@ -222,6 +222,11 @@
     line-height: 1.35;
   }
 
+  .num {
+    font-family: ui-rounded, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Text", sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+
   .font-heading::first-letter,
   .ui-heading::first-letter {
     font: inherit;

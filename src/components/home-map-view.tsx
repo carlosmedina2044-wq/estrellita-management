@@ -167,7 +167,7 @@ function TileGrid({
           >
             <RoomTypeIcon room={room} className="size-6 shrink-0 text-muted-foreground" />
             <span className="min-w-0 flex-1 truncate ui-body font-medium">{room.name}</span>
-            <span className={cn("flex shrink-0 items-center gap-1.5 ui-caption font-medium", caption.className)}>
+            <span className={cn("flex shrink-0 items-center gap-1.5 ui-caption font-medium num", caption.className)}>
               {status.reorderPending > 0 ? <Package className="size-3.5" aria-hidden /> : null}
               {caption.text}
             </span>

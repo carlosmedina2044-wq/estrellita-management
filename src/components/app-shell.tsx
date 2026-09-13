@@ -1028,7 +1028,7 @@ function NavButton({
       {icon}
       {label}
       {badge ? (
-        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 ui-caption font-semibold text-white">
+        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 ui-caption font-semibold num text-white">
           {badge}
         </span>
       ) : null}

@@ -224,7 +224,7 @@ export function DutyRow({
             >
               {title}
             </span>
-            <span className={cn("mt-0.5 block truncate ui-caption", metaTone)}>
+            <span className={cn("mt-0.5 block truncate ui-caption num", metaTone)}>
               {metaLabel && !showDone ? `${metaLabel} · ${subtitle}` : subtitle}
               {duty.audience === "cleaner" && !showDone
                 ? ` · ${t("audience.cleaner")}`

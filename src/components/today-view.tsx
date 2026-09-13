@@ -338,7 +338,7 @@ export function TodayView({
           <h1 className="mt-1 text-[34px] font-bold leading-[1.15] tracking-tight text-foreground">
             {displayHeadline}
           </h1>
-          <p className="mt-1.5 ui-caption text-muted-foreground">{secondaryLine}</p>
+          <p className="mt-1.5 ui-caption num text-muted-foreground">{secondaryLine}</p>
         </div>
         {onOpenSettings ? (
           <button
@@ -845,7 +845,7 @@ function AttentionTiles({
           )}
         >
           {"icon" in tile && tile.icon ? <Package className="size-4 shrink-0" aria-hidden /> : null}
-          <span className={cn("ui-body font-semibold tabular-nums", tile.countClass)}>{tile.count}</span>
+          <span className={cn("ui-body font-semibold num", tile.countClass)}>{tile.count}</span>
           <span className="ui-caption text-muted-foreground">
             {"costLine" in tile && tile.costLine ? `${tile.label} · ${tile.costLine}` : tile.label}
           </span>

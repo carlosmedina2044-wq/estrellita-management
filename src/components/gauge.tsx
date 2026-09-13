@@ -74,7 +74,7 @@ export function Gauge({
           />
         ) : null}
       </span>
-      {caption ? <span className="mt-1 block ui-caption tabular-nums text-muted-foreground">{caption}</span> : null}
+      {caption ? <span className="mt-1 block ui-caption num text-muted-foreground">{caption}</span> : null}
     </>
   );
 

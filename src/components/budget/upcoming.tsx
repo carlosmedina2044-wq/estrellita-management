@@ -144,7 +144,7 @@ export function SpendingSection({
               return (
                 <li key={month.month} className="flex items-center justify-between py-1.5 text-sm">
                   <span>{label}</span>
-                  <span className="tabular-nums text-muted-foreground">
+                  <span className="num text-muted-foreground">
                     {month.actual > 0 ? formatMoney(month.actual) : "—"}
                   </span>
                 </li>

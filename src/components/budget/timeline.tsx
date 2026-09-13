@@ -134,7 +134,7 @@ export function QuarterTimeline({
                 ) : (
                   <span className="h-7" />
                 )}
-                <span className="ui-caption font-medium tabular-nums">
+                <span className="ui-caption font-medium num">
                   {month.total ? `$${Math.round(month.total).toLocaleString(getActiveDateLocale())}` : "—"}
                 </span>
                 <span
