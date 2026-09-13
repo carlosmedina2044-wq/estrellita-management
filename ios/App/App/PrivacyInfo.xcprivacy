@@ -17,12 +17,14 @@
   <key>NSPrivacyAccessedAPITypes</key>
   <array>
     <dict>
-      <!-- @capacitor/preferences stores the encrypted household in UserDefaults. -->
+      <!-- @capacitor/preferences stores the encrypted household in UserDefaults (CA92.1).
+           The lock-screen widget snapshot is App Group UserDefaults (1C8F.1). The vault key is never in the App Group. -->
       <key>NSPrivacyAccessedAPIType</key>
       <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
       <key>NSPrivacyAccessedAPITypeReasons</key>
       <array>
         <string>CA92.1</string>
+        <string>1C8F.1</string>
       </array>
     </dict>
     <dict>

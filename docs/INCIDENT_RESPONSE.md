@@ -59,7 +59,9 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] `cuidala.app` /privacy and /terms load; `support@` and `privacy@` deliver.
 - [ ] Before App Store submission (human): Privacy + Support URLs live; archive a Release build; ASC checklist (Data Not Collected, exempt encryption, Free US, 3-tab 6.9"/6.7" screenshots, Reviewer Notes, age questionnaire → 4+). See `docs/APP_STORE_SUBMISSION.md`.
 - [ ] Release build: `CAPACITOR_DEBUG` empty; Safari Develop does not list the app; Capacitor `loggingBehavior` is `none`.
-- [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type) + File Timestamp C617.1; portrait-only; WeatherKit entitlement present; `es.lproj` and `pt-BR.lproj` in the bundle.
+- [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type) + File Timestamp C617.1 + UserDefaults 1C8F.1; portrait-only; WeatherKit entitlement present; `es.lproj` and `pt-BR.lproj` in the bundle.
+- [ ] Lock Screen widget (after the Xcode target exists): add Cuidala to Lock Screen (circular / rectangular / inline) and Home Screen (small). Counts match Today. Private mode hides titles. Tap opens Today. Erase everything clears the widget.
+- [ ] Human (once): register App Group `group.com.cuidala.app` on the Cuidala App ID in the Apple Developer portal, then refresh provisioning so both the app and the widget extension include it.
 - [ ] Confirm the binary is iPhone-only (no iPad destination). Always run a signed build — unsigned Keychain writes fail and show the load-failure screen.
 - [ ] PBKDF2 timing: create a backup with a 4-word passphrase; the device stays responsive (spinner, not a freeze).
 - [ ] Cold start: kill the app, reopen, vault loads without minting a new key.
@@ -73,8 +75,21 @@ After the first TestFlight, watch for: lock-timer misses, WeatherKit entitlement
 
 Cuidala is a local-first iPhone app, not a website wrapper. The shipped binary includes Face ID / Touch ID / passcode lock via LocalAuthentication, a Keychain-held AES-256-GCM vault, repeating local notifications, SFSafariViewController for retailer pages, Files-based encrypted backup and restore, native Apple WeatherKit forecasts, and optional coarse location for climate setup. There is no account, no Cuidala server, and no remote code. First launch can use a sample home and reach Today and Restock immediately.
 
+## Lock Screen widget — remaining Xcode steps (M5-03)
+
+Sources, entitlements, PrivacyInfo, URL types, and `appUrlOpen` are already in the repo. The Widget Extension **target** still has to be created in Xcode (editing `project.pbxproj` by hand is unsafe for Embed App Extensions + signing):
+
+1. In the Apple Developer portal, add App Group `group.com.cuidala.app` to App ID `com.cuidala.app`. Create App ID `com.cuidala.app.widget` (App Extension) with the same App Group. Download/refresh profiles.
+2. Xcode → `ios/App/App.xcodeproj` → File → New → Target → Widget Extension.
+3. Product Name: `CuidalaWidget`. Bundle Identifier: `com.cuidala.app.widget`. Language: Swift. Deployment: iOS 16.4. **Do not** include a Configuration App Intent (or Live Activity / Control). Activate the scheme when Xcode asks.
+4. Delete the template Swift files Xcode added. Add the committed files under `ios/App/CuidalaWidget/` to the **CuidalaWidget** target: `CuidalaWidget.swift`, `CuidalaWidgetSnapshot.swift`, `Info.plist`, `CuidalaWidget.entitlements`, `PrivacyInfo.xcprivacy`, and the `en` / `es` / `pt-BR` `Localizable.strings`.
+5. CuidalaWidget target → Signing & Capabilities: Team (same as App), bundle `com.cuidala.app.widget`, App Groups → `group.com.cuidala.app`. Confirm `CODE_SIGN_ENTITLEMENTS` is `CuidalaWidget/CuidalaWidget.entitlements`.
+6. App target → Signing & Capabilities → App Groups → `group.com.cuidala.app` (entitlement file already lists it).
+7. Confirm Embed App Extensions copies `CuidalaWidget.appex` into the App. `TARGETED_DEVICE_FAMILY = 1`. Run on a signed device or simulator, launch Cuidala once, then add the widget from the Lock Screen gallery.
+
 ## Changelog
 
+- 2026-09-13 — Phase E Lock Screen widget (agent): plaintext App Group snapshot; `cuidala-widget` plugin; widget sources + URL scheme. Vault key is not shared. App Group portal + Widget Extension target remain human.
 - 2026-09-13 — Pre-submission Phases 0–5 (agent): Node 22 pin; PrivacyInfo File Timestamp; honest ZIP/location → Apple copy; es/pt-BR Xcode localizations; vault lock-flush + keyId quarantine (no Keychain destroy) + restore snapshot/undo; day-one duty creation floor; room-delete guard; restock order confirm path; i18n chrome + smoke tests; Capgo biometric removed (`canEvaluate`); retailer https upgrade; interactive sheets + edge-swipe; splash screen; visual system redesign (tokens, grouped lists, terracotta App Icon). Control matrix / residual risks refreshed. Device checklist + ASC upload remain human.
 - 2026-09-12 — Pre-submission hardening: vault restore persist, backup bounds, pause/resume lock, erase verify, migrate caps, unique notification IDs, 12-char seal floor, private notification titles, UX keep-alive tabs.
 - 2026-09 — Lighter cream palette, Switch controls, sheet grabber / fade push, Restock walk in header.

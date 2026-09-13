@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { tDutyTitle } from "@/i18n/content";
 import { doneToday, todaysOpenDuties } from "@/lib/duties";
 import type { Household } from "@/lib/types";
@@ -14,6 +15,9 @@ export type WidgetSnapshot = {
   doneCount: number;
   updatedAt: string;
   titles: string[];
+  dueLabel: string;
+  doneLabel: string;
+  emptyLabel: string;
 };
 
 export function widgetSnapshotFor(household: Household, now = new Date()): WidgetSnapshot {
@@ -25,5 +29,8 @@ export function widgetSnapshotFor(household: Household, now = new Date()): Widge
     doneCount: done.length,
     updatedAt: now.toISOString(),
     titles: privateMode ? [] : open.slice(0, WIDGET_TITLE_LIMIT).map((duty) => tDutyTitle(duty.title)),
+    dueLabel: tActive("widget.due", { count: open.length }),
+    doneLabel: tActive("widget.done", { count: done.length }),
+    emptyLabel: tActive("widget.empty"),
   };
 }

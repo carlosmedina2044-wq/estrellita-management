@@ -38,6 +38,7 @@ import { ForecastCard } from "@/components/forecast-card";
 import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
+import { isCuidalaTodayUrl } from "@/lib/widget-url";
 import { hideLaunchSplash } from "@/lib/native/splash";
 import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { fetchForecastFor } from "@/lib/weather/client";
@@ -501,6 +502,23 @@ export function AppShell() {
     };
     navigator.serviceWorker?.addEventListener("message", onMessage);
     return () => navigator.serviceWorker?.removeEventListener("message", onMessage);
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!isNative()) return;
+    let remove: (() => void) | undefined;
+    void import("@capacitor/app").then(async ({ App }) => {
+      const openToday = (url: string) => {
+        if (isCuidalaTodayUrl(url)) navigate({ tab: "today" });
+      };
+      const launch = await App.getLaunchUrl();
+      if (launch?.url) openToday(launch.url);
+      const handle = await App.addListener("appUrlOpen", (event) => {
+        openToday(event.url);
+      });
+      remove = () => void handle.remove();
+    });
+    return () => remove?.();
   }, [navigate]);
 
   useEffect(() => {

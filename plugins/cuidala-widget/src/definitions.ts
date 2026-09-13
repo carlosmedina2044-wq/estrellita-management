@@ -3,6 +3,9 @@ export type WidgetSnapshotPayload = {
   doneCount: number;
   updatedAt: string;
   titles: string[];
+  dueLabel: string;
+  doneLabel: string;
+  emptyLabel: string;
 };
 
 export interface CuidalaWidgetPlugin {

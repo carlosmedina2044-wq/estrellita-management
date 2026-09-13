@@ -85,6 +85,9 @@ test("widgetSnapshotFor counts open and done duties and keeps three titles", () 
   assert.equal(snap.doneCount, 1);
   assert.equal(snap.updatedAt, now.toISOString());
   assert.deepEqual(snap.titles, ["Wipe counters", "Clean bathrooms", "Take out trash"]);
+  assert.equal(snap.dueLabel, "4 due");
+  assert.equal(snap.doneLabel, "1 done");
+  assert.equal(snap.emptyLabel, "All clear");
 });
 
 test("widgetSnapshotFor omits titles when privateNotifications is on", () => {
@@ -134,5 +137,8 @@ test("widgetSnapshotFor is empty when nothing is due or done", () => {
     doneCount: 0,
     updatedAt: now.toISOString(),
     titles: [],
+    dueLabel: "0 due",
+    doneLabel: "0 done",
+    emptyLabel: "All clear",
   });
 });

@@ -18,6 +18,9 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
     private static let doneCountKey = "doneCount"
     private static let updatedAtKey = "updatedAt"
     private static let titlesKey = "titles"
+    private static let dueLabelKey = "dueLabel"
+    private static let doneLabelKey = "doneLabel"
+    private static let emptyLabelKey = "emptyLabel"
 
     @objc func updateSnapshot(_ call: CAPPluginCall) {
         guard let defaults = UserDefaults(suiteName: Self.suiteName) else {
@@ -32,6 +35,9 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         defaults.set(doneCount, forKey: Self.doneCountKey)
         defaults.set(updatedAt, forKey: Self.updatedAtKey)
         defaults.set(titles, forKey: Self.titlesKey)
+        defaults.set(call.getString("dueLabel") ?? "", forKey: Self.dueLabelKey)
+        defaults.set(call.getString("doneLabel") ?? "", forKey: Self.doneLabelKey)
+        defaults.set(call.getString("emptyLabel") ?? "", forKey: Self.emptyLabelKey)
         WidgetCenter.shared.reloadAllTimelines()
         call.resolve()
     }
@@ -45,6 +51,9 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         defaults.removeObject(forKey: Self.doneCountKey)
         defaults.removeObject(forKey: Self.updatedAtKey)
         defaults.removeObject(forKey: Self.titlesKey)
+        defaults.removeObject(forKey: Self.dueLabelKey)
+        defaults.removeObject(forKey: Self.doneLabelKey)
+        defaults.removeObject(forKey: Self.emptyLabelKey)
         WidgetCenter.shared.reloadAllTimelines()
         call.resolve()
     }
