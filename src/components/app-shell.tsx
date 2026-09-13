@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Home, Package, Settings, Sun } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -138,6 +138,12 @@ export function AppShell() {
   const [weatherAttribution, setWeatherAttribution] = useState<WeatherAttribution | null>(null);
   const [roomOpen, setRoomOpen] = useState<string | null>(null);
   const [confirmErase, setConfirmErase] = useState(false);
+  const [nowMs] = useState(() => Date.now());
+  const tRef = useRef(t);
+
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" || isNative()) return;
@@ -156,12 +162,6 @@ export function AppShell() {
       cancelled = true;
     };
   }, [pendingUnlock]);
-
-  useEffect(() => {
-    if (!pendingUnlock && sessionUnlocked && !requireFaceId) {
-      setLocked(false);
-    }
-  }, [pendingUnlock, sessionUnlocked, requireFaceId]);
 
   useEffect(() => {
     if (!onboarded || !requireFaceId || !canLock) return;
@@ -220,7 +220,7 @@ export function AppShell() {
   }, [onboarded, requireFaceId, lockAfter, cleanerVisitActive, canLock, lockSession]);
 
   useEffect(() => {
-    const onFail = () => toast.error(t("shell.saveFailed"));
+    const onFail = () => toast.error(tRef.current("shell.saveFailed"));
     window.addEventListener(PERSIST_FAILED_EVENT, onFail);
     return () => window.removeEventListener(PERSIST_FAILED_EVENT, onFail);
   }, []);
@@ -232,14 +232,16 @@ export function AppShell() {
 
   useEffect(() => {
     if (!household.onboarded) return;
-    const { lat, lng, postalCode: zip } = household.location ?? {};
+    const lat = household.location?.lat;
+    const lng = household.location?.lng;
+    const zip = household.location?.postalCode;
     if (lat == null && lng == null && !zip) return;
     let cancelled = false;
     void (async () => {
       try {
         const payload = await fetchForecastFor({ lat, lng, postalCode: zip });
         if (cancelled) return;
-        if (!payload) throw new Error(t("shell.weatherUnavailable"));
+        if (!payload) throw new Error(tRef.current("shell.weatherUnavailable"));
         setForecast(payload);
         setWeatherError(null);
         const attribution = await fetchWeatherAttribution();
@@ -276,25 +278,29 @@ export function AppShell() {
         if (addedDuties > 0) {
           toast.message(
             addedDuties === 1
-              ? t("shell.weatherChoreAdded")
-              : t("shell.weatherChoresAdded", { count: addedDuties }),
+              ? tRef.current("shell.weatherChoreAdded")
+              : tRef.current("shell.weatherChoresAdded", { count: addedDuties }),
           );
         }
       } catch {
         if (cancelled) return;
-        setWeatherError(t("shell.weatherRefreshFailed"));
+        setWeatherError(tRef.current("shell.weatherRefreshFailed"));
         updateTree((current) => ({
           ...current,
-          weatherStatus: { ...current.weatherStatus, lastError: t("shell.weatherProviderFailed") },
+          weatherStatus: { ...current.weatherStatus, lastError: tRef.current("shell.weatherProviderFailed") },
         }));
       }
     })();
     return () => {
       cancelled = true;
     };
-    // Fetch once per location, not on every household mutation.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [household.location?.lat, household.location?.lng, household.location?.postalCode, household.onboarded]);
+  }, [
+    household.location?.lat,
+    household.location?.lng,
+    household.location?.postalCode,
+    household.onboarded,
+    updateTree,
+  ]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -349,6 +355,14 @@ export function AppShell() {
     [household, hydrated],
   );
   const summary = useMemo(() => (hydrated ? homeSummary(household) : null), [household, hydrated]);
+  const showLockKeepPrivate = useMemo(() => {
+    if (canLock !== true || requireFaceId || hasSeenTip(household, TIP_LOCK_KEEP_PRIVATE)) return false;
+    const start = household.teaching?.startedAt;
+    if (!start) return false;
+    const startMs = Date.parse(`${start}T00:00:00`);
+    if (!Number.isFinite(startMs)) return false;
+    return (nowMs - startMs) / 86_400_000 < 1;
+  }, [canLock, requireFaceId, household, nowMs]);
 
   if (!hydrated) {
     return <OpeningScreen />;
@@ -438,17 +452,6 @@ export function AppShell() {
     onMarkTip: (tip: string) => updateTree((current) => markTipSeen(current, tip)),
   };
 
-  const showLockKeepPrivate =
-    canLock === true &&
-    !requireFaceId &&
-    !hasSeenTip(household, TIP_LOCK_KEEP_PRIVATE) &&
-    (() => {
-      const start = household.teaching?.startedAt;
-      if (!start) return false;
-      const startMs = Date.parse(`${start}T00:00:00`);
-      if (!Number.isFinite(startMs)) return false;
-      return (Date.now() - startMs) / 86_400_000 < 1;
-    })();
   const lockMethodNoun = lockMethodLabel(lockMethod ?? "passcode").noun;
 
   const todayActive = top === null && rootTab === "today";

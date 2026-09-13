@@ -40,7 +40,6 @@ function htmlLang(locale: AppLocale): string {
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [preference, setPreferenceState] = useState<AppLocale | "system">("system");
   const [deviceLocale, setDeviceLocale] = useState<AppLocale>("en");
-  const [ready, setReady] = useState(false);
 
   const refreshDeviceLocale = useCallback(() => {
     setDeviceLocale(detectDeviceLocale());
@@ -55,8 +54,6 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
         if (!cancelled && isAppLocale(stored)) setPreferenceState(stored);
       } catch {
         // keep system
-      } finally {
-        if (!cancelled) setReady(true);
       }
     })();
     return () => {
