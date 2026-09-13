@@ -314,15 +314,11 @@ export function HomeView({
       <section>
         <h2 className="ui-heading mb-2 text-[20px] font-semibold">Cuidala Pro</h2>
         <div className="rounded-2xl bg-card p-4">
-          <p className="font-medium">Coming soon</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            A one-time unlock around $14.99 to $19.99. Not for sale yet. No subscription.
-          </p>
+          <p className="font-medium">Later this year — optional, one-time, no subscription.</p>
           <ul className="mt-2 list-disc pl-5 text-[13px] text-muted-foreground">
-            <li>Home Report you can share</li>
-            <li>More than 3 warranties</li>
-            <li>Budget beyond 30 days</li>
-            <li>Seasonal playbook packs</li>
+            <li>Home Report you can share with a buyer or a contractor</li>
+            <li>Household sync across phones</li>
+            <li>More seasonal playbook packs</li>
           </ul>
         </div>
       </section>

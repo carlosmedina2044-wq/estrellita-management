@@ -40,7 +40,7 @@ In Xcode:
 
 ## App Store Connect notes
 
-- **Price:** free for v1 (validate demand). Cuidala Pro is listed in Settings as coming soon (Home Report, more than 3 warranties, Budget beyond 30 days, seasonal playbook packs; one-time about $14.99–$19.99). No StoreKit in this binary.
+- **Price:** free for v1 (validate demand). Cuidala Pro is listed in Settings as coming later this year (Home Report, household sync, seasonal playbook packs; optional one-time unlock, no subscription, no price shown). No StoreKit in this binary.
 - **Devices:** iPhone only for v1 (`TARGETED_DEVICE_FAMILY = 1`). Portrait only. iPad is planned for a later release.
 - **Storefront:** United States only for v1.
 - **App Privacy:** Data Not Collected. WeatherKit is Apple-collected. Matches `PrivacyInfo.xcprivacy`.
