@@ -230,7 +230,7 @@ export function RestockOrderButton({
           <>
             <button
               type="button"
-              className="text-left ui-caption font-medium text-primary"
+              className="inline-flex min-h-11 items-center text-left ui-caption font-medium text-primary"
               onClick={() => setSheet("overflow")}
             >
               {t("restock.moreOptions")}
@@ -519,7 +519,7 @@ function OrderConfirmSheet({
         </div>
         <button
           type="button"
-          className="text-left ui-caption font-medium text-primary"
+          className="inline-flex min-h-11 items-center text-left ui-caption font-medium text-primary"
           aria-expanded={moreOpen}
           onClick={() => setMoreOpen((current) => !current)}
         >

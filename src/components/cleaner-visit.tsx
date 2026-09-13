@@ -67,7 +67,7 @@ export function CleanerVisit({
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              className="self-start ui-body font-medium text-primary"
+              className="inline-flex min-h-11 items-center self-start ui-body font-medium text-primary"
               onClick={() => setSelected(null)}
             >
               {t("cleaner.map")}

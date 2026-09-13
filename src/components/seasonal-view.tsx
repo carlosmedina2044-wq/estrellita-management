@@ -286,7 +286,7 @@ export function SeasonalView({
 
       <button
         type="button"
-        className="text-left ui-caption font-medium text-primary"
+        className="inline-flex min-h-11 items-center text-left ui-caption font-medium text-primary"
         onClick={() => setAttrsOpen(true)}
       >
         {t("seasonal.notSeeing")}
@@ -384,7 +384,7 @@ function DoNowCard({
       ) : decided && progress.total === 0 ? (
         <div className="mt-3 flex items-center justify-between gap-3">
           <p className="ui-caption text-muted-foreground">{t("seasonal.skippedYear")}</p>
-          <button type="button" className="ui-caption font-medium text-primary" onClick={() => onReconsider(playbook.id)}>
+          <button type="button" className="inline-flex min-h-11 items-center ui-caption font-medium text-primary" onClick={() => onReconsider(playbook.id)}>
             {t("seasonal.reconsider")}
           </button>
         </div>

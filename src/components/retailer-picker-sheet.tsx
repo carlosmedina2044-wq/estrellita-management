@@ -209,7 +209,7 @@ function CustomStoreSearch({
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={t("restock.customUrlPlaceholder")}
-          className="h-10 min-w-0 flex-1"
+          className="h-11 min-w-0 flex-1"
           inputMode="url"
           autoCapitalize="none"
           autoCorrect="off"
@@ -221,7 +221,7 @@ function CustomStoreSearch({
             }
           }}
         />
-        <Button type="button" variant="secondary" className="h-10 shrink-0 px-3" onClick={go}>
+        <Button type="button" variant="secondary" className="h-11 shrink-0 px-3" onClick={go}>
           {t("common.search")}
         </Button>
       </div>

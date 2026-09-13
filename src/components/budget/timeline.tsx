@@ -246,7 +246,7 @@ function Group({
   const { t } = useLocale();
   return (
     <div>
-      <button type="button" className="flex w-full items-center justify-between py-1 text-left" onClick={onToggle}>
+      <button type="button" className="flex min-h-11 w-full items-center justify-between py-1 text-left" onClick={onToggle}>
         <span className="text-sm font-medium">{title}</span>
         <span className="ui-caption text-muted-foreground">{open ? t("budget.hide") : t("budget.show")}</span>
       </button>
@@ -279,7 +279,7 @@ function ForecastRow({
       <p className="text-sm font-medium">{item.label}</p>
       <p className="text-sm text-muted-foreground">{formatCostRange(item.cost)}</p>
       {item.source === "catalog" && item.kind === "replacement" ? (
-        <button type="button" className="mt-1 text-left ui-caption leading-4 text-muted-foreground" onClick={onEdit}>
+        <button type="button" className="mt-1 inline-flex min-h-11 items-center text-left ui-caption leading-4 text-muted-foreground" onClick={onEdit}>
           {forecastSourceBlurb(item.source)}
         </button>
       ) : (

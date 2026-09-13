@@ -284,7 +284,7 @@ export function Onboarding({
             </Button>
             <button
               type="button"
-              className="mt-auto pt-8 text-sm font-medium text-primary"
+              className="mt-auto inline-flex min-h-11 items-center pt-8 text-sm font-medium text-primary"
               onClick={() => setLegalDoc("how-it-works")}
             >
               {t("onboarding.howItWorksLink")}
@@ -369,7 +369,7 @@ export function Onboarding({
                 ))}
               </div>
             ) : (
-              <button type="button" className="mt-4 ui-body font-medium text-brand" onClick={() => setAdding(true)}>
+              <button type="button" className="mt-4 inline-flex min-h-11 items-center ui-body font-medium text-brand" onClick={() => setAdding(true)}>
                 {t("onboarding.addRoom")}
               </button>
             )}
@@ -589,7 +589,7 @@ function Screen({
       <p className="mt-2 text-sm text-muted-foreground">{copy}</p>
       <div className="mt-6 flex flex-1 flex-col">{children}</div>
       {onSkip ? (
-        <button type="button" className="mt-4 ui-caption font-medium text-brand" onClick={onSkip}>
+        <button type="button" className="mt-4 inline-flex min-h-11 items-center ui-caption font-medium text-brand" onClick={onSkip}>
           {skipLabel ?? t("common.skip")}
         </button>
       ) : null}

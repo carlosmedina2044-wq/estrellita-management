@@ -65,7 +65,7 @@ export function FundHero({
       {health.onePercentCopy ? (
         <p className="mt-2 ui-caption leading-5 text-muted-foreground">{health.onePercentCopy}</p>
       ) : null}
-      <button type="button" className="mt-3 ui-body font-medium text-primary" onClick={onEditFund}>
+      <button type="button" className="mt-3 inline-flex min-h-11 items-center ui-body font-medium text-primary" onClick={onEditFund}>
         {t("budget.updateBalance")}
       </button>
     </section>

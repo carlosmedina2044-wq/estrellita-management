@@ -78,7 +78,7 @@ export function RestockWalkPicker({
         <div className="rounded-2xl bg-secondary px-3 py-3">
           <p className="ui-body font-medium">{t("restock.sizesToConfirm", { names: missing.join(", ") })}</p>
           {onSkipSizes ? (
-            <button type="button" className="mt-2 ui-caption font-medium text-brand" onClick={onSkipSizes}>
+            <button type="button" className="mt-2 inline-flex min-h-11 items-center ui-caption font-medium text-brand" onClick={onSkipSizes}>
               {t("restock.skipForNow")}
             </button>
           ) : null}
@@ -185,7 +185,7 @@ export function RestockWalkPicker({
                   {onEditCustom ? (
                     <button
                       type="button"
-                      className="mt-2 pl-8 ui-caption font-medium text-brand"
+                      className="mt-2 inline-flex min-h-11 items-center pl-8 ui-caption font-medium text-brand"
                       onClick={() => onEditCustom(pick)}
                     >
                       {t("common.edit")}
@@ -196,7 +196,7 @@ export function RestockWalkPicker({
               {onAddCustom ? (
                 <button
                   type="button"
-                  className="rounded-2xl border border-dashed border-border px-3 py-3 text-left ui-body font-medium text-brand"
+                  className="inline-flex min-h-11 items-center rounded-2xl border border-dashed border-border px-3 py-3 text-left ui-body font-medium text-brand"
                   onClick={() => onAddCustom(group.id)}
                 >
                   {t("restock.addSomethingBuyFor", { group: tWalkGroupLabel(group.id) })}
