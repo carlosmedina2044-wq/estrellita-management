@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { generateRawKey, importRawKey, PREVIOUS_VAULT_KEY, VAULT_STORAGE_KEY } from "@/lib/crypto";
+import { decryptJson, encryptJson, generateRawKey, importRawKey, parseEnvelopeJson, PREVIOUS_VAULT_KEY, VAULT_STORAGE_KEY } from "@/lib/crypto";
 import { sealBackup } from "@/lib/backup";
 import {
   eraseHousehold,
@@ -297,6 +297,122 @@ test("import resets cleaner visit state", async () => {
   assert.equal(household.activeVisitId, null);
   assert.equal(household.onboarded, true);
   assert.equal(household.householdName, "Cleaner phone");
+  resetVaultForTests();
+});
+
+test("S1d: sample-home persist quarantines a stale vault when Keychain is empty", async () => {
+  resetVaultForTests();
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, UNREADABLE_VAULT]]);
+  const key = await importRawKey(generateRawKey());
+  let minted = 0;
+  installVaultIOForTests({
+    loadDeviceKey: async () => null,
+    createDeviceKey: async () => {
+      minted += 1;
+      return key;
+    },
+    loadOrCreateDeviceKey: async () => {
+      minted += 1;
+      return key;
+    },
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  const load = await hydrateHousehold();
+  assert.equal(load.ok, false);
+  if (!load.ok) assert.equal(load.reason, "key-mismatch");
+  assert.equal(minted, 0);
+
+  updateHousehold((current) => ({ ...current, householdName: "Sample Home", onboarded: true }));
+  await flushHousehold();
+
+  assert.equal(minted, 1);
+  assert.equal(store.get(QUARANTINED_VAULT_KEY), UNREADABLE_VAULT);
+  assert.notEqual(store.get(VAULT_STORAGE_KEY), UNREADABLE_VAULT);
+  assert.ok(store.has(VAULT_STORAGE_KEY));
+  assert.equal(getHousehold().householdName, "Sample Home");
+  assert.equal(getHousehold().onboarded, true);
+  resetVaultForTests();
+});
+
+test("S1e: persist reuses a device key that can open the existing vault", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const store = new Map<string, string>([
+    [VAULT_STORAGE_KEY, JSON.stringify(await encryptJson(key, JSON.stringify({ householdName: "Kept", onboarded: true })))],
+  ]);
+  let minted = 0;
+  installVaultIOForTests({
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => {
+      minted += 1;
+      throw new Error("must not mint over a readable vault");
+    },
+    loadOrCreateDeviceKey: async () => {
+      minted += 1;
+      throw new Error("must not mint over a readable vault");
+    },
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  updateHousehold((current) => ({ ...current, householdName: "Updated", onboarded: true }));
+  await flushHousehold();
+
+  assert.equal(minted, 0);
+  assert.equal(store.has(QUARANTINED_VAULT_KEY), false);
+  const envelope = parseEnvelopeJson(store.get(VAULT_STORAGE_KEY) ?? "");
+  assert.ok(envelope);
+  assert.match(await decryptJson(key, envelope), /"householdName":"Updated"/);
+  assert.equal(getHousehold().householdName, "Updated");
+  resetVaultForTests();
+});
+
+test("S1f: persist refuses to mint when Keychain throws and a vault exists", async () => {
+  resetVaultForTests();
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, UNREADABLE_VAULT]]);
+  let minted = 0;
+  installVaultIOForTests({
+    loadDeviceKey: async () => {
+      throw new Error("User interaction is not allowed");
+    },
+    createDeviceKey: async () => {
+      minted += 1;
+      throw new Error("must not mint");
+    },
+    loadOrCreateDeviceKey: async () => {
+      minted += 1;
+      throw new Error("must not mint");
+    },
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  updateHousehold((current) => ({ ...current, householdName: "Unsaved", onboarded: true }));
+  await flushHousehold();
+
+  assert.equal(minted, 0);
+  assert.equal(store.get(VAULT_STORAGE_KEY), UNREADABLE_VAULT);
+  assert.equal(store.has(QUARANTINED_VAULT_KEY), false);
   resetVaultForTests();
 });
 

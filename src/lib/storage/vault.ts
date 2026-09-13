@@ -103,15 +103,45 @@ function notifyChange() {
 
 async function persist(next: Household) {
   if (!key) {
-    const existingVault = (await io.kvGet(VAULT_STORAGE_KEY)) ?? (await io.kvGet(PREVIOUS_VAULT_KEY));
-    if (existingVault) {
-      throw new DeviceKeyError("Refusing to mint a new key while a vault exists");
-    }
-    key = await io.createDeviceKey();
+    key = await resolveDeviceKeyForPersist();
   }
   const envelope = await encryptJson(key, JSON.stringify(next));
   await io.kvSet(VAULT_STORAGE_KEY, JSON.stringify(envelope));
   scheduleNotificationSync(next);
+}
+
+async function resolveDeviceKeyForPersist(): Promise<CryptoKey> {
+  const existingVault = (await io.kvGet(VAULT_STORAGE_KEY)) ?? (await io.kvGet(PREVIOUS_VAULT_KEY));
+  if (!existingVault) {
+    return io.createDeviceKey();
+  }
+
+  let existingKey: CryptoKey | null = null;
+  try {
+    existingKey = await io.loadDeviceKey();
+  } catch {
+    throw new DeviceKeyError("Refusing to mint a new key while a vault exists");
+  }
+
+  if (existingKey && (await canDecryptVault(existingKey, existingVault))) {
+    return existingKey;
+  }
+
+  // Stale or unreadable leftover (empty Keychain, or a key that cannot open it).
+  // Quarantine first — never overwrite with a newly minted key.
+  await quarantineUnreadableVault();
+  return io.createDeviceKey();
+}
+
+async function canDecryptVault(deviceKey: CryptoKey, raw: string): Promise<boolean> {
+  const envelope = parseEnvelopeJson(raw);
+  if (!envelope) return false;
+  try {
+    await decryptJson(deviceKey, envelope);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function scheduleNotificationSync(next: Household) {
@@ -222,6 +252,7 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
       try {
         memory = parseStored(await decryptJson(key, envelope));
       } catch {
+        key = null;
         lastLoad = { ok: false, reason: "key-mismatch" };
         return lastLoad;
       }
