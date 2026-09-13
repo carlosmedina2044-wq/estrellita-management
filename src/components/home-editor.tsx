@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,8 @@ export function HomeEditor({
   const [assetWarranty, setAssetWarranty] = useState("");
   const roomHints = suggestionsForRoom(roomType);
   const assetHints = suggestionsForAsset(assetType);
+  const changeTimer = useRef<number | null>(null);
+  const pendingHousehold = useRef<Household | null>(null);
 
   useEffect(() => {
     if (!focusAssetId) return;
@@ -61,16 +63,55 @@ export function HomeEditor({
     onFocusHandled?.();
   }, [focusAssetId, onFocusHandled]);
 
+  useEffect(() => {
+    return () => {
+      if (changeTimer.current != null) window.clearTimeout(changeTimer.current);
+      const pending = pendingHousehold.current;
+      pendingHousehold.current = null;
+      if (pending) onChange(pending);
+    };
+    // Flush only on unmount; onChange identity is not a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional unmount flush
+  }, []);
+
+  function takePending(): Household {
+    if (changeTimer.current != null) {
+      window.clearTimeout(changeTimer.current);
+      changeTimer.current = null;
+    }
+    const pending = pendingHousehold.current;
+    pendingHousehold.current = null;
+    return pending ?? household;
+  }
+
+  function scheduleChange(build: (current: Household) => Household) {
+    const next = build(pendingHousehold.current ?? household);
+    pendingHousehold.current = next;
+    if (changeTimer.current != null) window.clearTimeout(changeTimer.current);
+    changeTimer.current = window.setTimeout(() => {
+      const pending = pendingHousehold.current;
+      pendingHousehold.current = null;
+      changeTimer.current = null;
+      if (pending) onChange(pending);
+    }, 300);
+  }
+
+  function flushChange(build?: (current: Household) => Household) {
+    const current = takePending();
+    onChange(build ? build(current) : current);
+  }
+
   const floors = floorsInOrder(household);
 
   function addFloor() {
-    const name = floorName.trim() || t("home.floorN", { n: household.floors.length + 1 });
+    const current = takePending();
+    const name = floorName.trim() || t("home.floorN", { n: current.floors.length + 1 });
     const floor: HomeFloor = {
       id: crypto.randomUUID(),
       name,
-      sortOrder: nextSortOrder(household.floors),
+      sortOrder: nextSortOrder(current.floors),
     };
-    onChange({ ...household, floors: [...household.floors, floor] });
+    onChange({ ...current, floors: [...current.floors, floor] });
     setFloorName("");
     setRoomFloor(floor.id);
     toast.success(t("home.floorAdded"));
@@ -81,17 +122,18 @@ export function HomeEditor({
       toast.error(t("home.addFloorFirst"));
       return;
     }
-    const name = roomName.trim() || defaultRoomName(roomType, household.rooms);
+    const current = takePending();
+    const name = roomName.trim() || defaultRoomName(roomType, current.rooms);
     onChange({
-      ...household,
+      ...current,
       rooms: [
-        ...household.rooms,
+        ...current.rooms,
         {
           id: crypto.randomUUID(),
           floorId: roomFloor,
           name,
           type: roomType,
-          sortOrder: nextSortOrder(household.rooms),
+          sortOrder: nextSortOrder(current.rooms),
         },
       ],
     });
@@ -102,18 +144,19 @@ export function HomeEditor({
 
   function confirmDelete() {
     if (!deleteId) return;
-    const room = household.rooms.find((item) => item.id === deleteId);
+    const current = takePending();
+    const room = current.rooms.find((item) => item.id === deleteId);
     if (!room) return;
     const hasWork =
-      household.duties.some((duty) => duty.room === deleteId) ||
-      household.supplyAutomations.some((item) => item.room === deleteId);
+      current.duties.some((duty) => duty.room === deleteId) ||
+      current.supplyAutomations.some((item) => item.room === deleteId);
     if (hasWork && !reassignTo) {
       toast.error(t("home.reassignJobs"));
       return;
     }
     onChange(
       deleteRoomFromHousehold(
-        household,
+        current,
         deleteId,
         hasWork && reassignTo ? { action: "reassign", toRoomId: reassignTo } : { action: "delete" },
       ),
@@ -133,32 +176,34 @@ export function HomeEditor({
 
       {floors.map((floor) => (
         <section key={floor.id} className="rounded-2xl bg-card p-4">
-          <Input
+          <DebouncedTextInput
             value={floor.name}
-            onChange={(event) =>
-              onChange({
-                ...household,
-                floors: household.floors.map((item) =>
-                  item.id === floor.id ? { ...item, name: event.target.value } : item,
+            onSchedule={(value) =>
+              scheduleChange((current) => ({
+                ...current,
+                floors: current.floors.map((item) =>
+                  item.id === floor.id ? { ...item, name: value } : item,
                 ),
-              })
+              }))
             }
+            onFlush={() => flushChange()}
             className="h-11 font-medium"
           />
           <div className="mt-3 grid gap-2">
             {roomsOnFloor(household, floor.id).map((room) => (
               <div key={room.id} className="grid gap-2">
                 <div className="flex items-center gap-2">
-                  <Input
+                  <DebouncedTextInput
                     value={room.name}
-                    onChange={(event) =>
-                      onChange({
-                        ...household,
-                        rooms: household.rooms.map((item) =>
-                          item.id === room.id ? { ...item, name: event.target.value } : item,
+                    onSchedule={(value) =>
+                      scheduleChange((current) => ({
+                        ...current,
+                        rooms: current.rooms.map((item) =>
+                          item.id === room.id ? { ...item, name: value } : item,
                         ),
-                      })
+                      }))
                     }
+                    onFlush={() => flushChange()}
                     className="h-11"
                   />
                   <Button
@@ -345,12 +390,13 @@ export function HomeEditor({
               toast.error(t("home.pickRoomFirst"));
               return;
             }
+            const current = takePending();
             const name =
               assetName.trim() || catalogLabel(assetType) || t("home.assetFallback");
             onChange({
-              ...household,
+              ...current,
               assets: [
-                ...household.assets,
+                ...current.assets,
                 {
                   id: crypto.randomUUID(),
                   roomId: assetRoom,
@@ -393,14 +439,16 @@ export function HomeEditor({
                     <Input
                       type="date"
                       value={asset.installDate ?? ""}
-                      onChange={(event) =>
-                        onChange({
-                          ...household,
-                          assets: household.assets.map((item) =>
-                            item.id === asset.id ? { ...item, installDate: event.target.value || undefined } : item,
+                      onChange={(event) => {
+                        const value = event.target.value || undefined;
+                        scheduleChange((current) => ({
+                          ...current,
+                          assets: current.assets.map((item) =>
+                            item.id === asset.id ? { ...item, installDate: value } : item,
                           ),
-                        })
-                      }
+                        }));
+                      }}
+                      onBlur={() => flushChange()}
                       className="h-11"
                     />
                   </Field>
@@ -408,14 +456,16 @@ export function HomeEditor({
                     <Input
                       type="date"
                       value={asset.warrantyUntil ?? ""}
-                      onChange={(event) =>
-                        onChange({
-                          ...household,
-                          assets: household.assets.map((item) =>
-                            item.id === asset.id ? { ...item, warrantyUntil: event.target.value || undefined } : item,
+                      onChange={(event) => {
+                        const value = event.target.value || undefined;
+                        scheduleChange((current) => ({
+                          ...current,
+                          assets: current.assets.map((item) =>
+                            item.id === asset.id ? { ...item, warrantyUntil: value } : item,
                           ),
-                        })
-                      }
+                        }));
+                      }}
+                      onBlur={() => flushChange()}
                       className="h-11"
                     />
                     {asset.installDate ? (
@@ -426,14 +476,14 @@ export function HomeEditor({
                             type="button"
                             className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
                             onClick={() =>
-                              onChange({
-                                ...household,
-                                assets: household.assets.map((item) =>
+                              flushChange((current) => ({
+                                ...current,
+                                assets: current.assets.map((item) =>
                                   item.id === asset.id
                                     ? { ...item, warrantyUntil: warrantyFromInstall(asset.installDate!, years) }
                                     : item,
                                 ),
-                              })
+                              }))
                             }
                           >
                             {t("home.yearsShort", { n: years })}
@@ -449,5 +499,38 @@ export function HomeEditor({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Local draft so typing stays responsive while parent persist is debounced. */
+function DebouncedTextInput({
+  value,
+  onSchedule,
+  onFlush,
+  className,
+}: {
+  value: string;
+  onSchedule: (value: string) => void;
+  onFlush: () => void;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState(value);
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setDraft(value);
+  }
+
+  return (
+    <Input
+      value={draft}
+      onChange={(event) => {
+        const next = event.target.value;
+        setDraft(next);
+        onSchedule(next);
+      }}
+      onBlur={onFlush}
+      className={className}
+    />
   );
 }
