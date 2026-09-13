@@ -1150,6 +1150,8 @@
   "milestone.thirty-run.title": "30 dias seguidos",
   "settings.milestonesHeader": "Sua casa neste ano",
   "settings.milestonesEmpty": "Encerre um dia e isso aparece aqui.",
+  "settings.momentumTitle": "Sequências e marcos",
+  "settings.momentumHelp": "Incentivo discreto com base no que você termina. Nada sai do telefone.",
   "retailer.lastTimeRow": "Última vez: {store} · {when}",
   "seasonal.addCompact": "Adicionar",
   "seasonal.skipCompact": "Pular",

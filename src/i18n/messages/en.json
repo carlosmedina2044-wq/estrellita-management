@@ -1150,6 +1150,8 @@
   "milestone.thirty-run.title": "30-day run",
   "settings.milestonesHeader": "Your house this year",
   "settings.milestonesEmpty": "Close a day and it shows up here.",
+  "settings.momentumTitle": "Runs and milestones",
+  "settings.momentumHelp": "Quiet encouragement based on what you finish. Nothing leaves your phone.",
   "retailer.lastTimeRow": "Last time: {store} · {when}",
   "seasonal.addCompact": "Add",
   "seasonal.skipCompact": "Skip",

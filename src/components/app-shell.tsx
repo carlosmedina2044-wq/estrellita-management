@@ -70,6 +70,7 @@ export function AppShell() {
     changeSupplyArrival,
     applySupplyLeadTime,
     updateRestockDigest,
+    updateMomentum,
     deleteDuty,
     completeDuty,
     recordCompletionCost,
@@ -850,6 +851,7 @@ export function AppShell() {
                 lockMethod={lockMethod ?? "none"}
                 restockDigest={household.restockDigest}
                 onUpdateDigest={updateRestockDigest}
+                onUpdateMomentum={updateMomentum}
                 focusAssetId={nav?.assetId}
                 onFocusHandled={handleFocusHandled}
                 onBack={popStack}

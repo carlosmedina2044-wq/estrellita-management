@@ -155,7 +155,7 @@ export function TodayView({
     const range = weekRange(now);
     return roomsTouchedInRange(household, range.start, now);
   }, [household, now]);
-  const showWeekWrapped = shouldShowWeekWrapped(household, now);
+  const showWeekWrapped = household.momentum.enabled && shouldShowWeekWrapped(household, now);
   const viewingCalendar = calendarDay !== null;
   const viewDate = calendarDay ?? now;
   const calendarIsToday = viewingCalendar && sameDay(viewDate, now);
@@ -475,12 +475,16 @@ export function TodayView({
         orderNow={summary.orderNow}
         orderNowCost={orderNowCostCaption(restock.order_now)}
         arriving={summary.arriving}
-        weekRing={{
-          done: week.done,
-          planned: week.planned,
-          label: t("today.weekRing", { done: week.done, planned: week.planned }),
-          onClick: () => selectScope("weekly"),
-        }}
+        weekRing={
+          household.momentum.enabled
+            ? {
+                done: week.done,
+                planned: week.planned,
+                label: t("today.weekRing", { done: week.done, planned: week.planned }),
+                onClick: () => selectScope("weekly"),
+              }
+            : undefined
+        }
         labels={{
           overdue: t("today.overdue"),
           dueToday: t("today.dueToday"),

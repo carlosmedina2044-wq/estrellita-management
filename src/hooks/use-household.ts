@@ -27,7 +27,7 @@ import { applyCompletionCost, applyReceivedPrice } from "@/lib/costs";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { applyDutySave } from "@/lib/household-update";
-import type { DutyDraft, Household, Completion, Duty, RestockDigestSettings } from "@/lib/types";
+import type { DutyDraft, Household, Completion, Duty, MomentumSettings, RestockDigestSettings } from "@/lib/types";
 import { applyMomentumOnComplete, newlyEarned } from "@/lib/momentum";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
@@ -350,6 +350,16 @@ export function useHousehold() {
           patch.enabled === true || patch.permissionAsked === true
             ? { ...current.teaching, setDigestOrZip: true }
             : current.teaching,
+      }));
+    },
+    [update],
+  );
+
+  const updateMomentum = useCallback(
+    (patch: Partial<MomentumSettings>) => {
+      update((current) => ({
+        ...current,
+        momentum: { ...current.momentum, ...patch },
       }));
     },
     [update],
@@ -759,6 +769,7 @@ export function useHousehold() {
     applySupplyLeadTime,
     attachSharedLink,
     updateRestockDigest,
+    updateMomentum,
     deleteDuty,
     completeDuty,
     recordCompletionCost,

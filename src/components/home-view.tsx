@@ -30,7 +30,7 @@ import { verifyDeviceOwner } from "@/lib/native/biometrics";
 import { hapticDestructive } from "@/lib/native/haptics";
 import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
 import { notifyPermission, plannedNotifications, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
-import type { Household, RestockDigestSettings } from "@/lib/types";
+import type { Household, MomentumSettings, RestockDigestSettings } from "@/lib/types";
 import { relativeDayLabel } from "@/lib/duties";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -80,6 +80,7 @@ export function HomeView({
   lockMethod,
   restockDigest,
   onUpdateDigest,
+  onUpdateMomentum,
   focusAssetId,
   onFocusHandled,
   onBack,
@@ -101,6 +102,7 @@ export function HomeView({
   lockMethod: LockMethod;
   restockDigest?: RestockDigestSettings;
   onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
+  onUpdateMomentum?: (patch: Partial<MomentumSettings>) => void;
   focusAssetId?: string;
   onFocusHandled?: () => void;
   onBack?: () => void;
@@ -496,6 +498,28 @@ export function HomeView({
           ) : null}
         </div>
       </div>
+
+      {onUpdateMomentum ? (
+        <div className="ui-group">
+          <div className="ui-group-row px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p id="momentum-switch-label" className="ui-body font-medium">
+                  {t("settings.momentumTitle")}
+                </p>
+                <p className="mt-0.5 ui-caption text-muted-foreground">
+                  {t("settings.momentumHelp")}
+                </p>
+              </div>
+              <Switch
+                checked={household.momentum.enabled}
+                aria-labelledby="momentum-switch-label"
+                onCheckedChange={(enabled) => onUpdateMomentum({ enabled })}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section>
         <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.milestonesHeader")}</h2>
