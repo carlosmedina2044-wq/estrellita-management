@@ -180,6 +180,7 @@ export type RestockDigestSettings = {
   hour: number;
   lastSentOn: string | null;
   permissionAsked: boolean;
+  privateNotifications?: boolean;
 };
 
 export type SavedRetailerLink = {

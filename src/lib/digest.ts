@@ -9,12 +9,20 @@ export const DEFAULT_RESTOCK_DIGEST: RestockDigestSettings = {
   hour: 9,
   lastSentOn: null,
   permissionAsked: false,
+  privateNotifications: false,
 };
 
 export function digestCopy(
   items: Array<Pick<SupplyAutomation, "itemName" | "sizeSpec">>,
   overdueCount = 0,
+  privateNotifications = false,
 ): { title: string; body: string } {
+  if (privateNotifications) {
+    return {
+      title: `Restock: ${items.length} items, ${overdueCount} chores`,
+      body: digestCopy(items, overdueCount).body,
+    };
+  }
   const n = items.length;
   const names = items.slice(0, 3).map((item) => itemNameWithSize(item.itemName, item.sizeSpec));
   if (overdueCount > 0 && n > 0) {
@@ -50,7 +58,7 @@ export function digestPayload(household: Household, now = new Date(), overdueCou
   const items = digestCandidates(household.supplyAutomations, household, now);
   return {
     items,
-    ...digestCopy(items, overdueCount),
+    ...digestCopy(items, overdueCount, household.restockDigest.privateNotifications === true),
     shouldSend: shouldSendDigest(household.restockDigest, items, now, overdueCount),
     sentOn: toISODate(now),
   };

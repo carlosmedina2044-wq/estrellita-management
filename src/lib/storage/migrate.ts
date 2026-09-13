@@ -704,6 +704,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
           lastSentOn:
             typeof raw.restockDigest.lastSentOn === "string" ? asIsoDate(raw.restockDigest.lastSentOn) : null,
           permissionAsked: raw.restockDigest.permissionAsked === true,
+          privateNotifications: raw.restockDigest.privateNotifications === true,
         }
       : { ...DEFAULT_RESTOCK_DIGEST },
     teaching: isPlainObject(raw.teaching)

@@ -254,6 +254,21 @@ export function HomeView({
                   }}
                 />
               </div>
+              <div className="mt-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p id="private-notif-label" className="text-[15px] font-medium">
+                    Hide item names on the lock screen
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-muted-foreground">
+                    Reminders still fire. Titles stay generic.
+                  </p>
+                </div>
+                <Switch
+                  checked={restockDigest.privateNotifications === true}
+                  aria-labelledby="private-notif-label"
+                  onCheckedChange={(next) => onUpdateDigest({ privateNotifications: next })}
+                />
+              </div>
               {permission === "denied" ? (
                 <p className="mt-3 text-[13px] text-destructive">
                   Notifications are off for Cuidala in iOS Settings. Turn them on there to get reminders.

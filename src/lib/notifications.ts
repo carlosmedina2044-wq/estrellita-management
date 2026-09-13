@@ -106,7 +106,9 @@ function arrivalNotice(
   if (at.getTime() <= now.getTime()) return null;
   return {
     id: allocateId(used, `arrive:${item.id}`),
-    title: `Did the ${item.itemName} arrive?`,
+    title: household.restockDigest.privateNotifications
+      ? "Did your order arrive?"
+      : `Did the ${item.itemName} arrive?`,
     body: hasLinkedDuty(item, household)
       ? "Tap to mark it received. The install chore is waiting on it."
       : "Tap to mark it received.",
@@ -136,7 +138,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
     const items = digestCandidates(household.supplyAutomations, household, now);
     const overdue = overdueChoreCount(household, now);
     if (items.length > 0 || overdue > 0) {
-      const copy = digestCopy(items, overdue);
+      const copy = digestCopy(items, overdue, household.restockDigest.privateNotifications === true);
       notifications.push({
         id: DIGEST_ID,
         title: copy.title,
@@ -181,7 +183,9 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   for (const { item, due } of reminders) {
     notifications.push({
       id: allocateId(used, item.id),
-      title: `Order ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
+      title: household.restockDigest.privateNotifications
+        ? "Order a supply"
+        : `Order ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
       body: "Order today so it arrives before you run out.",
       schedule: scheduleAt(due),
       extra: { tab: "restock", itemId: item.id },
@@ -203,7 +207,9 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   for (const { item, at } of followUps) {
     notifications.push({
       id: allocateId(used, `followup:${item.id}`),
-      title: `Still to order: ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
+      title: household.restockDigest.privateNotifications
+        ? "Still to order a supply"
+        : `Still to order: ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
       body: "No rush. Tap when you want to order.",
       schedule: scheduleAt(at),
       extra: { tab: "restock", itemId: item.id, action: "followup" },

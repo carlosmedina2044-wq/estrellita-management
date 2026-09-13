@@ -266,3 +266,30 @@ test("two colliding hashes produce distinct IDs and keep both notifications", ()
   const ids = notices.map((notice) => notice.id);
   assert.equal(new Set(ids).size, ids.length);
 });
+
+test("privateNotifications titles never include the item name", () => {
+  const stocked = item({
+    itemName: "Secret HVAC filter",
+    onHand: 3,
+    orderByDate: "2026-10-01",
+    nextOrderDate: "2026-10-01",
+  });
+  const notices = plannedNotifications(
+    household({
+      restockDigest: {
+        enabled: true,
+        weekday: 0,
+        hour: 9,
+        lastSentOn: null,
+        permissionAsked: true,
+        privateNotifications: true,
+      },
+      supplyAutomations: [stocked],
+    }),
+    now,
+  );
+  assert.ok(notices.length > 0);
+  for (const notice of notices) {
+    assert.equal(notice.title.includes("Secret HVAC filter"), false);
+  }
+});
