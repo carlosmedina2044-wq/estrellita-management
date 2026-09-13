@@ -57,7 +57,7 @@ export function CleanerVisit({
       </header>
 
       {next ? (
-        <div className="mt-4 rounded-2xl bg-white p-4">
+        <div className="mt-4 rounded-2xl bg-card p-4">
           <p className="text-[13px] font-medium text-muted-foreground">Next up</p>
           <p className="ui-heading mt-1 text-[20px] font-semibold">{next.title}</p>
           <Button className="mt-3 h-11 w-full" onClick={() => onComplete(next.id)}>

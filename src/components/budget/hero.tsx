@@ -13,7 +13,7 @@ export function FundHero({
 }) {
   if (health.saved == null) {
     return (
-      <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-white px-4 py-5 duration-300">
+      <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
         <p className="text-sm text-muted-foreground">Home maintenance fund</p>
         <p className="ui-heading mt-1 text-[28px] font-semibold tracking-tight leading-tight">
           How much do you have saved for home maintenance?
@@ -34,7 +34,7 @@ export function FundHero({
 
   const covered = health.coveragePct ?? 0;
   return (
-    <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-white px-4 py-5 duration-300">
+    <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
       <p className="text-sm text-muted-foreground">Home maintenance fund</p>
       <p className="ui-heading mt-1 text-[28px] font-semibold tracking-tight leading-tight">
         {formatMoney(health.saved)} saved

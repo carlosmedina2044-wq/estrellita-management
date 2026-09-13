@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 
 /* Type scale: 28 page title · 20 section · 17 card title · 15 body · 13 caption · 11 micro. Do not introduce other pixel sizes. */
-/* Buttons: primary (terracotta) for the main action, secondary for everything else. Never bg-foreground. */
+/* Buttons: primary (terracotta) for the ONE main CTA per viewport; secondary for everything else. Never bg-foreground. */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -56,59 +56,59 @@
 }
 
 :root {
-  --background: #f6efe2;
+  --background: #faf6ef;
   --foreground: #1d1d1f;
-  --card: #fdf9f0;
+  --card: #fffcf7;
   --card-foreground: #1d1d1f;
-  --popover: #fdf9f0;
+  --popover: #fffcf7;
   --popover-foreground: #1d1d1f;
-  --primary: #94512c;
-  --primary-foreground: #f6efe2;
-  --brand: #94512c;
-  --brand-cream: #eedfc2;
-  --secondary: #ede2cf;
+  --primary: #9a5a35;
+  --primary-foreground: #fffcf7;
+  --brand: #9a5a35;
+  --brand-cream: #f5ebd8;
+  --secondary: #f0e8dc;
   --secondary-foreground: #1d1d1f;
-  --muted: #f2ebdd;
-  --muted-foreground: #7c7164;
-  --accent: #f1e6d4;
-  --accent-foreground: #7c4322;
-  --destructive: #b3381c;
+  --muted: #f5f0e8;
+  --muted-foreground: #6f675f;
+  --accent: #f8f2e8;
+  --accent-foreground: #8b5a3c;
+  --destructive: #c44d32;
   --success: #57843b;
-  --warning: #b07a1f;
-  --border: rgb(58 38 18 / 12%);
-  --input: rgb(58 38 18 / 12%);
-  --ring: #94512c;
-  --chart-1: #94512c;
+  --warning: #8a5a12;
+  --border: rgb(45 35 25 / 10%);
+  --input: rgb(45 35 25 / 10%);
+  --ring: #9a5a35;
+  --chart-1: #9a5a35;
   --chart-2: #57843b;
   --chart-3: #c4a574;
   --chart-4: #8b6914;
   --chart-5: #9a9186;
   --radius: 0.9rem;
-  --sidebar: #f6efe2;
+  --sidebar: #faf6ef;
   --sidebar-foreground: #1d1d1f;
-  --sidebar-primary: #94512c;
-  --sidebar-primary-foreground: #f6efe2;
-  --sidebar-accent: #ede2cf;
+  --sidebar-primary: #9a5a35;
+  --sidebar-primary-foreground: #fffcf7;
+  --sidebar-accent: #f0e8dc;
   --sidebar-accent-foreground: #1d1d1f;
-  --sidebar-border: rgb(58 38 18 / 8%);
-  --sidebar-ring: #94512c;
+  --sidebar-border: rgb(45 35 25 / 10%);
+  --sidebar-ring: #9a5a35;
 }
 
 .dark {
-  --background: #1b1512;
+  --background: #1f1a16;
   --foreground: #f7f3ec;
-  --card: #2a221b;
+  --card: #2c2420;
   --card-foreground: #f7f3ec;
-  --popover: #2a221b;
+  --popover: #2c2420;
   --popover-foreground: #f7f3ec;
-  --primary: #d29a66;
+  --primary: #d4a574;
   --primary-foreground: #231812;
-  --brand: #d29a66;
+  --brand: #d4a574;
   --brand-cream: #f4e6c8;
   --secondary: #3b3129;
   --secondary-foreground: #f7f3ec;
   --muted: #3b3129;
-  --muted-foreground: #b4ada4;
+  --muted-foreground: #b8b0a8;
   --accent: #3d2c1f;
   --accent-foreground: #dba876;
   --destructive: #d75a3c;
@@ -116,15 +116,15 @@
   --warning: #d09a3e;
   --border: rgb(255 245 230 / 12%);
   --input: rgb(255 245 230 / 14%);
-  --ring: #d29a66;
-  --sidebar: #1b1512;
+  --ring: #d4a574;
+  --sidebar: #1f1a16;
   --sidebar-foreground: #f7f3ec;
-  --sidebar-primary: #d29a66;
+  --sidebar-primary: #d4a574;
   --sidebar-primary-foreground: #231812;
   --sidebar-accent: #3b3129;
   --sidebar-accent-foreground: #f7f3ec;
   --sidebar-border: rgb(255 245 230 / 10%);
-  --sidebar-ring: #d29a66;
+  --sidebar-ring: #d4a574;
 }
 
 @layer base {
@@ -217,17 +217,15 @@
 }
 
 .app-shell-main--push {
-  animation: app-push-in 220ms ease-out;
+  animation: app-shell-fade 150ms ease-out;
 }
 
-@keyframes app-push-in {
+@keyframes app-shell-fade {
   from {
     opacity: 0;
-    transform: translateX(12px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

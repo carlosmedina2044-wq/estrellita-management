@@ -23,7 +23,7 @@ export function EmptyGuide({
 
   if (ranked.length === 0) {
     return (
-      <section className="rounded-2xl bg-white px-4 py-5">
+      <section className="rounded-2xl bg-card px-4 py-5">
         <p className="font-medium">Nothing priced yet</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Add a date or cost on Home so we can estimate upkeep and replacements.
@@ -36,7 +36,7 @@ export function EmptyGuide({
   }
 
   return (
-    <section className="rounded-2xl bg-white px-4 py-5">
+    <section className="rounded-2xl bg-card px-4 py-5">
       <p className="font-medium">Price a few big items to get a forecast</p>
       <p className="mt-1 text-sm text-muted-foreground">
         A date and a replacement cost is enough. We’ll fill typical ranges if you skip the price.

@@ -194,7 +194,7 @@ export function HouseMapSheet({
                     <h3 className="mb-2 text-[13px] font-medium text-muted-foreground">Items</h3>
                     <ul className="grid gap-2">
                       {roomConsumables.map((item) => (
-                        <li key={item.id} className="rounded-2xl bg-white px-4 py-3 text-sm">
+                        <li key={item.id} className="rounded-2xl bg-card px-4 py-3 text-sm">
                           <p className="font-medium">
                             <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
                           </p>
@@ -224,7 +224,7 @@ export function HouseMapSheet({
                       {roomAssets.map((asset) => {
                         const badge = warrantyBadgeLabel(asset, now);
                         return (
-                        <li key={asset.id} className="rounded-2xl bg-white px-4 py-3 text-sm">
+                        <li key={asset.id} className="rounded-2xl bg-card px-4 py-3 text-sm">
                           <p className="font-medium">{asset.name}</p>
                           <p className="mt-0.5 text-[13px] text-muted-foreground">
                             {ASSET_TYPES.find((item) => item.id === asset.type)?.label ?? asset.type}

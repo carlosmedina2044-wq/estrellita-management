@@ -160,7 +160,7 @@ export function BudgetView({
             {forecast.missingData.map((item) => {
               const asset = household.assets.find((entry) => entry.id === item.assetId);
               return (
-                <li key={item.assetId} className="rounded-2xl bg-white px-4 py-4">
+                <li key={item.assetId} className="rounded-2xl bg-card px-4 py-4">
                   <p className="font-medium">{item.name}</p>
                   <div className="mt-3 grid gap-3">
                     {item.missing.includes("installDate") ? (

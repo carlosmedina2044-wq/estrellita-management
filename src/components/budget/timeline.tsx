@@ -105,7 +105,7 @@ export function QuarterTimeline({
         </div>
       </div>
 
-      <div className="mt-3 rounded-2xl bg-white px-3 pb-4 pt-3">
+      <div className="mt-3 rounded-2xl bg-card px-3 pb-4 pt-3">
         <div className="flex h-52 items-end gap-3">
           {windowMonths.map((month) => {
             const active = selected?.month === month.month;
@@ -172,7 +172,7 @@ function MonthDetail({
   const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
-    <div className="mt-3 rounded-2xl bg-white px-4 py-4">
+    <div className="mt-3 rounded-2xl bg-card px-4 py-4">
       <p className="font-medium">{longMonth(month.month)}</p>
       <p className="mt-1 text-sm text-muted-foreground">
         {month.total ? `About $${Math.round(month.total).toLocaleString()} this month.` : "Nothing scheduled this month."}

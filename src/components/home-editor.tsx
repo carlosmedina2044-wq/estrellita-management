@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { suggestionsForAsset, suggestionsForRoom } from "@/lib/catalog";
+import { scrollBehavior } from "@/lib/motion";
 import { warrantyBadgeLabel, warrantyFromInstall } from "@/lib/warranty";
 import {
   ASSET_TYPES,
@@ -53,7 +54,7 @@ export function HomeEditor({
 
   useEffect(() => {
     if (!focusAssetId) return;
-    document.getElementById(`home-asset-${focusAssetId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    document.getElementById(`home-asset-${focusAssetId}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     onFocusHandled?.();
   }, [focusAssetId, onFocusHandled]);
 
@@ -128,7 +129,7 @@ export function HomeEditor({
       </div>
 
       {floors.map((floor) => (
-        <section key={floor.id} className="rounded-2xl bg-white p-4">
+        <section key={floor.id} className="rounded-2xl bg-card p-4">
           <Input
             value={floor.name}
             onChange={(event) =>
@@ -345,7 +346,7 @@ export function HomeEditor({
             const badge = warrantyBadgeLabel(asset);
             const room = household.rooms.find((item) => item.id === asset.roomId);
             return (
-              <section key={asset.id} id={`home-asset-${asset.id}`} className="rounded-2xl bg-white p-4">
+              <section key={asset.id} id={`home-asset-${asset.id}`} className="rounded-2xl bg-card p-4">
                 <p className="font-medium">{asset.name}</p>
                 <p className="mt-0.5 text-[13px] text-muted-foreground">
                   {room?.name ?? "Home"}

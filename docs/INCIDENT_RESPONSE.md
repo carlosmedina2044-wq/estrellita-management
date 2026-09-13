@@ -35,7 +35,9 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Today shows a dismissible ZIP banner when ZIP is missing (not four competing prompts); Seasonal ZIP card uses the same ZipSheet.
 - [ ] Today shows This season when a playbook is open; Apple Weather attribution once on Today when forecast is loaded.
 - [ ] Onboarding walk pre-selects recommended items; no sizes asked; Costco chip present.
-- [ ] Settings → How Cuidala works / Privacy / Terms open in-app sheets (shell stays); climate and digest day/hour use chips not native selects.
+- [ ] Settings → How Cuidala works / Privacy / Terms open in-app sheets (shell stays); climate uses chips; digest Switch requests notification permission before enabling; lock delay chips only when lock is On; day chips ≥44pt wide.
+- [ ] Palette: cream surfaces with darker brand `#9A5A35` for readable primary text/CTAs.
+- [ ] Bottom sheets show a grabber with swipe-down dismiss; push screens fade (not slide); Reduce Motion disables animation and smooth scroll.
 - [ ] Before App Store submission (human): Privacy + Support URLs live; `support@` / `privacy@` receive mail; archive with Xcode 26.2+; ASC checklist (Data Not Collected, Free US, 6.9" screenshots, export compliance, Reviewer Notes, age questionnaire → 4+).
 - [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type); portrait-only; WeatherKit entitlement present.
 - [ ] Confirm the binary is iPhone-only (no iPad destination). Always run a signed build — unsigned Keychain writes fail and show the load-failure screen.
@@ -52,6 +54,7 @@ Cuidala is a local-first iPhone app, not a website wrapper. The shipped binary i
 
 ## Changelog
 
+- 2026-09 — Lighter cream palette, Switch controls, sheet grabber / fade push, Restock walk in header.
 - 2026-08-24 — Product/security pass: WeatherKit, S1 key-read ordering, repeating digest, portrait-only, timestamp lock, privacy screen, Keychain migration copy.
 - 2026-08-24 — Simulator pre-TestFlight run: unsigned builds break Keychain (load-failure screen); iPad deferred (phone-column layout / 4.2 risk); floor raised to iOS 16.4 for `dvh`. iPhone-only; v1 free.
 - 2026-08 — Review follow-up: lint gate, encrypted export/import, Face ID residual-risk wording, restock walk-through.

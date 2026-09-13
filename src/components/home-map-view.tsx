@@ -148,7 +148,9 @@ function TileGrid({
             onClick={() => onSelectRoom(room.id)}
             className={cn(
               "flex min-h-20 items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-left",
-              overdue ? "border-destructive/30 bg-destructive/8" : "border-border bg-card",
+              overdue
+                ? "border-border border-l-[3px] border-l-destructive bg-card"
+                : "border-border bg-card",
               selectedId === room.id && "ring-2 ring-primary",
             )}
           >

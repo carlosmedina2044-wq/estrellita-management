@@ -4,16 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Ellipsis } from "lucide-react";
 import { toast } from "sonner";
 import { RetailerPickerSheet } from "@/components/retailer-picker-sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -239,12 +229,12 @@ export function RestockOrderButton({
           </Button>
         ) : null}
         {onStillWaiting ? (
-          <Button type="button" variant="secondary" className="h-10" onClick={onStillWaiting}>
+          <Button type="button" variant="secondary" className="h-11" onClick={onStillWaiting}>
             Still waiting
           </Button>
         ) : null}
         {onNeverCame ? (
-          <Button type="button" variant="ghost" className="h-10" onClick={onNeverCame}>
+          <Button type="button" variant="ghost" className="h-11" onClick={onNeverCame}>
             Never came
           </Button>
         ) : null}
@@ -625,32 +615,39 @@ function ReceiveDialog({
     const amount = Math.max(1, Number(qty) || 1);
     onConfirm(amount, withCost ? paid : undefined);
     toast.success("Marked received");
+    onOpenChange(false);
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>How many?</AlertDialogTitle>
-          <AlertDialogDescription>Adds to what you have on hand and moves this back to Stocked.</AlertDialogDescription>
-        </AlertDialogHeader>
-        <Input type="number" min={1} value={qty} onChange={(event) => onQty(event.target.value)} className="h-11" />
-        <p className="text-[13px] text-muted-foreground">What did it cost?</p>
-        <Input
-          inputMode="decimal"
-          value={costDraft}
-          onChange={(event) => setCostDraft(event.target.value)}
-          placeholder="0.00"
-          className="h-11"
-          aria-label="What did it cost?"
-        />
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={() => confirm(false)}>Skip</AlertDialogAction>
-          <AlertDialogAction onClick={() => confirm(true)}>Add to stock</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="gap-0">
+        <SheetHeader>
+          <SheetTitle>How many?</SheetTitle>
+          <SheetDescription>Adds to what you have on hand and moves this back to Stocked.</SheetDescription>
+        </SheetHeader>
+        <div className="grid gap-3 px-4 pb-4">
+          <Input type="number" min={1} value={qty} onChange={(event) => onQty(event.target.value)} className="h-11" />
+          <p className="text-[13px] text-muted-foreground">What did it cost?</p>
+          <Input
+            inputMode="decimal"
+            value={costDraft}
+            onChange={(event) => setCostDraft(event.target.value)}
+            placeholder="0.00"
+            className="h-11"
+            aria-label="What did it cost?"
+          />
+          <Button type="button" className="h-12" onClick={() => confirm(true)}>
+            Add to stock
+          </Button>
+          <Button type="button" variant="secondary" className="h-12" onClick={() => confirm(false)}>
+            Skip cost
+          </Button>
+          <Button type="button" variant="ghost" className="h-12" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

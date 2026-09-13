@@ -8,6 +8,7 @@ import { ZipSheet } from "@/components/zip-prompt";
 import { climateLabel, deriveClimate } from "@/lib/climate";
 import { metricValue, weatherWatch, type WeatherForecast, type WeatherWatchItem } from "@/lib/weather/provider";
 import { parseISODate } from "@/lib/dates";
+import { scrollBehavior } from "@/lib/motion";
 import {
   matchingPlaybooks,
   monthInWindow,
@@ -96,7 +97,7 @@ function attributeCaption(
 }
 
 function scrollToPlaybook(id: string) {
-  document.getElementById(`seasonal-playbook-${id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  document.getElementById(`seasonal-playbook-${id}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
 }
 
 export function SeasonalView({

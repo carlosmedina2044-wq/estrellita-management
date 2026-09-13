@@ -362,7 +362,7 @@ export function AppShell() {
           "app-shell-main min-w-0 flex-1 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]",
           !showTabBar && "app-shell-main--no-tab-bar app-shell-main--push",
         )}
-        key={tab}
+        key={!showTabBar ? tab : "root"}
       >
         {tab === "today" ? (
           <TodayView
@@ -379,11 +379,6 @@ export function AppShell() {
             onOpenHome={() => setTab("home")}
             onOpenSettings={() => setTab("settings")}
             showTeaching={teachingCardVisible(household)}
-            onDismissTeaching={() =>
-              updateTree((current) =>
-                withTeaching(current, { checkedChore: true, openedRestock: true, setDigestOrZip: true }),
-              )
-            }
             onOpenDigest={() => setTab("settings")}
             {...restockHandlers}
             onOpenRestock={() => navigate({ tab: "restock" })}

@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 import { verifyDeviceOwner } from "@/lib/native/biometrics";
 import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
@@ -93,6 +94,13 @@ export function HomeView({
   const [zipOpen, setZipOpen] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
   const [permission, setPermission] = useState<NotifyPermission>("prompt");
+  const [hourMore, setHourMore] = useState(false);
+
+  const HOUR_PRESETS = [
+    { id: "morning", label: "Morning", hour: 8 },
+    { id: "afternoon", label: "Afternoon", hour: 14 },
+    { id: "evening", label: "Evening", hour: 19 },
+  ] as const;
 
   useEffect(() => {
     let cancelled = false;
@@ -219,110 +227,168 @@ export function HomeView({
       {restockDigest && onUpdateDigest ? (
         <section>
           <h2 className="ui-heading mb-2 text-[20px] font-semibold">Notifications</h2>
-          <div className="rounded-2xl bg-card p-4">
-            <p className="font-medium">Weekly restock digest</p>
-            <p className="mt-1 text-[13px] text-muted-foreground">
-              A weekly summary of what to order, sent only when something needs ordering.
-            </p>
-            {permission === "prompt" ? (
-              <Button className="mt-3 h-11 w-full" onClick={() => void requestNotifyPermission().then(setPermission)}>
-                Allow notifications
-              </Button>
-            ) : permission === "denied" ? (
-              <p className="mt-3 text-[13px] text-destructive">
-                Notifications are off for Cuidala in iOS Settings. Turn them on there to get reminders.
-              </p>
-            ) : null}
-            <button
-              type="button"
-              className="mt-3 h-12 w-full rounded-xl bg-secondary text-[15px] font-medium"
-              onClick={() => onUpdateDigest({ enabled: !restockDigest.enabled })}
-            >
-              {restockDigest.enabled ? "On" : "Off"}
-            </button>
-            {restockDigest.enabled ? (
-              <div className="mt-3 grid gap-3">
-                <div className="flex flex-wrap gap-2">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
-                    <button
-                      key={day}
-                      type="button"
-                      className={cn(
-                        "h-11 min-w-11 rounded-full px-3 text-[13px] font-medium",
-                        restockDigest.weekday === index
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground",
-                      )}
-                      onClick={() => onUpdateDigest({ weekday: index })}
-                    >
-                      {day}
-                    </button>
-                  ))}
+          <div className="ui-group">
+            <div className="ui-group-row px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p id="digest-switch-label" className="text-[15px] font-medium">
+                    Weekly restock digest
+                  </p>
+                  <p className="mt-0.5 text-[13px] text-muted-foreground">
+                    A weekly summary of what to order, only when something needs ordering.
+                  </p>
                 </div>
-                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-                  {Array.from({ length: 24 }, (_, hour) => (
-                    <button
-                      key={hour}
-                      type="button"
-                      className={cn(
-                        "h-11 shrink-0 rounded-full px-3 text-[13px] font-medium",
-                        restockDigest.hour === hour
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground",
-                      )}
-                      onClick={() => onUpdateDigest({ hour })}
-                    >
-                      {`${String(hour).padStart(2, "0")}:00`}
-                    </button>
-                  ))}
-                </div>
+                <Switch
+                  checked={restockDigest.enabled && permission === "granted"}
+                  aria-labelledby="digest-switch-label"
+                  onCheckedChange={(enabled) => {
+                    void (async () => {
+                      if (!enabled) {
+                        onUpdateDigest({ enabled: false });
+                        return;
+                      }
+                      const next = await requestNotifyPermission();
+                      setPermission(next);
+                      onUpdateDigest({ enabled: next === "granted" });
+                    })();
+                  }}
+                />
               </div>
-            ) : null}
+              {permission === "denied" ? (
+                <p className="mt-3 text-[13px] text-destructive">
+                  Notifications are off for Cuidala in iOS Settings. Turn them on there to get reminders.
+                </p>
+              ) : permission === "prompt" && !restockDigest.enabled ? (
+                <p className="mt-3 text-[13px] text-muted-foreground">
+                  Turn the digest on to allow notifications when something needs ordering.
+                </p>
+              ) : null}
+              {restockDigest.enabled && permission === "granted" ? (
+                <div className="mt-3 grid gap-3">
+                  <div className="-mx-1 flex flex-nowrap gap-1.5 overflow-x-auto px-1 pb-1">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
+                      <button
+                        key={day}
+                        type="button"
+                        className={cn(
+                          "h-11 min-w-11 shrink-0 rounded-full px-2.5 text-[13px] font-medium",
+                          restockDigest.weekday === index
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground",
+                        )}
+                        onClick={() => onUpdateDigest({ weekday: index })}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {HOUR_PRESETS.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        className={cn(
+                          "h-11 rounded-full px-3.5 text-[13px] font-medium",
+                          !hourMore && restockDigest.hour === preset.hour
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground",
+                        )}
+                        onClick={() => {
+                          setHourMore(false);
+                          onUpdateDigest({ hour: preset.hour });
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={cn(
+                        "h-11 rounded-full px-3.5 text-[13px] font-medium",
+                        hourMore || !HOUR_PRESETS.some((p) => p.hour === restockDigest.hour)
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground",
+                      )}
+                      onClick={() => setHourMore(true)}
+                    >
+                      More…
+                    </button>
+                  </div>
+                  {hourMore || !HOUR_PRESETS.some((p) => p.hour === restockDigest.hour) ? (
+                    <div className="grid grid-cols-4 gap-2">
+                      {Array.from({ length: 24 }, (_, hour) => (
+                        <button
+                          key={hour}
+                          type="button"
+                          className={cn(
+                            "h-11 rounded-full text-[13px] font-medium",
+                            restockDigest.hour === hour
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-secondary-foreground",
+                          )}
+                          onClick={() => {
+                            setHourMore(true);
+                            onUpdateDigest({ hour });
+                          }}
+                        >
+                          {`${String(hour).padStart(2, "0")}:00`}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         </section>
       ) : null}
 
-      <div className="rounded-2xl bg-card p-4">
-        <p className="font-medium">{lockMethodLabel(lockMethod).toggle}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {canLock
-            ? "Locks the home screen on launch and after the app has been in the background. This is an app lock, not a second encryption layer. Anyone with this iPhone’s passcode can still open Cuidala."
-            : "Not available on this device. Face ID, Touch ID, or a passcode must be set up in iOS Settings."}
-        </p>
-        <button
-          type="button"
-          disabled={!canLock}
-          className="mt-3 h-12 w-full rounded-xl bg-secondary text-sm font-medium disabled:opacity-50"
-          onClick={() => {
-            void (async () => {
-              const turningOff = household.lockSettings.requireFaceId;
-              if (turningOff && canLock) {
-                const ok = await verifyDeviceOwner("Turn off app lock");
-                if (!ok) return;
-              }
-              await onUpdate({
-                lockSettings: { ...household.lockSettings, requireFaceId: !household.lockSettings.requireFaceId },
-              });
-            })();
-          }}
-        >
-          {household.lockSettings.requireFaceId && canLock ? "On" : "Off"}
-        </button>
-        <div className="mt-3 flex gap-2">
-          {(["immediate", "2min", "15min"] as const).map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={
-                household.lockSettings.lockAfter === item
-                  ? "h-11 flex-1 rounded-full bg-primary text-[13px] text-primary-foreground"
-                  : "h-11 flex-1 rounded-full bg-secondary text-[13px]"
-              }
-              onClick={() => void onUpdate({ lockSettings: { ...household.lockSettings, lockAfter: item } })}
-            >
-              {item === "immediate" ? "Immediate" : item === "2min" ? "2 min" : "15 min"}
-            </button>
-          ))}
+      <div className="ui-group">
+        <div className="ui-group-row px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[15px] font-medium">{lockMethodLabel(lockMethod).toggle}</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                {canLock
+                  ? "Locks on launch and after the app has been in the background. An app lock, not a second encryption layer."
+                  : "Not available on this device. Face ID, Touch ID, or a passcode must be set up in iOS Settings."}
+              </p>
+            </div>
+            <Switch
+              checked={Boolean(household.lockSettings.requireFaceId && canLock)}
+              disabled={!canLock}
+              aria-label={lockMethodLabel(lockMethod).toggle}
+              onCheckedChange={(next) => {
+                void (async () => {
+                  if (!next && canLock) {
+                    const ok = await verifyDeviceOwner("Turn off app lock");
+                    if (!ok) return;
+                  }
+                  await onUpdate({
+                    lockSettings: { ...household.lockSettings, requireFaceId: next },
+                  });
+                })();
+              }}
+            />
+          </div>
+          {household.lockSettings.requireFaceId && canLock ? (
+          <div className="mt-3 flex gap-2">
+            {(["immediate", "2min", "15min"] as const).map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={
+                  household.lockSettings.lockAfter === item
+                    ? "h-11 flex-1 rounded-full bg-primary text-[13px] text-primary-foreground"
+                    : "h-11 flex-1 rounded-full bg-secondary text-[13px]"
+                }
+                onClick={() => void onUpdate({ lockSettings: { ...household.lockSettings, lockAfter: item } })}
+              >
+                {item === "immediate" ? "Immediate" : item === "2min" ? "2 min" : "15 min"}
+              </button>
+            ))}
+          </div>
+          ) : null}
         </div>
       </div>
 

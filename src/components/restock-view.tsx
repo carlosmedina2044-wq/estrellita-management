@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDown, MoreHorizontal, Package } from "lucide-react";
+import { ChevronDown, Package } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
@@ -12,9 +12,9 @@ import { SupplyCheckinSheet } from "@/components/supply-checkin-sheet";
 import { SupplyGauge } from "@/components/supply-gauge";
 import { Button } from "@/components/ui/button";
 import { TeachingTip } from "@/components/teaching-tip";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatDueDate } from "@/lib/dates";
 import { roomName } from "@/lib/home-model";
+import { scrollBehavior } from "@/lib/motion";
 import {
   SAMPLE_RESTOCK_PICKS,
   catalogItemForSupply,
@@ -25,7 +25,6 @@ import {
   type RestockWalkGroup,
 } from "@/lib/onboarding/restock-walk";
 import {
-  CHECKIN_OPTIONS,
   checkinDue,
   digestCandidates,
   groupRestock,
@@ -35,7 +34,6 @@ import {
   type RestockFlowHandlers,
 } from "@/lib/restock";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
-import { isOrdered } from "@/lib/supply";
 import { hasSeenTip, isAfterFirstDay, TIP_WALK_AFTER_DAY_ONE } from "@/lib/teaching";
 import type { AppNavigateTarget, Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -64,7 +62,6 @@ export function RestockView({
   const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
   const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
   const [quickAdd, setQuickAdd] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [focusSize, setFocusSize] = useState(false);
   const [checkinItem, setCheckinItem] = useState<SupplyAutomation | null>(null);
   const createGuard = useSheetOpenGuard();
@@ -108,7 +105,7 @@ export function RestockView({
     if (!focus?.itemId && !focus?.section) return;
     const itemEl = focus.itemId ? document.getElementById(`restock-item-${focus.itemId}`) : null;
     const sectionEl = focus.section ? document.getElementById(`restock-${focus.section}`) : null;
-    (itemEl ?? sectionEl)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    (itemEl ?? sectionEl)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     if (focus.action === "receive") onFocusHandled?.();
   }, [focus, onFocusHandled]);
 
@@ -120,36 +117,14 @@ export function RestockView({
           household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
               type="button"
-              className="grid size-11 place-items-center rounded-full bg-secondary"
-              aria-label="More"
-              onClick={() => setMenuOpen(true)}
+              className="inline-flex h-11 items-center rounded-full px-3 text-[13px] font-medium text-primary"
+              onClick={startWalk}
             >
-              <MoreHorizontal className="size-5" />
+              Walk house
             </button>
           ) : null
         }
       />
-
-      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-        <SheetContent side="bottom" className="gap-0">
-          <SheetHeader>
-            <SheetTitle>Restock</SheetTitle>
-          </SheetHeader>
-          <div className="px-4 pb-4">
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-12 w-full"
-              onClick={() => {
-                setMenuOpen(false);
-                startWalk();
-              }}
-            >
-              Walk your house again
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
 
       {walking ? (
         <div className="rounded-2xl bg-card px-4 py-5">
@@ -234,7 +209,7 @@ export function RestockView({
                     className="w-full text-left"
                     onClick={() =>
                       document.getElementById(`restock-item-${item.id}`)?.scrollIntoView({
-                        behavior: "smooth",
+                        behavior: scrollBehavior(),
                         block: "center",
                       })
                     }
@@ -341,7 +316,7 @@ export function RestockView({
           onClick={() => setStockedOpen((current) => !current)}
           aria-expanded={stockedOpen}
         >
-          <h2 className="ui-heading text-[20px] font-semibold">Stocked</h2>
+          <h2 className="ui-heading text-[17px] font-semibold">Stocked</h2>
           <span className="inline-flex items-center gap-1 text-[13px] text-muted-foreground">
             {groups.stocked.length}
             <ChevronDown className={cn("size-4 transition-transform", stockedOpen && "rotate-180")} />
@@ -455,7 +430,7 @@ function Section({
   return (
     <section id={id}>
       <header className="mb-2 flex items-baseline justify-between gap-3 px-1">
-        <h2 className="ui-heading text-[20px] font-semibold">{title}</h2>
+        <h2 className="ui-heading text-[17px] font-semibold">{title}</h2>
         <span className="text-[13px] text-muted-foreground">{count}</span>
       </header>
       <div className="ui-group">{children}</div>
@@ -502,7 +477,7 @@ function RestockRow({
         </span>
       </button>
       {needsSize && onAddSize ? (
-        <button type="button" className="mt-1 pl-7 text-[13px] font-medium text-brand" onClick={onAddSize}>
+        <button type="button" className="mt-1 inline-flex min-h-11 items-center pl-7 text-[13px] font-medium text-brand" onClick={onAddSize}>
           Add size
         </button>
       ) : null}
@@ -513,24 +488,6 @@ function RestockRow({
             runwayDays={placement.runwayDays}
             onTap={onOpenCheckin}
           />
-        </div>
-      ) : null}
-      {!item.lastConfirmedAt && !isOrdered(item) ? (
-        <div className="mt-2 pl-7">
-          <p className="text-[13px] font-medium">How much is left?</p>
-          <div className="mt-2 flex gap-2">
-            {CHECKIN_OPTIONS.map((option) => (
-              <Button
-                key={option.level}
-                type="button"
-                variant="secondary"
-                className="h-11 flex-1"
-                onClick={() => restock.onCheckin?.(item.id, option.level)}
-              >
-                {option.short}
-              </Button>
-            ))}
-          </div>
         </div>
       ) : null}
       <div className="mt-2 pl-7">

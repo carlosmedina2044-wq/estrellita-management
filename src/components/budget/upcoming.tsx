@@ -37,7 +37,7 @@ export function UpcomingExpenses({
             const room = rooms.find((entry) => entry.id === asset?.roomId);
             const name = item.label.replace(/ replacement$/i, "");
             return (
-              <li key={`${item.assetId}-${item.month}`} className="rounded-2xl bg-white px-4 py-4">
+              <li key={`${item.assetId}-${item.month}`} className="rounded-2xl bg-card px-4 py-4">
                 <p className="font-medium">{name}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {countdown(item.month)} · {formatCostRange(item.cost)}
@@ -82,7 +82,7 @@ export function InsightsList({
         {insights.map((insight) => (
           <li
             key={insight.id}
-            className="rounded-2xl bg-white px-4 py-4"
+            className="rounded-2xl bg-card px-4 py-4"
             data-tone={insight.tone}
           >
             <p className="font-medium">{insight.title}</p>
@@ -117,12 +117,12 @@ export function SpendingSection({
         {logged && delta > 0 ? ". Under plan." : logged && delta < 0 ? ". Over plan." : "."}
       </p>
       {!logged ? (
-        <p className="mt-3 rounded-2xl bg-white px-4 py-4 text-sm text-muted-foreground">
+        <p className="mt-3 rounded-2xl bg-card px-4 py-4 text-sm text-muted-foreground">
           Log a purchase on an upcoming item to start a history. Completions with a price already show up here.
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
-          <ul className="rounded-2xl bg-white px-4 py-4">
+          <ul className="rounded-2xl bg-card px-4 py-4">
             {byMonth.map((month) => {
               const [year, mon] = month.month.split("-").map(Number);
               const label = new Date(year, (mon ?? 1) - 1, 1).toLocaleDateString("en-US", {
@@ -140,7 +140,7 @@ export function SpendingSection({
             })}
           </ul>
           {categories.length > 0 ? (
-            <ul className="rounded-2xl bg-white px-4 py-4">
+            <ul className="rounded-2xl bg-card px-4 py-4">
               {categories.map((item) => (
                 <li key={item.category} className="py-2">
                   <div className="flex items-center justify-between text-sm">

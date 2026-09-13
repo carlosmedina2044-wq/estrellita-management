@@ -40,9 +40,9 @@ export function ForecastCard({
     : null;
 
   return (
-    <section className="rounded-2xl bg-card px-4 py-4">
+    <section className="rounded-2xl border border-border/60 bg-accent px-4 py-4">
       <p className="text-[13px] font-medium text-muted-foreground">Replacement forecast</p>
-      <p className="mt-1 text-[17px] font-medium">
+      <p className="ui-heading mt-1 text-[20px] font-semibold">
         Next 90 days: ~{formatMoney(Math.round(summary.next90))}
       </p>
       {nextLine ? <p className="mt-1 text-[13px] text-muted-foreground">{nextLine}</p> : null}

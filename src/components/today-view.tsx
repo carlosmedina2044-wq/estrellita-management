@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CalendarDays, Map, Settings, Share2, UserRound } from "lucide-react";
+import { CalendarDays, Map, Package, Settings, Share2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -36,6 +36,7 @@ import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { scrollBehavior } from "@/lib/motion";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 
 const SCOPES: { id: OutstandingScope; label: string }[] = [
@@ -58,7 +59,6 @@ export function TodayView({
   onOpenHome,
   onOpenSettings,
   showTeaching,
-  onDismissTeaching,
   onOpenDigest,
   onReorderRooms,
   onChangeTree,
@@ -81,7 +81,6 @@ export function TodayView({
   onOpenHome?: () => void;
   onOpenSettings?: () => void;
   showTeaching?: boolean;
-  onDismissTeaching?: () => void;
   onOpenDigest?: () => void;
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
@@ -103,6 +102,7 @@ export function TodayView({
   const [weekExpanded, setWeekExpanded] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
   const [zipBannerDismissed, setZipBannerDismissed] = useState(false);
+  const [teachingHidden, setTeachingHidden] = useState(false);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
   const [prevFocus, setPrevFocus] = useState(focus);
@@ -282,29 +282,48 @@ export function TodayView({
         <AppleWeatherAttribution attribution={household.weatherStatus.attribution} />
       ) : null}
 
-      {showTeaching ? (
-        <div className="rounded-2xl bg-card px-4 py-4">
-          <p className="text-[17px] font-medium">First three things</p>
-          <ul className="mt-2 grid gap-1 text-sm text-muted-foreground">
-            <li>{household.teaching.checkedChore ? "✓" : "○"} Check off one chore</li>
-            <li>{household.teaching.openedRestock ? "✓" : "○"} Open Restock and see what is running low</li>
-            <li>{household.teaching.setDigestOrZip ? "✓" : "○"} Turn on the weekly digest, or add a ZIP</li>
-          </ul>
-          <div className="mt-3 flex gap-2">
-            <Button className="h-11 flex-1" onClick={() => onOpenRestock?.()}>
-              Open Restock
-            </Button>
-            <Button variant="secondary" className="h-11 flex-1" onClick={() => onOpenDigest?.()}>
-              Digest
-            </Button>
+      {showTeaching &&
+      !teachingHidden &&
+      !(needsZip && onSavePostalCode && !zipBannerDismissed) ? (
+        <div className="rounded-2xl bg-card px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[15px] font-medium">Next up</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                {!household.teaching.checkedChore
+                  ? "Check off one chore on Today"
+                  : !household.teaching.openedRestock
+                    ? "Open Restock and see what is running low"
+                    : !household.teaching.setDigestOrZip
+                      ? "Turn on the weekly digest, or add a ZIP"
+                      : "You’re set"}
+              </p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              {!household.teaching.openedRestock ? (
+                <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
+                  Restock
+                </Button>
+              ) : !household.teaching.setDigestOrZip ? (
+                <Button className="h-11 px-3" onClick={() => onOpenDigest?.()}>
+                  Digest
+                </Button>
+              ) : (
+                <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
+                  Restock
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                className="h-11 px-2"
+                onClick={() => {
+                  setTeachingHidden(true);
+                }}
+              >
+                Hide
+              </Button>
+            </div>
           </div>
-          <button
-            type="button"
-            className="mt-2 inline-flex min-h-11 items-center text-[13px] text-muted-foreground"
-            onClick={onDismissTeaching}
-          >
-            Hide this
-          </button>
         </div>
       ) : null}
 
@@ -319,14 +338,14 @@ export function TodayView({
           setScope("daily");
           setCalendarDay(null);
           setCalendarOpen(false);
-          listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          listRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
         }}
         onDueToday={() => {
           setOnlyOverdue(false);
           setScope("daily");
           setCalendarDay(null);
           setCalendarOpen(false);
-          listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+          listRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
         }}
         onOrder={() => onNavigate?.({ tab: "restock", section: "order_now" })}
         onArriving={() => onNavigate?.({ tab: "restock", section: "ordered" })}
@@ -345,7 +364,7 @@ export function TodayView({
               className={cn(
                 "h-11 flex-1 rounded-full text-[13px] font-medium",
                 scope === item.id && !viewingCalendar
-                  ? "bg-white text-foreground shadow-sm"
+                  ? "bg-brand-cream text-foreground shadow-sm ring-1 ring-primary/40"
                   : "text-secondary-foreground",
               )}
             >
@@ -358,7 +377,9 @@ export function TodayView({
           onClick={() => setCalendarOpen((current) => !current)}
           className={cn(
             "flex size-11 shrink-0 items-center justify-center rounded-full",
-            calendarOpen || viewingCalendar ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
+            calendarOpen || viewingCalendar
+              ? "bg-brand-cream text-primary ring-1 ring-primary/40"
+              : "bg-secondary text-secondary-foreground",
           )}
           aria-label="Pick a day"
           aria-pressed={calendarOpen || viewingCalendar}
@@ -391,7 +412,7 @@ export function TodayView({
             onClick={() => setFilter(item)}
             className={
               filter === item
-                ? "h-11 shrink-0 rounded-full bg-primary px-3.5 text-[13px] font-medium text-primary-foreground"
+                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 text-[13px] font-medium text-foreground shadow-sm ring-1 ring-primary/40"
                 : "h-11 shrink-0 rounded-full bg-secondary px-3.5 text-[13px] font-medium text-secondary-foreground"
             }
           >
@@ -414,7 +435,7 @@ export function TodayView({
       ) : null}
 
       {household.supplyAutomations.length === 0 ? (
-        <section className="rounded-2xl bg-white px-4 py-4">
+        <section className="rounded-2xl bg-card px-4 py-4">
           <p className="text-[13px] font-medium text-muted-foreground">Restock</p>
           <p className="ui-heading mt-1 text-[20px] font-semibold">Track a filter or battery</p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -425,7 +446,7 @@ export function TodayView({
           </Button>
         </section>
       ) : showRestock ? (
-        <section className="rounded-2xl bg-white px-4 py-4">
+        <section className="rounded-2xl bg-card px-4 py-4">
           <div className="flex items-center justify-between gap-3">
             <p className="font-medium">{restockHeader}</p>
             {onOpenRestock ? (
@@ -518,7 +539,7 @@ export function TodayView({
       <button
         type="button"
         onClick={() => setWeekExpanded((current) => !current)}
-        className="rounded-2xl bg-white px-4 py-3 text-left"
+        className="rounded-2xl bg-card px-4 py-3 text-left"
       >
         <p className="font-medium">This week</p>
         <p className="text-sm text-muted-foreground">{weekOpen.length} remaining · {weekExpanded ? "Hide" : "Show"}</p>
@@ -660,7 +681,7 @@ function AttentionTiles({
           label: "overdue",
           onClick: onOverdue,
           countClass: "text-destructive",
-          className: "border-destructive/30 bg-destructive/8",
+          className: "border-l-[3px] border-l-destructive border-border bg-card",
         }
       : null,
     dueToday > 0
@@ -680,6 +701,7 @@ function AttentionTiles({
           costLine: orderNowCost,
           onClick: onOrder,
           countClass: "text-warning",
+          icon: true,
         }
       : null,
     arriving > 0
@@ -701,10 +723,9 @@ function AttentionTiles({
         className="rounded-2xl border border-success/30 bg-success/8 px-4 py-4 text-left"
         aria-label="All clear. Nothing due, nothing to order"
       >
-        <p className="ui-heading text-[28px] font-semibold leading-none">All clear</p>
+        <p className="ui-heading text-[20px] font-semibold leading-none">All clear</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Chores show up here when they are due. Restock items appear when it is time to order.
-          Weekly digest and seasonal jobs fill this list as you add a ZIP and turn on reminders.
+          Nothing due and nothing to order. Tap to open your house map.
         </p>
       </button>
     );
@@ -723,7 +744,10 @@ function AttentionTiles({
             "className" in tile ? tile.className : null,
           )}
         >
-          <p className={cn("ui-heading text-[28px] font-semibold leading-none", tile.countClass)}>{tile.count}</p>
+          <p className={cn("ui-heading flex items-center gap-1.5 text-[20px] font-semibold leading-none", tile.countClass)}>
+            {"icon" in tile && tile.icon ? <Package className="size-5 shrink-0" aria-hidden /> : null}
+            {tile.count}
+          </p>
           <p className="mt-1 text-[13px] text-muted-foreground">
             {"costLine" in tile && tile.costLine ? `${tile.label} · ${tile.costLine}` : tile.label}
           </p>

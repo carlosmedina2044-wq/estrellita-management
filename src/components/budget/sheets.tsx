@@ -91,7 +91,7 @@ export function LogPurchaseSheet({
                     onClick={() => setLaborKind(value)}
                     className={cn(
                       "h-11 min-h-11 flex-1 rounded-full text-[15px] font-medium",
-                      laborKind === value ? "bg-white shadow-sm" : "text-secondary-foreground",
+                      laborKind === value ? "bg-card shadow-sm" : "text-secondary-foreground",
                     )}
                   >
                     {label}
@@ -160,7 +160,7 @@ export function DeferSheet({
                 onClick={() => setMonths(value)}
                 className={cn(
                   "h-11 min-h-11 flex-1 rounded-full text-[15px] font-medium",
-                  months === value ? "bg-white shadow-sm" : "text-secondary-foreground",
+                  months === value ? "bg-card shadow-sm" : "text-secondary-foreground",
                 )}
               >
                 {value} months
@@ -325,7 +325,7 @@ export function ViewOptionsSheet({
                   onClick={() => onHorizon(item)}
                   className={cn(
                     "h-11 min-h-11 flex-1 rounded-full text-[15px] font-medium",
-                    horizon === item ? "bg-white shadow-sm" : "text-secondary-foreground",
+                    horizon === item ? "bg-card shadow-sm" : "text-secondary-foreground",
                   )}
                 >
                   {item} mo
