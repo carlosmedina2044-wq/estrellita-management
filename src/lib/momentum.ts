@@ -8,7 +8,7 @@ import {
   isScheduledInRange,
   todaysOpenDuties,
 } from "@/lib/duties";
-import type { Duty, Household } from "@/lib/types";
+import type { Duty, Household, MilestoneId } from "@/lib/types";
 
 export type DayOutcome = "closed" | "open" | "rest";
 
@@ -35,16 +35,12 @@ const DAY_MS = 86_400_000;
 const GRACE_WINDOW_DAYS = 7;
 const EFFORT_FALLBACK = 10;
 
-type MomentumFields = {
-  momentum?: { enabled?: boolean; bestRun?: number };
-};
-
 function effortMinutes(duty: Pick<Duty, "estimatedMinutes">): number {
   return duty.estimatedMinutes ?? EFFORT_FALLBACK;
 }
 
 function cachedBestRun(household: Household): number {
-  const best = (household as Household & MomentumFields).momentum?.bestRun;
+  const best = household.momentum?.bestRun;
   if (typeof best !== "number" || !Number.isFinite(best) || best <= 0) return 0;
   return Math.trunc(best);
 }
@@ -216,4 +212,76 @@ export function dismissWeekWrapped(household: Household, now = new Date()): Hous
   const key = weekWrappedTipKey(now);
   const kept = household.seenTips.filter((tip) => !tip.startsWith(WEEK_WRAPPED_PREFIX));
   return { ...household, seenTips: [...kept, key] };
+}
+
+function hasClosedDay(household: Household, now: Date): boolean {
+  const floor = historyFloor(household);
+  let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let steps = 0;
+  while (startOfDay(cursor) >= floor && steps < 400) {
+    if (dayOutcome(household, cursor) === "closed") return true;
+    cursor = addDays(cursor, -1);
+    steps += 1;
+  }
+  return false;
+}
+
+function weekWasFull(household: Household, now: Date): boolean {
+  const progress = weekProgress(household, now);
+  return progress.planned > 0 && progress.done === progress.planned;
+}
+
+function everyRoomTouched(household: Household, now: Date): boolean {
+  const rooms = household.rooms.filter((room) => !room.system);
+  if (rooms.length === 0) return false;
+  const start = addDays(now, -30);
+  const touched = new Set<string>();
+  for (const item of completionsInRange(household.completions, start, now)) {
+    const duty = household.duties.find((entry) => entry.id === item.dutyId);
+    if (duty) touched.add(duty.room);
+  }
+  return rooms.every((room) => touched.has(room.id));
+}
+
+function hasQuarterlyDone(household: Household): boolean {
+  const ids = new Set(
+    household.duties
+      .filter((duty) => duty.frequency === "quarterly" || duty.frequency === "yearly")
+      .map((duty) => duty.id),
+  );
+  return household.completions.some((item) => ids.has(item.dutyId));
+}
+
+export const MILESTONES: Array<{ id: MilestoneId; when: (household: Household, now: Date) => boolean }> = [
+  { id: "first-close", when: hasClosedDay },
+  {
+    id: "first-week",
+    when: (household, now) => weekWasFull(household, now) || weekWasFull(household, addDays(now, -7)),
+  },
+  { id: "ten-done", when: (household) => household.completions.length >= 10 },
+  { id: "every-room", when: everyRoomTouched },
+  { id: "first-quarterly", when: hasQuarterlyDone },
+  {
+    id: "thirty-run",
+    when: (household, now) => closedDayRun(household, now).current >= 30 || cachedBestRun(household) >= 30,
+  },
+];
+
+export function newlyEarned(household: Household, now = new Date()): MilestoneId[] {
+  const have = new Set(household.milestones.map((item) => item.id));
+  return MILESTONES.filter((item) => !have.has(item.id) && item.when(household, now)).map((item) => item.id);
+}
+
+export function applyMomentumOnComplete(household: Household, now = new Date()): Household {
+  const earned = newlyEarned(household, now);
+  const run = closedDayRun(household, now);
+  const earnedAt = now.toISOString();
+  return {
+    ...household,
+    milestones: [...household.milestones, ...earned.map((id) => ({ id, earnedAt }))],
+    momentum: {
+      ...household.momentum,
+      bestRun: Math.max(household.momentum.bestRun, run.current),
+    },
+  };
 }

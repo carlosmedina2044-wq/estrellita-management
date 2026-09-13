@@ -3,10 +3,12 @@ import { test } from "node:test";
 import { addDays } from "@/lib/dates";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import {
+  applyMomentumOnComplete,
   closedDayRun,
   dayOutcome,
   dismissWeekWrapped,
   monthRecap,
+  newlyEarned,
   shouldShowWeekWrapped,
   todayEffort,
   weekProgress,
@@ -226,4 +228,73 @@ test("week wrapped waits for week end and reuses one seenTips slot", () => {
   assert.equal(dismissed.seenTips.includes("week-wrapped-2026-W01"), false);
   assert.equal(dismissed.seenTips.includes(weekWrappedTipKey(saturday)), true);
   assert.equal(shouldShowWeekWrapped(dismissed, saturday), false);
+});
+
+test("newlyEarned first-close and first-week after finishing the week's work", () => {
+  const sunday = new Date(2026, 8, 13);
+  const weekly = duty({
+    id: "trash",
+    title: "Trash",
+    frequency: "weekly",
+    weekday: 6,
+  });
+  const home = household({
+    duties: [weekly],
+    completions: [completion({ dutyId: "trash", completedAt: atNoon(sunday) })],
+  });
+  const earned = newlyEarned(home, sunday);
+  assert.equal(earned.includes("first-close"), true);
+  assert.equal(earned.includes("first-week"), true);
+});
+
+test("newlyEarned ten-done, every-room, first-quarterly, and thirty-run", () => {
+  const now = new Date(2026, 8, 13);
+  const wipe = duty({ id: "wipe", title: "Wipe" });
+  const tidy = duty({ id: "tidy", title: "Tidy", room: "living", nodeId: "living" });
+  const hvac = duty({
+    id: "hvac",
+    title: "HVAC",
+    frequency: "quarterly",
+    dueDate: "2026-09-13",
+  });
+  const completions = [
+    ...Array.from({ length: 9 }, (_, index) =>
+      completion({
+        id: `c${index}`,
+        dutyId: "wipe",
+        completedAt: atNoon(addDays(now, -index)),
+      }),
+    ),
+    completion({ dutyId: "tidy", completedAt: atNoon(now) }),
+    completion({ dutyId: "hvac", completedAt: atNoon(now) }),
+  ];
+  const home = household({
+    rooms: [
+      { id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 0 },
+      { id: "living", floorId: "main", name: "Living", type: "living", sortOrder: 1 },
+      { id: "whole-home", floorId: null, name: "Home systems", type: "other", sortOrder: 2, system: "whole-home" },
+    ],
+    duties: [wipe, tidy, hvac],
+    completions,
+    momentum: { enabled: true, bestRun: 30 },
+  });
+  const earned = newlyEarned(home, now);
+  assert.equal(earned.includes("ten-done"), true);
+  assert.equal(earned.includes("every-room"), true);
+  assert.equal(earned.includes("first-quarterly"), true);
+  assert.equal(earned.includes("thirty-run"), true);
+});
+
+test("applyMomentumOnComplete records ids and bestRun; undo does not revoke", () => {
+  const today = new Date(2026, 8, 13);
+  const daily = duty({ id: "wipe", title: "Wipe" });
+  const home = household({
+    duties: [daily],
+    completions: [completion({ dutyId: "wipe", completedAt: atNoon(today) })],
+  });
+  const next = applyMomentumOnComplete(home, today);
+  assert.ok(next.milestones.some((item) => item.id === "first-close"));
+  assert.ok(next.momentum.bestRun >= 1);
+  const undone = { ...next, completions: [] };
+  assert.equal(undone.milestones.length, next.milestones.length);
 });

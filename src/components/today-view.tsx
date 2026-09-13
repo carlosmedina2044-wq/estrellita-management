@@ -387,9 +387,7 @@ export function TodayView({
   ]
     .filter(Boolean)
     .join(" · ");
-  const showRunPill =
-    run.current >= 2 &&
-    (household as Household & { momentum?: { enabled?: boolean } }).momentum?.enabled !== false;
+  const showRunPill = run.current >= 2 && household.momentum.enabled;
   const doneIds = new Set(doneEntries.map((entry) => entry.duty.id));
   const leftoverCostPrompts = costPrompts.filter(
     (item) => !doneIds.has(item.dutyId) && !open.some((duty) => duty.id === item.dutyId),

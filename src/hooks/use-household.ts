@@ -28,6 +28,7 @@ import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { applyDutySave } from "@/lib/household-update";
 import type { DutyDraft, Household, Completion, Duty, RestockDigestSettings } from "@/lib/types";
+import { applyMomentumOnComplete, newlyEarned } from "@/lib/momentum";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { generateHomeFromAnswers, seedDutiesForHome } from "@/lib/onboarding/generate";
@@ -54,7 +55,7 @@ import {
   type CheckinLevel,
   type MarkOrderedDetails,
 } from "@/lib/restock";
-import { tActive } from "@/i18n";
+import { tActive, type MessageKey } from "@/i18n";
 import { tDutyTitle } from "@/i18n/content";
 import { hapticDestructive, hapticUndo } from "@/lib/native/haptics";
 import { toast } from "sonner";
@@ -406,25 +407,34 @@ export function useHousehold() {
 
   const completeDuty = useCallback(
     (dutyId: string) => {
-      update((current) => ({
-        ...current,
-        teaching: current.teaching.checkedChore
-          ? current.teaching
-          : { ...current.teaching, checkedChore: true },
-        completions: [
-          ...current.completions,
-          {
-            id: uid(),
-            dutyId,
-            actor: current.mode === "cleaner" ? "cleaner" : "me",
-            visitId: current.activeVisitId,
-            completedAt: new Date().toISOString(),
-          },
-        ],
-        supplyAutomations: current.supplyAutomations.map((item) =>
-          linkedDutyIdsFor(item).includes(dutyId) ? consumeLinkedUnit(item) : item,
-        ),
-      }));
+      update((current) => {
+        const now = new Date();
+        const next: Household = {
+          ...current,
+          teaching: current.teaching.checkedChore
+            ? current.teaching
+            : { ...current.teaching, checkedChore: true },
+          completions: [
+            ...current.completions,
+            {
+              id: uid(),
+              dutyId,
+              actor: current.mode === "cleaner" ? "cleaner" : "me",
+              visitId: current.activeVisitId,
+              completedAt: now.toISOString(),
+            },
+          ],
+          supplyAutomations: current.supplyAutomations.map((item) =>
+            linkedDutyIdsFor(item).includes(dutyId) ? consumeLinkedUnit(item) : item,
+          ),
+        };
+        const earned = newlyEarned(next, now);
+        const updated = applyMomentumOnComplete(next, now);
+        if (earned.length > 0 && updated.momentum.enabled) {
+          toast.success(tActive(`milestone.${earned[0]}.title` as MessageKey));
+        }
+        return updated;
+      });
     },
     [update],
   );

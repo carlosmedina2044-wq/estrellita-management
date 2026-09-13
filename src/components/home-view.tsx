@@ -31,6 +31,7 @@ import { hapticDestructive } from "@/lib/native/haptics";
 import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
 import { notifyPermission, plannedNotifications, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
 import type { Household, RestockDigestSettings } from "@/lib/types";
+import { relativeDayLabel } from "@/lib/duties";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
@@ -495,6 +496,28 @@ export function HomeView({
           ) : null}
         </div>
       </div>
+
+      <section>
+        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.milestonesHeader")}</h2>
+        <div className="ui-group">
+          {household.milestones.length === 0 ? (
+            <div className="ui-group-row px-4 py-3">
+              <p className="ui-caption text-muted-foreground">{t("settings.milestonesEmpty")}</p>
+            </div>
+          ) : (
+            [...household.milestones]
+              .sort((a, b) => b.earnedAt.localeCompare(a.earnedAt))
+              .map((item) => (
+                <div key={item.id} className="ui-group-row px-4 py-3">
+                  <p className="ui-body font-medium">{t(`milestone.${item.id}.title`)}</p>
+                  <p className="mt-0.5 ui-caption text-muted-foreground">
+                    {relativeDayLabel(new Date(item.earnedAt))}
+                  </p>
+                </div>
+              ))
+          )}
+        </div>
+      </section>
 
       {onChangeTree ? (
         <HomeEditor

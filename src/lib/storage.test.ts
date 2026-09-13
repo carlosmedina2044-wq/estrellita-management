@@ -299,3 +299,40 @@ test("lat: 999 migrates to undefined", () => {
   assert.equal(household.location.lat, undefined);
   assert.equal(household.location.lng, 12);
 });
+
+test("missing momentum and milestones migrate to defaults", () => {
+  const household = parseStored(JSON.stringify({ onboarded: true, householdName: "Home" }));
+  assert.deepEqual(household.momentum, { enabled: true, bestRun: 0 });
+  assert.deepEqual(household.milestones, []);
+});
+
+test("momentum and milestones coerce unknown ids and bestRun", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      momentum: { enabled: "no", bestRun: -3 },
+      milestones: [
+        { id: "bogus", earnedAt: "2026-09-01T00:00:00.000Z" },
+        { id: "first-close", earnedAt: "2026-09-10T12:00:00.000Z" },
+        { id: "first-close", earnedAt: "2026-09-11T12:00:00.000Z" },
+      ],
+    }),
+  );
+  assert.equal(household.momentum.enabled, true);
+  assert.equal(household.momentum.bestRun, 0);
+  assert.deepEqual(
+    household.milestones.map((item) => item.id),
+    ["first-close"],
+  );
+});
+
+test("momentum bestRun truncates and enabled false is kept", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      momentum: { enabled: false, bestRun: 1.8 },
+    }),
+  );
+  assert.equal(household.momentum.enabled, false);
+  assert.equal(household.momentum.bestRun, 1);
+});

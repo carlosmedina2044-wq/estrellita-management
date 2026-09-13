@@ -6,6 +6,7 @@ import { asRoomType, emptyHomeTree, ensureHomeTree, systemRooms } from "@/lib/ho
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import {
   DEFAULT_ATTRIBUTES,
+  DEFAULT_MOMENTUM,
   DEFAULT_TEACHING,
   DEFAULT_WEATHER_STATUS,
   withHouseholdDefaults,
@@ -32,6 +33,9 @@ import {
   type LifespanUnit,
   type LockSettings,
   type MaintenanceFund,
+  MILESTONE_IDS,
+  type Milestone,
+  type MilestoneId,
   type PlaybookDecision,
   type Purchase,
   type PurchaseKind,
@@ -719,7 +723,32 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     seenTips: asArray(raw.seenTips)
       .filter((item): item is string => typeof item === "string" && item.length > 0 && item.length < 64)
       .slice(0, 32),
+    milestones: migrateMilestones(raw.milestones),
+    momentum: isPlainObject(raw.momentum)
+      ? {
+          enabled: raw.momentum.enabled !== false,
+          bestRun: asInt(raw.momentum.bestRun, 0, 0, 10_000),
+        }
+      : { ...DEFAULT_MOMENTUM },
   });
+}
+
+function migrateMilestones(raw: unknown): Milestone[] {
+  const allowed = new Set<string>(MILESTONE_IDS);
+  const seen = new Set<string>();
+  const result: Milestone[] = [];
+  for (const item of asArray(raw)) {
+    if (!isPlainObject(item) || typeof item.id !== "string" || !allowed.has(item.id) || seen.has(item.id)) {
+      continue;
+    }
+    seen.add(item.id);
+    result.push({
+      id: item.id as MilestoneId,
+      earnedAt: asIsoDateTime(item.earnedAt, new Date().toISOString()),
+    });
+    if (result.length >= MILESTONE_IDS.length) break;
+  }
+  return result;
 }
 
 /** Parses a stored JSON household and runs every migration. Exported for tests. */

@@ -315,6 +315,26 @@ export type WeatherStatus = {
   lastError: string | null;
 };
 
+export const MILESTONE_IDS = [
+  "first-close",
+  "first-week",
+  "ten-done",
+  "every-room",
+  "first-quarterly",
+  "thirty-run",
+] as const;
+export type MilestoneId = (typeof MILESTONE_IDS)[number];
+
+export type Milestone = {
+  id: MilestoneId;
+  earnedAt: string;
+};
+
+export type MomentumSettings = {
+  enabled: boolean;
+  bestRun: number;
+};
+
 export type Household = {
   version: 8;
   householdName: string;
@@ -352,6 +372,8 @@ export type Household = {
   restockSafetyBufferDays?: number;
   teaching: TeachingProgress;
   seenTips: string[];
+  milestones: Milestone[];
+  momentum: MomentumSettings;
 };
 
 export type TeachingProgress = {

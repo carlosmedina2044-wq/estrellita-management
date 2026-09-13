@@ -5,6 +5,8 @@ import type {
   HomeType,
   Household,
   LockSettings,
+  Milestone,
+  MomentumSettings,
   RestockDigestSettings,
   RetailerId,
   SavedRetailerLink,
@@ -48,6 +50,11 @@ export const DEFAULT_TEACHING: TeachingProgress = {
   setDigestOrZip: false,
 };
 
+export const DEFAULT_MOMENTUM: MomentumSettings = {
+  enabled: true,
+  bestRun: 0,
+};
+
 export function defaultHomeType(): HomeType {
   return "house";
 }
@@ -69,6 +76,8 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
   | "preferredRetailers"
   | "teaching"
   | "seenTips"
+  | "milestones"
+  | "momentum"
 > &
   T {
   return {
@@ -88,5 +97,7 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
     restockDigest: { ...DEFAULT_RESTOCK_DIGEST, ...partial.restockDigest } satisfies RestockDigestSettings,
     teaching: { ...DEFAULT_TEACHING, ...partial.teaching } satisfies TeachingProgress,
     seenTips: partial.seenTips ?? [],
+    milestones: (partial.milestones ?? []) as Milestone[],
+    momentum: { ...DEFAULT_MOMENTUM, ...partial.momentum } satisfies MomentumSettings,
   };
 }
