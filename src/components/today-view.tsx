@@ -342,7 +342,7 @@ export function TodayView({
               className={cn(
                 "h-11 flex-1 rounded-full ui-caption font-medium",
                 scope === item.id && !viewingCalendar
-                  ? "bg-brand-cream text-foreground shadow-sm ring-1 ring-primary/40"
+                  ? "bg-brand-cream text-brand-cream-foreground shadow-sm ring-1 ring-primary/40"
                   : "text-secondary-foreground",
               )}
             >
@@ -356,7 +356,7 @@ export function TodayView({
           className={cn(
             "flex size-11 shrink-0 items-center justify-center rounded-full",
             calendarOpen || viewingCalendar
-              ? "bg-brand-cream text-primary ring-1 ring-primary/40"
+              ? "bg-brand-cream text-brand-cream-foreground ring-1 ring-primary/40"
               : "bg-secondary text-secondary-foreground",
           )}
           aria-label={t("today.pickDay")}
@@ -386,7 +386,7 @@ export function TodayView({
             onClick={() => setFilter(item)}
             className={
               filter === item
-                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 ui-caption font-medium text-foreground shadow-sm ring-1 ring-primary/40"
+                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 ui-caption font-medium text-brand-cream-foreground shadow-sm ring-1 ring-primary/40"
                 : "h-11 shrink-0 rounded-full bg-secondary px-3.5 ui-caption font-medium text-secondary-foreground"
             }
           >

@@ -42,6 +42,7 @@
   --color-primary: var(--primary);
   --color-brand: var(--brand);
   --color-brand-cream: var(--brand-cream);
+  --color-brand-cream-foreground: var(--brand-cream-foreground);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -66,6 +67,7 @@
   --primary-foreground: #fffcf7;
   --brand: #9a5a35;
   --brand-cream: #f5ebd8;
+  --brand-cream-foreground: #1d1d1f;
   --secondary: #f0e8dc;
   --secondary-foreground: #1d1d1f;
   --muted: #f5f0e8;
@@ -105,6 +107,7 @@
   --primary-foreground: #231812;
   --brand: #d4a574;
   --brand-cream: #f4e6c8;
+  --brand-cream-foreground: #231812;
   --secondary: #3b3129;
   --secondary-foreground: #f7f3ec;
   --muted: #3b3129;
