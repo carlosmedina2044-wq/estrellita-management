@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { BACKUP_ITERATIONS, isBackupEnvelope, openBackup, sealBackup } from "@/lib/backup";
+import { BACKUP_ITERATIONS, BACKUP_MAX_ITERATIONS, isBackupEnvelope, openBackup, sealBackup } from "@/lib/backup";
 import { isLegacyPinEnvelope } from "@/lib/crypto";
 import { parseStored } from "@/lib/storage";
 
@@ -86,4 +86,27 @@ test("restoring a v7 backup migrates to v8 with empty preferredRetailers", async
   assert.equal(household.supplyAutomations[0]?.lastPaidPrice, 18.5);
   assert.equal(household.completions[0]?.actualCost, 18.5);
   assert.equal("arrivalNudgedOn" in (household.supplyAutomations[0] ?? {}), false);
+});
+
+test("iterations: 2_000_000_000 rejected as isn’t a Cuidala backup", async () => {
+  const huge = {
+    v: 1,
+    kind: "cuidala-backup",
+    alg: "A256GCM",
+    kdf: "PBKDF2-SHA256",
+    iterations: 2_000_000_000,
+    salt: "AAAAAAAAAAAAAAAA",
+    iv: "AAAAAAAAAAAAAAAA",
+    ciphertext: "AQID",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  };
+  assert.equal(isBackupEnvelope(huge), false);
+  assert.ok(2_000_000_000 > BACKUP_MAX_ITERATIONS);
+  await assert.rejects(() => openBackup(JSON.stringify(huge), "correct horse"), /isn’t a Cuidala backup/);
+});
+
+test("13 MB spaces throw quickly before parse", async () => {
+  const started = Date.now();
+  await assert.rejects(() => openBackup(" ".repeat(13_000_000), "correct horse"), /too large to be a Cuidala backup/);
+  assert.ok(Date.now() - started < 500);
 });

@@ -10,6 +10,8 @@ export const BACKUP_KIND = "cuidala-backup";
 export const BACKUP_AAD = "cuidala-backup-v1";
 export const BACKUP_ITERATIONS = 600_000;
 export const BACKUP_MIN_PASSPHRASE = 8;
+export const BACKUP_MAX_ITERATIONS = 5_000_000;
+export const BACKUP_MAX_FILE_BYTES = 12_000_000;
 
 export type BackupEnvelope = {
   v: 1;
@@ -33,12 +35,17 @@ export function isBackupEnvelope(value: unknown): value is BackupEnvelope {
     value.alg === "A256GCM" &&
     value.kdf === "PBKDF2-SHA256" &&
     typeof value.iterations === "number" &&
+    Number.isInteger(value.iterations) &&
     value.iterations >= 100_000 &&
+    value.iterations <= BACKUP_MAX_ITERATIONS &&
     typeof value.salt === "string" &&
     typeof value.iv === "string" &&
     typeof value.ciphertext === "string" &&
     typeof value.createdAt === "string" &&
     value.salt.length >= 16 &&
+    value.salt.length <= 128 &&
+    value.iv.length >= 16 &&
+    value.iv.length <= 64 &&
     value.ciphertext.length > 0 &&
     value.ciphertext.length < 8_000_000
   );
@@ -75,7 +82,8 @@ export async function sealBackup(
   const cleaned = normalizePassphrase(passphrase);
   const error = passphraseError(cleaned);
   if (error) throw new Error(error);
-  const rounds = Number.isFinite(iterations) && iterations >= 100_000 ? Math.trunc(iterations) : BACKUP_ITERATIONS;
+  const unbounded = Number.isFinite(iterations) && iterations >= 100_000 ? Math.trunc(iterations) : BACKUP_ITERATIONS;
+  const rounds = Math.min(unbounded, BACKUP_MAX_ITERATIONS);
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const key = await deriveBackupKey(cleaned, salt, rounds);
   const sealed = await encryptJson(key, plaintext, BACKUP_AAD);
@@ -98,6 +106,9 @@ export async function openBackup(raw: string, passphrase: string): Promise<strin
   if (!cleaned) throw new Error("Enter the passphrase for this backup.");
   const short = passphraseError(cleaned);
   if (short) throw new Error(short);
+  if (raw.length > BACKUP_MAX_FILE_BYTES) {
+    throw new Error("That file is too large to be a Cuidala backup.");
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);

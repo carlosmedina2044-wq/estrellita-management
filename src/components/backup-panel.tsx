@@ -14,7 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { passphraseError, normalizePassphrase } from "@/lib/backup";
+import { BACKUP_MAX_FILE_BYTES, passphraseError, normalizePassphrase } from "@/lib/backup";
 import { toISODate } from "@/lib/dates";
 import { isNative } from "@/lib/native/platform";
 import { shareBackupFile, shareText } from "@/lib/native/share";
@@ -74,6 +74,10 @@ export function BackupPanel({
     const error = passphraseError(passphrase);
     if (error) {
       toast.error(error);
+      return;
+    }
+    if (file.size > BACKUP_MAX_FILE_BYTES) {
+      toast.error("That file is too large to be a Cuidala backup.");
       return;
     }
     setBusy(true);
