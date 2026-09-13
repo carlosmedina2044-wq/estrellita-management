@@ -4,6 +4,7 @@ import { isOverdueFor } from "@/lib/duties";
 import { itemNameWithSize } from "@/lib/item-label";
 import { digestCandidates, linkedDutyIdsFor, restockPlacement } from "@/lib/restock";
 import { digestCopy } from "@/lib/digest";
+import { BRIEF_DAYS, BRIEF_ID_BASE, morningBriefNotifications } from "@/lib/morning-brief";
 import { isNative } from "@/lib/native/platform";
 import { warrantyNotificationsFor } from "@/lib/warranty";
 import type { Household, SupplyAutomation } from "@/lib/types";
@@ -136,6 +137,7 @@ export function orderFollowUpAt(orderByDate: string, now = new Date()): Date | n
 export function plannedNotifications(household: Household, now = new Date()): PlannedNotification[] {
   const notifications: PlannedNotification[] = [];
   const used = new Set<number>([DIGEST_ID]);
+  for (let offset = 0; offset < BRIEF_DAYS; offset += 1) used.add(BRIEF_ID_BASE + offset);
 
   if (household.restockDigest.enabled) {
     const items = digestCandidates(household.supplyAutomations, household, now);
@@ -154,10 +156,12 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
           },
           repeats: true,
         },
-        extra: { tab: "restock" },
+        extra: { tab: items.length === 0 && overdue > 0 ? "today" : "restock" },
       });
     }
   }
+
+  notifications.push(...morningBriefNotifications(household, now));
 
   const arrivals = household.supplyAutomations
     .map((item) => arrivalNotice(item, household, now, used))

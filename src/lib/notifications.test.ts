@@ -75,6 +75,7 @@ function household(overrides: Partial<Household> = {}): Household {
     visits: [],
     supplyAutomations: [],
     restockDigest: { enabled: false, weekday: 0, hour: 9, lastSentOn: null, permissionAsked: true },
+    morningBrief: { enabled: false, hour: 8, weekdaysOnly: false },
     ...overrides,
   });
 }
@@ -203,6 +204,7 @@ test("weekly digest includes overdue chores even with nothing to order", () => {
   const digest = notices.find((notice) => notice.id === 1);
   assert.ok(digest);
   assert.match(digest!.title, /chore still open/);
+  assert.equal(digest!.extra?.tab, "today");
   assert.equal("repeats" in digest!.schedule && digest!.schedule.repeats, true);
 });
 
@@ -265,6 +267,124 @@ test("two colliding hashes produce distinct IDs and keep both notifications", ()
   assert.notEqual(reminders[0]?.id, reminders[1]?.id);
   const ids = notices.map((notice) => notice.id);
   assert.equal(new Set(ids).size, ids.length);
+});
+
+test("morning brief schedules one-shot notices for the next seven days with open work", () => {
+  const notices = plannedNotifications(
+    household({
+      morningBrief: { enabled: true, hour: 8, weekdaysOnly: false },
+      duties: [duty({ id: "daily-1", title: "Tidy the living room", frequency: "daily" })],
+    }),
+    new Date(2026, 7, 23, 7, 0, 0),
+  );
+  const briefs = notices.filter((notice) => notice.extra?.tab === "today");
+  assert.equal(briefs.length, 7);
+  assert.deepEqual(
+    briefs.map((notice) => notice.id),
+    [10, 11, 12, 13, 14, 15, 16],
+  );
+  for (const brief of briefs) {
+    assert.equal(brief.title, "1 chore today");
+    assert.equal(brief.body, "Tidy the living room");
+    assert.equal("repeats" in brief.schedule, false);
+    assert.ok("at" in brief.schedule);
+    if ("at" in brief.schedule) {
+      assert.equal(brief.schedule.at.getHours(), 8);
+    }
+  }
+});
+
+test("morning brief skips weekends, past hours, and empty days", () => {
+  const notices = plannedNotifications(
+    household({
+      morningBrief: { enabled: true, hour: 8, weekdaysOnly: true },
+      duties: [
+        duty({
+          id: "weekly-1",
+          title: "Take out trash",
+          frequency: "weekly",
+          weekday: 3,
+          createdAt: "2026-08-23T00:00:00.000Z",
+        }),
+      ],
+    }),
+    now,
+  );
+  const briefs = notices.filter((notice) => notice.id >= 10 && notice.id <= 16);
+  assert.equal(briefs.length, 1);
+  assert.equal(briefs[0]?.id, 13);
+  assert.ok(briefs[0] && "at" in briefs[0].schedule);
+  if (briefs[0] && "at" in briefs[0].schedule) {
+    assert.equal(briefs[0].schedule.at.getDay(), 3);
+    assert.equal(briefs[0].schedule.at.getHours(), 8);
+  }
+});
+
+test("morning brief lists the first three titles and a more count", () => {
+  const notices = plannedNotifications(
+    household({
+      morningBrief: { enabled: true, hour: 8, weekdaysOnly: false },
+      duties: [
+        duty({ id: "d1", title: "Alpha", frequency: "daily" }),
+        duty({ id: "d2", title: "Bravo", frequency: "daily" }),
+        duty({ id: "d3", title: "Charlie", frequency: "daily" }),
+        duty({ id: "d4", title: "Delta", frequency: "daily" }),
+      ],
+    }),
+    new Date(2026, 7, 23, 7, 0, 0),
+  );
+  const brief = notices.find((notice) => notice.id === 10);
+  assert.equal(brief?.title, "4 chores today");
+  assert.equal(brief?.body, "Alpha · Bravo · Charlie · +1 more");
+});
+
+test("morning brief private mode keeps counts and hides duty titles", () => {
+  const notices = plannedNotifications(
+    household({
+      morningBrief: { enabled: true, hour: 8, weekdaysOnly: false },
+      restockDigest: {
+        enabled: false,
+        weekday: 0,
+        hour: 9,
+        lastSentOn: null,
+        permissionAsked: true,
+        privateNotifications: true,
+      },
+      duties: [duty({ id: "secret-duty", title: "Secret HVAC filter", frequency: "daily" })],
+    }),
+    new Date(2026, 7, 23, 7, 0, 0),
+  );
+  const brief = notices.find((notice) => notice.id === 10);
+  assert.equal(brief?.title, "1 chore today");
+  assert.equal(brief?.body, "Open Cuidala for details.");
+  assert.equal(brief?.body.includes("Secret HVAC filter"), false);
+});
+
+test("morning briefs sit after the digest and before arrivals", () => {
+  const ordered = markConsumableOrdered(
+    item(),
+    { expectedArrivalDate: "2026-08-25", qty: 1 },
+    now,
+  );
+  const notices = plannedNotifications(
+    household({
+      morningBrief: { enabled: true, hour: 8, weekdaysOnly: false },
+      restockDigest: { enabled: true, weekday: 0, hour: 9, lastSentOn: null, permissionAsked: true },
+      duties: [duty({ id: "daily-1", title: "Tidy the living room", frequency: "daily" })],
+      supplyAutomations: [
+        ordered,
+        item({ onHand: 0, orderByDate: "2026-08-20", nextOrderDate: "2026-08-20", state: "stocked" }),
+      ],
+    }),
+    new Date(2026, 7, 23, 7, 0, 0),
+  );
+  const digestIndex = notices.findIndex((notice) => notice.id === 1);
+  const firstBrief = notices.findIndex((notice) => notice.id === 10);
+  const arrivalIndex = notices.findIndex((notice) => notice.extra?.action === "receive");
+  assert.ok(digestIndex >= 0);
+  assert.ok(firstBrief > digestIndex);
+  assert.ok(arrivalIndex > firstBrief);
+  assert.equal(notices[digestIndex]?.extra?.tab, "restock");
 });
 
 test("privateNotifications titles and bodies never include the item name", () => {
