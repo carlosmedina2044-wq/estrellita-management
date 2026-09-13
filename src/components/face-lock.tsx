@@ -16,11 +16,13 @@ export function FaceLock({
   onUnlocked,
   showTip,
   onDismissTip,
+  cleanerVisitActive,
 }: {
   method: LockMethod;
   onUnlocked: () => void;
   showTip?: boolean;
   onDismissTip?: () => void;
+  cleanerVisitActive?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -35,11 +37,11 @@ export function FaceLock({
   }
 
   useEffect(() => {
-    // Show Unlock UI first; one delayed auto-prompt for returning users.
+    if (showTip) return;
     const timer = window.setTimeout(() => void unlock(), 400);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showTip]);
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-8 text-center">
@@ -47,7 +49,11 @@ export function FaceLock({
         <BrandMark size="md" />
       </div>
       <h1 className="ui-heading mt-10 text-[20px] font-semibold tracking-tight">Locked</h1>
-      <p className="mt-2 max-w-xs text-sm text-muted-foreground">{lockMethodLabel(method).prompt}</p>
+      <p className="mt-2 max-w-xs text-sm text-muted-foreground">
+        {cleanerVisitActive
+          ? `A cleaner visit was in progress. The owner unlocks with ${lockMethodLabel(method).noun} to continue or to hand the phone back.`
+          : lockMethodLabel(method).prompt}
+      </p>
       <p className="mt-2 max-w-xs text-[13px] text-muted-foreground">
         Uses your iPhone passcode if Face ID isn’t available.
       </p>

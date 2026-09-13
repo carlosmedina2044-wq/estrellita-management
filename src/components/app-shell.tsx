@@ -332,6 +332,7 @@ export function AppShell() {
       onUnlocked={() => setLocked(false)}
       showTip={!hasSeenTip(household, TIP_LOCK_REENGAGE)}
       onDismissTip={() => updateTree((current) => markTipSeen(current, TIP_LOCK_REENGAGE))}
+      cleanerVisitActive={household.mode === "cleaner"}
     />;
   }
 
