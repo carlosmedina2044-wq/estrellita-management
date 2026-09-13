@@ -37,12 +37,7 @@ import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/
 import { cn } from "@/lib/utils";
 import { scrollBehavior } from "@/lib/motion";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
-
-const SCOPES: { id: OutstandingScope; label: string }[] = [
-  { id: "daily", label: "Today" },
-  { id: "weekly", label: "This week" },
-  { id: "monthly", label: "This month" },
-];
+import { useLocale } from "@/i18n/locale-provider";
 
 export function TodayView({
   household,
@@ -88,6 +83,16 @@ export function TodayView({
   focus?: AppNavigateTarget | null;
   onFocusHandled?: () => void;
 } & RestockFlowHandlers) {
+  const { t } = useLocale();
+  const scopes = useMemo(
+    () =>
+      [
+        { id: "daily" as const, label: t("today.scopeToday") },
+        { id: "weekly" as const, label: t("today.scopeWeek") },
+        { id: "monthly" as const, label: t("today.scopeMonth") },
+      ] satisfies { id: OutstandingScope; label: string }[],
+    [t],
+  );
   const now = useMemo(() => new Date(), []);
   const [filter, setFilter] = useState<Audience | "all">("all");
   const [scope, setScope] = useState<OutstandingScope>("daily");
@@ -162,15 +167,14 @@ export function TodayView({
     if (completed) {
       onUndo(duty.id);
       void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
-      toast("Put back on today's list");
+      toast(t("today.undoToast"));
       return;
     }
     onComplete(duty.id);
     void import("@/lib/native/haptics").then((m) => m.hapticComplete()).catch(() => {});
-    toast.success("Done", {
-      description: duty.title,
+    toast.success(duty.title, {
       action: {
-        label: "Undo",
+        label: t("today.undoToast"),
         onClick: () => {
           onUndo(duty.id);
           void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
@@ -237,22 +241,22 @@ export function TodayView({
   const listSummary = viewingCalendar
     ? calendarIsToday
       ? open.length === 0
-        ? "Nothing left on today's run."
-        : `${open.length} to complete today`
+        ? t("today.summaryClearToday")
+        : t("today.summaryCountToday", { count: open.length })
       : open.length === 0
-        ? "Nothing due on this day."
-        : `${open.length} due this day`
+        ? t("today.summaryClearDay")
+        : t("today.summaryCountDay", { count: open.length })
     : scope === "daily"
       ? open.length === 0
-        ? "Nothing left on today's run."
-        : `${open.length} to complete today`
+        ? t("today.summaryClearToday")
+        : t("today.summaryCountToday", { count: open.length })
       : scope === "weekly"
         ? open.length === 0
-          ? "This week is clear."
-          : `${open.length} to complete this week`
+          ? t("today.summaryClearWeek")
+          : t("today.summaryCountWeek", { count: open.length })
         : open.length === 0
-          ? "This month is clear."
-          : `${open.length} to complete this month`;
+          ? t("today.summaryClearMonth")
+          : t("today.summaryCountMonth", { count: open.length });
 
   return (
     <div className="flex flex-col gap-5">
@@ -264,7 +268,7 @@ export function TodayView({
           onOpenSettings ? (
             <button
               type="button"
-              aria-label="Settings"
+              aria-label={t("common.settings")}
               onClick={onOpenSettings}
               className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
             >
@@ -275,16 +279,16 @@ export function TodayView({
       />
       {zipBannerVisible ? (
         <div className="rounded-2xl bg-card px-4 py-3">
-          <p className="ui-body font-medium">Add your ZIP</p>
+          <p className="ui-body font-medium">{t("today.addZip")}</p>
           <p className="mt-0.5 ui-caption text-muted-foreground">
-            {weatherLine ?? "Used for Apple Weather and which seasonal jobs apply here."}
+            {weatherLine ?? t("settings.zipHelp")}
           </p>
           <div className="mt-2 flex gap-2">
             <Button className="h-11 flex-1" onClick={() => setZipOpen(true)}>
-              Add ZIP
+              {t("today.addZipCta")}
             </Button>
             <Button variant="secondary" className="h-11 flex-1" onClick={() => setZipBannerDismissed(true)}>
-              Not now
+              {t("common.notNow")}
             </Button>
           </div>
         </div>
@@ -296,6 +300,15 @@ export function TodayView({
         orderNow={summary.orderNow}
         orderNowCost={orderNowCostCaption(restock.order_now)}
         arriving={summary.arriving}
+        labels={{
+          overdue: t("today.overdue"),
+          dueToday: t("today.dueToday"),
+          orderNow: t("today.orderNow"),
+          onTheWay: t("today.onTheWay"),
+          allClear: t("today.allClear"),
+          allClearHint: t("today.allClearHint"),
+          allClearAria: t("today.allClearAria"),
+        }}
         onOverdue={() => {
           setOnlyOverdue(true);
           setScope("daily");
@@ -316,8 +329,8 @@ export function TodayView({
       />
 
       <div className="flex items-center gap-2">
-        <div role="tablist" aria-label="List scope" className="flex min-w-0 flex-1 rounded-full bg-secondary p-1">
-          {SCOPES.map((item) => (
+        <div role="tablist" aria-label={t("today.scopeList")} className="flex min-w-0 flex-1 rounded-full bg-secondary p-1">
+          {scopes.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -344,7 +357,7 @@ export function TodayView({
               ? "bg-brand-cream text-primary ring-1 ring-primary/40"
               : "bg-secondary text-secondary-foreground",
           )}
-          aria-label="Pick a day"
+          aria-label={t("today.pickDay")}
           aria-pressed={calendarOpen || viewingCalendar}
         >
           <CalendarDays className="size-4" />
@@ -375,7 +388,11 @@ export function TodayView({
                 : "h-11 shrink-0 rounded-full bg-secondary px-3.5 ui-caption font-medium text-secondary-foreground"
             }
           >
-            {item === "all" ? "All" : item === "me" ? "Mine" : "Cleaner's"}
+            {item === "all"
+              ? t("today.filterAll")
+              : item === "me"
+                ? t("today.filterMine")
+                : t("today.filterCleaner")}
           </button>
         ))}
       </div>
@@ -383,18 +400,22 @@ export function TodayView({
 
       {firstOfMonth ? (
         <section className="rounded-2xl bg-accent px-4 py-4">
-          <p className="ui-caption font-medium text-primary">First of the month</p>
-          <p className="ui-heading mt-1 ui-title font-semibold">This month’s list</p>
+          <p className="ui-caption font-medium text-primary">{t("today.firstOfMonth")}</p>
+          <p className="ui-heading mt-1 ui-title font-semibold">{t("today.monthList")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {monthPlan.length === 0
-              ? "Nothing scheduled for this month yet."
-              : `${monthPlan.length} to complete this month.`}
+              ? t("today.monthNone")
+              : t("today.monthCount", { count: monthPlan.length })}
           </p>
         </section>
       ) : null}
 
       {listed.length === 0 && doneOnDay.length === 0 && costPrompts.length === 0 ? (
-        <EmptyToday onAdd={() => createGuard.tryOpen(() => setCreating(true))} calendar={viewingCalendar} />
+        <EmptyToday
+          onAdd={() => createGuard.tryOpen(() => setCreating(true))}
+          calendar={viewingCalendar}
+          t={t}
+        />
       ) : (
         <div ref={listRef} className="ui-group">
           {listed.map((duty) => (
@@ -448,13 +469,11 @@ export function TodayView({
 
       {household.supplyAutomations.length === 0 ? (
         <section className="rounded-2xl bg-card px-4 py-4">
-          <p className="ui-caption font-medium text-muted-foreground">Restock</p>
-          <p className="ui-title mt-1 font-semibold">Track a filter or battery</p>
-          <p className="mt-1 ui-body text-muted-foreground">
-            We’ll remind you when to order so it arrives before you run out.
-          </p>
+          <p className="ui-caption font-medium text-muted-foreground">{t("tabs.restock")}</p>
+          <p className="ui-title mt-1 font-semibold">{t("today.trackSupplyTitle")}</p>
+          <p className="mt-1 ui-body text-muted-foreground">{t("today.trackSupplyBody")}</p>
           <Button className="mt-4 h-11" onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}>
-            Track a filter or battery
+            {t("today.trackSupplyCta")}
           </Button>
         </section>
       ) : showRestockChip && onOpenRestock ? (
@@ -467,11 +486,11 @@ export function TodayView({
             <Package className="size-4 text-primary" aria-hidden />
             <span className="ui-body font-medium">
               {restock.order_now.length > 0
-                ? `${restock.order_now.length} to order`
-                : `${restock.ordered.length} on the way`}
+                ? t("today.toOrderCount", { count: restock.order_now.length })
+                : t("today.onTheWayCount", { count: restock.ordered.length })}
             </span>
           </span>
-          <span className="ui-caption font-medium text-primary">Restock</span>
+          <span className="ui-caption font-medium text-primary">{t("tabs.restock")}</span>
         </button>
       ) : null}
 
@@ -601,6 +620,7 @@ function AttentionTiles({
   orderNow,
   orderNowCost,
   arriving,
+  labels,
   onOverdue,
   onDueToday,
   onOrder,
@@ -612,6 +632,15 @@ function AttentionTiles({
   orderNow: number;
   orderNowCost: string | null;
   arriving: number;
+  labels: {
+    overdue: string;
+    dueToday: string;
+    orderNow: string;
+    onTheWay: string;
+    allClear: string;
+    allClearHint: string;
+    allClearAria: string;
+  };
   onOverdue: () => void;
   onDueToday: () => void;
   onOrder: () => void;
@@ -623,7 +652,7 @@ function AttentionTiles({
       ? {
           key: "overdue",
           count: overdue,
-          label: "overdue",
+          label: labels.overdue,
           onClick: onOverdue,
           countClass: "text-destructive",
           className: "ring-destructive/40",
@@ -633,7 +662,7 @@ function AttentionTiles({
       ? {
           key: "due",
           count: dueToday,
-          label: "due today",
+          label: labels.dueToday,
           onClick: onDueToday,
           countClass: "text-foreground",
         }
@@ -642,7 +671,7 @@ function AttentionTiles({
       ? {
           key: "order",
           count: orderNow,
-          label: "to order",
+          label: labels.orderNow,
           costLine: orderNowCost,
           onClick: onOrder,
           countClass: "text-warning",
@@ -653,7 +682,7 @@ function AttentionTiles({
       ? {
           key: "arriving",
           count: arriving,
-          label: "on the way",
+          label: labels.onTheWay,
           onClick: onArriving,
           countClass: "text-muted-foreground",
         }
@@ -666,10 +695,10 @@ function AttentionTiles({
         type="button"
         onClick={onAllClear}
         className="flex min-h-11 w-full items-center rounded-full bg-success/10 px-4 text-left"
-        aria-label="All clear. Nothing due, nothing to order"
+        aria-label={labels.allClearAria}
       >
-        <span className="ui-body font-medium text-success">All clear</span>
-        <span className="ml-2 ui-caption text-muted-foreground">Nothing due or to order</span>
+        <span className="ui-body font-medium text-success">{labels.allClear}</span>
+        <span className="ml-2 ui-caption text-muted-foreground">{labels.allClearHint}</span>
       </button>
     );
   }
@@ -698,20 +727,26 @@ function AttentionTiles({
   );
 }
 
-function EmptyToday({ onAdd, calendar }: { onAdd: () => void; calendar?: boolean }) {
+function EmptyToday({
+  onAdd,
+  calendar,
+  t,
+}: {
+  onAdd: () => void;
+  calendar?: boolean;
+  t: (key: import("@/i18n").MessageKey, params?: Record<string, string | number>) => string;
+}) {
   return (
     <div className="rounded-2xl bg-card px-5 py-10 text-center">
       <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
         <BrandMark size="sm" />
       </span>
-      <p className="ui-heading mt-4 ui-title font-semibold">Clear day</p>
+      <p className="ui-heading mt-4 ui-title font-semibold">{t("today.clearDay")}</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        {calendar
-          ? "Nothing is due on this day. Daily chores show on their weekday. Seasonal jobs show in their window."
-          : "Nothing is due today. Daily chores show on their weekday. Seasonal jobs show in their window. Restock items show when it is time to order."}
+        {calendar ? t("today.emptyCalendar") : t("today.emptyToday")}
       </p>
       <Button className="mt-5 h-11" onClick={onAdd}>
-        Add a chore
+        {t("today.addChore")}
       </Button>
     </div>
   );

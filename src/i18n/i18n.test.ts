@@ -16,6 +16,8 @@ test("resolveLocaleTag maps regional tags", () => {
   assert.equal(resolveLocaleTag("fr-FR"), null);
 });
 
-test("detectDeviceLocale falls back to en without navigator languages", () => {
-  assert.equal(typeof detectDeviceLocale(), "string");
+test("spanish settings chrome is translated", () => {
+  assert.equal(translate("es", "settings.title"), "Ajustes");
+  assert.equal(translate("es", "settings.household"), "Hogar");
+  assert.equal(translate("pt-BR", "today.scopeToday"), "Hoje");
 });

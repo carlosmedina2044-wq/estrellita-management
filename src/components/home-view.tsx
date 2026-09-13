@@ -158,13 +158,22 @@ export function HomeView({
     persistNames(householdName, ownerName, cleanerName);
   }
 
+  const languageValueLabel =
+    preference === "system"
+      ? t("settings.languageSystem")
+      : preference === "es"
+        ? t("settings.languageEs")
+        : preference === "pt-BR"
+          ? t("settings.languagePtBr")
+          : t("settings.languageEn");
+
   return (
     <div className="mx-auto flex w-full max-w-[32rem] flex-col gap-5 pb-8">
       <PageHeader
-        title="Settings"
-        subtitle="Everything stays on this iPhone."
+        title={t("settings.title")}
+        subtitle={t("settings.subtitle")}
         onBack={onBack}
-        backLabel={backLabel}
+        backLabel={backLabel === "Back to Home" ? t("settings.backHome") : backLabel}
       />
       <section>
         <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.language")}</h2>
@@ -180,7 +189,7 @@ export function HomeView({
               }}
             >
               <SelectTrigger className="h-12 w-full" aria-label={t("settings.language")}>
-                <SelectValue />
+                <SelectValue placeholder={languageValueLabel}>{languageValueLabel}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="system">{t("settings.languageSystem")}</SelectItem>
@@ -193,10 +202,10 @@ export function HomeView({
         </div>
       </section>
       <section>
-        <h2 className="ui-heading mb-2 ui-title font-semibold">Household</h2>
+        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.household")}</h2>
         <div className="ui-group">
           <div className="ui-group-row grid gap-1.5 px-4 py-3">
-            <Label className="ui-caption font-medium text-muted-foreground">Home name</Label>
+            <Label className="ui-caption font-medium text-muted-foreground">{t("settings.homeName")}</Label>
             <Input
               value={home}
               onChange={(event) => {
@@ -205,12 +214,12 @@ export function HomeView({
                 schedulePersist(next, owner, cleaner);
               }}
               onBlur={() => flushPersist(home, owner, cleaner)}
-              placeholder="e.g. Our house"
+              placeholder={t("settings.homeNamePlaceholder")}
               className="h-12"
             />
           </div>
           <div className="ui-group-row grid gap-1.5 px-4 py-3">
-            <Label className="ui-caption font-medium text-muted-foreground">Your name</Label>
+            <Label className="ui-caption font-medium text-muted-foreground">{t("settings.yourName")}</Label>
             <Input
               value={owner}
               onChange={(event) => {
@@ -219,12 +228,12 @@ export function HomeView({
                 schedulePersist(home, next, cleaner);
               }}
               onBlur={() => flushPersist(home, owner, cleaner)}
-              placeholder="Your first name"
+              placeholder={t("settings.yourNamePlaceholder")}
               className="h-12"
             />
           </div>
           <div className="ui-group-row grid gap-1.5 px-4 py-3">
-            <Label className="ui-caption font-medium text-muted-foreground">Cleaner</Label>
+            <Label className="ui-caption font-medium text-muted-foreground">{t("settings.cleaner")}</Label>
             <Input
               value={cleaner}
               onChange={(event) => {
@@ -233,26 +242,26 @@ export function HomeView({
                 schedulePersist(home, owner, next);
               }}
               onBlur={() => flushPersist(home, owner, cleaner)}
-              placeholder="Name or company (optional)"
+              placeholder={t("settings.cleanerPlaceholder")}
               className="h-12"
             />
           </div>
         </div>
       </section>
       <section>
-        <h2 className="ui-heading mb-2 ui-title font-semibold">Location</h2>
+        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.location")}</h2>
         <div className="ui-group">
           <button type="button" className="ui-group-row w-full px-4 py-3 text-left" onClick={() => setZipOpen(true)}>
-            <p className="ui-body font-medium">ZIP code</p>
+            <p className="ui-body font-medium">{t("settings.zip")}</p>
             <p className="mt-0.5 ui-caption text-muted-foreground">
               {household.location.postalCode
                 ? `${household.location.placeName ? `${household.location.placeName} · ` : ""}${climateLabel(deriveClimate(household.location))}`
-                : "Not set"}
+                : t("settings.zipNotSet")}
             </p>
-            <p className="mt-1 ui-caption text-muted-foreground">Used for Apple Weather and which seasonal jobs apply here.</p>
+            <p className="mt-1 ui-caption text-muted-foreground">{t("settings.zipHelp")}</p>
           </button>
           <div className="ui-group-row grid gap-2 px-4 py-3">
-            <Label className="ui-caption font-medium text-muted-foreground">Climate zone</Label>
+            <Label className="ui-caption font-medium text-muted-foreground">{t("settings.climate")}</Label>
             <Select
               value={household.location.climateZoneOverride ?? "auto"}
               onValueChange={(value) => {
@@ -281,7 +290,9 @@ export function HomeView({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">
-                  Auto ({climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined }))})
+                  {t("settings.climateAuto", {
+                    zone: climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined })),
+                  })}
                 </SelectItem>
                 {CLIMATE_ZONES.map((zone) => (
                   <SelectItem key={zone} value={zone}>
@@ -296,16 +307,16 @@ export function HomeView({
 
       {restockDigest && onUpdateDigest ? (
         <section>
-          <h2 className="ui-heading mb-2 ui-title font-semibold">Notifications</h2>
+          <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.notifications")}</h2>
           <div className="ui-group">
             <div className="ui-group-row px-4 py-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p id="digest-switch-label" className="ui-body font-medium">
-                    Weekly restock reminder
+                    {t("settings.digestTitle")}
                   </p>
                   <p className="mt-0.5 ui-caption text-muted-foreground">
-                    A weekly nudge when something needs ordering.
+                    {t("settings.digestHelp")}
                   </p>
                 </div>
                 <Switch
@@ -327,10 +338,10 @@ export function HomeView({
               <div className="mt-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p id="private-notif-label" className="ui-body font-medium">
-                    Hide item names on the lock screen
+                    {t("settings.privateNotifTitle")}
                   </p>
                   <p className="mt-0.5 ui-caption text-muted-foreground">
-                    Titles and details stay generic. Open the app to see names.
+                    {t("settings.privateNotifHelp")}
                   </p>
                 </div>
                 <Switch
@@ -341,11 +352,11 @@ export function HomeView({
               </div>
               {permission === "denied" ? (
                 <p className="mt-3 ui-caption text-destructive">
-                  Notifications are off for Cuidala in iOS Settings. Turn them on there to get reminders.
+                  {t("settings.notifDenied")}
                 </p>
               ) : permission === "prompt" && !restockDigest.enabled ? (
                 <p className="mt-3 ui-caption text-muted-foreground">
-                  Turn the reminder on to allow notifications when something needs ordering.
+                  {t("settings.notifPrompt")}
                 </p>
               ) : null}
               {restockDigest.enabled && permission === "granted" ? (
@@ -396,7 +407,7 @@ export function HomeView({
                       onClick={() => setHourSheet(true)}
                     >
                       {HOUR_PRESETS.some((p) => p.hour === restockDigest.hour)
-                        ? "More…"
+                        ? t("settings.hourMore")
                         : `${String(restockDigest.hour).padStart(2, "0")}:00`}
                     </button>
                   </div>
@@ -414,8 +425,8 @@ export function HomeView({
               <p className="ui-body font-medium">{lockMethodLabel(lockMethod).toggle}</p>
               <p className="mt-0.5 ui-caption text-muted-foreground">
                 {canLock
-                  ? "Locks when you leave the app. Face ID or your passcode unlocks the home on this iPhone."
-                  : "Not available on this device. Face ID, Touch ID, or a passcode must be set up in iOS Settings."}
+                  ? t("settings.lockHelpOn")
+                  : t("settings.lockHelpOff")}
               </p>
             </div>
             <Switch
@@ -448,7 +459,11 @@ export function HomeView({
                 }
                 onClick={() => void onUpdate({ lockSettings: { ...household.lockSettings, lockAfter: item } })}
               >
-                {item === "immediate" ? "Immediate" : item === "2min" ? "2 min" : "15 min"}
+                {item === "immediate"
+                  ? t("settings.lockImmediate")
+                  : item === "2min"
+                    ? t("settings.lock2min")
+                    : t("settings.lock15min")}
               </button>
             ))}
           </div>
@@ -466,7 +481,9 @@ export function HomeView({
       ) : null}
 
       <Button variant="secondary" className="h-12" onClick={onStartCleanerVisit}>
-        Hand phone to {household.cleanerName || "Cleaner"}
+        {t("settings.handToCleaner", {
+          name: household.cleanerName || t("settings.cleanerFallback"),
+        })}
       </Button>
 
       {onImportBackup ? (
@@ -482,45 +499,44 @@ export function HomeView({
       ) : null}
 
       <div className="rounded-2xl bg-card p-4">
-        <p className="font-medium">Your data</p>
+        <p className="font-medium">{t("settings.yourData")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your home stays on this iPhone. Moving to a new phone needs a backup file from below — Cuidala
-          cannot reset a forgotten backup password.
+          {t("settings.yourDataBody")}
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-primary">
           <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("how-it-works")}>
-            How it works
+            {t("settings.howItWorks")}
           </button>
           <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("privacy")}>
-            Privacy
+            {t("settings.privacy")}
           </button>
           <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("terms")}>
-            Terms
+            {t("settings.terms")}
           </button>
         </div>
         <a
           className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-secondary text-sm font-medium"
           href="mailto:privacy@cuidala.app?subject=Cuidala%20help"
         >
-          Help / Contact
+          {t("settings.helpContact")}
         </a>
         <details className="mt-3 rounded-xl bg-secondary/60 px-3 py-2">
-          <summary className="cursor-pointer py-2 text-sm font-medium">Advanced</summary>
+          <summary className="cursor-pointer py-2 text-sm font-medium">{t("settings.advanced")}</summary>
           <p className="pb-2 text-xs text-muted-foreground">
-            Erase removes this home and its unlock key from this iPhone. Deleting the app also removes your home here.
+            {t("settings.advancedHelp")}
           </p>
           <a
             className="mb-2 flex h-11 w-full items-center justify-center rounded-xl bg-secondary text-sm font-medium"
             href={problemMailto(household)}
           >
-            Report a problem
+            {t("settings.reportProblem")}
           </a>
           <Button
             variant="secondary"
             className="h-12 w-full text-destructive"
             onClick={() => setConfirmErase(true)}
           >
-            Erase all data on this iPhone
+            {t("settings.eraseAll")}
           </Button>
           <p className="mt-3 ui-caption text-muted-foreground">Cuidala {APP_VERSION}</p>
         </details>
@@ -530,13 +546,13 @@ export function HomeView({
         <AlertDialogContent>
           <AlertDialogHeader>
             <BrandMark size="sm" className="mx-auto mb-2" />
-            <AlertDialogTitle>Erase everything?</AlertDialogTitle>
+            <AlertDialogTitle>{t("settings.eraseTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Rooms, chores, items, history, and reminders on this iPhone will be deleted. This cannot be undone.
+              {t("settings.eraseBody")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-white"
               onClick={() => {
@@ -549,12 +565,12 @@ export function HomeView({
                     }
                   }
                   const result = await onErase();
-                  if (result.ok) toast.success("Erased");
+                  if (result.ok) toast.success(t("settings.eraseAll"));
                   else toast.error("Couldn’t erase this home. Try again.");
                 })();
               }}
             >
-              Erase
+              {t("common.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

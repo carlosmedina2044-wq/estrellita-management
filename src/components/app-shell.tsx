@@ -477,7 +477,7 @@ export function AppShell() {
               action={
                 <button
                   type="button"
-                  aria-label="Settings"
+                  aria-label={t("common.settings")}
                   onClick={() => navigate({ tab: "settings" })}
                   className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
                 >
