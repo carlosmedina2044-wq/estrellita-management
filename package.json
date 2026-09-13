@@ -11,7 +11,7 @@
     "start": "npx serve out",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test src/lib/**/*.test.ts src/lib/*.test.ts src/i18n/i18n.test.ts",
+    "test": "node --import tsx --test src/lib/**/*.test.ts src/lib/*.test.ts src/hooks/*.test.ts src/i18n/i18n.test.ts",
     "cap:sync": "npm run build && npx cap sync ios",
     "cap:ios": "npx cap open ios"
   },

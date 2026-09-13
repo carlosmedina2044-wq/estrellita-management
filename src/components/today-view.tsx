@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { scrollBehavior } from "@/lib/motion";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { useLocale } from "@/i18n/locale-provider";
+import { useNow } from "@/hooks/use-now";
 
 export function TodayView({
   household,
@@ -94,7 +95,7 @@ export function TodayView({
       ] satisfies { id: OutstandingScope; label: string }[],
     [t],
   );
-  const now = useMemo(() => new Date(), []);
+  const now = useNow();
   const [filter, setFilter] = useState<Audience | "all">("all");
   const [scope, setScope] = useState<OutstandingScope>("daily");
   const [calendarOpen, setCalendarOpen] = useState(false);

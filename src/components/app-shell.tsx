@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useHousehold } from "@/hooks/use-household";
+import { useNow } from "@/hooks/use-now";
 import { useLocale } from "@/i18n/locale-provider";
 import { digestPayload } from "@/lib/digest";
 import { OPEN_RESTOCK_EVENT, overdueChoreCount, showLocalNotification } from "@/lib/notifications";
@@ -138,7 +139,8 @@ export function AppShell() {
   const [weatherAttribution, setWeatherAttribution] = useState<WeatherAttribution | null>(null);
   const [roomOpen, setRoomOpen] = useState<string | null>(null);
   const [confirmErase, setConfirmErase] = useState(false);
-  const [nowMs] = useState(() => Date.now());
+  const now = useNow();
+  const nowMs = now.getTime();
   const tRef = useRef(t);
 
   useEffect(() => {
