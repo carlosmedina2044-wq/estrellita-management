@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HomeEditor } from "@/components/home-editor";
 import {
   AlertDialog,
@@ -15,6 +15,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 import { verifyDeviceOwner } from "@/lib/native/biometrics";
@@ -96,7 +104,8 @@ export function HomeView({
   const [zipOpen, setZipOpen] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
   const [permission, setPermission] = useState<NotifyPermission>("prompt");
-  const [hourMore, setHourMore] = useState(false);
+  const [hourSheet, setHourSheet] = useState(false);
+  const persistTimer = useRef<number | null>(null);
 
   const HOUR_PRESETS = [
     { id: "morning", label: "Morning", hour: 8 },
@@ -114,13 +123,36 @@ export function HomeView({
     };
   }, []);
 
-  async function save() {
-    await onUpdate({
-      householdName: home,
-      ownerName: owner,
-      cleanerName: cleaner,
-    });
-    toast.success("Saved");
+  useEffect(() => {
+    return () => {
+      if (persistTimer.current != null) window.clearTimeout(persistTimer.current);
+    };
+  }, []);
+
+  function persistNames(householdName: string, ownerName: string, cleanerName: string) {
+    if (
+      householdName === household.householdName &&
+      ownerName === household.ownerName &&
+      cleanerName === household.cleanerName
+    ) {
+      return;
+    }
+    void onUpdate({ householdName, ownerName, cleanerName });
+  }
+
+  function schedulePersist(householdName: string, ownerName: string, cleanerName: string) {
+    if (persistTimer.current != null) window.clearTimeout(persistTimer.current);
+    persistTimer.current = window.setTimeout(() => {
+      persistNames(householdName, ownerName, cleanerName);
+    }, 300);
+  }
+
+  function flushPersist(householdName: string, ownerName: string, cleanerName: string) {
+    if (persistTimer.current != null) {
+      window.clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+    }
+    persistNames(householdName, ownerName, cleanerName);
   }
 
   return (
@@ -138,7 +170,12 @@ export function HomeView({
             <Label className="text-[13px] font-medium text-muted-foreground">Home name</Label>
             <Input
               value={home}
-              onChange={(event) => setHome(event.target.value)}
+              onChange={(event) => {
+                const next = event.target.value;
+                setHome(next);
+                schedulePersist(next, owner, cleaner);
+              }}
+              onBlur={() => flushPersist(home, owner, cleaner)}
               placeholder="e.g. Our house"
               className="h-12"
             />
@@ -147,7 +184,12 @@ export function HomeView({
             <Label className="text-[13px] font-medium text-muted-foreground">Your name</Label>
             <Input
               value={owner}
-              onChange={(event) => setOwner(event.target.value)}
+              onChange={(event) => {
+                const next = event.target.value;
+                setOwner(next);
+                schedulePersist(home, next, cleaner);
+              }}
+              onBlur={() => flushPersist(home, owner, cleaner)}
               placeholder="Your first name"
               className="h-12"
             />
@@ -156,7 +198,12 @@ export function HomeView({
             <Label className="text-[13px] font-medium text-muted-foreground">Cleaner</Label>
             <Input
               value={cleaner}
-              onChange={(event) => setCleaner(event.target.value)}
+              onChange={(event) => {
+                const next = event.target.value;
+                setCleaner(next);
+                schedulePersist(home, owner, next);
+              }}
+              onBlur={() => flushPersist(home, owner, cleaner)}
               placeholder="Name or company (optional)"
               className="h-12"
             />
@@ -177,51 +224,43 @@ export function HomeView({
           </button>
           <div className="ui-group-row grid gap-2 px-4 py-3">
             <Label className="text-[13px] font-medium text-muted-foreground">Climate zone</Label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className={cn(
-                  "h-11 rounded-full px-3.5 text-[13px] font-medium",
-                  !household.location.climateZoneOverride
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-secondary-foreground",
-                )}
-                onClick={() =>
+            <Select
+              value={household.location.climateZoneOverride ?? "auto"}
+              onValueChange={(value) => {
+                if (value === "auto") {
                   void onUpdate({
                     location: {
                       ...household.location,
                       climateZoneOverride: undefined,
                       climateZone: deriveClimate({ ...household.location, climateZoneOverride: undefined }),
                     },
-                  })
+                  });
+                  return;
                 }
-              >
-                Auto ({climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined }))})
-              </button>
-              {CLIMATE_ZONES.map((zone) => (
-                <button
-                  key={zone}
-                  type="button"
-                  className={cn(
-                    "h-11 rounded-full px-3.5 text-[13px] font-medium",
-                    household.location.climateZoneOverride === zone
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground",
-                  )}
-                  onClick={() =>
-                    void onUpdate({
-                      location: {
-                        ...household.location,
-                        climateZoneOverride: zone,
-                        climateZone: zone,
-                      },
-                    })
-                  }
-                >
-                  {climateLabel(zone)}
-                </button>
-              ))}
-            </div>
+                const zone = value as (typeof CLIMATE_ZONES)[number];
+                void onUpdate({
+                  location: {
+                    ...household.location,
+                    climateZoneOverride: zone,
+                    climateZone: zone,
+                  },
+                });
+              }}
+            >
+              <SelectTrigger className="h-12 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">
+                  Auto ({climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined }))})
+                </SelectItem>
+                {CLIMATE_ZONES.map((zone) => (
+                  <SelectItem key={zone} value={zone}>
+                    {climateLabel(zone)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </section>
@@ -306,12 +345,11 @@ export function HomeView({
                         type="button"
                         className={cn(
                           "h-11 rounded-full px-3.5 text-[13px] font-medium",
-                          !hourMore && restockDigest.hour === preset.hour
+                          restockDigest.hour === preset.hour
                             ? "bg-primary text-primary-foreground"
                             : "bg-secondary text-secondary-foreground",
                         )}
                         onClick={() => {
-                          setHourMore(false);
                           onUpdateDigest({ hour: preset.hour });
                         }}
                       >
@@ -322,37 +360,17 @@ export function HomeView({
                       type="button"
                       className={cn(
                         "h-11 rounded-full px-3.5 text-[13px] font-medium",
-                        hourMore || !HOUR_PRESETS.some((p) => p.hour === restockDigest.hour)
+                        !HOUR_PRESETS.some((p) => p.hour === restockDigest.hour)
                           ? "bg-primary text-primary-foreground"
                           : "bg-secondary text-secondary-foreground",
                       )}
-                      onClick={() => setHourMore(true)}
+                      onClick={() => setHourSheet(true)}
                     >
-                      More…
+                      {HOUR_PRESETS.some((p) => p.hour === restockDigest.hour)
+                        ? "More…"
+                        : `${String(restockDigest.hour).padStart(2, "0")}:00`}
                     </button>
                   </div>
-                  {hourMore || !HOUR_PRESETS.some((p) => p.hour === restockDigest.hour) ? (
-                    <div className="grid grid-cols-4 gap-2">
-                      {Array.from({ length: 24 }, (_, hour) => (
-                        <button
-                          key={hour}
-                          type="button"
-                          className={cn(
-                            "h-11 rounded-full text-[13px] font-medium",
-                            restockDigest.hour === hour
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary text-secondary-foreground",
-                          )}
-                          onClick={() => {
-                            setHourMore(true);
-                            onUpdateDigest({ hour });
-                          }}
-                        >
-                          {`${String(hour).padStart(2, "0")}:00`}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -417,10 +435,6 @@ export function HomeView({
           onFocusHandled={onFocusHandled}
         />
       ) : null}
-
-      <Button className="h-12" onClick={save}>
-        Save
-      </Button>
 
       <Button variant="secondary" className="h-12" onClick={onStartCleanerVisit}>
         Hand phone to {household.cleanerName || "Cleaner"}
@@ -529,6 +543,32 @@ export function HomeView({
           }}
         />
       )}
+      <Sheet open={hourSheet} onOpenChange={setHourSheet}>
+        <SheetContent side="bottom" size="form" className="gap-0">
+          <SheetHeader>
+            <SheetTitle>Digest time</SheetTitle>
+          </SheetHeader>
+          <div className="grid gap-3 px-4 pb-4">
+            <Label htmlFor="digest-hour" className="text-[13px] text-muted-foreground">
+              Hour
+            </Label>
+            <Input
+              id="digest-hour"
+              type="time"
+              value={`${String(restockDigest?.hour ?? 8).padStart(2, "0")}:00`}
+              onChange={(event) => {
+                const hour = Number(event.target.value.split(":")[0]);
+                if (!Number.isFinite(hour) || hour < 0 || hour > 23) return;
+                onUpdateDigest?.({ hour });
+              }}
+              className="h-12"
+            />
+            <Button type="button" className="h-12" onClick={() => setHourSheet(false)}>
+              Done
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
       <LegalDocSheet doc={legalDoc} onOpenChange={(open) => !open && setLegalDoc(null)} />
       <div className="mt-6 flex flex-col items-center gap-1 pb-2">
         <BrandMark size="sm" />
