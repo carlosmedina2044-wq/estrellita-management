@@ -179,6 +179,14 @@ export function reorderRooms(rooms: HomeRoom[], floorId: string | null, orderedI
   );
 }
 
+/** True when the room still has chores or restock items that need a reassignment target. */
+export function roomHasAssignedWork(household: Household, roomId: string): boolean {
+  return (
+    household.duties.some((duty) => duty.room === roomId || duty.nodeId === roomId) ||
+    household.supplyAutomations.some((item) => item.room === roomId || item.nodeId === roomId)
+  );
+}
+
 export function deleteRoomFromHousehold(
   household: Household,
   roomId: string,
@@ -186,6 +194,10 @@ export function deleteRoomFromHousehold(
 ): Household {
   const room = roomById(household, roomId);
   if (!room || room.system) return household;
+  // Guard: never drop a room that still has work without an explicit reassignment target (P1-07 / P5-01).
+  if (mode.action === "delete" && roomHasAssignedWork(household, roomId)) {
+    return household;
+  }
   const duties =
     mode.action === "delete"
       ? household.duties.filter((duty) => duty.room !== roomId && duty.nodeId !== roomId)

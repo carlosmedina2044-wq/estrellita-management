@@ -115,3 +115,41 @@ test("known leftover English chrome phrases are not hardcoded in key surfaces", 
     }
   }
 });
+
+/** Smoke: key chrome strings must not fall back to English for es / pt-BR. */
+test("es and pt-BR smoke keys do not fall back to English", () => {
+  const smokeKeys = [
+    "tabs.today",
+    "tabs.home",
+    "tabs.restock",
+    "common.cancel",
+    "common.delete",
+    "common.save",
+    "common.settings",
+    "common.order",
+    "settings.title",
+    "settings.household",
+    "settings.eraseEverything",
+    "today.scopeToday",
+    "today.emptyToday",
+    "today.addChore",
+    "restock.orderNow",
+    "restock.onTheWay",
+    "restock.markedOrdered",
+    "home.floorsAndRooms",
+    "home.reassignJobs",
+    "onboarding.sampleCta",
+    "lock.unlock",
+    "backup.undoLastRestore",
+  ] as const;
+
+  for (const key of smokeKeys) {
+    const english = translate("en", key);
+    const spanish = translate("es", key);
+    const portuguese = translate("pt-BR", key);
+    assert.notEqual(spanish, english, `es fallback for ${key}`);
+    assert.notEqual(portuguese, english, `pt-BR fallback for ${key}`);
+    assert.notEqual(spanish, key, `es missing ${key}`);
+    assert.notEqual(portuguese, key, `pt-BR missing ${key}`);
+  }
+});

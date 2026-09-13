@@ -79,6 +79,39 @@ test("deleting a room can reassign its duties", () => {
   const next = deleteRoomFromHousehold(home, "hall", { action: "reassign", toRoomId: "kitchen" });
   assert.equal(next.rooms.some((room) => room.id === "hall"), false);
   assert.equal(next.duties[0]?.room, "kitchen");
-  const dropped = deleteRoomFromHousehold(home, "hall", { action: "delete" });
-  assert.equal(dropped.duties.length, 0);
+});
+
+test("deleteRoom with work and no reassignment target is a no-op", () => {
+  const home = household({
+    duties: [
+      {
+        id: "d1",
+        title: "Sweep",
+        notes: "",
+        room: "hall",
+        nodeId: "hall",
+        nodeType: "room",
+        audience: "me",
+        effort: "small",
+        frequency: "weekly",
+        kind: "chore",
+        weekday: 0,
+        monthDay: 1,
+        dueDate: null,
+        priority: "low",
+        createdAt: new Date().toISOString(),
+        archived: false,
+      },
+    ],
+  });
+  const blocked = deleteRoomFromHousehold(home, "hall", { action: "delete" });
+  assert.equal(blocked, home);
+  assert.equal(blocked.rooms.some((room) => room.id === "hall"), true);
+  assert.equal(blocked.duties.length, 1);
+});
+
+test("deleteRoom without work removes the empty room", () => {
+  const home = household();
+  const next = deleteRoomFromHousehold(home, "hall", { action: "delete" });
+  assert.equal(next.rooms.some((room) => room.id === "hall"), false);
 });

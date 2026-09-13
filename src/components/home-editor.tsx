@@ -23,6 +23,7 @@ import {
   floorsInOrder,
   nextSortOrder,
   ROOM_TYPES,
+  roomHasAssignedWork,
   roomsOnFloor,
   userRooms,
 } from "@/lib/home-model";
@@ -148,9 +149,7 @@ export function HomeEditor({
     const current = takePending();
     const room = current.rooms.find((item) => item.id === deleteId);
     if (!room) return;
-    const hasWork =
-      current.duties.some((duty) => duty.room === deleteId) ||
-      current.supplyAutomations.some((item) => item.room === deleteId);
+    const hasWork = roomHasAssignedWork(current, deleteId);
     if (hasWork && !reassignTo) {
       toast.error(t("home.reassignJobs"));
       return;

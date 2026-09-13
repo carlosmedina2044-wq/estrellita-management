@@ -664,6 +664,7 @@ test("persist while locked never calls loadDeviceKey", async () => {
   updateHousehold((current) => ({ ...current, householdName: "Should Not Prompt", onboarded: true }));
   await flushHousehold();
   assert.equal(loadCalls, loadsAfterLock);
+  assert.equal(store.has(VAULT_STORAGE_KEY), false);
   resetVaultForTests();
 });
 

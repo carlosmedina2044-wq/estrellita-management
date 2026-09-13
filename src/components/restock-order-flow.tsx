@@ -30,6 +30,7 @@ import {
   type MarkOrderedDetails,
   type RestockFlowHandlers,
 } from "@/lib/restock";
+/** Order-path transitions: see `src/lib/restock-order-state.ts` (pick → opened → confirm → ordered). */
 import { leadTimeDaysFor } from "@/lib/supply";
 import { hasSeenTip, TIP_ARRIVAL } from "@/lib/teaching";
 import type { Household, SupplyAutomation } from "@/lib/types";
