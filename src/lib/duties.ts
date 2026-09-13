@@ -87,6 +87,7 @@ export function nextDueDate(
       const last = lastCompletion(duty.id, completions);
       if (last) return addCadence(new Date(last.completedAt), duty.frequency);
       if (installedAt) return addCadence(new Date(parseISODate(installedAt)), duty.frequency);
+      if (duty.dueDate) return new Date(parseISODate(duty.dueDate));
       return new Date(duty.createdAt);
     }
   }

@@ -40,6 +40,7 @@ const eslintConfig = defineConfig([
             "%",
             "+",
             "#",
+            "$",
             "×",
             "°",
             "−",

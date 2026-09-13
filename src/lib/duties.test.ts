@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { toISODate } from "@/lib/dates";
 import { dutySubtitle, isOverdue, nextDueDate } from "@/lib/duties";
 import { todayGreeting } from "@/lib/greeting";
 import { statusText } from "@/lib/node-status";
 import { climateLabel } from "@/lib/climate";
 import { weatherCaption } from "@/lib/weather/provider";
-import type { Duty } from "@/lib/types";
+import type { Completion, Duty } from "@/lib/types";
 
 function duty(partial: Partial<Duty> & Pick<Duty, "title">): Duty {
   return {
@@ -58,6 +59,71 @@ test("nextDueDate floors first weekly due on or after createdAt", () => {
   assert.equal(next!.getDay(), 6);
   assert.equal(next!.getDate(), 19); // coming Saturday
   assert.equal(isOverdue(d, [], sunday), false);
+});
+
+function completion(partial: Partial<Completion> = {}): Completion {
+  return {
+    id: "c1",
+    dutyId: "d1",
+    actor: "me",
+    visitId: null,
+    completedAt: "2026-08-01T12:00:00.000Z",
+    ...partial,
+  };
+}
+
+test("nextDueDate uses dueDate as first-due for quarterly without completion", () => {
+  const now = new Date(2026, 8, 13);
+  const d = duty({
+    title: "HVAC filter",
+    frequency: "quarterly",
+    dueDate: "2026-10-04",
+    createdAt: "2026-09-13T12:00:00.000Z",
+  });
+  const next = nextDueDate(d, [], now);
+  assert.ok(next);
+  assert.equal(toISODate(next!), "2026-10-04");
+  assert.equal(isOverdue(d, [], now), false);
+});
+
+test("nextDueDate installedAt beats dueDate for quarterly", () => {
+  const now = new Date(2026, 8, 13);
+  const d = duty({
+    title: "HVAC filter",
+    frequency: "quarterly",
+    dueDate: "2026-10-04",
+    createdAt: "2026-09-13T12:00:00.000Z",
+  });
+  const next = nextDueDate(d, [], now, "2026-06-01");
+  assert.ok(next);
+  assert.equal(toISODate(next!), "2026-09-01");
+});
+
+test("nextDueDate completion beats installedAt and dueDate for quarterly", () => {
+  const now = new Date(2026, 8, 13);
+  const d = duty({
+    title: "HVAC filter",
+    frequency: "quarterly",
+    dueDate: "2026-10-04",
+    createdAt: "2026-09-13T12:00:00.000Z",
+  });
+  const next = nextDueDate(d, [completion({ completedAt: "2026-08-01T12:00:00.000Z" })], now, "2026-06-01");
+  assert.ok(next);
+  assert.equal(toISODate(next!), "2026-11-01");
+});
+
+test("nextDueDate yearly is not overdue before dueDate", () => {
+  const now = new Date(2026, 8, 13);
+  const d = duty({
+    title: "Water heater flush",
+    frequency: "yearly",
+    dueDate: "2027-03-13",
+    createdAt: "2026-09-13T12:00:00.000Z",
+  });
+  const next = nextDueDate(d, [], now);
+  assert.ok(next);
+  assert.equal(toISODate(next!), "2027-03-13");
+  assert.equal(isOverdue(d, [], now), false);
 });
 
 test("dutySubtitle is place and cadence without day-of-month or Me", () => {
