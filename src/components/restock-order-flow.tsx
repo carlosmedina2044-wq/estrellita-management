@@ -157,6 +157,10 @@ export function RestockOrderButton({
     }
     setAsk(true);
   }
+  const maybeAskRef = useRef(maybeAsk);
+  useEffect(() => {
+    maybeAskRef.current = maybeAsk;
+  });
 
   function finishReceive(qty: number, paid?: number) {
     const observed = observedLeadTimeDays(item);
@@ -177,7 +181,7 @@ export function RestockOrderButton({
     if (!waitingResume) return;
     const go = () => {
       setWaitingResume(false);
-      maybeAsk(pendingRetailerRef.current);
+      maybeAskRef.current(pendingRetailerRef.current);
     };
     const onVis = () => {
       if (document.visibilityState === "visible") go();
