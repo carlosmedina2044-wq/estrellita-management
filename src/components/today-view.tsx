@@ -577,9 +577,8 @@ export function TodayView({
           household={household}
           className="hidden"
           autoPicker
-          onPickerOpenChange={(open) => {
-            if (!open) setOrderItemId(null);
-          }}
+          onFlowFinished={() => setOrderItemId(null)}
+          onFlowCancelled={() => setOrderItemId(null)}
           {...restockButtonProps(orderItem, restockHandlers)}
         />
       ) : null}

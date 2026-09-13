@@ -62,8 +62,8 @@ export function RetailerPickerSheet({
       toast.error(t("restock.retailerOpenError"));
       return;
     }
-    onOpenChange(false);
     onOpened?.(retailer);
+    onOpenChange(false);
   }
 
   return (
@@ -80,8 +80,8 @@ export function RetailerPickerSheet({
               variant="secondary"
               className="h-12 w-full"
               onClick={() => {
-                onOpenChange(false);
                 onAlreadyOrdered();
+                onOpenChange(false);
               }}
             >
               I already ordered it

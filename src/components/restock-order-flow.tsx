@@ -89,6 +89,8 @@ export function RestockOrderButton({
   autoReceive,
   autoPicker,
   onPickerOpenChange,
+  onFlowFinished,
+  onFlowCancelled,
   subdued,
   early,
 }: {
@@ -109,12 +111,15 @@ export function RestockOrderButton({
   autoReceive?: boolean;
   autoPicker?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
+  onFlowFinished?: () => void;
+  onFlowCancelled?: () => void;
   subdued?: boolean;
   early?: boolean;
 }) {
   const { t } = useLocale();
   const [sheet, setSheet] = useState<OrderSheet>("closed");
   const confirmCommitted = useRef(false);
+  const flowProgressing = useRef(false);
   const [waitingResume, setWaitingResume] = useState(false);
   const [qtyDraft, setQtyDraft] = useState(String(item.qtyPerOrder || 1));
   const [pendingRetailer, setPendingRetailer] = useState<string | undefined>();
@@ -150,6 +155,7 @@ export function RestockOrderButton({
     setSheet("closed");
     void hapticOrdered();
     toast.success(t("restock.markedOrdered"), { description: item.itemName });
+    onFlowFinished?.();
   }
 
   function maybeAsk(retailer?: string) {
@@ -381,19 +387,34 @@ export function RestockOrderButton({
         item={item}
         household={household}
         onOpenChange={(open) => {
-          setSheet(open ? "picker" : "closed");
-          onPickerOpenChange?.(open);
+          if (open) {
+            flowProgressing.current = false;
+            setSheet("picker");
+            onPickerOpenChange?.(true);
+            return;
+          }
+          onPickerOpenChange?.(false);
+          if (flowProgressing.current) {
+            flowProgressing.current = false;
+            setSheet((current) => (current === "confirm" ? "confirm" : "closed"));
+            return;
+          }
+          setSheet("closed");
+          if (autoPicker) onFlowCancelled?.();
         }}
         onSaveLink={onSaveLink}
         onPreferRetailer={onPreferRetailer}
         onAddSize={onAddSize}
         onAlreadyOrdered={() => {
+          flowProgressing.current = true;
           rememberRetailer();
           confirmCommitted.current = false;
           setSheet("confirm");
         }}
         onOpened={(retailer) => {
+          flowProgressing.current = true;
           rememberRetailer(retailer);
+          // Keep the flow mounted after the picker closes so confirm can open.
           if (!isNative() && document.visibilityState === "visible") {
             maybeAsk(retailer);
             return;
@@ -416,6 +437,7 @@ export function RestockOrderButton({
           }
           if (!confirmCommitted.current) lookingUntil.set(item.id, Date.now() + LOOKING_MS);
           setSheet("closed");
+          if (autoPicker && !confirmCommitted.current) onFlowCancelled?.();
         }}
         onConfirm={(details) => {
           confirmCommitted.current = true;
