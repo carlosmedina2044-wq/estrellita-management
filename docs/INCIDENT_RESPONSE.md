@@ -49,15 +49,21 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Onboarding walk pre-selects recommended items; no sizes asked; Costco chip present.
 - [ ] Settings → How Cuidala works / Privacy / Terms open in-app sheets; climate is a select; digest hour More… opens a time sheet; names persist on blur; Hide item names on the lock screen switch works; digest Switch requests notification permission before enabling.
 - [ ] Palette: cream surfaces with darker brand `#9A5A35` for readable primary text/CTAs.
-- [ ] Sheets: darker dim, header Close, body swipe-to-dismiss; Reduce Motion is Close only; keyboard still lifts form sheets.
-- [ ] System Dark Mode and large Dynamic Type; overdue on Today hides the teaching card.
+- [ ] Sheets: darker dim, X close on the title line, interactive drag-to-dismiss (velocity or >50% height); Reduce Motion is tap-to-close only; keyboard still lifts form sheets.
+- [ ] Push screens (Settings / Budget / Seasonal): slide-from-right travel; left-edge swipe back follows the finger and pops past 35% / velocity (120 Hz preferred).
+- [ ] System Dark Mode on every screen (Today / Home / Restock / Settings / sheets); selected cream pills readable (`--brand-cream-foreground`).
+- [ ] Largest Dynamic Type on Today / Home / Restock (layout holds; captions may clip — see RESIDUAL_RISKS).
+- [ ] Spanish (or Mexican Spanish) system language end to end: three tabs, sheets, lock screen, error pages show no English chrome.
+- [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
+- [ ] Fresh sample home: zero overdue on day one; Restock shows the gauge; Seasonal reachable from Today.
 - [ ] `cuidala.app` /privacy and /terms load; `support@` and `privacy@` deliver.
-- [ ] Before App Store submission (human): Privacy + Support URLs live; archive a Release build; ASC checklist (Data Not Collected, exempt encryption, Free US, 3-tab 6.9" screenshots, Reviewer Notes, age questionnaire → 4+).
-- [ ] Release build: `CAPACITOR_DEBUG` empty; Safari Develop does not list the app.
-- [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type); portrait-only; WeatherKit entitlement present.
+- [ ] Before App Store submission (human): Privacy + Support URLs live; archive a Release build; ASC checklist (Data Not Collected, exempt encryption, Free US, 3-tab 6.9"/6.7" screenshots, Reviewer Notes, age questionnaire → 4+). See `docs/APP_STORE_SUBMISSION.md`.
+- [ ] Release build: `CAPACITOR_DEBUG` empty; Safari Develop does not list the app; Capacitor `loggingBehavior` is `none`.
+- [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type) + File Timestamp C617.1; portrait-only; WeatherKit entitlement present; `es.lproj` and `pt-BR.lproj` in the bundle.
 - [ ] Confirm the binary is iPhone-only (no iPad destination). Always run a signed build — unsigned Keychain writes fail and show the load-failure screen.
 - [ ] PBKDF2 timing: create a backup with a 4-word passphrase; the device stays responsive (spinner, not a freeze).
 - [ ] Cold start: kill the app, reopen, vault loads without minting a new key.
+- [ ] Passcode-less device (or Features → passcode off): passcode-required explanation with Open Settings, not a bare save-failed toast.
 
 ## Week-one watch
 
@@ -69,6 +75,7 @@ Cuidala is a local-first iPhone app, not a website wrapper. The shipped binary i
 
 ## Changelog
 
+- 2026-09-13 — Pre-submission Phases 0–5 (agent): Node 22 pin; PrivacyInfo File Timestamp; honest ZIP/location → Apple copy; es/pt-BR Xcode localizations; vault lock-flush + keyId quarantine (no Keychain destroy) + restore snapshot/undo; day-one duty creation floor; room-delete guard; restock order confirm path; i18n chrome + smoke tests; Capgo biometric removed (`canEvaluate`); retailer https upgrade; interactive sheets + edge-swipe; splash screen; visual system redesign (tokens, grouped lists, terracotta App Icon). Control matrix / residual risks refreshed. Device checklist + ASC upload remain human.
 - 2026-09-12 — Pre-submission hardening: vault restore persist, backup bounds, pause/resume lock, erase verify, migrate caps, unique notification IDs, 12-char seal floor, private notification titles, UX keep-alive tabs.
 - 2026-09 — Lighter cream palette, Switch controls, sheet grabber / fade push, Restock walk in header.
 - 2026-08-24 — Product/security pass: WeatherKit, S1 key-read ordering, repeating digest, portrait-only, timestamp lock, privacy screen, Keychain migration copy.
