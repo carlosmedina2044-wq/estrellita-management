@@ -113,6 +113,7 @@ const DUTY_TITLE_KEYS: Record<string, MessageKey> = {
   "Stage patio furniture and flashlights": "content.chore.stage-patio-furniture-and-flashlights",
   "Start up the evaporative cooler": "content.chore.start-up-the-evaporative-cooler",
   "Sweep the garage": "content.chore.sweep-the-garage",
+  "Take out trash and recycling": "content.chore.take-out-trash-and-recycling",
   "Test GFCI outlets": "content.chore.test-gfci-outlets",
   "Test every smoke and CO detector and note the battery types.":
     "content.chore.test-every-smoke-and-co-detector-and-note-the-battery-types",
@@ -120,6 +121,7 @@ const DUTY_TITLE_KEYS: Record<string, MessageKey> = {
   "Test smoke detectors": "content.chore.test-smoke-detectors",
   "Test sump pump by pouring a bucket in the pit": "content.chore.test-sump-pump-by-pouring-a-bucket-in-the-pit",
   "Test the sump pump": "content.chore.test-the-sump-pump",
+  "Tidy the living room": "content.chore.tidy-the-living-room",
   "Vacuum / mop floors": "content.chore.vacuum-mop-floors",
   "Walk drip lines and emitters": "content.chore.walk-drip-lines-and-emitters",
   "Walk the exterior after thaw: grading, downspout extensions, foundation cracks":

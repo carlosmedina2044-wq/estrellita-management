@@ -8,7 +8,7 @@ import { roomTemplateFor } from "@/lib/onboarding/rooms";
 import starterSeed from "@/lib/onboarding/starter-chores.json";
 import type { Household } from "@/lib/types";
 
-const DAY_ONE_TITLES = ["Wipe kitchen counters", "Clean bathrooms", "Test smoke detectors"];
+const DAY_ONE_TITLES = ["Tidy the living room", "Wipe kitchen counters", "Take out trash and recycling"];
 
 function seededHousehold(now: Date): Household {
   const generated = generateHomeFromAnswers(sampleHomeAnswers(), now);
@@ -132,8 +132,8 @@ test("sample home is a 2-bed house with chores and no uploads", () => {
   assert.equal(generated.homeType, "house");
   assert.ok(userRooms.some((room) => room.type === "primary_bedroom"));
   assert.ok(userRooms.filter((room) => room.type === "bedroom" || room.type === "primary_bedroom").length >= 2);
-  assert.ok(generated.duties.some((duty) => duty.title === "Clean bathrooms"));
-  assert.ok(generated.duties.some((duty) => duty.title === "Check bathroom caulk"));
+  assert.ok(generated.duties.some((duty) => duty.title === "Tidy the living room"));
+  assert.ok(generated.duties.some((duty) => duty.title === "Take out trash and recycling"));
   assert.ok(generated.duties.some((duty) => duty.title === "Replace HVAC filter"));
 });
 

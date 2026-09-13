@@ -1,13 +1,14 @@
 [
-  { "title": "Wipe kitchen counters", "roomType": "kitchen", "frequency": "weekly", "estimatedMinutes": 10, "firstDueInDays": 0, "topic": "kitchen-counters" },
-  { "title": "Clean bathrooms", "roomType": "bathroom", "frequency": "weekly", "estimatedMinutes": 25, "firstDueInDays": 0, "topic": "bathrooms" },
-  { "title": "Check bathroom caulk", "roomType": "bathroom", "frequency": "quarterly", "estimatedMinutes": 10, "firstDueInDays": 21, "topic": "caulk" },
+  { "title": "Tidy the living room", "roomType": "living", "frequency": "daily", "estimatedMinutes": 10, "firstDueInDays": 0, "topic": "tidy" },
+  { "title": "Wipe kitchen counters", "roomType": "kitchen", "frequency": "daily", "estimatedMinutes": 10, "firstDueInDays": 0, "topic": "kitchen-counters" },
+  { "title": "Take out trash and recycling", "roomType": "kitchen", "frequency": "weekly", "estimatedMinutes": 10, "firstDueInDays": 0, "topic": "trash" },
   { "title": "Vacuum / mop floors", "roomType": "living", "frequency": "weekly", "estimatedMinutes": 20, "firstDueInDays": 2, "topic": "floors" },
-  { "title": "Clean fridge coils", "assetType": "refrigerator", "frequency": "monthly", "estimatedMinutes": 20, "firstDueInDays": 14, "estimatedCost": 0, "topic": "fridge-coils" },
-  { "title": "Run garbage disposal with ice and citrus", "assetType": "garbage_disposal", "frequency": "monthly", "estimatedMinutes": 5, "firstDueInDays": 21, "topic": "garbage-disposal" },
-  { "title": "Clean dryer vent", "assetType": "dryer", "frequency": "quarterly", "estimatedMinutes": 30, "firstDueInDays": 21, "topic": "dryer-vent" },
-  { "title": "Replace HVAC filter", "assetType": "hvac_system", "frequency": "quarterly", "estimatedMinutes": 10, "firstDueInDays": 21, "topic": "hvac-filter" },
-  { "title": "Test smoke detectors", "assetType": "smoke_detector", "frequency": "monthly", "estimatedMinutes": 10, "firstDueInDays": 0, "topic": "smoke-detectors" },
+  { "title": "Clean bathrooms", "roomType": "bathroom", "frequency": "weekly", "estimatedMinutes": 25, "firstDueInDays": 3, "topic": "bathrooms" },
   { "title": "Wipe laundry machines", "roomType": "laundry", "frequency": "weekly", "estimatedMinutes": 10, "firstDueInDays": 5, "topic": "laundry" },
-  { "title": "Sweep the garage", "roomType": "garage", "frequency": "monthly", "estimatedMinutes": 20, "firstDueInDays": 21, "topic": "garage" }
+  { "title": "Sweep the garage", "roomType": "garage", "frequency": "monthly", "estimatedMinutes": 20, "firstDueInDays": 10, "topic": "garage" },
+  { "title": "Test smoke detectors", "assetType": "smoke_detector", "frequency": "monthly", "estimatedMinutes": 10, "firstDueInDays": 14, "topic": "smoke-detectors" },
+  { "title": "Replace HVAC filter", "assetType": "hvac_system", "frequency": "quarterly", "estimatedMinutes": 10, "firstDueInDays": 21, "topic": "hvac-filter" },
+  { "title": "Clean fridge coils", "assetType": "refrigerator", "frequency": "quarterly", "estimatedMinutes": 20, "firstDueInDays": 30, "estimatedCost": 0, "topic": "fridge-coils" },
+  { "title": "Clean dryer vent", "assetType": "dryer", "frequency": "quarterly", "estimatedMinutes": 30, "firstDueInDays": 35, "topic": "dryer-vent" },
+  { "title": "Check bathroom caulk", "roomType": "bathroom", "frequency": "quarterly", "estimatedMinutes": 10, "firstDueInDays": 45, "topic": "caulk" }
 ]
