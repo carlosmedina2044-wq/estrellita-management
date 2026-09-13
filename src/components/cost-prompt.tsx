@@ -25,12 +25,12 @@ export function CostPrompt({
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="0.00"
-        className="h-9 w-24"
+        className="h-11 w-24"
         aria-label="What did it cost?"
       />
       <Button
         type="button"
-        className="h-9 px-3"
+        className="h-11 px-3"
         disabled={parsed == null}
         onClick={() => {
           if (parsed != null) onSave(parsed);
@@ -38,7 +38,7 @@ export function CostPrompt({
       >
         Save
       </Button>
-      <Button type="button" variant="secondary" className="h-9 px-3" onClick={onSkip}>
+      <Button type="button" variant="secondary" className="h-11 px-3" onClick={onSkip}>
         Skip
       </Button>
     </div>

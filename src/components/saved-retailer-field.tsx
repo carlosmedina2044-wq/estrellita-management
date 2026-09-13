@@ -64,7 +64,7 @@ export function SavedRetailerField({
                   type="button"
                   size="sm"
                   variant={selected ? "default" : "secondary"}
-                  className="h-8 max-w-full rounded-full"
+                  className="h-11 max-w-full rounded-full"
                   onClick={() => apply(item.url)}
                 >
                   <span className="truncate">{savedRetailerLabel(item.url)}</span>

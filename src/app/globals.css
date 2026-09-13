@@ -216,6 +216,21 @@
   padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
 }
 
+.app-shell-main--push {
+  animation: app-push-in 220ms ease-out;
+}
+
+@keyframes app-push-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .app-tab-bar {
   z-index: 40;
 }
@@ -366,6 +381,9 @@ html.keyboard-open [data-slot="sheet-footer"] {
     scroll-behavior: auto !important;
   }
   .brand-enter {
+    animation: none;
+  }
+  .app-shell-main--push {
     animation: none;
   }
 }

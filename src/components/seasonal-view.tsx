@@ -156,12 +156,12 @@ export function SeasonalView({
         {missingZip && onSavePostalCode ? (
           <button
             type="button"
-            className="mt-3 w-full rounded-2xl bg-white px-4 py-4 text-left"
+            className="mt-3 w-full rounded-2xl bg-card px-4 py-4 text-left"
             onClick={() => setZipOpen(true)}
           >
             <p className="font-medium text-primary">Add your ZIP</p>
             <p className="mt-1 text-[15px] text-muted-foreground">
-              We’ll use it for weather and which seasonal jobs apply here.
+              Same ZIP as Today — for weather and seasonal jobs.
             </p>
           </button>
         ) : null}
@@ -278,8 +278,8 @@ export function SeasonalView({
                   onClick={() => onToggleAttribute(key)}
                   className={
                     household.attributes[key]
-                      ? "h-10 shrink-0 rounded-full bg-primary px-3 text-[13px] font-medium text-primary-foreground"
-                      : "h-10 shrink-0 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                      ? "h-11 shrink-0 rounded-full bg-primary px-3 text-[13px] font-medium text-primary-foreground"
+                      : "h-11 shrink-0 rounded-full bg-secondary px-3 text-[13px] font-medium"
                   }
                 >
                   {household.attributes[key] ? "On" : "Off"}
@@ -359,10 +359,10 @@ function DoNowCard({
             ))}
           </ul>
           <div className="mt-3 flex gap-2">
-            <Button className="h-10 flex-1" onClick={() => onAccept(playbook.id)}>
+            <Button className="h-11 flex-1" onClick={() => onAccept(playbook.id)}>
               Add to my year
             </Button>
-            <Button variant="secondary" className="h-10 flex-1" onClick={() => onDecline(playbook.id)}>
+            <Button variant="secondary" className="h-11 flex-1" onClick={() => onDecline(playbook.id)}>
               Skip this year
             </Button>
           </div>

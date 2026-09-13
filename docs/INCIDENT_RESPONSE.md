@@ -13,10 +13,10 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 
 ## Pre-release device checks (manual, every TestFlight build)
 
-- [ ] Fresh install: Onboarding → Set up my home → climate payoff shows the derived zone (if ZIP) → Walk your house → Today list in under 5 minutes.
+- [ ] Fresh install: Onboarding → Set up my home → rooms → ZIP (optional) → Walk your house → Today in under a few minutes (home type + tenure on one screen; no climate payoff step).
 - [ ] Fresh install: Use a sample home → Today list immediately; Restock has starter consumables. First-three card on Today.
 - [ ] Geolocation: Allow location during onboarding. The system sheet must show **Cuidala**, not localhost.
-- [ ] App lock: background the app for > lock-after, return, verify prompt; cancel prompt → still locked. Confirm this is a UI gate (household is not shown) — Keychain is not biometric-bound. Lock screen and Settings toggle name the method this phone actually has (Face ID, Touch ID, or passcode).
+- [ ] App lock: Unlock UI visible first; biometrics prompt after a short delay or on Unlock tap; cancel → still locked. Passcode helper text present.
 - [ ] Lock timer is timestamp-based: background for the lock-after interval with the screen off (JS timers suspend in WKWebView). Return → locked.
 - [ ] App switcher shows a blur privacy screen, not the household.
 - [ ] Settings → Require Face ID / Touch ID / passcode → Off → Face ID / passcode sheet first; cancel leaves lock on.
@@ -26,15 +26,16 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Touch ID device (SE): Settings toggle reads "Require Touch ID"; lock screen and cleaner handback say Touch ID.
 - [ ] Passcode-only device (biometrics unenrolled): Settings toggle reads "Require passcode to open"; unlock is the system passcode sheet.
 - [ ] Add a consumable → Allow notifications → confirm a pending reminder exists. Weekly digest is repeating (`repeats: true`), not a single fire.
-- [ ] Restock → Order → SFSafariViewController opens (not the app WebView); Done returns to the app. Paste a link still works on the item sheet.
+- [ ] Restock → Order → SFSafariViewController opens (not the app WebView); return → one Confirm your order sheet (arrival + qty); second order at same retailer can skip confirm in-session. “I already ordered it” near top of store picker.
 - [ ] Settings → Erase all data → relaunch → onboarding; no residual data.
 - [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
 - [ ] Tab bar shows Today / Home / Restock only; Budget and Seasonal open from their cards and Back returns to Home / Today respectively.
-- [ ] Tab bar is hidden on Budget, Seasonal, and Settings; Back returns to the parent tab (Home / Today / Home).
-- [ ] Settings gear on Today and Home is at least 44pt; primary chips and CTAs meet 44pt tap targets.
-- [ ] Today shows This season when a playbook is open; Apple Weather attribution (mark + Other data sources) is present when a forecast is loaded — once on Today (header only, not duplicated under This season). No poor-air or dust-advisory in Watching for.
-- [ ] Onboarding walk does not ask for sizes; first Order can capture Size or model; Costco appears as a retailer chip.
-- [ ] How Cuidala works, Additional terms, Privacy policy, Report a problem, and Cuidala Pro coming soon open from Settings.
+- [ ] Tab bar is hidden on Budget, Seasonal, and Settings; push transition plays (none with Reduce Motion); Back returns to the parent tab.
+- [ ] Settings gear, sheet close, calendar days, restock chips, and primary CTAs are at least 44pt.
+- [ ] Today shows a dismissible ZIP banner when ZIP is missing (not four competing prompts); Seasonal ZIP card uses the same ZipSheet.
+- [ ] Today shows This season when a playbook is open; Apple Weather attribution once on Today when forecast is loaded.
+- [ ] Onboarding walk pre-selects recommended items; no sizes asked; Costco chip present.
+- [ ] Settings → How Cuidala works / Privacy / Terms open in-app sheets (shell stays); climate and digest day/hour use chips not native selects.
 - [ ] Before App Store submission (human): Privacy + Support URLs live; `support@` / `privacy@` receive mail; archive with Xcode 26.2+; ASC checklist (Data Not Collected, Free US, 6.9" screenshots, export compliance, Reviewer Notes, age questionnaire → 4+).
 - [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type); portrait-only; WeatherKit entitlement present.
 - [ ] Confirm the binary is iPhone-only (no iPad destination). Always run a signed build — unsigned Keychain writes fail and show the load-failure screen.

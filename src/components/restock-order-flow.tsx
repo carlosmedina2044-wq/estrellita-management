@@ -45,6 +45,12 @@ import { TeachingTip } from "@/components/teaching-tip";
 
 const LOOKING_MS = 30 * 60 * 1000;
 const lookingUntil = new Map<string, number>();
+/** Retailers confirmed this session — skip the confirm sheet on the next order. */
+const trustedRetailers = new Set<string>();
+
+function retailerKey(value?: string): string {
+  return (value ?? "").trim().toLowerCase();
+}
 
 export function restockButtonProps(item: SupplyAutomation, handlers: RestockFlowHandlers) {
   return {
@@ -133,10 +139,32 @@ export function RestockOrderButton({
     setPendingRetailer(value);
   }
 
+  function defaultOrderDetails(retailer?: string): MarkOrderedDetails {
+    const offset = closestArrivalOffset(leadTimeDaysFor(item));
+    return {
+      expectedArrivalDate: toISODate(addDays(new Date(), offset)),
+      qty: Math.max(1, item.qtyPerOrder || 1),
+      retailer: retailer || item.preferredRetailer,
+    };
+  }
+
+  function finishOrdered(details: MarkOrderedDetails) {
+    const key = retailerKey(details.retailer);
+    if (key) trustedRetailers.add(key);
+    onOrdered?.(details);
+    setAsk(false);
+    toast.success("Marked ordered", { description: item.itemName });
+  }
+
   function maybeAsk(retailer?: string) {
     const until = lookingUntil.get(item.id) ?? 0;
     if (until > Date.now()) return;
     rememberRetailer(retailer);
+    const key = retailerKey(retailer ?? item.preferredRetailer);
+    if (key && trustedRetailers.has(key)) {
+      finishOrdered(defaultOrderDetails(retailer ?? item.preferredRetailer));
+      return;
+    }
     setAsk(true);
   }
 
@@ -159,9 +187,7 @@ export function RestockOrderButton({
     if (!waitingResume) return;
     const go = () => {
       setWaitingResume(false);
-      const until = lookingUntil.get(item.id) ?? 0;
-      if (until > Date.now()) return;
-      setAsk(true);
+      maybeAsk(pendingRetailerRef.current);
     };
     const onVis = () => {
       if (document.visibilityState === "visible") go();
@@ -208,7 +234,7 @@ export function RestockOrderButton({
       <div className="grid gap-2">
         <p className="text-[13px] text-muted-foreground">Did it arrive?</p>
         {onReceived ? (
-          <Button type="button" className={className ?? (compact ? "h-9 w-auto self-start px-4" : "h-10")} onClick={() => setReceive(true)}>
+          <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setReceive(true)}>
             Received
           </Button>
         ) : null}
@@ -237,7 +263,7 @@ export function RestockOrderButton({
               type="button"
               variant="ghost"
               size="icon"
-              className="size-8 shrink-0"
+              className="size-11 shrink-0"
               aria-label="More"
               onClick={() => setOverflow(true)}
             >
@@ -246,7 +272,7 @@ export function RestockOrderButton({
           ) : null}
         </div>
         {onReceived ? (
-          <Button type="button" className={className ?? (compact ? "h-9 w-auto self-start px-4" : "h-10")} onClick={() => setReceive(true)}>
+          <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setReceive(true)}>
             Received
           </Button>
         ) : null}
@@ -307,7 +333,7 @@ export function RestockOrderButton({
       <Button
         type="button"
         variant={subdued ? "secondary" : "default"}
-        className={className ?? (compact ? "h-9 w-auto self-start px-4" : "h-10")}
+        className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")}
         onClick={() => setPicker(true)}
       >
         Order
@@ -349,11 +375,7 @@ export function RestockOrderButton({
           lookingUntil.set(item.id, Date.now() + LOOKING_MS);
           setAsk(false);
         }}
-        onConfirm={(details) => {
-          onOrdered?.(details);
-          setAsk(false);
-          toast.success("Marked ordered", { description: item.itemName });
-        }}
+        onConfirm={finishOrdered}
       />
       {receiveDialog}
     </>
@@ -379,7 +401,6 @@ function OrderConfirmSheet({
   onJustLooking: () => void;
   onConfirm: (details: MarkOrderedDetails) => void;
 }) {
-  const [step, setStep] = useState<"a" | "b">("a");
   const defaultOffset = closestArrivalOffset(leadTimeDaysFor(item));
   const [offset, setOffset] = useState<number | "date">(defaultOffset);
   const [dateDraft, setDateDraft] = useState(() => toISODate(addDays(new Date(), defaultOffset)));
@@ -387,11 +408,11 @@ function OrderConfirmSheet({
   const [sizeDraft, setSizeDraft] = useState("");
   const size = (item.sku || item.sizeSpec || "").trim();
   const askSize = !size && !item.retailerUrl;
+  const store = retailerCaption(retailer || item.preferredRetailer);
   const resetKey = `${open}:${item.id}:${item.qtyPerOrder}:${item.leadTimeDays}`;
   const [prevKey, setPrevKey] = useState(resetKey);
   if (open && prevKey !== resetKey) {
     setPrevKey(resetKey);
-    setStep("a");
     const next = closestArrivalOffset(leadTimeDaysFor(item));
     setOffset(next);
     setDateDraft(toISODate(addDays(new Date(), next)));
@@ -407,100 +428,85 @@ function OrderConfirmSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0">
-        {step === "a" ? (
-          <>
-            <SheetHeader>
-              <SheetTitle>Did you order it?</SheetTitle>
-              <SheetDescription>
-                {item.itemName}
-                {size ? ` · ${size}` : ""}
-              </SheetDescription>
-            </SheetHeader>
-            <div className="grid gap-2 px-4 pb-4">
-              {askSize ? (
-                <div className="grid gap-1.5 pb-1">
-                  <label htmlFor="order-size" className="text-[13px] text-muted-foreground">
-                    Size or model (optional)
-                  </label>
-                  <Input
-                    id="order-size"
-                    value={sizeDraft}
-                    onChange={(event) => setSizeDraft(event.target.value)}
-                    placeholder="20x25x1"
-                    className="h-12"
-                  />
-                </div>
-              ) : null}
-              <Button type="button" className="h-12" onClick={() => setStep("b")}>
-                Yes, ordered
-              </Button>
-              <Button type="button" variant="secondary" className="h-12" onClick={() => onOpenChange(false)}>
-                Not yet
-              </Button>
-              <Button type="button" variant="ghost" className="h-12" onClick={onJustLooking}>
-                Just looking
-              </Button>
-            </div>
-          </>
-        ) : (
-          <>
-            <SheetHeader>
-              <SheetTitle>When does it arrive?</SheetTitle>
-              <SheetDescription>We’ll check in the day after it arrives.</SheetDescription>
-            </SheetHeader>
-            <div className="grid gap-4 px-4 pb-4">
-              {showArrivalTip ? (
-                <TeachingTip onDismiss={() => onDismissArrivalTip?.()}>
-                  Pick the day it should get here. We check in the day after, then you mark it received.
-                </TeachingTip>
-              ) : null}
-              <ArrivalChips
-                offset={offset}
-                dateDraft={dateDraft}
-                onOffset={setOffset}
-                onDate={setDateDraft}
+        <SheetHeader>
+          <SheetTitle>Confirm your order</SheetTitle>
+          <SheetDescription>
+            {item.itemName}
+            {size ? ` · ${size}` : ""}
+            {store ? ` · ${store}` : ""}
+          </SheetDescription>
+        </SheetHeader>
+        <div className="grid gap-4 px-4 pb-4">
+          {askSize ? (
+            <div className="grid gap-1.5">
+              <label htmlFor="order-size" className="text-[13px] text-muted-foreground">
+                Size or model (optional)
+              </label>
+              <Input
+                id="order-size"
+                value={sizeDraft}
+                onChange={(event) => setSizeDraft(event.target.value)}
+                placeholder="20x25x1"
+                className="h-12"
               />
-              <div className="grid gap-1.5">
-                <p className="text-[13px] font-medium">How many?</p>
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="size-11"
-                    aria-label="Decrease quantity"
-                    onClick={() => setQty((current) => Math.max(1, current - 1))}
-                  >
-                    −
-                  </Button>
-                  <span className="min-w-8 text-center text-[17px] font-medium">{qty}</span>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="size-11"
-                    aria-label="Increase quantity"
-                    onClick={() => setQty((current) => Math.min(99, current + 1))}
-                  >
-                    +
-                  </Button>
-                </div>
-              </div>
+            </div>
+          ) : null}
+          {showArrivalTip ? (
+            <TeachingTip onDismiss={() => onDismissArrivalTip?.()}>
+              Pick the day it should get here. We check in the day after, then you mark it received.
+            </TeachingTip>
+          ) : null}
+          <div className="grid gap-1.5">
+            <p className="text-[13px] font-medium">When does it arrive?</p>
+            <ArrivalChips offset={offset} dateDraft={dateDraft} onOffset={setOffset} onDate={setDateDraft} />
+          </div>
+          <div className="grid gap-1.5">
+            <p className="text-[13px] font-medium">How many?</p>
+            <div className="flex items-center gap-3">
               <Button
                 type="button"
-                className="h-12"
-                onClick={() =>
-                  onConfirm({
-                    expectedArrivalDate: arrivalDate(),
-                    qty,
-                    retailer: retailer || item.preferredRetailer,
-                    sizeSpec: askSize ? sizeDraft.trim() || undefined : undefined,
-                  })
-                }
+                variant="secondary"
+                className="size-11"
+                aria-label="Decrease quantity"
+                onClick={() => setQty((current) => Math.max(1, current - 1))}
               >
-                Done
+                −
+              </Button>
+              <span className="min-w-8 text-center text-[17px] font-medium">{qty}</span>
+              <Button
+                type="button"
+                variant="secondary"
+                className="size-11"
+                aria-label="Increase quantity"
+                onClick={() => setQty((current) => Math.min(99, current + 1))}
+              >
+                +
               </Button>
             </div>
-          </>
-        )}
+          </div>
+          <div className="grid gap-2">
+            <Button
+              type="button"
+              className="h-12"
+              onClick={() =>
+                onConfirm({
+                  expectedArrivalDate: arrivalDate(),
+                  qty,
+                  retailer: retailer || item.preferredRetailer,
+                  sizeSpec: askSize ? sizeDraft.trim() || undefined : undefined,
+                })
+              }
+            >
+              Yes, ordered
+            </Button>
+            <Button type="button" variant="secondary" className="h-12" onClick={() => onOpenChange(false)}>
+              Not yet
+            </Button>
+            <Button type="button" variant="ghost" className="h-12" onClick={onJustLooking}>
+              Just looking
+            </Button>
+          </div>
+        </div>
       </SheetContent>
     </Sheet>
   );
@@ -570,7 +576,7 @@ function ArrivalChips({
             type="button"
             size="sm"
             variant={offset === option.days ? "default" : "secondary"}
-            className={cn("h-8 rounded-full")}
+            className={cn("h-11 rounded-full")}
             onClick={() => {
               onOffset(option.days);
               onDate(toISODate(addDays(new Date(), option.days)));
@@ -583,7 +589,7 @@ function ArrivalChips({
           type="button"
           size="sm"
           variant={offset === "date" ? "default" : "secondary"}
-          className="h-8 rounded-full"
+          className="h-11 rounded-full"
           onClick={() => onOffset("date")}
         >
           Pick a date

@@ -35,8 +35,8 @@ export function FaceLock({
   }
 
   useEffect(() => {
-    // Prompt once on mount; the button covers retries.
-    const timer = window.setTimeout(() => void unlock(), 0);
+    // Show Unlock UI first; one delayed auto-prompt for returning users.
+    const timer = window.setTimeout(() => void unlock(), 400);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -48,6 +48,9 @@ export function FaceLock({
       </div>
       <h1 className="ui-heading mt-10 text-[20px] font-semibold tracking-tight">Locked</h1>
       <p className="mt-2 max-w-xs text-sm text-muted-foreground">{lockMethodLabel(method).prompt}</p>
+      <p className="mt-2 max-w-xs text-[13px] text-muted-foreground">
+        Uses your iPhone passcode if Face ID isn’t available.
+      </p>
       {showTip ? (
         <div className="mt-4 w-full max-w-xs text-left">
           <TeachingTip onDismiss={() => onDismissTip?.()}>

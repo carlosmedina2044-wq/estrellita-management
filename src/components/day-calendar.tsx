@@ -23,11 +23,11 @@ export function DayCalendar({
   const days = Array.from({ length: 42 }, (_, index) => addDays(start, index));
 
   return (
-    <div className="rounded-2xl bg-white px-3 py-3">
+    <div className="rounded-2xl bg-card px-3 py-3">
       <div className="mb-2 flex items-center justify-between">
         <button
           type="button"
-          className="flex size-9 items-center justify-center text-primary"
+          className="flex size-11 items-center justify-center text-primary"
           onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
           aria-label="Previous month"
         >
@@ -36,7 +36,7 @@ export function DayCalendar({
         <p className="ui-heading text-[17px] font-semibold">{formatMonthTitle(month)}</p>
         <button
           type="button"
-          className="flex size-9 items-center justify-center text-primary"
+          className="flex size-11 items-center justify-center text-primary"
           onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
           aria-label="Next month"
         >
@@ -62,7 +62,7 @@ export function DayCalendar({
               type="button"
               onClick={() => onSelect(day)}
               className={cn(
-                "mx-auto flex size-9 items-center justify-center rounded-full text-[15px]",
+                "mx-auto flex size-11 items-center justify-center rounded-full text-[15px]",
                 !inMonth && "text-muted-foreground/40",
                 isSelected && "bg-primary font-semibold text-primary-foreground",
                 !isSelected && isToday && "font-semibold text-primary",

@@ -1,6 +1,7 @@
 "use client";
 
-import { Package } from "lucide-react";
+import { AlertCircle, Package } from "lucide-react";
+import { useEffect, useState } from "react";
 import { RoomTypeIcon } from "@/components/room-type-icon";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { nodeStatus, statusText, type NodeStatus } from "@/lib/node-status";
@@ -53,7 +54,7 @@ export function HomeMapView({
               </header>
             )}
             {rooms.length === 0 ? (
-              <p className="rounded-2xl bg-white px-4 py-6 text-center text-[15px] text-muted-foreground">
+              <p className="rounded-2xl bg-card px-4 py-6 text-center text-[15px] text-muted-foreground">
                 No rooms on this floor yet.
               </p>
             ) : (
@@ -101,6 +102,16 @@ function TileGrid({
   onSelectRoom: (roomId: string) => void;
   onReorder?: (orderedIds: string[]) => void;
 }) {
+  const [finePointer, setFinePointer] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(pointer: fine)");
+    const sync = () => setFinePointer(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+  const canDrag = Boolean(onReorder) && finePointer;
+
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {rooms.map((room) => {
@@ -111,17 +122,18 @@ function TileGrid({
           <button
             key={room.id}
             type="button"
-            draggable={Boolean(onReorder)}
+            draggable={canDrag}
             onDragStart={(event) => {
+              if (!canDrag) return;
               event.dataTransfer.setData("text/plain", room.id);
               event.dataTransfer.effectAllowed = "move";
             }}
             onDragOver={(event) => {
-              if (!onReorder) return;
+              if (!canDrag) return;
               event.preventDefault();
             }}
             onDrop={(event) => {
-              if (!onReorder) return;
+              if (!canDrag || !onReorder) return;
               event.preventDefault();
               const from = event.dataTransfer.getData("text/plain");
               if (!from || from === room.id) return;
@@ -144,7 +156,10 @@ function TileGrid({
               <RoomTypeIcon room={room} className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
               <span className="min-w-0">
                 <span className="block text-[17px] font-medium leading-snug">{room.name}</span>
-                <span className={cn("mt-0.5 block text-[13px]", caption.className)}>{caption.text}</span>
+                <span className={cn("mt-0.5 flex items-center gap-1 text-[13px]", caption.className)}>
+                  {overdue ? <AlertCircle className="size-3.5 shrink-0" aria-hidden /> : null}
+                  {caption.text}
+                </span>
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
@@ -166,14 +181,10 @@ function TileGrid({
 
 function StatusLine({
   status,
-  compact,
 }: {
   status: NodeStatus;
   compact?: boolean;
 }) {
   const text = statusText(status);
-  if (compact) {
-    return <span className="text-[13px] text-muted-foreground">{text}</span>;
-  }
   return <span className="text-[13px] text-muted-foreground">{text}</span>;
 }

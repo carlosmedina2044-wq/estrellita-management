@@ -120,7 +120,7 @@ export function RestockView({
           household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
               type="button"
-              className="grid size-10 place-items-center rounded-full bg-secondary"
+              className="grid size-11 place-items-center rounded-full bg-secondary"
               aria-label="More"
               onClick={() => setMenuOpen(true)}
             >

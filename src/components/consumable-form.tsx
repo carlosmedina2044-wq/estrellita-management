@@ -219,8 +219,8 @@ export function ConsumableForm({
                   type="button"
                   className={
                     draft.lifespanMonths === item.months
-                      ? "h-9 rounded-full bg-primary px-3 text-[13px] font-medium text-primary-foreground"
-                      : "h-9 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                      ? "h-11 rounded-full bg-primary px-3 text-[13px] font-medium text-primary-foreground"
+                      : "h-11 rounded-full bg-secondary px-3 text-[13px] font-medium"
                   }
                   onClick={() =>
                     setDraft((current) => ({

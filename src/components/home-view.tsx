@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { HomeEditor } from "@/components/home-editor";
 import {
   AlertDialog,
@@ -20,12 +19,14 @@ import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 import { verifyDeviceOwner } from "@/lib/native/biometrics";
 import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
 import { notifyPermission, plannedNotifications, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
-import type { ClimateZone, Household, RestockDigestSettings } from "@/lib/types";
+import type { Household, RestockDigestSettings } from "@/lib/types";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
 import { ZipSheet } from "@/components/zip-prompt";
+import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0";
 
@@ -90,6 +91,7 @@ export function HomeView({
   const [cleaner, setCleaner] = useState(household.cleanerName);
   const [confirmErase, setConfirmErase] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
+  const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
   const [permission, setPermission] = useState<NotifyPermission>("prompt");
 
   useEffect(() => {
@@ -163,30 +165,53 @@ export function HomeView({
             </p>
             <p className="mt-1 text-[13px] text-muted-foreground">Used for Apple Weather and which seasonal jobs apply here.</p>
           </button>
-          <div className="ui-group-row grid gap-1.5 px-4 py-3">
+          <div className="ui-group-row grid gap-2 px-4 py-3">
             <Label className="text-[13px] font-medium text-muted-foreground">Climate zone</Label>
-            <select
-              className="h-11 rounded-xl bg-secondary px-3 text-[15px]"
-              value={household.location.climateZoneOverride ?? "auto"}
-              onChange={(event) => {
-                const value = event.target.value;
-                const override = value === "auto" ? undefined : (value as ClimateZone);
-                void onUpdate({
-                  location: {
-                    ...household.location,
-                    climateZoneOverride: override,
-                    climateZone: override ?? deriveClimate({ ...household.location, climateZoneOverride: undefined }),
-                  },
-                });
-              }}
-            >
-              <option value="auto">Auto ({climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined }))})</option>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={cn(
+                  "h-11 rounded-full px-3.5 text-[13px] font-medium",
+                  !household.location.climateZoneOverride
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground",
+                )}
+                onClick={() =>
+                  void onUpdate({
+                    location: {
+                      ...household.location,
+                      climateZoneOverride: undefined,
+                      climateZone: deriveClimate({ ...household.location, climateZoneOverride: undefined }),
+                    },
+                  })
+                }
+              >
+                Auto ({climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined }))})
+              </button>
               {CLIMATE_ZONES.map((zone) => (
-                <option key={zone} value={zone}>
+                <button
+                  key={zone}
+                  type="button"
+                  className={cn(
+                    "h-11 rounded-full px-3.5 text-[13px] font-medium",
+                    household.location.climateZoneOverride === zone
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground",
+                  )}
+                  onClick={() =>
+                    void onUpdate({
+                      location: {
+                        ...household.location,
+                        climateZoneOverride: zone,
+                        climateZone: zone,
+                      },
+                    })
+                  }
+                >
                   {climateLabel(zone)}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         </div>
       </section>
@@ -216,29 +241,41 @@ export function HomeView({
               {restockDigest.enabled ? "On" : "Off"}
             </button>
             {restockDigest.enabled ? (
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <select
-                  className="h-11 rounded-xl bg-secondary px-3 text-[15px]"
-                  value={restockDigest.weekday}
-                  onChange={(event) => onUpdateDigest({ weekday: Number(event.target.value) })}
-                >
-                  {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day, index) => (
-                    <option key={day} value={index}>
+              <div className="mt-3 grid gap-3">
+                <div className="flex flex-wrap gap-2">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
+                    <button
+                      key={day}
+                      type="button"
+                      className={cn(
+                        "h-11 min-w-11 rounded-full px-3 text-[13px] font-medium",
+                        restockDigest.weekday === index
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground",
+                      )}
+                      onClick={() => onUpdateDigest({ weekday: index })}
+                    >
                       {day}
-                    </option>
+                    </button>
                   ))}
-                </select>
-                <select
-                  className="h-11 rounded-xl bg-secondary px-3 text-[15px]"
-                  value={restockDigest.hour}
-                  onChange={(event) => onUpdateDigest({ hour: Number(event.target.value) })}
-                >
+                </div>
+                <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                   {Array.from({ length: 24 }, (_, hour) => (
-                    <option key={hour} value={hour}>
+                    <button
+                      key={hour}
+                      type="button"
+                      className={cn(
+                        "h-11 shrink-0 rounded-full px-3 text-[13px] font-medium",
+                        restockDigest.hour === hour
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground",
+                      )}
+                      onClick={() => onUpdateDigest({ hour })}
+                    >
                       {`${String(hour).padStart(2, "0")}:00`}
-                    </option>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             ) : null}
           </div>
@@ -278,8 +315,8 @@ export function HomeView({
               type="button"
               className={
                 household.lockSettings.lockAfter === item
-                  ? "h-10 flex-1 rounded-full bg-primary text-[13px] text-primary-foreground"
-                  : "h-10 flex-1 rounded-full bg-secondary text-[13px]"
+                  ? "h-11 flex-1 rounded-full bg-primary text-[13px] text-primary-foreground"
+                  : "h-11 flex-1 rounded-full bg-secondary text-[13px]"
               }
               onClick={() => void onUpdate({ lockSettings: { ...household.lockSettings, lockAfter: item } })}
             >
@@ -338,9 +375,15 @@ export function HomeView({
           file is extra protection. There is no account and no server copy. Deleting the app deletes the data.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-primary">
-          <Link href="/how-it-works">How Cuidala works</Link>
-          <Link href="/privacy">Privacy policy</Link>
-          <Link href="/terms">Additional terms</Link>
+          <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("how-it-works")}>
+            How Cuidala works
+          </button>
+          <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("privacy")}>
+            Privacy policy
+          </button>
+          <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("terms")}>
+            Additional terms
+          </button>
         </div>
         <a
           className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-secondary text-sm font-medium"
@@ -403,6 +446,7 @@ export function HomeView({
           }}
         />
       )}
+      <LegalDocSheet doc={legalDoc} onOpenChange={(open) => !open && setLegalDoc(null)} />
       <div className="mt-6 flex flex-col items-center gap-1 pb-2">
         <BrandMark size="sm" />
         <p className="text-[11px] text-muted-foreground">Cuidala</p>

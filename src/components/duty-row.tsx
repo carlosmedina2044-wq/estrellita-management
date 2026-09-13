@@ -114,9 +114,9 @@ export function DutyRow({
         <button
           type="button"
           onClick={onPartChip}
-          className="self-center pr-3"
+          className="flex min-h-11 items-center self-center pr-3"
         >
-          <Badge variant="secondary" className={CHIP}>
+          <Badge variant="secondary" className={cn(CHIP, "h-11 px-3")}>
             {partChip.label}
           </Badge>
         </button>

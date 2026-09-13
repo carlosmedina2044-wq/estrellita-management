@@ -72,13 +72,26 @@ export function RetailerPickerSheet({
           <SheetDescription className="sr-only">Choose a store to order {item.itemName}.</SheetDescription>
         </SheetHeader>
         <div className="grid gap-4 px-4 pb-4">
+          {onAlreadyOrdered ? (
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-12 w-full"
+              onClick={() => {
+                onOpenChange(false);
+                onAlreadyOrdered();
+              }}
+            >
+              I already ordered it
+            </Button>
+          ) : null}
           <div className="text-[13px] text-muted-foreground">
             {size ? (
               size
             ) : onAddSize ? (
               <button
                 type="button"
-                className="text-left text-primary"
+                className="inline-flex min-h-11 items-center text-left text-primary"
                 onClick={() => {
                   onOpenChange(false);
                   onAddSize();
@@ -107,7 +120,7 @@ export function RetailerPickerSheet({
                     type="button"
                     size="sm"
                     variant="secondary"
-                    className="h-8 rounded-full"
+                    className="h-11 rounded-full"
                     onClick={() => void shop(chip.searchUrl(query), chip.id)}
                   >
                     {chip.label}
@@ -127,7 +140,7 @@ export function RetailerPickerSheet({
                   type="button"
                   size="sm"
                   variant="secondary"
-                  className="h-8 max-w-full rounded-full"
+                  className="h-11 max-w-full rounded-full"
                   onClick={() => void shop(entry.url, hostOf(entry.url), entry.url)}
                 >
                   <span className="truncate">{savedRetailerLabel(entry.url)}</span>
@@ -143,19 +156,6 @@ export function RetailerPickerSheet({
           <p className="text-[13px] text-muted-foreground">
             You check out on the store’s site. Cuidala never sees your payment.
           </p>
-          {onAlreadyOrdered ? (
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-12 w-full"
-              onClick={() => {
-                onOpenChange(false);
-                onAlreadyOrdered();
-              }}
-            >
-              I already ordered it
-            </Button>
-          ) : null}
         </div>
       </SheetContent>
     </Sheet>

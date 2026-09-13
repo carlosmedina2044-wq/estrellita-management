@@ -285,7 +285,7 @@ export function HomeEditor({
                 <button
                   key={years}
                   type="button"
-                  className="h-8 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                  className="h-11 rounded-full bg-secondary px-3 text-[13px] font-medium"
                   onClick={() => setAssetWarranty(warrantyFromInstall(assetInstall, years))}
                 >
                   +{years} yr
@@ -386,7 +386,7 @@ export function HomeEditor({
                         <button
                           key={years}
                           type="button"
-                          className="h-8 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                          className="h-11 rounded-full bg-secondary px-3 text-[13px] font-medium"
                           onClick={() =>
                             onChange({
                               ...household,

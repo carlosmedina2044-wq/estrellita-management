@@ -102,6 +102,7 @@ export function TodayView({
   const [creatingRule, setCreatingRule] = useState(false);
   const [weekExpanded, setWeekExpanded] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
+  const [zipBannerDismissed, setZipBannerDismissed] = useState(false);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
   const [prevFocus, setPrevFocus] = useState(focus);
@@ -247,19 +248,7 @@ export function TodayView({
       <PageHeader
         eyebrow={greeting}
         title={headingDate}
-        subtitle={
-          needsZip && onSavePostalCode ? (
-            <button
-              type="button"
-              className="text-left text-sm font-medium text-primary"
-              onClick={() => setZipOpen(true)}
-            >
-              {weatherLine ?? "Add your ZIP for weather"}
-            </button>
-          ) : (
-            (weatherLine ?? listSummary)
-          )
-        }
+        subtitle={needsZip ? listSummary : (weatherLine ?? listSummary)}
         action={
           onOpenSettings ? (
             <button
@@ -273,6 +262,22 @@ export function TodayView({
           ) : undefined
         }
       />
+      {needsZip && onSavePostalCode && !zipBannerDismissed ? (
+        <div className="rounded-2xl bg-card px-4 py-4">
+          <p className="text-[17px] font-medium">Add your ZIP</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            {weatherLine ?? "Used for Apple Weather and which seasonal jobs apply here."}
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button className="h-11 flex-1" onClick={() => setZipOpen(true)}>
+              Add ZIP
+            </Button>
+            <Button variant="secondary" className="h-11 flex-1" onClick={() => setZipBannerDismissed(true)}>
+              Not now
+            </Button>
+          </div>
+        </div>
+      ) : null}
       {weatherLine && !needsZip ? (
         <AppleWeatherAttribution attribution={household.weatherStatus.attribution} />
       ) : null}
@@ -286,14 +291,18 @@ export function TodayView({
             <li>{household.teaching.setDigestOrZip ? "✓" : "○"} Turn on the weekly digest, or add a ZIP</li>
           </ul>
           <div className="mt-3 flex gap-2">
-            <Button className="h-10 flex-1" onClick={() => onOpenRestock?.()}>
+            <Button className="h-11 flex-1" onClick={() => onOpenRestock?.()}>
               Open Restock
             </Button>
-            <Button variant="secondary" className="h-10 flex-1" onClick={() => onOpenDigest?.()}>
+            <Button variant="secondary" className="h-11 flex-1" onClick={() => onOpenDigest?.()}>
               Digest
             </Button>
           </div>
-          <button type="button" className="mt-2 text-[13px] text-muted-foreground" onClick={onDismissTeaching}>
+          <button
+            type="button"
+            className="mt-2 inline-flex min-h-11 items-center text-[13px] text-muted-foreground"
+            onClick={onDismissTeaching}
+          >
             Hide this
           </button>
         </div>
@@ -420,7 +429,7 @@ export function TodayView({
           <div className="flex items-center justify-between gap-3">
             <p className="font-medium">{restockHeader}</p>
             {onOpenRestock ? (
-              <button type="button" className="text-[13px] font-medium text-primary" onClick={onOpenRestock}>
+              <button type="button" className="inline-flex min-h-11 items-center text-[13px] font-medium text-primary" onClick={onOpenRestock}>
                 See all
               </button>
             ) : null}

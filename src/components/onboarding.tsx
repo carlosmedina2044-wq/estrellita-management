@@ -6,11 +6,8 @@ import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { climatePayoff } from "@/lib/climate-payoff";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
-import { DEFAULT_ATTRIBUTES } from "@/lib/household-defaults";
 import {
-  defaultFeatures,
   generateHomeFromAnswers,
   sampleHomeAnswers,
   type FeatureKey,
@@ -28,7 +25,7 @@ import {
 import { RETAILER_CHIPS } from "@/lib/retailer";
 import { geocodeUsZip } from "@/lib/weather/client";
 import { isNative } from "@/lib/native/platform";
-import type { HomeAttributes, HomeLocation, HomeType, RetailerId, Tenure } from "@/lib/types";
+import type { HomeLocation, HomeType, RetailerId, Tenure } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const EXTRA_HOME_FEATURES: { id: FeatureKey; label: string }[] = [
@@ -79,9 +76,8 @@ export function Onboarding({
     restockPicks,
     preferredRetailers,
   };
-  const lastStep = 6;
+  const lastStep = 4;
   const progress = step / lastStep;
-  const preview = climatePayoff(location, attributesForPreview(homeType, location), tenure);
 
   function go(next: number) {
     setStep(next);
@@ -100,7 +96,6 @@ export function Onboarding({
   function applyType(next: HomeType) {
     setHomeType(next);
     setRooms(roomTemplateFor(next));
-    go(2);
   }
 
   function addRoom(type: RoomChoice["type"]) {
@@ -118,11 +113,11 @@ export function Onboarding({
     setAdding(false);
   }
 
-  function enterWalk() {
+  function enterWalk(nextLocation: HomeLocation = location) {
     const preview = generateHomeFromAnswers({
       homeType,
       tenure,
-      location,
+      location: nextLocation,
       nickname: "Home",
       rooms,
       features: extraFeatures,
@@ -131,20 +126,16 @@ export function Onboarding({
     setRestockPicks(defaultWalkPicks(preview));
     setWalkPhase("items");
     setSizeBanner(false);
-    go(6);
+    go(4);
   }
 
   function afterLocation(nextLocation: HomeLocation) {
-    const resolved = {
+    const resolvedLocation = { ...nextLocation, climateZone: deriveClimate(nextLocation) };
+    enterWalk(resolvedLocation);
+    return {
       ...answers,
-      location: { ...nextLocation, climateZone: deriveClimate(nextLocation) },
+      location: resolvedLocation,
     };
-    if (nextLocation.postalCode || (nextLocation.lat != null && nextLocation.lng != null)) {
-      go(5);
-      return resolved;
-    }
-    enterWalk();
-    return resolved;
   }
 
   function continueFromWalk() {
@@ -243,7 +234,7 @@ export function Onboarding({
         {step === 0 ? (
           <Screen
             title="Your home, on your iPhone."
-            copy="Rooms, chores, and the filters and batteries you reorder. All on this device. Setup takes about two minutes."
+            copy="Rooms, chores, and the filters and batteries you reorder. All on this device. Setup takes about a minute."
           >
             <Button className="h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
               Set up my home
@@ -265,7 +256,11 @@ export function Onboarding({
         ) : null}
 
         {step === 1 ? (
-          <Screen title="What are you managing?" copy="Tap one. Rooms are pre-filled so you can finish in a couple of minutes.">
+          <Screen
+            title="Tell us about your place"
+            copy="Home type fills rooms. How long you’ve been here shapes the first-week checklist."
+          >
+            <p className="mb-2 text-[13px] font-medium text-muted-foreground">What are you managing?</p>
             <ChoiceGrid
               value={homeType}
               options={[
@@ -276,11 +271,7 @@ export function Onboarding({
               ]}
               onChange={(value) => applyType(value as HomeType)}
             />
-          </Screen>
-        ) : null}
-
-        {step === 2 ? (
-          <Screen title="How long have you been here?" copy="Tap the closest fit. We’ll use this for the first-week checklist.">
+            <p className="mb-2 mt-6 text-[13px] font-medium text-muted-foreground">How long have you been here?</p>
             <ChoiceGrid
               value={tenure ?? ""}
               options={[
@@ -288,20 +279,20 @@ export function Onboarding({
                 { id: "settled", label: "A few years" },
                 { id: "longtime", label: "A long time" },
               ]}
-              onChange={(value) => {
-                setTenure(value as Tenure);
-                go(3);
-              }}
+              onChange={(value) => setTenure(value as Tenure)}
             />
             <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(1)}>
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(0)}>
                 Back
+              </Button>
+              <Button className="h-14 flex-1" disabled={!tenure} onClick={() => go(2)}>
+                Continue
               </Button>
             </div>
           </Screen>
         ) : null}
 
-        {step === 3 ? (
+        {step === 2 ? (
           <Screen title="Build your home" copy="Toggle rooms, rename them, or add one. Chores attach after you finish.">
             <div className="grid gap-2">
               {rooms.map((room) => (
@@ -356,7 +347,7 @@ export function Onboarding({
                     key={item.id}
                     type="button"
                     className={cn(
-                      "h-9 rounded-full px-3 text-[13px] font-medium",
+                      "h-11 rounded-full px-3 text-[13px] font-medium",
                       on ? "bg-primary text-primary-foreground" : "bg-secondary",
                     )}
                     onClick={() =>
@@ -371,13 +362,13 @@ export function Onboarding({
               })}
             </div>
             <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(2)}>
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(1)}>
                 Back
               </Button>
               <Button
                 className="h-14 flex-1"
                 disabled={!rooms.some((room) => room.enabled && !room.system)}
-                onClick={() => go(4)}
+                onClick={() => go(3)}
               >
                 Continue
               </Button>
@@ -385,7 +376,7 @@ export function Onboarding({
           </Screen>
         ) : null}
 
-        {step === 4 ? (
+        {step === 3 ? (
           <Screen
             title="Where is it?"
             copy="ZIP is for climate and seasonal tasks. Weather comes from Apple Weather on this iPhone."
@@ -416,36 +407,10 @@ export function Onboarding({
           </Screen>
         ) : null}
 
-        {step === 5 ? (
-          <Screen
-            title={preview.headline}
-            copy={`Mapped to ${preview.zoneLabel}. What this climate means for your house. These jobs show up on Seasonal when they’re due.`}
-          >
-            <ul className="grid gap-2">
-              {preview.beats.map((beat) => (
-                <li key={beat} className="rounded-2xl bg-card px-4 py-3 text-[15px] leading-5">
-                  {beat}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-4 text-[13px] leading-5 text-muted-foreground">
-              This home lives only on this iPhone. Your home moves to your next iPhone with your normal iCloud backup.
-            </p>
-            <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(4)}>
-                Back
-              </Button>
-              <Button className="h-14 flex-1" onClick={() => enterWalk()}>
-                Continue
-              </Button>
-            </div>
-          </Screen>
-        ) : null}
-
-        {step === 6 && walkPhase === "items" ? (
+        {step === 4 && walkPhase === "items" ? (
           <Screen
             title="Walk your house"
-            copy="Room by room. Tap what you buy, add anything we missed. Sizes come later, when you order."
+            copy="Recommended items are checked. Uncheck what you don’t buy, add anything we missed. Sizes come later, when you order."
           >
             <RestockWalkPicker
               picks={restockPicks}
@@ -489,11 +454,7 @@ export function Onboarding({
               }}
             />
             <div className="mt-auto flex gap-3 pt-6">
-              <Button
-                variant="secondary"
-                className="h-14 flex-1"
-                onClick={() => go(location.postalCode || location.lat != null ? 5 : 4)}
-              >
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(3)}>
                 Back
               </Button>
               <Button className="h-14 flex-1" disabled={busy} onClick={continueFromWalk}>
@@ -503,7 +464,7 @@ export function Onboarding({
           </Screen>
         ) : null}
 
-        {step === 6 && walkPhase === "stores" ? (
+        {step === 4 && walkPhase === "stores" ? (
           <Screen
             title="Where do you usually shop?"
             copy="Order buttons open your stores first. You can change this any time."
@@ -518,7 +479,7 @@ export function Onboarding({
                     key={chip.id}
                     type="button"
                     className={cn(
-                      "h-10 rounded-full px-3 text-[15px] font-medium",
+                      "h-11 rounded-full px-3 text-[15px] font-medium",
                       index >= 0 ? "bg-primary text-primary-foreground" : "bg-secondary",
                     )}
                     onClick={() => toggleRetailer(chip.id)}
@@ -546,14 +507,6 @@ export function Onboarding({
       </div>
     </div>
   );
-}
-
-function attributesForPreview(homeType: HomeType, location: HomeLocation): HomeAttributes {
-  const features = defaultFeatures(homeType, location);
-  return {
-    ...DEFAULT_ATTRIBUTES,
-    ...Object.fromEntries(features.map((id) => [id, true])),
-  };
 }
 
 function Screen({

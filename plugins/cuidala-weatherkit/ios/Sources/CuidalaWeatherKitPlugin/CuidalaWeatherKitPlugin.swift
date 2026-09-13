@@ -112,9 +112,15 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 async let darkData = URLSession.shared.data(from: attribution.combinedMarkDarkURL)
                 let (light, _) = try await lightData
                 let (dark, _) = try await darkData
+                let legalText: String
+                if #available(iOS 16.4, *) {
+                    legalText = attribution.legalAttributionText
+                } else {
+                    legalText = "Other data sources"
+                }
                 let payload: [String: String] = [
                     "legalPageURL": attribution.legalPageURL.absoluteString,
-                    "legalText": attribution.legalAttributionText,
+                    "legalText": legalText,
                     "markLight": "data:image/png;base64,\(light.base64EncodedString())",
                     "markDark": "data:image/png;base64,\(dark.base64EncodedString())"
                 ]

@@ -123,7 +123,7 @@ export function RestockWalkPicker({
                               key={variant.id}
                               type="button"
                               className={cn(
-                                "h-8 rounded-full px-3 text-[13px] font-medium",
+                                "h-11 rounded-full px-3 text-[13px] font-medium",
                                 pick.variant === variant.label ? "bg-primary text-primary-foreground" : "bg-secondary",
                               )}
                               onClick={() => {
@@ -137,7 +137,7 @@ export function RestockWalkPicker({
                           <button
                             type="button"
                             className={cn(
-                              "h-8 rounded-full px-3 text-[13px] font-medium",
+                              "h-11 rounded-full px-3 text-[13px] font-medium",
                               typing ? "bg-primary text-primary-foreground" : "bg-secondary",
                             )}
                             onClick={() => {

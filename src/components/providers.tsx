@@ -10,7 +10,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       {children}
-      <Toaster position="top-center" />
+      <Toaster position="bottom-center" className="mb-[max(1rem,env(safe-area-inset-bottom))]" />
     </ThemeProvider>
   );
 }

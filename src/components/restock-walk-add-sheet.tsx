@@ -135,7 +135,7 @@ export function RestockWalkAddSheet({
                 <button
                   key={entry.id}
                   type="button"
-                  className="h-9 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                  className="h-11 rounded-full bg-secondary px-3 text-[13px] font-medium"
                   onClick={() => applyChip(entry)}
                 >
                   {entry.itemName}
@@ -151,7 +151,7 @@ export function RestockWalkAddSheet({
                   key={item.months}
                   type="button"
                   className={cn(
-                    "h-9 rounded-full px-3 text-[13px] font-medium",
+                    "h-11 rounded-full px-3 text-[13px] font-medium",
                     intervalMonths === item.months ? "bg-primary text-primary-foreground" : "bg-secondary",
                   )}
                   onClick={() => setIntervalMonths(item.months)}

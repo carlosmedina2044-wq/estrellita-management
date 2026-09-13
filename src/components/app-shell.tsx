@@ -360,8 +360,9 @@ export function AppShell() {
       <main
         className={cn(
           "app-shell-main min-w-0 flex-1 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]",
-          !showTabBar && "app-shell-main--no-tab-bar",
+          !showTabBar && "app-shell-main--no-tab-bar app-shell-main--push",
         )}
+        key={tab}
       >
         {tab === "today" ? (
           <TodayView
