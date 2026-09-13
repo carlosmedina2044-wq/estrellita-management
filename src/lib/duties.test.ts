@@ -391,3 +391,21 @@ test("shareDoneText lists checked titles or the empty line", () => {
   ]);
   assert.equal(text, `Casa: what's done\n\n- [x] Wipe counters · Ana · ${formatTime(completedAt)}`);
 });
+
+test("shareDoneText appends a month recap after five completions", () => {
+  const wipe = duty({ id: "wipe", title: "Wipe counters", estimatedMinutes: 10 });
+  const now = new Date(2026, 8, 13, 12, 0, 0);
+  const home = household({
+    duties: [wipe],
+    completions: Array.from({ length: 5 }, (_, index) =>
+      completion({
+        id: `recap-${index}`,
+        dutyId: "wipe",
+        completedAt: new Date(2026, 8, index + 1, 9, 0, 0).toISOString(),
+      }),
+    ),
+  });
+  const text = shareDoneText(home, [], now);
+  assert.match(text, /Nothing completed yet/);
+  assert.match(text, /5 finished this month · 50 min/);
+});

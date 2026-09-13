@@ -16,6 +16,7 @@ import {
   toISODate,
   weekRange,
 } from "@/lib/dates";
+import { monthRecap } from "@/lib/momentum";
 import type { Audience, Completion, Duty, Frequency, Household } from "@/lib/types";
 
 export function lastCompletion(
@@ -549,16 +550,20 @@ function doneActorName(household: Household, actor: Completion["actor"]): string
   return tActive("audience.me");
 }
 
-export function shareDoneText(household: Household, entries: DoneEntry[]): string {
+export function shareDoneText(household: Household, entries: DoneEntry[], now = new Date()): string {
   const lines = [tActive("share.doneHeader", { name: household.householdName }), ""];
   if (entries.length === 0) {
     lines.push(tActive("share.doneNone"));
-    return lines.join("\n").trim();
+  } else {
+    for (const { duty, completion } of entries) {
+      const who = doneActorName(household, completion.actor);
+      const time = formatTime(new Date(completion.completedAt));
+      lines.push(`- [x] ${tDutyTitle(duty.title)} · ${who} · ${time}`);
+    }
   }
-  for (const { duty, completion } of entries) {
-    const who = doneActorName(household, completion.actor);
-    const time = formatTime(new Date(completion.completedAt));
-    lines.push(`- [x] ${tDutyTitle(duty.title)} · ${who} · ${time}`);
+  const recap = monthRecap(household, now);
+  if (recap.done >= 5) {
+    lines.push("", tActive("share.recapLine", { done: recap.done, minutes: recap.minutes }));
   }
   return lines.join("\n").trim();
 }

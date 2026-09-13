@@ -2,6 +2,7 @@ import { tActive } from "@/i18n";
 import { tDutyTitle } from "@/i18n/content";
 import { addDays } from "@/lib/dates";
 import { todaysOpenDuties } from "@/lib/duties";
+import { closedDayRun } from "@/lib/momentum";
 import type { Duty, Household, MorningBriefSettings } from "@/lib/types";
 
 export const DEFAULT_MORNING_BRIEF: MorningBriefSettings = {
@@ -16,10 +17,18 @@ export const BRIEF_DAYS = 7;
 export function briefCopy(
   duties: Array<Pick<Duty, "title">>,
   privateNotifications = false,
+  household?: Household,
+  now = new Date(),
 ): { title: string; body: string } {
   const count = duties.length;
-  const title =
+  let title =
     count === 1 ? tActive("notify.briefOne") : tActive("notify.briefMany", { count });
+  if (household?.momentum.enabled) {
+    const { current } = closedDayRun(household, now);
+    if (current >= 2) {
+      title = `${tActive("notify.briefRun", { count: current })} · ${title}`;
+    }
+  }
   if (privateNotifications) {
     return { title, body: tActive("digest.openDetails") };
   }
@@ -62,7 +71,7 @@ export function morningBriefNotifications(
     if (open.length === 0) continue;
     notices.push({
       id: BRIEF_ID_BASE + offset,
-      ...briefCopy(open, privateNotifications),
+      ...briefCopy(open, privateNotifications, household, now),
       schedule: { at },
       extra: { tab: "today" },
     });
