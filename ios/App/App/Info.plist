@@ -63,6 +63,17 @@
 	<string>Cuidala uses Face ID to lock your home’s chores and restock list so only you can open them.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Cuidala uses your location during setup to pick seasonal tasks and fetch a local forecast. Your ZIP or location is sent to Apple to look up coordinates and weather. Cuidala has no server.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.cuidala.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>cuidala</string>
+			</array>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSAppTransportSecurity</key>

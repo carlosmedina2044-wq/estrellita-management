@@ -22,6 +22,7 @@ import {
   loadOrCreateDeviceKey,
 } from "@/lib/native/device-key";
 import { kvGet, kvRemove, kvSet } from "@/lib/native/kv";
+import { clearWidgetSnapshot, syncWidgetSnapshot } from "@/lib/native/widget";
 import { syncScheduledNotifications } from "@/lib/notifications";
 import { isPlainObject } from "@/lib/sanitize";
 import { EMPTY_HOUSEHOLD, migrateHousehold, parseStored } from "@/lib/storage/migrate";
@@ -222,6 +223,7 @@ function scheduleNotificationSync(next: Household) {
   if (notifyTimer) clearTimeout(notifyTimer);
   notifyTimer = setTimeout(() => {
     void syncScheduledNotifications(next).catch(() => {});
+    void syncWidgetSnapshot(next).catch(() => {});
   }, 1500);
 }
 
@@ -573,6 +575,7 @@ export async function eraseHousehold(): Promise<{ ok: boolean }> {
   lastLoad = { ok: true, legacyLockedVault: false };
   notifyChange();
   void syncScheduledNotifications(memory).catch(() => {});
+  void clearWidgetSnapshot().catch(() => {});
   return { ok: true };
 }
 

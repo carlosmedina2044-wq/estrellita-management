@@ -22,7 +22,8 @@ let package = Package(
         .package(name: "CapacitorShare", path: "../../../node_modules/@capacitor/share"),
         .package(name: "CapacitorSplashScreen", path: "../../../node_modules/@capacitor/splash-screen"),
         .package(name: "CuidalaDeviceKey", path: "../../../plugins/cuidala-device-key"),
-        .package(name: "CuidalaWeatherkit", path: "../../../plugins/cuidala-weatherkit")
+        .package(name: "CuidalaWeatherkit", path: "../../../plugins/cuidala-weatherkit"),
+        .package(name: "CuidalaWidget", path: "../../../plugins/cuidala-widget")
     ],
     targets: [
         .target(
@@ -40,7 +41,8 @@ let package = Package(
                 .product(name: "CapacitorShare", package: "CapacitorShare"),
                 .product(name: "CapacitorSplashScreen", package: "CapacitorSplashScreen"),
                 .product(name: "CuidalaDeviceKey", package: "CuidalaDeviceKey"),
-                .product(name: "CuidalaWeatherkit", package: "CuidalaWeatherkit")
+                .product(name: "CuidalaWeatherkit", package: "CuidalaWeatherkit"),
+                .product(name: "CuidalaWidget", package: "CuidalaWidget")
             ]
         )
     ]
