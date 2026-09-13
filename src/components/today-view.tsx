@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { DayCalendar } from "@/components/day-calendar";
+import { SeasonSection } from "@/components/season-section";
 import { CostPrompt } from "@/components/cost-prompt";
 import { ConsumableForm } from "@/components/consumable-form";
 import { ItemName } from "@/components/item-name";
@@ -352,6 +353,10 @@ export function TodayView({
           <CalendarDays className="size-4" />
         </button>
       </div>
+
+      {scope === "daily" && !viewingCalendar ? (
+        <SeasonSection household={household} now={now} onNavigate={onNavigate} />
+      ) : null}
 
       {calendarOpen ? (
         <DayCalendar

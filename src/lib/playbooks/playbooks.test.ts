@@ -8,6 +8,7 @@ import {
   PLAYBOOKS,
   playbookApplies,
   playbookProgress,
+  seasonSectionModel,
   seasonYearFor,
   seasonalTimeline,
   windowFor,
@@ -368,4 +369,66 @@ test("weatherWatch lists a freeze hit and drops requires-gated triggers", () => 
   }
   assert.ok(result.watching.includes("Hard freeze"));
   assert.ok(result.watching.includes("Heat wave"));
+});
+
+test("seasonSectionModel hides when open and fires are empty", () => {
+  // July: climate-specific hot-arid windows are closed; decline year-round playbooks.
+  const household = home({
+    location: { lat: 32.22, lng: -110.97, postalCode: "85701", climateZone: "hot-arid" },
+    attributes: { ...DEFAULT_ATTRIBUTES },
+    weatherFires: [],
+    playbookDecisions: [
+      { playbookId: "all-safety", year: 2026, declinedTaskKeys: ["*"], disabled: true },
+      { playbookId: "new-home", year: 2026, declinedTaskKeys: ["*"], disabled: true },
+    ],
+  });
+  const model = seasonSectionModel(household, new Date(2026, 6, 15));
+  assert.equal(model.fires.length, 0);
+  assert.equal(model.open.length, 0);
+});
+
+test("seasonSectionModel includes fires from the last 7 days only", () => {
+  const now = new Date(2026, 8, 15, 12, 0, 0);
+  const sixDaysAgo = new Date(now);
+  sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
+  const eightDaysAgo = new Date(now);
+  eightDaysAgo.setDate(eightDaysAgo.getDate() - 8);
+  const household = home({
+    location: { lat: 32.22, lng: -110.97, postalCode: "85701", climateZone: "hot-arid" },
+    weatherFires: [
+      { triggerId: "hard-freeze", firedAt: sixDaysAgo.toISOString() },
+      { triggerId: "heat-wave", firedAt: eightDaysAgo.toISOString() },
+    ],
+  });
+  const model = seasonSectionModel(household, now);
+  assert.equal(model.fires.length, 1);
+  assert.equal(model.fires[0]?.name, "Hard freeze");
+  assert.ok((model.fires[0]?.taskCount ?? 0) > 0);
+});
+
+test("seasonSectionModel done and total match playbookProgress", () => {
+  const household = home({
+    location: { lat: 32.22, lng: -110.97, postalCode: "85701", climateZone: "hot-arid" },
+    attributes: { ...DEFAULT_ATTRIBUTES, hasGutters: true },
+    duties: [
+      stubDuty({ id: "d1", title: "One", playbookId: "hot-arid-presummer", createdAt: "2026-04-01T00:00:00.000Z" }),
+      stubDuty({ id: "d2", title: "Two", playbookId: "hot-arid-presummer", createdAt: "2026-04-01T00:00:00.000Z" }),
+      stubDuty({ id: "d3", title: "Three", playbookId: "hot-arid-presummer", createdAt: "2026-04-01T00:00:00.000Z" }),
+      stubDuty({ id: "d4", title: "Four", playbookId: "hot-arid-presummer", createdAt: "2026-04-01T00:00:00.000Z" }),
+      stubDuty({ id: "d5", title: "Five", playbookId: "hot-arid-presummer", createdAt: "2026-04-01T00:00:00.000Z" }),
+    ],
+    completions: [
+      { id: "c1", dutyId: "d1", actor: "me", visitId: null, completedAt: "2026-04-02T00:00:00.000Z" },
+      { id: "c2", dutyId: "d2", actor: "me", visitId: null, completedAt: "2026-04-03T00:00:00.000Z" },
+    ],
+  });
+  const now = new Date(2026, 3, 15);
+  const model = seasonSectionModel(household, now);
+  const entry = model.open.find((item) => item.playbook.id === "hot-arid-presummer");
+  assert.ok(entry);
+  const progress = playbookProgress(household, "hot-arid-presummer", seasonYearFor(entry.playbook, now));
+  assert.equal(entry.done, progress.done);
+  assert.equal(entry.total, progress.total);
+  assert.equal(entry.done, 2);
+  assert.equal(entry.total, 5);
 });

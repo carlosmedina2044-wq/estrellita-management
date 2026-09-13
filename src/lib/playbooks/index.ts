@@ -1,5 +1,7 @@
 import playbookSeed from "@/lib/playbooks/playbooks.json";
+import triggerSeed from "@/lib/weather/triggers.json";
 import { deriveClimate } from "@/lib/climate";
+import { addDays } from "@/lib/dates";
 import { lastCompletion } from "@/lib/duties";
 import { EXTERIOR_ID, WHOLE_HOME_ID } from "@/lib/home-model";
 import { normalizeAssetType } from "@/lib/asset-catalog";
@@ -153,6 +155,64 @@ export function matchingPlaybooks(
     if (byState !== 0) return byState;
     return (a.playbook.triggerMonth ?? 0) - (b.playbook.triggerMonth ?? 0);
   });
+}
+
+export type SeasonSectionFire = {
+  name: string;
+  taskCount: number;
+  firedAt: string;
+};
+
+export type SeasonSectionOpen = {
+  playbook: Playbook;
+  state: WindowState;
+  done: number;
+  total: number;
+};
+
+export type SeasonSectionModel = {
+  fires: SeasonSectionFire[];
+  open: SeasonSectionOpen[];
+};
+
+type TriggerSeed = { id: string; name: string; tasks: unknown[] };
+
+/** Model for Today's "This season" section: recent weather fires + open playbooks. */
+export function seasonSectionModel(
+  household: Pick<
+    Household,
+    "location" | "attributes" | "playbookDecisions" | "tenure" | "weatherFires" | "duties" | "completions"
+  >,
+  now: Date = new Date(),
+): SeasonSectionModel {
+  const weekAgo = addDays(now, -7).getTime();
+  const triggers = triggerSeed as TriggerSeed[];
+  const fires: SeasonSectionFire[] = [];
+  for (const fire of household.weatherFires) {
+    const firedMs = Date.parse(fire.firedAt);
+    if (!Number.isFinite(firedMs) || firedMs < weekAgo) continue;
+    const trigger = triggers.find((item) => item.id === fire.triggerId);
+    if (!trigger) continue;
+    fires.push({
+      name: trigger.name,
+      taskCount: trigger.tasks.length,
+      firedAt: fire.firedAt,
+    });
+  }
+  fires.sort((a, b) => Date.parse(b.firedAt) - Date.parse(a.firedAt));
+
+  const open: SeasonSectionOpen[] = matchingPlaybooks(household, now).map(({ playbook, state }) => {
+    const year = seasonYearFor(playbook, now);
+    const progress = playbookProgress(household, playbook.id, year);
+    return {
+      playbook,
+      state,
+      done: progress.done,
+      total: progress.total > 0 ? progress.total : playbook.tasks.length,
+    };
+  });
+
+  return { fires, open };
 }
 
 export function playbookProgress(
