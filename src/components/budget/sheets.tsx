@@ -50,7 +50,7 @@ export function LogPurchaseSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
           <SheetTitle>{isReplacement ? t("budget.iReplaced") : t("budget.logPurchase")}</SheetTitle>
           <SheetDescription>
@@ -229,7 +229,7 @@ export function FundSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
           <SheetTitle>{t("budget.fundTitle")}</SheetTitle>
           <SheetDescription>{t("budget.fundAskRepairs")}</SheetDescription>
@@ -315,7 +315,7 @@ export function ViewOptionsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
           <SheetTitle>{t("budget.viewOptions")}</SheetTitle>
           <SheetDescription>{t("budget.viewOptionsBody")}</SheetDescription>

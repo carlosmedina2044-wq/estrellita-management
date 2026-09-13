@@ -138,6 +138,7 @@ export function DutyForm({
   const [showNotes, setShowNotes] = useState(false);
   const [showSupply, setShowSupply] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [orderStep, setOrderStep] = useState(false);
 
   // Reset the draft whenever the sheet opens for a different duty. Adjusting
   // state during render (instead of in an effect) avoids a flash of stale data.
@@ -146,6 +147,7 @@ export function DutyForm({
   if (open && prevResetKey !== resetKey) {
     setPrevResetKey(resetKey);
     setFormError(null);
+    setOrderStep(false);
     if (duty) {
       setDraft(fromDuty(duty, supplyAutomation));
       setShowNotes(Boolean(duty.notes.trim()));
@@ -231,8 +233,30 @@ export function DutyForm({
         className="gap-0 rounded-t-3xl pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader className="shrink-0 pb-2">
-          <SheetTitle>{duty ? t("chore.edit") : t("chore.new")}</SheetTitle>
+          <SheetTitle>
+            {orderStep
+              ? t("common.order")
+              : duty
+                ? t("chore.edit")
+                : t("chore.new")}
+          </SheetTitle>
         </SheetHeader>
+        {orderStep && supplyAutomation ? (
+          <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-3">
+            <Button type="button" variant="ghost" className="h-11 w-fit px-0" onClick={() => setOrderStep(false)}>
+              {t("common.back")}
+            </Button>
+            <RestockOrderButton
+              item={supplyAutomation}
+              household={household}
+              embedded
+              autoPicker
+              onFlowFinished={() => setOrderStep(false)}
+              onFlowCancelled={() => setOrderStep(false)}
+              {...restockButtonProps(supplyAutomation, restock)}
+            />
+          </div>
+        ) : (
         <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-3">
           <Field label={t("chore.field.chore")}>
             <Input
@@ -444,11 +468,9 @@ export function DutyForm({
                   />
                 </Field>
                 {supplyAutomation ? (
-                  <RestockOrderButton
-                    item={supplyAutomation}
-                    household={household}
-                    {...restockButtonProps(supplyAutomation, restock)}
-                  />
+                  <Button type="button" className="h-12" onClick={() => setOrderStep(true)}>
+                    {t("common.order")}
+                  </Button>
                 ) : null}
               </div>
             ) : null}
@@ -537,6 +559,8 @@ export function DutyForm({
             </p>
           ) : null}
         </div>
+        )}
+        {orderStep ? null : (
         <SheetFooter className="shrink-0 flex-row items-center gap-2 border-t border-border/70 bg-popover/95 py-2.5 backdrop-blur-md">
           {duty && onDelete ? (
             <Button
@@ -555,6 +579,7 @@ export function DutyForm({
             {duty ? t("chore.saveChanges") : t("chore.add")}
           </Button>
         </SheetFooter>
+        )}
       </SheetContent>
     </Sheet>
   );

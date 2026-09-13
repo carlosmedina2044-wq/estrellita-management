@@ -87,6 +87,7 @@ export function RestockOrderButton({
   onFlowCancelled,
   subdued,
   early,
+  embedded = false,
 }: {
   item: SupplyAutomation;
   household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers" | "restockSafetyBufferDays" | "seenTips">;
@@ -109,6 +110,8 @@ export function RestockOrderButton({
   onFlowCancelled?: () => void;
   subdued?: boolean;
   early?: boolean;
+  /** Render picker/confirm inside a parent sheet (no nested dialog). */
+  embedded?: boolean;
 }) {
   const { t } = useLocale();
   const [sheet, setSheet] = useState<OrderSheet>("closed");
@@ -351,19 +354,22 @@ export function RestockOrderButton({
 
   return (
     <>
-      <Button
-        type="button"
-        variant={early ? "ghost" : subdued ? "secondary" : "default"}
-        className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")}
-        onClick={() => setSheet("picker")}
-      >
-        {early ? t("restock.orderEarly") : t("common.order")}
-      </Button>
+      {embedded && sheet !== "closed" ? null : (
+        <Button
+          type="button"
+          variant={early ? "ghost" : subdued ? "secondary" : "default"}
+          className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")}
+          onClick={() => setSheet("picker")}
+        >
+          {early ? t("restock.orderEarly") : t("common.order")}
+        </Button>
+      )}
 
       <RetailerPickerSheet
         open={sheet === "picker"}
         item={item}
         household={household}
+        embedded={embedded}
         onOpenChange={(open) => {
           if (open) {
             flowProgressing.current = false;
@@ -407,6 +413,7 @@ export function RestockOrderButton({
         retailer={pendingRetailer}
         showArrivalTip={!hasSeenTip(household, TIP_ARRIVAL)}
         onDismissArrivalTip={() => onMarkTip?.(TIP_ARRIVAL)}
+        embedded={embedded}
         onOpenChange={(open) => {
           if (open) {
             confirmCommitted.current = false;
@@ -435,6 +442,7 @@ function OrderConfirmSheet({
   onDismissArrivalTip,
   onOpenChange,
   onConfirm,
+  embedded = false,
 }: {
   open: boolean;
   item: SupplyAutomation;
@@ -443,6 +451,7 @@ function OrderConfirmSheet({
   onDismissArrivalTip?: () => void;
   onOpenChange: (open: boolean) => void;
   onConfirm: (details: MarkOrderedDetails) => void;
+  embedded?: boolean;
 }) {
   const { t } = useLocale();
   const defaultOffset = closestArrivalOffset(leadTimeDaysFor(item));
@@ -480,24 +489,86 @@ function OrderConfirmSheet({
     };
   }
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0">
-        <SheetHeader>
-          <SheetTitle>{t("restock.finishOrderingTitle")}</SheetTitle>
-          <SheetDescription>
-            {item.itemName}
-            {size ? ` · ${size}` : ""}
-            {store ? ` · ${store}` : ""}
-          </SheetDescription>
-        </SheetHeader>
-        <div className="grid gap-4 px-4 pb-4">
-          {showArrivalTip ? (
-            <TeachingTip onDismiss={() => onDismissArrivalTip?.()}>
-              {t("restock.arrivalTip")}
-            </TeachingTip>
-          ) : null}
-          <div className="grid gap-2">
+  const body = (
+    <>
+      <SheetHeader className={embedded ? "px-0 pt-0" : undefined}>
+        <SheetTitle>{t("restock.finishOrderingTitle")}</SheetTitle>
+        <SheetDescription>
+          {item.itemName}
+          {size ? ` · ${size}` : ""}
+          {store ? ` · ${store}` : ""}
+        </SheetDescription>
+      </SheetHeader>
+      <div className={cn("grid gap-4 pb-4", embedded ? "px-0" : "px-4")}>
+        {showArrivalTip ? (
+          <TeachingTip onDismiss={() => onDismissArrivalTip?.()}>
+            {t("restock.arrivalTip")}
+          </TeachingTip>
+        ) : null}
+        <div className="grid gap-2">
+          <Button
+            type="button"
+            className="h-12"
+            onClick={() => onConfirm(confirmDetails())}
+          >
+            {t("restock.orderSimple")}
+          </Button>
+          <Button type="button" variant="secondary" className="h-12" onClick={() => onOpenChange(false)}>
+            {t("restock.notYet")}
+          </Button>
+        </div>
+        <button
+          type="button"
+          className="text-left ui-caption font-medium text-primary"
+          aria-expanded={moreOpen}
+          onClick={() => setMoreOpen((current) => !current)}
+        >
+          {t("restock.moreOptions")}
+        </button>
+        {moreOpen ? (
+          <div className="grid gap-4">
+            {askSize ? (
+              <div className="grid gap-1.5">
+                <label htmlFor="order-size" className="ui-caption text-muted-foreground">
+                  {t("restock.sizeOptional")}
+                </label>
+                <Input
+                  id="order-size"
+                  value={sizeDraft}
+                  onChange={(event) => setSizeDraft(event.target.value)}
+                  placeholder={t("restock.sizePlaceholder")}
+                  className="h-12"
+                />
+              </div>
+            ) : null}
+            <div className="grid gap-1.5">
+              <p className="ui-caption font-medium">{t("restock.whenArriveTitle")}</p>
+              <ArrivalChips offset={offset} dateDraft={dateDraft} onOffset={setOffset} onDate={setDateDraft} />
+            </div>
+            <div className="grid gap-1.5">
+              <p className="ui-caption font-medium">{t("restock.howManyTitle")}</p>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="size-11"
+                  aria-label={t("restock.decreaseQty")}
+                  onClick={() => setQty((current) => Math.max(1, current - 1))}
+                >
+                  −
+                </Button>
+                <span className="min-w-8 text-center ui-card font-medium">{qty}</span>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="size-11"
+                  aria-label={t("restock.increaseQty")}
+                  onClick={() => setQty((current) => Math.min(99, current + 1))}
+                >
+                  +
+                </Button>
+              </div>
+            </div>
             <Button
               type="button"
               className="h-12"
@@ -505,75 +576,24 @@ function OrderConfirmSheet({
             >
               {t("restock.orderSimple")}
             </Button>
-            <Button type="button" variant="secondary" className="h-12" onClick={() => onOpenChange(false)}>
-              {t("restock.notYet")}
-            </Button>
           </div>
-          <button
-            type="button"
-            className="text-left ui-caption font-medium text-primary"
-            aria-expanded={moreOpen}
-            onClick={() => setMoreOpen((current) => !current)}
-          >
-            {t("restock.moreOptions")}
-          </button>
-          {moreOpen ? (
-            <div className="grid gap-4">
-              {askSize ? (
-                <div className="grid gap-1.5">
-                  <label htmlFor="order-size" className="ui-caption text-muted-foreground">
-                    {t("restock.sizeOptional")}
-                  </label>
-                  <Input
-                    id="order-size"
-                    value={sizeDraft}
-                    onChange={(event) => setSizeDraft(event.target.value)}
-                    placeholder={t("restock.sizePlaceholder")}
-                    className="h-12"
-                  />
-                </div>
-              ) : null}
-              <div className="grid gap-1.5">
-                <p className="ui-caption font-medium">{t("restock.whenArriveTitle")}</p>
-                <ArrivalChips offset={offset} dateDraft={dateDraft} onOffset={setOffset} onDate={setDateDraft} />
-              </div>
-              <div className="grid gap-1.5">
-                <p className="ui-caption font-medium">{t("restock.howManyTitle")}</p>
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="size-11"
-                    aria-label={t("restock.decreaseQty")}
-                    onClick={() => setQty((current) => Math.max(1, current - 1))}
-                  >
-                    −
-                  </Button>
-                  <span className="min-w-8 text-center ui-card font-medium">{qty}</span>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="size-11"
-                    aria-label={t("restock.increaseQty")}
-                    onClick={() => setQty((current) => Math.min(99, current + 1))}
-                  >
-                    +
-                  </Button>
-                </div>
-              </div>
-              <Button
-                type="button"
-                className="h-12"
-                onClick={() => onConfirm(confirmDetails())}
-              >
-                {t("restock.orderSimple")}
-              </Button>
-            </div>
-          ) : null}
-          <Button type="button" variant="ghost" className="h-12" onClick={() => onOpenChange(false)}>
-            {t("common.cancel")}
-          </Button>
-        </div>
+        ) : null}
+        <Button type="button" variant="ghost" className="h-12" onClick={() => onOpenChange(false)}>
+          {t("common.cancel")}
+        </Button>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    if (!open) return null;
+    return <div className="grid gap-0">{body}</div>;
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" size="form" className="gap-0">
+        {body}
       </SheetContent>
     </Sheet>
   );
@@ -608,7 +628,7 @@ function ChangeDateSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0">
+      <SheetContent side="bottom" size="form" className="gap-0">
         <SheetHeader>
           <SheetTitle>{t("restock.whenArriveTitle")}</SheetTitle>
           <SheetDescription>{item.itemName}</SheetDescription>
@@ -700,7 +720,7 @@ function ReceiveDialog({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0">
+      <SheetContent side="bottom" size="form" className="gap-0">
         <SheetHeader>
           <SheetTitle>{t("restock.howManyTitle")}</SheetTitle>
           <SheetDescription>{t("restock.howManyBody")}</SheetDescription>

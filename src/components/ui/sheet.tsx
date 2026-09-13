@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { X } from "lucide-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
@@ -117,9 +118,11 @@ function SheetContent({
             <Button
               ref={closeRef}
               variant="ghost"
-              className="absolute top-2 right-2 h-11 min-w-11 px-3"
+              size="icon"
+              className="absolute top-2 right-2 size-11"
+              aria-label={t("common.close")}
             >
-              {t("common.close")}
+              <X className="size-5" />
             </Button>
           </SheetPrimitive.Close>
         )}
@@ -132,7 +135,7 @@ function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="sheet-header"
-      className={cn("flex shrink-0 flex-col gap-0.5 p-4 pr-20", className)}
+      className={cn("flex shrink-0 flex-col gap-0.5 p-4 pr-14", className)}
       {...props}
     />
   )

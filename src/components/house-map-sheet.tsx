@@ -62,9 +62,18 @@ export function HouseMapSheet({
   const selected = roomId;
   const [editing, setEditing] = useState<Duty | null>(null);
   const [creating, setCreating] = useState(false);
+  const [formRoom, setFormRoom] = useState<string | null>(null);
   const [assetName, setAssetName] = useState("");
   const [assetType, setAssetType] = useState<AssetType>("other");
   const createGuard = useSheetOpenGuard();
+
+  function openDutyEditor(next: () => void) {
+    createGuard.tryOpen(() => {
+      setFormRoom(selected || null);
+      onOpenChange(false);
+      next();
+    });
+  }
 
   const openDuties = todaysOpenDuties(household, now, filter);
   const done = household.duties.filter((duty) =>
@@ -147,7 +156,7 @@ export function HouseMapSheet({
                           now={now}
                           overdue={isOverdueFor(duty, household, now)}
                           onToggle={() => onToggle(duty, false)}
-                          onOpen={() => setEditing(duty)}
+                          onOpen={() => openDutyEditor(() => setEditing(duty))}
                         />
                       </div>
                     ))}
@@ -159,7 +168,7 @@ export function HouseMapSheet({
                           now={now}
                           upcoming
                           onToggle={() => onToggle(duty, false)}
-                          onOpen={() => setEditing(duty)}
+                          onOpen={() => openDutyEditor(() => setEditing(duty))}
                         />
                       </div>
                     ))}
@@ -171,7 +180,7 @@ export function HouseMapSheet({
                           now={now}
                           done
                           onToggle={() => onToggle(duty, true)}
-                          onOpen={() => setEditing(duty)}
+                          onOpen={() => openDutyEditor(() => setEditing(duty))}
                         />
                       </div>
                     ))}
@@ -266,7 +275,7 @@ export function HouseMapSheet({
                 <Button
                   variant="secondary"
                   className="h-11 w-full"
-                  onClick={() => createGuard.tryOpen(() => setCreating(true))}
+                  onClick={() => openDutyEditor(() => setCreating(true))}
                 >
                   <Plus className="size-4" />
                   {t("map.addChoreIn", { room: selectedRoom.name })}
@@ -285,7 +294,12 @@ export function HouseMapSheet({
         open={creating || Boolean(editing)}
         duty={editing}
         household={household}
-        defaultRoom={selected ?? household.rooms.find((room) => !room.system)?.id ?? "kitchen"}
+        defaultRoom={
+          formRoom ??
+          selected ??
+          household.rooms.find((room) => !room.system)?.id ??
+          "kitchen"
+        }
         supplyAutomation={
           editing
             ? household.supplyAutomations.find(
@@ -298,6 +312,7 @@ export function HouseMapSheet({
             createGuard.markClosed();
             setCreating(false);
             setEditing(null);
+            setFormRoom(null);
           }
         }}
         onSave={onSaveDuty}

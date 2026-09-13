@@ -23,6 +23,7 @@ import {
   sortedSavedRetailerLinks,
 } from "@/lib/retailer";
 import type { Household, SupplyAutomation } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export function RetailerPickerSheet({
   open,
@@ -34,6 +35,7 @@ export function RetailerPickerSheet({
   onAddSize,
   onOpened,
   onAlreadyOrdered,
+  embedded = false,
 }: {
   open: boolean;
   item: SupplyAutomation;
@@ -44,6 +46,8 @@ export function RetailerPickerSheet({
   onAddSize?: () => void;
   onOpened?: (retailer?: string) => void;
   onAlreadyOrdered?: () => void;
+  /** Render inside a parent sheet instead of nesting another dialog. */
+  embedded?: boolean;
 }) {
   const { t } = useLocale();
   const href = retailerUrlFor(item);
@@ -66,99 +70,110 @@ export function RetailerPickerSheet({
     onOpenChange(false);
   }
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0">
-        <SheetHeader>
-          <SheetTitle>{item.itemName}</SheetTitle>
-          <SheetDescription className="sr-only">{t("restock.chooseStore", { name: item.itemName })}</SheetDescription>
-        </SheetHeader>
-        <div className="grid gap-4 px-4 pb-4">
-          {onAlreadyOrdered ? (
-            <Button
+  const body = (
+    <>
+      <SheetHeader className={embedded ? "px-0 pt-0" : undefined}>
+        <SheetTitle>{item.itemName}</SheetTitle>
+        <SheetDescription className="sr-only">{t("restock.chooseStore", { name: item.itemName })}</SheetDescription>
+      </SheetHeader>
+      <div className={cn("grid gap-4 pb-4", embedded ? "px-0" : "px-4")}>
+        {onAlreadyOrdered ? (
+          <Button
+            type="button"
+            variant="secondary"
+            className="h-12 w-full"
+            onClick={() => {
+              onAlreadyOrdered();
+              onOpenChange(false);
+            }}
+          >
+            {t("restock.alreadyOrdered")}
+          </Button>
+        ) : null}
+        <div className="ui-caption text-muted-foreground">
+          {size ? (
+            size
+          ) : onAddSize ? (
+            <button
               type="button"
-              variant="secondary"
-              className="h-12 w-full"
+              className="inline-flex min-h-11 items-center text-left text-primary"
               onClick={() => {
-                onAlreadyOrdered();
                 onOpenChange(false);
+                onAddSize();
               }}
             >
-              {t("restock.alreadyOrdered")}
+              {t("restock.noSizeAdd")}
+            </button>
+          ) : (
+            t("restock.noSizeSaved")
+          )}
+        </div>
+        {href ? (
+          <div className="grid gap-1">
+            <Button type="button" className="h-12 w-full" onClick={() => void shop(href, item.preferredRetailer, href)}>
+              {t("retailer.openSaved")}
             </Button>
-          ) : null}
-          <div className="ui-caption text-muted-foreground">
-            {size ? (
-              size
-            ) : onAddSize ? (
-              <button
-                type="button"
-                className="inline-flex min-h-11 items-center text-left text-primary"
-                onClick={() => {
-                  onOpenChange(false);
-                  onAddSize();
-                }}
-              >
-                {t("restock.noSizeAdd")}
-              </button>
-            ) : (
-              t("restock.noSizeSaved")
-            )}
+            <p className="text-center ui-caption text-muted-foreground">{savedRetailerLabel(href)}</p>
           </div>
-          {href ? (
-            <div className="grid gap-1">
-              <Button type="button" className="h-12 w-full" onClick={() => void shop(href, item.preferredRetailer, href)}>
-                {t("retailer.openSaved")}
-              </Button>
-              <p className="text-center ui-caption text-muted-foreground">{savedRetailerLabel(href)}</p>
-            </div>
-          ) : null}
-          <div className="grid gap-2">
-            <p className="ui-caption font-medium">{t("retailer.stores")}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {chips.map((chip) => (
-                <span key={chip.id} className="grid justify-items-center gap-0.5">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    className="h-11 rounded-full"
-                    onClick={() => void shop(chip.searchUrl(query), chip.id)}
-                  >
-                    {chip.label}
-                  </Button>
-                  {chip.lastTime ? (
-                    <span className="ui-caption text-muted-foreground">{t("retailer.lastTime")}</span>
-                  ) : null}
-                </span>
-              ))}
-            </div>
-          </div>
-          {savedLinks.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {savedLinks.map((entry) => (
+        ) : null}
+        <div className="grid gap-2">
+          <p className="ui-caption font-medium">{t("retailer.stores")}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {chips.map((chip) => (
+              <span key={chip.id} className="grid justify-items-center gap-0.5">
                 <Button
-                  key={entry.url}
                   type="button"
                   size="sm"
                   variant="secondary"
-                  className="h-11 max-w-full rounded-full"
-                  onClick={() => void shop(entry.url, hostOf(entry.url), entry.url)}
+                  className="h-11 rounded-full"
+                  onClick={() => void shop(chip.searchUrl(query), chip.id)}
                 >
-                  <span className="truncate">{savedRetailerLabel(entry.url)}</span>
+                  {chip.label}
                 </Button>
-              ))}
-            </div>
-          ) : null}
-          <CustomStoreSearch
-            itemName={item.itemName}
-            sizeSpec={size || undefined}
-            onSearch={(saveUrl, openUrl) => void shop(openUrl, hostOf(saveUrl), saveUrl)}
-          />
-          <p className="ui-caption text-muted-foreground">
-            {t("retailer.privacy")}
-          </p>
+                {chip.lastTime ? (
+                  <span className="ui-caption text-muted-foreground">{t("retailer.lastTime")}</span>
+                ) : null}
+              </span>
+            ))}
+          </div>
         </div>
+        {savedLinks.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {savedLinks.map((entry) => (
+              <Button
+                key={entry.url}
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-11 max-w-full rounded-full"
+                onClick={() => void shop(entry.url, hostOf(entry.url), entry.url)}
+              >
+                <span className="truncate">{savedRetailerLabel(entry.url)}</span>
+              </Button>
+            ))}
+          </div>
+        ) : null}
+        <CustomStoreSearch
+          itemName={item.itemName}
+          sizeSpec={size || undefined}
+          onSearch={(saveUrl, openUrl) => void shop(openUrl, hostOf(saveUrl), saveUrl)}
+        />
+        <p className="ui-caption text-muted-foreground">
+          {t("retailer.privacy")}
+        </p>
+      </div>
+    </>
+  );
+
+  if (embedded) {
+    if (!open) return null;
+    return <div className="grid gap-0">{body}</div>;
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="bottom" className="gap-0">
+        {body}
       </SheetContent>
     </Sheet>
   );

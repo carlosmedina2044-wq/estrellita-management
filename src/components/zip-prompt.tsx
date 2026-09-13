@@ -53,6 +53,7 @@ export function ZipSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
+        size="form"
         className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader>
