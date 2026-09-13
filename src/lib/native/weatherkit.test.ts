@@ -3,12 +3,17 @@ import { test } from "node:test";
 import {
   fetchWeatherAttribution,
   installWeatherAttributionForTests,
+  weatherKitReverseGeocode,
   type WeatherAttribution,
 } from "@/lib/native/weatherkit";
 import { parseStored } from "@/lib/storage";
 
 test.afterEach(() => {
   installWeatherAttributionForTests(null);
+});
+
+test("weatherKitReverseGeocode is a no-op off native", async () => {
+  assert.equal(await weatherKitReverseGeocode(33.45, -112.07), undefined);
 });
 
 test("fetchWeatherAttribution resolves a fixture via the test hook", async () => {

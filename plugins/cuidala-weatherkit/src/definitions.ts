@@ -24,8 +24,13 @@ export type WeatherKitAttribution = {
   markDark: string;
 };
 
+export type ReverseGeocodeResult = {
+  placeName?: string;
+};
+
 export interface CuidalaWeatherKitPlugin {
   fetchForecast(options: { latitude: number; longitude: number }): Promise<WeatherKitForecast>;
   geocodeZip(options: { postalCode: string }): Promise<GeocodedZip>;
+  reverseGeocode(options: { latitude: number; longitude: number }): Promise<ReverseGeocodeResult>;
   fetchAttribution(): Promise<WeatherKitAttribution>;
 }

@@ -2,6 +2,7 @@ import { WebPlugin } from "@capacitor/core";
 import type {
   CuidalaWeatherKitPlugin,
   GeocodedZip,
+  ReverseGeocodeResult,
   WeatherKitAttribution,
   WeatherKitForecast,
 } from "./definitions";
@@ -13,6 +14,10 @@ export class CuidalaWeatherKitWeb extends WebPlugin implements CuidalaWeatherKit
 
   async geocodeZip(): Promise<GeocodedZip> {
     throw this.unimplemented("ZIP geocoding is available on iOS only.");
+  }
+
+  async reverseGeocode(): Promise<ReverseGeocodeResult> {
+    return {};
   }
 
   async fetchAttribution(): Promise<WeatherKitAttribution> {

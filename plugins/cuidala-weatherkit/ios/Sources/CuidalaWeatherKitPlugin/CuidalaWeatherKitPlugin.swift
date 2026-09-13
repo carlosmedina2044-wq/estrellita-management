@@ -22,6 +22,7 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "fetchForecast", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "geocodeZip", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "reverseGeocode", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "fetchAttribution", returnType: CAPPluginReturnPromise)
     ]
 
@@ -91,6 +92,28 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
                     "lng": location.coordinate.longitude
                 ]
                 if let city = place.locality, !city.isEmpty {
+                    result["placeName"] = city
+                }
+                call.resolve(result)
+            }
+        }
+    }
+
+    @objc func reverseGeocode(_ call: CAPPluginCall) {
+        guard let latitude = call.getDouble("latitude"),
+              let longitude = call.getDouble("longitude") else {
+            call.reject("latitude and longitude are required")
+            return
+        }
+        let location = CLLocation(latitude: latitude, longitude: longitude)
+        CLGeocoder().reverseGeocodeLocation(location) { placemarks, error in
+            Task { @MainActor in
+                if let error {
+                    call.reject(error.localizedDescription)
+                    return
+                }
+                var result: [String: Any] = [:]
+                if let city = placemarks?.first?.locality, !city.isEmpty {
                     result["placeName"] = city
                 }
                 call.resolve(result)

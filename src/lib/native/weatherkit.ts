@@ -1,6 +1,7 @@
 import { registerPlugin } from "@capacitor/core";
 import { isNative } from "@/lib/native/platform";
 import { roundCoord } from "@/lib/climate";
+import { sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
 import type { DailyWeather, WeatherForecast } from "@/lib/weather/provider";
 
 const FALLBACK_LEGAL = "https://weatherkit.apple.com/legal-attribution.html";
@@ -26,6 +27,7 @@ export type WeatherAttribution = {
 type NativeWeatherKit = {
   fetchForecast(options: { latitude: number; longitude: number }): Promise<NativeWeatherForecast>;
   geocodeZip(options: { postalCode: string }): Promise<NativeGeocodedZip>;
+  reverseGeocode(options: { latitude: number; longitude: number }): Promise<{ placeName?: string }>;
   fetchAttribution(): Promise<WeatherAttribution>;
 };
 
@@ -70,6 +72,17 @@ export async function weatherKitGeocodeZip(postalCode: string): Promise<NativeGe
     };
   } catch {
     return null;
+  }
+}
+
+export async function weatherKitReverseGeocode(lat: number, lng: number): Promise<string | undefined> {
+  if (!isNative()) return undefined;
+  try {
+    const result = await plugin.reverseGeocode({ latitude: lat, longitude: lng });
+    const name = sanitizeText(result.placeName, TEXT_LIMITS.name);
+    return name || undefined;
+  } catch {
+    return undefined;
   }
 }
 

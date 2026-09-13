@@ -25,6 +25,7 @@ import {
 import { RETAILER_CHIPS } from "@/lib/retailer";
 import { geocodeUsZip } from "@/lib/weather/client";
 import { isNative } from "@/lib/native/platform";
+import { weatherKitReverseGeocode } from "@/lib/native/weatherkit";
 import type { HomeLocation, HomeType, RetailerId, Tenure } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -156,9 +157,17 @@ export function Onboarding({
         const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 });
         const nextLat = roundCoord(position.coords.latitude);
         const nextLng = roundCoord(position.coords.longitude);
+        const city = await weatherKitReverseGeocode(nextLat, nextLng);
         setLat(nextLat);
         setLng(nextLng);
-        afterLocation({ ...location, lat: nextLat, lng: nextLng, climateZone: deriveClimate({ postalCode, lat: nextLat, lng: nextLng }) });
+        if (city) setPlaceName(city);
+        afterLocation({
+          ...location,
+          lat: nextLat,
+          lng: nextLng,
+          placeName: city,
+          climateZone: deriveClimate({ postalCode, lat: nextLat, lng: nextLng }),
+        });
         return;
       }
       if (!navigator.geolocation) {
