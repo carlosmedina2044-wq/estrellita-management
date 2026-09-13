@@ -28,7 +28,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | Retailer pages open in SFSafariViewController, not the app WebView | MASVS-PLATFORM-2 | `native/open-url.ts` via `@capacitor/browser` | Manual | NOT VERIFIED (manual) |
 | Local notifications only; no push, no token | Privacy | `@capacitor/local-notifications`; no APNs entitlement | Config inspection | VERIFIED |
 | Weekly digest is repeating | Product | `schedule.on` + `repeats: true` | `notifications.test.ts` | VERIFIED |
-| Erase-all deletes data, key, and pending notifications | App Store 5.1.1(v) | `eraseHousehold` | Manual | NOT VERIFIED (manual) |
+| Erase-all deletes data, key, and pending notifications | App Store 5.1.1(v) | `eraseHousehold` returns `{ ok }`; requires owner verification when available; memory/key reset only after every `kvRemove`/`deleteDeviceKey` succeeds | `vault.test.ts` `erase returns ok:false and keeps memory when kvRemove throws`; Settings Face ID on device | VERIFIED (failure path), NOT VERIFIED (owner prompt on device) |
 | Privacy policy and additional terms reachable in-app | App Store 5.1.1(i) | `/privacy`, `/terms`, `/how-it-works`, Settings links | Build output contains routes | VERIFIED |
 | Privacy manifest matches data flows | Apple privacy manifest | `PrivacyInfo.xcprivacy` — tracking false; collected types empty (WeatherKit is Apple-collected); UserDefaults CA92.1 | Reviewed against this matrix and `privacy/page.tsx` | VERIFIED |
 | Face ID and location usage strings present in shipped Info.plist | App Store 5.1.1 | `ios/App/App/Info.plist` | File inspection | VERIFIED |

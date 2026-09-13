@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { generateRawKey, importRawKey, PREVIOUS_VAULT_KEY, VAULT_STORAGE_KEY } from "@/lib/crypto";
 import { sealBackup } from "@/lib/backup";
 import {
+  eraseHousehold,
   flushHousehold,
   getHousehold,
   getHouseholdLoad,
@@ -296,5 +297,32 @@ test("import resets cleaner visit state", async () => {
   assert.equal(household.activeVisitId, null);
   assert.equal(household.onboarded, true);
   assert.equal(household.householdName, "Cleaner phone");
+  resetVaultForTests();
+});
+
+test("erase returns ok:false and keeps memory when kvRemove throws", async () => {
+  resetVaultForTests();
+  const store = new Map<string, string>();
+  const key = await importRawKey(generateRawKey());
+  installVaultIOForTests({
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async () => {
+      throw new Error("kv locked");
+    },
+  });
+  const first = await hydrateHousehold();
+  assert.equal(first.ok, true);
+  updateHousehold((current) => ({ ...current, householdName: "Keep me", onboarded: true }));
+  await flushHousehold();
+  const result = await eraseHousehold();
+  assert.equal(result.ok, false);
+  assert.equal(getHousehold().householdName, "Keep me");
   resetVaultForTests();
 });

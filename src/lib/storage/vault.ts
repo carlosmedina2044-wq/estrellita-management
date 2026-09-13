@@ -260,7 +260,7 @@ export function updateHousehold(updater: (current: Household) => Household) {
 }
 
 /** Erases the household, its encryption key, and pending notifications on this device. */
-export async function eraseHousehold(): Promise<void> {
+export async function eraseHousehold(): Promise<{ ok: boolean }> {
   didHydrate = true;
   await persistChain.catch(() => {});
   try {
@@ -268,13 +268,13 @@ export async function eraseHousehold(): Promise<void> {
     await io.kvRemove(PREVIOUS_VAULT_KEY);
     await io.kvRemove(QUARANTINED_VAULT_KEY);
     await io.deleteDeviceKey();
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(LEGACY_PLAINTEXT_KEY);
-      window.localStorage.removeItem(LEGACY_VAULT_KEY);
-      window.localStorage.removeItem("estrellita-audit-v1");
-    }
   } catch {
-    // Storage may be unavailable; in-memory state still resets below.
+    return { ok: false };
+  }
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(LEGACY_PLAINTEXT_KEY);
+    window.localStorage.removeItem(LEGACY_VAULT_KEY);
+    window.localStorage.removeItem("estrellita-audit-v1");
   }
   key = null;
   memory = cloneEmpty();
@@ -282,6 +282,7 @@ export async function eraseHousehold(): Promise<void> {
   lastLoad = { ok: true, legacyLockedVault: false };
   notifyChange();
   void syncScheduledNotifications(memory).catch(() => {});
+  return { ok: true };
 }
 
 export function forCleanerSession(household: Household): Household {

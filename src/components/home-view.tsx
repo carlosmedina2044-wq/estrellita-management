@@ -76,7 +76,7 @@ export function HomeView({
   onSavePostalCode?: (zip: string) => Promise<{ ok: boolean; error?: string }>;
   onStartCleanerVisit: () => void;
   onChangeTree?: (next: Household) => void;
-  onErase: () => Promise<void>;
+  onErase: () => Promise<{ ok: boolean }>;
   onExportBackup?: (passphrase: string) => Promise<string>;
   onImportBackup?: (raw: string, passphrase: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   canLock: boolean;
@@ -481,7 +481,18 @@ export function HomeView({
             <AlertDialogAction
               className="bg-destructive text-white"
               onClick={() => {
-                void onErase().then(() => toast.success("Erased"));
+                void (async () => {
+                  if (canLock) {
+                    const verified = await verifyDeviceOwner("Erase everything");
+                    if (!verified) {
+                      toast.error("Couldn’t verify it’s you.");
+                      return;
+                    }
+                  }
+                  const result = await onErase();
+                  if (result.ok) toast.success("Erased");
+                  else toast.error("Couldn’t erase this home. Try again.");
+                })();
               }}
             >
               Erase

@@ -596,10 +596,13 @@ export function useHousehold() {
   }, []);
 
   const eraseEverything = useCallback(async () => {
-    await eraseHousehold();
-    setLoadError(null);
-    setLegacyLockedVault(false);
-    setHousehold(getHousehold());
+    const result = await eraseHousehold();
+    if (result.ok) {
+      setLoadError(null);
+      setLegacyLockedVault(false);
+      setHousehold(getHousehold());
+    }
+    return result;
   }, []);
 
   const exportBackup = useCallback(async (passphrase: string) => {

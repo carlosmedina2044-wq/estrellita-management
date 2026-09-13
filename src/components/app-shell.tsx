@@ -309,7 +309,11 @@ export function AppShell() {
         onImport={importBackup}
         confirmErase={confirmErase}
         onConfirmEraseChange={setConfirmErase}
-        onErase={() => void eraseEverything()}
+        onErase={() => {
+          void eraseEverything().then((result) => {
+            if (!result.ok) toast.error("Couldn’t erase this home. Try again.");
+          });
+        }}
       />
     );
   }
