@@ -9,12 +9,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        // Brand cream — matches Capacitor backgroundColor / CSS --background so the
-        // area under the Dynamic Island is never a white native strip.
-        let cream = UIColor(red: 0.980, green: 0.965, blue: 0.937, alpha: 1) // #faf6ef
-        window?.backgroundColor = cream
+        // Dynamic color matches CSS --background so dark-mode overscroll is not cream.
+        let fill = CuidalaBridgeViewController.shellBackground
+        window?.backgroundColor = fill
         let bridge = CuidalaBridgeViewController()
-        bridge.view.backgroundColor = cream
+        bridge.view.backgroundColor = fill
         window?.rootViewController = bridge
         window?.makeKeyAndVisible()
 
