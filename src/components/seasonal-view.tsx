@@ -142,7 +142,12 @@ export function SeasonalView({
     <div className="flex flex-col gap-5 pb-8">
       <div>
         <PageHeader title="Seasonal" subtitle={subtitle} onBack={onBack} />
-        {forecast ? <AppleWeatherAttribution className="mt-1 text-[11px] text-muted-foreground" /> : null}
+        {forecast ? (
+          <AppleWeatherAttribution
+            className="mt-1 text-[11px] text-muted-foreground"
+            attribution={household.weatherStatus.attribution}
+          />
+        ) : null}
         {showWeatherError ? (
           <p className="mt-2 text-[13px] text-muted-foreground">
             Couldn&apos;t refresh weather. Seasonal lists still work.

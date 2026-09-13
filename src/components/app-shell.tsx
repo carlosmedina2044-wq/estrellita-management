@@ -37,6 +37,7 @@ import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
 import { fetchForecastFor } from "@/lib/weather/client";
+import { fetchWeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
 import { forCleanerSession, PERSIST_FAILED_EVENT } from "@/lib/storage";
 import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_REENGAGE, withTeaching } from "@/lib/teaching";
@@ -185,6 +186,8 @@ export function AppShell() {
         if (!payload) throw new Error("Weather unavailable");
         setForecast(payload);
         setWeatherError(null);
+        const attribution = await fetchWeatherAttribution();
+        if (cancelled) return;
         const needsCoords = (lat == null || lng == null) && zip;
         updateTree((current) => {
           const { duties, fires } = evaluateTriggers(current, payload);
@@ -198,7 +201,11 @@ export function AppShell() {
                   ]
                 : current.duties,
             weatherFires: fires.length > 0 ? [...current.weatherFires, ...fires] : current.weatherFires,
-            weatherStatus: { lastSuccessAt: payload.fetchedAt, lastError: null },
+            weatherStatus: {
+              lastSuccessAt: payload.fetchedAt,
+              lastError: null,
+              attribution: attribution ?? current.weatherStatus.attribution,
+            },
             location: needsCoords
               ? applyPostalCode(current.location, zip, {
                   lat: payload.lat,
@@ -355,6 +362,7 @@ export function AppShell() {
             household={household}
             weatherLine={weather.text}
             needsZip={weather.needsZip}
+            forecast={forecast}
             onSavePostalCode={savePostalCode}
             onComplete={completeDuty}
             onRecordCost={recordCompletionCost}

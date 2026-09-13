@@ -9,8 +9,11 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "CuidalaWeatherKit"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "fetchForecast", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "geocodeZip", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "geocodeZip", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "fetchAttribution", returnType: CAPPluginReturnPromise)
     ]
+
+    private static var attributionCache: [String: String]?
 
     @objc func fetchForecast(_ call: CAPPluginCall) {
         guard let latitude = call.getDouble("latitude"),
@@ -64,6 +67,32 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 result["placeName"] = city
             }
             call.resolve(result)
+        }
+    }
+
+    @objc func fetchAttribution(_ call: CAPPluginCall) {
+        if let cached = Self.attributionCache {
+            call.resolve(cached)
+            return
+        }
+        Task {
+            do {
+                let attribution = try await WeatherService.shared.attribution
+                async let lightData = URLSession.shared.data(from: attribution.combinedMarkLightURL)
+                async let darkData = URLSession.shared.data(from: attribution.combinedMarkDarkURL)
+                let (light, _) = try await lightData
+                let (dark, _) = try await darkData
+                let payload: [String: String] = [
+                    "legalPageURL": attribution.legalPageURL.absoluteString,
+                    "legalText": attribution.legalAttributionText,
+                    "markLight": "data:image/png;base64,\(light.base64EncodedString())",
+                    "markDark": "data:image/png;base64,\(dark.base64EncodedString())"
+                ]
+                Self.attributionCache = payload
+                call.resolve(payload)
+            } catch {
+                call.reject(error.localizedDescription)
+            }
         }
     }
 

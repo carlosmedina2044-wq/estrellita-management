@@ -1,16 +1,20 @@
 "use client";
 
+import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { seasonSectionModel } from "@/lib/playbooks";
 import type { AppNavigateTarget, Household } from "@/lib/types";
+import type { WeatherForecast } from "@/lib/weather/provider";
 
 export function SeasonSection({
   household,
   now,
   onNavigate,
+  forecast,
 }: {
   household: Household;
   now: Date;
   onNavigate?: (target: AppNavigateTarget) => void;
+  forecast?: WeatherForecast | null;
 }) {
   const model = seasonSectionModel(household, now);
   if (model.fires.length === 0 && model.open.length === 0) return null;
@@ -27,6 +31,12 @@ export function SeasonSection({
           See the year
         </button>
       </div>
+      {forecast ? (
+        <AppleWeatherAttribution
+          className="mt-2 flex items-center gap-2 text-[11px] text-muted-foreground"
+          attribution={household.weatherStatus.attribution}
+        />
+      ) : null}
       <ul className="mt-3 grid gap-2">
         {model.fires.map((fire) => (
           <li key={`${fire.name}-${fire.firedAt}`} className="text-[15px]">

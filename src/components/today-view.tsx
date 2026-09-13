@@ -35,6 +35,7 @@ import { shareText as nativeShare } from "@/lib/native/share";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
+import type { WeatherForecast } from "@/lib/weather/provider";
 import { cn } from "@/lib/utils";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 
@@ -48,6 +49,7 @@ export function TodayView({
   household,
   weatherLine,
   needsZip,
+  forecast,
   onSavePostalCode,
   onComplete,
   onRecordCost,
@@ -71,6 +73,7 @@ export function TodayView({
   household: Household;
   weatherLine?: string;
   needsZip?: boolean;
+  forecast?: WeatherForecast | null;
   onSavePostalCode?: (zip: string) => Promise<{ ok: boolean; error?: string }>;
   onComplete: (dutyId: string) => void;
   onRecordCost?: (completionId: string, input: { actualCost: number } | { skip: true }) => void;
@@ -273,7 +276,9 @@ export function TodayView({
           ) : undefined
         }
       />
-      {weatherLine && !needsZip ? <AppleWeatherAttribution /> : null}
+      {weatherLine && !needsZip ? (
+        <AppleWeatherAttribution attribution={household.weatherStatus.attribution} />
+      ) : null}
 
       {showTeaching ? (
         <div className="rounded-2xl bg-card px-4 py-4">
@@ -355,7 +360,7 @@ export function TodayView({
       </div>
 
       {scope === "daily" && !viewingCalendar ? (
-        <SeasonSection household={household} now={now} onNavigate={onNavigate} />
+        <SeasonSection household={household} now={now} onNavigate={onNavigate} forecast={forecast} />
       ) : null}
 
       {calendarOpen ? (

@@ -17,7 +17,15 @@ export type GeocodedZip = {
   placeName?: string;
 };
 
+export type WeatherKitAttribution = {
+  legalPageURL: string;
+  legalText: string;
+  markLight: string;
+  markDark: string;
+};
+
 export interface CuidalaWeatherKitPlugin {
   fetchForecast(options: { latitude: number; longitude: number }): Promise<WeatherKitForecast>;
   geocodeZip(options: { postalCode: string }): Promise<GeocodedZip>;
+  fetchAttribution(): Promise<WeatherKitAttribution>;
 }

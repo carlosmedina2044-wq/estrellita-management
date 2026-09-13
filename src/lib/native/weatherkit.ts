@@ -3,6 +3,8 @@ import { isNative } from "@/lib/native/platform";
 import { roundCoord } from "@/lib/climate";
 import type { DailyWeather, WeatherForecast } from "@/lib/weather/provider";
 
+const FALLBACK_LEGAL = "https://weatherkit.apple.com/legal-attribution.html";
+
 export type NativeWeatherForecast = {
   days: DailyWeather[];
   fetchedAt: string;
@@ -14,12 +16,29 @@ export type NativeGeocodedZip = {
   placeName?: string;
 };
 
+export type WeatherAttribution = {
+  legalPageURL: string;
+  legalText: string;
+  markLight: string;
+  markDark: string;
+};
+
 type NativeWeatherKit = {
   fetchForecast(options: { latitude: number; longitude: number }): Promise<NativeWeatherForecast>;
   geocodeZip(options: { postalCode: string }): Promise<NativeGeocodedZip>;
+  fetchAttribution(): Promise<WeatherAttribution>;
 };
 
 const plugin = registerPlugin<NativeWeatherKit>("CuidalaWeatherKit");
+
+let attributionOverride: (() => Promise<WeatherAttribution | null>) | null = null;
+
+/** Test hook — pass null to clear. */
+export function installWeatherAttributionForTests(
+  fetch: (() => Promise<WeatherAttribution | null>) | null,
+): void {
+  attributionOverride = fetch;
+}
 
 export async function weatherKitForecast(lat: number, lng: number): Promise<WeatherForecast> {
   if (!isNative()) throw new Error("WeatherKit is iOS-only");
@@ -48,6 +67,29 @@ export async function weatherKitGeocodeZip(postalCode: string): Promise<NativeGe
       lat: roundCoord(lat),
       lng: roundCoord(lng),
       placeName: place.placeName,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchWeatherAttribution(): Promise<WeatherAttribution | null> {
+  if (attributionOverride) return attributionOverride();
+  try {
+    if (!isNative()) {
+      return {
+        legalPageURL: FALLBACK_LEGAL,
+        legalText: "Apple Weather",
+        markLight: "",
+        markDark: "",
+      };
+    }
+    const result = await plugin.fetchAttribution();
+    return {
+      legalPageURL: result.legalPageURL || FALLBACK_LEGAL,
+      legalText: result.legalText || "Apple Weather",
+      markLight: result.markLight || "",
+      markDark: result.markDark || "",
     };
   } catch {
     return null;
