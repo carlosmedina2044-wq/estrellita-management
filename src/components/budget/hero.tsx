@@ -2,6 +2,7 @@
 
 import { useLocale } from "@/i18n/locale-provider";
 import { Button } from "@/components/ui/button";
+import { Gauge } from "@/components/gauge";
 import type { FundHealth } from "@/lib/budget";
 import { formatMoney } from "@/lib/forecast";
 
@@ -16,7 +17,7 @@ export function FundHero({
 
   if (health.saved == null) {
     return (
-      <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
+      <section className="animate-in fade-in slide-in-from-bottom-2 rounded-[var(--r-container)] bg-card px-4 py-5 duration-300">
         <p className="text-sm text-muted-foreground">{t("budget.fundTitle")}</p>
         <p className="ui-heading mt-1 ui-display font-semibold tracking-tight leading-tight">
           {t("budget.fundAsk")}
@@ -46,18 +47,15 @@ export function FundHero({
         : t("budget.coveredPct", { pct: covered });
 
   return (
-    <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
+    <section className="animate-in fade-in slide-in-from-bottom-2 rounded-[var(--r-container)] bg-card px-4 py-5 duration-300">
       <p className="text-sm text-muted-foreground">{t("budget.fundTitle")}</p>
       <p className="ui-display mt-1 tabular-nums">{t("budget.savedAmount", { amount: formatMoney(health.saved) })}</p>
       <p className="ui-title mt-1 font-medium text-muted-foreground">
         {t("budget.needed12", { amount: formatMoney(health.needed12) })}
       </p>
       <p className="mt-2 text-sm font-medium">{coveredLabel}</p>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${covered}%` }}
-        />
+      <div className="mt-3">
+        <Gauge fraction={covered / 100} showCaption={false} aria-label={coveredLabel} />
       </div>
       <p className="mt-3 text-sm leading-5 text-muted-foreground">
         {t("budget.suggestedPace", { amount: formatMoney(health.suggestedMonthly) })}
