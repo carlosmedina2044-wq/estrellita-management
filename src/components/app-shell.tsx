@@ -475,7 +475,7 @@ export function AppShell() {
             />
             <HouseMapSheet
               open={Boolean(roomOpen)}
-              initialSelected={roomOpen}
+              roomId={roomOpen ?? ""}
               household={household}
               now={new Date()}
               filter="all"

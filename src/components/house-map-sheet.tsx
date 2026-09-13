@@ -5,7 +5,6 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
-import { HomeMapView } from "@/components/home-map-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,7 +23,7 @@ import {
   todaysOpenDuties,
   wasCompletedToday,
 } from "@/lib/duties";
-import { ASSET_TYPES, reorderRooms, roomById } from "@/lib/home-model";
+import { ASSET_TYPES, roomById } from "@/lib/home-model";
 import { warrantyBadgeLabel } from "@/lib/warranty";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { ItemName } from "@/components/item-name";
@@ -34,6 +33,7 @@ import type { AssetType, Audience, Duty, DutyDraft, Household } from "@/lib/type
 
 export function HouseMapSheet({
   open,
+  roomId,
   household,
   now,
   filter,
@@ -41,12 +41,11 @@ export function HouseMapSheet({
   onToggle,
   onSaveDuty,
   onDeleteDuty,
-  onReorderRooms,
   onChangeTree,
-  initialSelected,
   ...restock
 }: {
   open: boolean;
+  roomId: string;
   household: Household;
   now: Date;
   filter: Audience | "all";
@@ -56,20 +55,13 @@ export function HouseMapSheet({
   onDeleteDuty: (id: string) => void;
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
-  initialSelected?: string | null;
 } & RestockFlowHandlers) {
-  const [selected, setSelected] = useState<string | null>(initialSelected ?? null);
+  const selected = roomId;
   const [editing, setEditing] = useState<Duty | null>(null);
   const [creating, setCreating] = useState(false);
   const [assetName, setAssetName] = useState("");
   const [assetType, setAssetType] = useState<AssetType>("other");
   const createGuard = useSheetOpenGuard();
-
-  const [prevOpen, setPrevOpen] = useState(false);
-  if (open !== prevOpen) {
-    setPrevOpen(open);
-    if (open) setSelected(initialSelected ?? null);
-  }
 
   const openDuties = todaysOpenDuties(household, now, filter);
   const done = household.duties.filter((duty) =>
@@ -127,18 +119,11 @@ export function HouseMapSheet({
           className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
           <SheetHeader className="shrink-0 pb-2">
-            <SheetTitle>House</SheetTitle>
+            <SheetTitle>{selectedRoom?.name ?? "Room"}</SheetTitle>
           </SheetHeader>
           <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-5 px-4 pb-4">
             {selectedRoom ? (
               <div className="flex flex-col gap-4">
-                <button
-                  type="button"
-                  className="self-start text-[15px] font-medium text-primary"
-                  onClick={() => setSelected(null)}
-                >
-                  Map
-                </button>
                 <div>
                   <h2 className="ui-heading text-[28px] font-semibold">{selectedRoom.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
@@ -193,25 +178,30 @@ export function HouseMapSheet({
                   <section>
                     <h3 className="mb-2 text-[13px] font-medium text-muted-foreground">Items</h3>
                     <ul className="grid gap-2">
-                      {roomConsumables.map((item) => (
+                      {roomConsumables.map((item) => {
+                        const placement = restockPlacement(item, household, now);
+                        return (
                         <li key={item.id} className="rounded-2xl bg-card px-4 py-3 text-sm">
                           <p className="font-medium">
                             <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
                           </p>
                           <p className="mt-0.5 text-[13px] text-muted-foreground">
-                            {restockPlacement(item, household, now).bucket === "ordered" && item.expectedArrivalDate
+                            {placement.bucket === "ordered" && item.expectedArrivalDate
                               ? `Arriving ~${item.expectedArrivalDate}`
                               : `On hand ${item.onHand} · lead ${item.leadTimeDays}d`}
                           </p>
-                          <div className="mt-2">
-                            <RestockOrderButton
-                              item={item}
-                              household={household}
-                              {...restockButtonProps(item, restock)}
-                            />
-                          </div>
+                          {placement.bucket === "order_now" ? (
+                            <div className="mt-2">
+                              <RestockOrderButton
+                                item={item}
+                                household={household}
+                                {...restockButtonProps(item, restock)}
+                              />
+                            </div>
+                          ) : null}
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </section>
                 ) : null}
@@ -278,17 +268,9 @@ export function HouseMapSheet({
                 </Button>
               </div>
             ) : (
-              <HomeMapView
-                household={household}
-                now={now}
-                selectedId={selected}
-                onSelectRoom={setSelected}
-                onReorder={
-                  onReorderRooms
-                    ? (floorId, ids) => onReorderRooms(reorderRooms(household.rooms, floorId, ids))
-                    : undefined
-                }
-              />
+              <p className="px-1 py-6 text-center text-sm text-muted-foreground">
+                That room is no longer in this home.
+              </p>
             )}
           </div>
         </SheetContent>

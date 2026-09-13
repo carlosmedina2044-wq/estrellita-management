@@ -12,6 +12,7 @@ export function HomeMapView({
   household,
   now,
   selectedId,
+  replacementRooms,
   onSelectRoom,
   onReorder,
 }: {
@@ -37,6 +38,7 @@ export function HomeMapView({
             household={household}
             now={now}
             selectedId={selectedId}
+            replacementRooms={replacementRooms}
             onSelectRoom={onSelectRoom}
             onReorder={onReorder ? (ids) => onReorder(null, ids) : undefined}
           />
@@ -63,6 +65,7 @@ export function HomeMapView({
                 household={household}
                 now={now}
                 selectedId={selectedId}
+                replacementRooms={replacementRooms}
                 onSelectRoom={onSelectRoom}
                 onReorder={onReorder ? (ids) => onReorder(floor.id, ids) : undefined}
               />
@@ -74,12 +77,18 @@ export function HomeMapView({
   );
 }
 
-function roomCaption(status: NodeStatus) {
+function roomCaption(status: NodeStatus, nearReplacement: boolean) {
   if (status.overdue > 0) {
     return { text: `${status.overdue} overdue`, className: "text-destructive" };
   }
   if (status.dueSoon > 0) {
     return { text: `${status.dueSoon} due soon`, className: "text-warning" };
+  }
+  if (status.reorderPending > 0) {
+    return { text: `${status.reorderPending} to reorder`, className: "text-warning" };
+  }
+  if (nearReplacement) {
+    return { text: "Replacement soon", className: "text-warning" };
   }
   if (status.total > 0) {
     return { text: `${status.total} to do`, className: "text-muted-foreground" };
@@ -92,6 +101,7 @@ function TileGrid({
   household,
   now,
   selectedId,
+  replacementRooms,
   onSelectRoom,
   onReorder,
 }: {
@@ -99,6 +109,7 @@ function TileGrid({
   household: Household;
   now: Date;
   selectedId?: string | null;
+  replacementRooms?: Set<string>;
   onSelectRoom: (roomId: string) => void;
   onReorder?: (orderedIds: string[]) => void;
 }) {
@@ -116,8 +127,10 @@ function TileGrid({
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {rooms.map((room) => {
         const status = nodeStatus(household, room.id, "room", now);
-        const caption = roomCaption(status);
+        const nearReplacement = Boolean(replacementRooms?.has(room.id));
+        const caption = roomCaption(status, nearReplacement);
         const overdue = status.overdue > 0;
+        const dueSoon = !overdue && (status.dueSoon > 0 || nearReplacement);
         return (
           <button
             key={room.id}
@@ -150,7 +163,9 @@ function TileGrid({
               "flex min-h-20 items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-left",
               overdue
                 ? "border-border border-l-[3px] border-l-destructive bg-card"
-                : "border-border bg-card",
+                : dueSoon
+                  ? "border-border border-l-[3px] border-l-warning bg-card"
+                  : "border-border bg-card",
               selectedId === room.id && "ring-2 ring-primary",
             )}
           >
@@ -159,14 +174,14 @@ function TileGrid({
               <span className="min-w-0">
                 <span className="block text-[17px] font-medium leading-snug">{room.name}</span>
                 <span className={cn("mt-0.5 flex items-center gap-1 text-[13px]", caption.className)}>
-                  {overdue ? <AlertCircle className="size-3.5 shrink-0" aria-hidden /> : null}
+                  {overdue || dueSoon ? <AlertCircle className="size-3.5 shrink-0" aria-hidden /> : null}
                   {caption.text}
                 </span>
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               {status.reorderPending > 0 ? (
-                <Package className="size-4 text-warning" aria-label="Reorder pending" />
+                <Package className="size-4 text-warning" aria-hidden />
               ) : null}
               {status.total > 0 ? (
                 <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-[13px] font-semibold text-foreground">
