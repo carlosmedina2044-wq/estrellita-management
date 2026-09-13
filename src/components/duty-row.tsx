@@ -3,7 +3,7 @@
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { tDutyTitle } from "@/i18n/content";
-import { Check, Circle } from "lucide-react";
+import { Check, Circle, Ellipsis } from "lucide-react";
 import { dutySubtitle, installedAtFor } from "@/lib/duties";
 import { prefersReducedMotion } from "@/lib/motion";
 import type { Duty, Household } from "@/lib/types";
@@ -24,6 +24,7 @@ export function DutyRow({
   exiting,
   onExitComplete,
   onLongPress,
+  onMore,
   onToggle,
   onOpen,
 }: {
@@ -41,6 +42,7 @@ export function DutyRow({
   exiting?: boolean;
   onExitComplete?: () => void;
   onLongPress?: (point: { x: number; y: number }) => void;
+  onMore?: (point: { x: number; y: number }) => void;
   onToggle: () => void;
   onOpen?: () => void;
 }) {
@@ -249,6 +251,21 @@ export function DutyRow({
             <span className="inline-flex h-8 items-center rounded-full bg-signal-soft px-3 ui-caption font-medium text-signal">
               {partChip.label}
             </span>
+          </button>
+        ) : null}
+        {onMore && !showDone ? (
+          <button
+            type="button"
+            className="flex size-11 shrink-0 items-center justify-center text-muted-foreground active:bg-foreground/6"
+            aria-label={t("chore.moreAria", { title })}
+            aria-haspopup="menu"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              onMore({ x: rect.left, y: rect.bottom });
+            }}
+          >
+            <Ellipsis className="size-5" />
           </button>
         ) : null}
       </div>

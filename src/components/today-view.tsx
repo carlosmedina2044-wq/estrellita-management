@@ -320,6 +320,11 @@ export function TodayView({
             ? undefined
             : (point) => setDutyMenu({ duty, x: point.x, y: point.y })
         }
+        onMore={
+          extra.done
+            ? undefined
+            : (point) => setDutyMenu({ duty, x: point.x, y: point.y })
+        }
         onPartChip={
           chip?.kind === "order_first"
             ? () => {

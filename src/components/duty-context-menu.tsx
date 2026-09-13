@@ -26,12 +26,26 @@ export function DutyContextMenu({
 
   useEffect(() => {
     if (!open) return;
+    const menuItems = () =>
+      Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
+    menuItems()[0]?.focus();
     function onPointerDown(event: PointerEvent) {
       if (ref.current?.contains(event.target as Node)) return;
       onClose();
     }
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      event.preventDefault();
+      const items = menuItems();
+      if (items.length === 0) return;
+      const current = items.indexOf(document.activeElement as HTMLElement);
+      const delta = event.key === "ArrowDown" ? 1 : -1;
+      const next = current < 0 ? 0 : (current + delta + items.length) % items.length;
+      items[next]?.focus();
     }
     window.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("keydown", onKey);
