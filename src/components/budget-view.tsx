@@ -41,10 +41,12 @@ export function BudgetView({
   household,
   onChange,
   onNavigate,
+  onBack,
 }: {
   household: Household;
   onChange: (updater: (current: Household) => Household) => void;
   onNavigate?: (target: AppNavigateTarget) => void;
+  onBack?: () => void;
 }) {
   const [horizon, setHorizon] = useState<12 | 24 | 36>(12);
   const [fundOpen, setFundOpen] = useState(false);
@@ -92,6 +94,7 @@ export function BudgetView({
       <PageHeader
         title="Budget"
         subtitle={updated}
+        onBack={onBack}
         action={
           <button
             type="button"

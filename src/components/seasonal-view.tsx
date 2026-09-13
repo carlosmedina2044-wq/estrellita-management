@@ -110,11 +110,13 @@ export function SeasonalView({
   onDecline,
   onReconsider,
   onToggleAttribute,
+  onBack,
 }: {
   household: Household;
   forecast: WeatherForecast | null;
   weatherLine: string;
   needsZip?: boolean;
+  onBack?: () => void;
   weatherError: string | null;
   onSavePostalCode?: (zip: string) => Promise<{ ok: boolean; error?: string }>;
   onAccept: (playbookId: string, titles?: string[]) => void;
@@ -139,7 +141,7 @@ export function SeasonalView({
   return (
     <div className="flex flex-col gap-5 pb-8">
       <div>
-        <PageHeader title="Seasonal" subtitle={subtitle} />
+        <PageHeader title="Seasonal" subtitle={subtitle} onBack={onBack} />
         {forecast ? <AppleWeatherAttribution className="mt-1 text-[11px] text-muted-foreground" /> : null}
         {showWeatherError ? (
           <p className="mt-2 text-[13px] text-muted-foreground">

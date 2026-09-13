@@ -29,6 +29,7 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Restock → Order → SFSafariViewController opens (not the app WebView); Done returns to the app. Paste a link still works on the item sheet.
 - [ ] Settings → Erase all data → relaunch → onboarding; no residual data.
 - [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
+- [ ] Tab bar shows Today / Home / Restock only; Budget and Seasonal open from their cards and Back returns to Home / Today respectively.
 - [ ] Seasonal shows Apple Weather attribution when a forecast is present. No poor-air or dust-advisory in Watching for.
 - [ ] How Cuidala works, Additional terms, Privacy policy, Report a problem, and Cuidala Pro coming soon open from Settings.
 - [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type); portrait-only; WeatherKit entitlement present.

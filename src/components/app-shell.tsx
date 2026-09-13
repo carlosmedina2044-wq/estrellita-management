@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Home, Leaf, Package, Settings, Sun, Wallet } from "lucide-react";
+import { Home, Package, Settings, Sun } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
@@ -452,6 +452,7 @@ export function AppShell() {
             household={household}
             onChange={(updater) => updateTree(updater)}
             onNavigate={navigate}
+            onBack={() => setTab("home")}
           />
         ) : null}
         {tab === "seasonal" ? (
@@ -468,6 +469,7 @@ export function AppShell() {
             onToggleAttribute={(key) =>
               updateHome({ attributes: { ...household.attributes, [key]: !household.attributes[key] } })
             }
+            onBack={() => setTab("today")}
           />
         ) : null}
         {tab === "settings" ? (
@@ -491,7 +493,7 @@ export function AppShell() {
       </main>
 
       <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40">
-        <div className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-5 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
+        <div className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
           <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
           <NavButton label="Home" icon={<Home className="size-5" />} active={tab === "home"} onClick={() => setTab("home")} />
           <NavButton
@@ -501,8 +503,6 @@ export function AppShell() {
             badge={restockGroups?.order_now.length ?? 0}
             onClick={() => setTab("restock")}
           />
-          <NavButton label="Budget" icon={<Wallet className="size-5" />} active={tab === "budget"} onClick={() => setTab("budget")} />
-          <NavButton label="Seasonal" icon={<Leaf className="size-5" />} active={tab === "seasonal"} onClick={() => setTab("seasonal")} />
         </div>
       </nav>
     </div>
