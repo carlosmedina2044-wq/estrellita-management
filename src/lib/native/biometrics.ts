@@ -25,21 +25,18 @@ export function isUnimplementedPluginError(error: unknown): boolean {
 export async function detectLockMethod(): Promise<LockMethod> {
   if (!isNative()) return "none";
   try {
-    const { BiometryType, NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-    const result = await NativeBiometric.isAvailable({ useFallback: true });
-    if (!result.isAvailable) return "none";
+    const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
+    const result = await CuidalaDeviceKey.canEvaluate();
+    if (!result.available && !result.deviceIsSecure) return "none";
     switch (result.biometryType) {
-      case BiometryType.TOUCH_ID:
-      case BiometryType.FINGERPRINT:
+      case "touchId":
         return "touchId";
-      case BiometryType.FACE_ID:
-      case BiometryType.FACE_AUTHENTICATION:
-      case BiometryType.IRIS_AUTHENTICATION:
-      case BiometryType.MULTIPLE:
+      case "faceId":
+      case "opticId":
         return "faceId";
       default:
-        // NONE or DEVICE_CREDENTIAL: lock is available via passcode only.
-        return "passcode";
+        // No biometry enrolled, but passcode can still unlock.
+        return result.deviceIsSecure || result.available ? "passcode" : "none";
     }
   } catch {
     return "none";
@@ -65,24 +62,9 @@ export async function verifyDeviceOwner(reason = tActive("biometrics.unlockCuida
   if (!isNative()) return false;
   promptInFlight += 1;
   try {
-    try {
-      const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
-      await CuidalaDeviceKey.verifyOwner({
-        reason,
-        fallbackTitle: deviceOwnerFallbackTitle(),
-      });
-      return true;
-    } catch (error) {
-      // Capgo’s verifyIdentity sets localizedFallbackTitle = "" first, which hides
-      // Enter Passcode. Only use it when this binary has no verifyOwner yet.
-      if (!isUnimplementedPluginError(error)) return false;
-    }
-    const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-    await NativeBiometric.verifyIdentity({
+    const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
+    await CuidalaDeviceKey.verifyOwner({
       reason,
-      title: "Cuidala",
-      subtitle: reason,
-      useFallback: true,
       fallbackTitle: deviceOwnerFallbackTitle(),
     });
     return true;

@@ -19,7 +19,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | Legacy pre-release data migrated, PIN/account fields dropped | — | `parseStored`/`migrateHousehold` | `src/lib/storage.test.ts` | VERIFIED |
 | Completion history capped at 24 months | Q8 | `rollOldCompletions` in `migrateHousehold` | Code path | VERIFIED (code) |
 | No personal or address-specific data in the bundle | Privacy | `src/lib/house.ts` generic; personal room map removed | `storage.test.ts` asserts generic fallback | VERIFIED |
-| App lock (Face ID / Touch ID / passcode) fails closed | MASVS-AUTH-2 | `src/components/face-lock.tsx`, `src/lib/native/biometrics.ts` | Manual on device; plugin ≥ 8.3.6 (GHSA-vx5f-vmr6-32wf fixed) | NOT VERIFIED (manual) |
+| App lock (Face ID / Touch ID / passcode) fails closed | MASVS-AUTH-2 | `src/components/face-lock.tsx`, `src/lib/native/biometrics.ts` via `CuidalaDeviceKey.canEvaluate` / `verifyOwner` (no third-party biometric SDK) | Manual on device | NOT VERIFIED (manual) |
 | Cleaner mode exit requires owner verification when available | — | `app-shell.tsx` `onEndVisit` | Manual | NOT VERIFIED (manual) |
 | No accounts, no first-party server, no remote code | App Store 2.5.2 / 4.2 | `next.config.ts` `output: "export"`; `capacitor.config.ts` no `server.url` | CI greps `out/` for remote origins | VERIFIED |
 | No third-party weather network from WKWebView | MASVS-NETWORK-1 | WeatherKit native plugin; CSP `connect-src 'self'`; Open-Meteo hosts removed | CSP in `layout.tsx`; `Info.plist` has no Open-Meteo domains | VERIFIED |

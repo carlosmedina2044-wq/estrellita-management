@@ -26,7 +26,6 @@
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/preferences": "^8.0.1",
     "@capacitor/share": "^8.0.1",
-    "@capgo/capacitor-native-biometric": "^8.6.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cuidala-device-key": "file:plugins/cuidala-device-key",

@@ -15,6 +15,7 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "set", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "remove", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "verifyOwner", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "canEvaluate", returnType: CAPPluginReturnPromise),
     ]
 
     private static let currentService = "com.cuidala.app.device-key"
@@ -103,6 +104,33 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
                 call.reject(evaluateError?.localizedDescription ?? "Authentication failed", "auth_failed")
             }
+        }
+    }
+
+    /// Pre-flight for Settings lock UI. Not a security control — callers must still authenticate.
+    @objc func canEvaluate(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            let context = LAContext()
+            var ownerError: NSError?
+            let deviceIsSecure = context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &ownerError)
+            // Reading biometryType is only meaningful after a canEvaluatePolicy call.
+            _ = context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+            let biometryType: String
+            switch context.biometryType {
+            case .touchID:
+                biometryType = "touchId"
+            case .faceID:
+                biometryType = "faceId"
+            case .opticID:
+                biometryType = "opticId"
+            default:
+                biometryType = "none"
+            }
+            call.resolve([
+                "available": deviceIsSecure,
+                "biometryType": biometryType,
+                "deviceIsSecure": deviceIsSecure,
+            ])
         }
     }
 
