@@ -58,7 +58,7 @@ In Xcode:
   - Order opens the retailer in Safari; no in-app purchase.
   - iPhone only; portrait only.
 - **Export compliance:** `ITSAppUsesNonExemptEncryption = false`. Encryption is Apple-provided WebCrypto inside WebKit (AES-GCM, PBKDF2) plus the iOS Keychain. No custom crypto library is shipped.
-- **Age rating:** 4+ listing; Additional terms require 18+.
+- **Age rating:** 4+.
 - **EULA:** Apple Standard EULA in App Store Connect, plus in-app Additional terms.
 
 ## Web shell

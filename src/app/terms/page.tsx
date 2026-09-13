@@ -17,8 +17,7 @@ export default function TermsPage() {
         set in App Store Connect.
       </p>
       <p>
-        You must be 18 or older to use Cuidala. Cuidala is for a single household on a single iPhone in
-        the United States.
+        Cuidala is for a single household on a single iPhone in the United States.
       </p>
       <p>
         Cuidala helps you organise home maintenance. Reminders, seasonal checklists, cost forecasts, and
