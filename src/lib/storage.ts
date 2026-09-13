@@ -12,6 +12,7 @@ export {
   installVaultIOForTests,
   isHouseholdSessionUnlocked,
   lockHouseholdSession,
+  resyncNotifications,
   canUndoLastRestore,
   undoLastRestore,
   PERSIST_FAILED_EVENT,

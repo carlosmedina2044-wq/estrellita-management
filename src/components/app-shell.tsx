@@ -43,7 +43,7 @@ import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
-import { forCleanerSession, PERSIST_FAILED_EVENT } from "@/lib/storage";
+import { forCleanerSession, PERSIST_FAILED_EVENT, resyncNotifications } from "@/lib/storage";
 import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_KEEP_PRIVATE, TIP_LOCK_REENGAGE, withTeaching } from "@/lib/teaching";
 import { lockMethodLabel } from "@/lib/native/lock-labels";
 import { isRootTab, type AppNavigateTarget, type RootTab } from "@/lib/types";
@@ -384,6 +384,35 @@ export function AppShell() {
   }, [onboarded, requireFaceId, lockAfter, cleanerVisitActive, canLock, lockSession]);
 
   useEffect(() => {
+    const resync = () => {
+      void resyncNotifications();
+    };
+    const onVisible = () => {
+      if (!document.hidden) resync();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    let cancelled = false;
+    let removeNative: (() => void) | undefined;
+    if (isNative()) {
+      void import("@capacitor/app").then(async ({ App }) => {
+        const resume = await App.addListener("resume", resync);
+        if (cancelled) {
+          void resume.remove();
+          return;
+        }
+        removeNative = () => {
+          void resume.remove();
+        };
+      });
+    }
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
+      removeNative?.();
+    };
+  }, []);
+
+  useEffect(() => {
     const onFail = () => toast.error(tRef.current("shell.saveFailed"));
     window.addEventListener(PERSIST_FAILED_EVENT, onFail);
     return () => window.removeEventListener(PERSIST_FAILED_EVENT, onFail);
@@ -480,6 +509,7 @@ export function AppShell() {
     void import("@capacitor/local-notifications").then(async ({ LocalNotifications }) => {
       const handle = await LocalNotifications.addListener("localNotificationActionPerformed", (event) => {
         const extra = event.notification.extra as { tab?: string; itemId?: string; action?: string } | undefined;
+        if (extra?.tab === "today") navigate({ tab: "today" });
         if (extra?.tab === "restock") {
           navigate({
             tab: "restock",

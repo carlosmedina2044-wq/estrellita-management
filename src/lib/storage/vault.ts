@@ -273,6 +273,13 @@ export function isHouseholdSessionUnlocked(): boolean {
   return sessionUnlocked;
 }
 
+/** Re-plans local notifications from in-memory household. No-op while locked or before onboarding. */
+export async function resyncNotifications(now = new Date()): Promise<boolean> {
+  if (!sessionUnlocked || !memory?.onboarded) return false;
+  await syncScheduledNotifications(memory, now);
+  return true;
+}
+
 export function getVaultSessionMeta(): VaultSessionMeta | null {
   return sessionMeta;
 }

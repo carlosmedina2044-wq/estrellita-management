@@ -19,6 +19,7 @@ import {
   resetVaultForTests,
   unlockHousehold,
   updateHousehold,
+  resyncNotifications,
 } from "@/lib/storage/vault";
 import { DeviceKeyError } from "@/lib/native/device-key";
 
@@ -558,6 +559,38 @@ test("lock clears CryptoKey session and plaintext; unlock restores", async () =>
 
   assert.equal((await unlockHousehold()).ok, true);
   assert.equal(getHousehold().householdName, "Locked Home");
+  resetVaultForTests();
+});
+
+test("resyncNotifications no-ops while locked", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Locked Home", onboarded: true })),
+  );
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, sealed]]);
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => true,
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  await hydrateHousehold();
+  assert.equal((await unlockHousehold()).ok, true);
+  assert.equal(await resyncNotifications(), true);
+
+  await lockHouseholdSession();
+  assert.equal(isHouseholdSessionUnlocked(), false);
+  assert.equal(await resyncNotifications(), false);
   resetVaultForTests();
 });
 
