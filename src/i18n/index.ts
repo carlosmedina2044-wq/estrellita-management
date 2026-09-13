@@ -57,5 +57,20 @@ export function translate(
 }
 
 export function localeDateTag(locale: AppLocale): string {
-  return locale === "pt-BR" ? "pt-BR" : locale === "es" ? "es-419" : "en-US";
+  return locale === "pt-BR" ? "pt-BR" : locale === "es" ? "es-MX" : "en-US";
+}
+
+/** Module-level locale for non-React lib helpers (notifications, digest, share). */
+let activeLocale: AppLocale = "en";
+
+export function setActiveAppLocale(locale: AppLocale): void {
+  activeLocale = locale;
+}
+
+export function getActiveAppLocale(): AppLocale {
+  return activeLocale;
+}
+
+export function tActive(key: MessageKey, params?: Record<string, string | number>): string {
+  return translate(activeLocale, key, params);
 }

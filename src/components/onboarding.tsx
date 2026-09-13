@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { BrandLockup } from "@/components/brand-logo";
+import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLocale } from "@/i18n/locale-provider";
+import type { MessageKey } from "@/i18n";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
 import {
   generateHomeFromAnswers,
@@ -13,7 +16,7 @@ import {
   type FeatureKey,
   type OnboardingAnswers,
 } from "@/lib/onboarding/generate";
-import { ADD_ROOM_TYPES, nextRoomKey, roomTemplateFor, type RoomChoice } from "@/lib/onboarding/rooms";
+import { ADD_ROOM_TYPES, addRoomTypeLabel, nextRoomKey, roomTemplateFor, type RoomChoice } from "@/lib/onboarding/rooms";
 import {
   defaultWalkPicks,
   newCustomPick,
@@ -29,10 +32,10 @@ import { weatherKitReverseGeocode } from "@/lib/native/weatherkit";
 import type { HomeLocation, HomeType, RetailerId, Tenure } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const EXTRA_HOME_FEATURES: { id: FeatureKey; label: string }[] = [
-  { id: "hasPool", label: "Pool" },
-  { id: "hasEvaporativeCooler", label: "Evaporative cooler" },
-  { id: "hasWell", label: "Well" },
+const EXTRA_HOME_FEATURES: { id: FeatureKey; labelKey: MessageKey }[] = [
+  { id: "hasPool", labelKey: "onboarding.feature.pool" },
+  { id: "hasEvaporativeCooler", labelKey: "onboarding.feature.evaporativeCooler" },
+  { id: "hasWell", labelKey: "onboarding.feature.well" },
 ];
 
 export function Onboarding({
@@ -40,6 +43,7 @@ export function Onboarding({
 }: {
   onComplete: (input: { answers: OnboardingAnswers; ownerName?: string }) => void | Promise<void>;
 }) {
+  const { t } = useLocale();
   const [step, setStep] = useState(0);
   const [homeType, setHomeType] = useState<HomeType>("house");
   const [tenure, setTenure] = useState<Tenure | undefined>();
@@ -59,6 +63,7 @@ export function Onboarding({
   const [walkContext, setWalkContext] = useState(() => generateHomeFromAnswers(sampleHomeAnswers()));
   const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
   const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
+  const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
 
   const location: HomeLocation = {
     postalCode: postalCode || undefined,
@@ -71,7 +76,7 @@ export function Onboarding({
     homeType,
     tenure,
     location,
-    nickname: "Home",
+    nickname: t("onboarding.nicknameHome"),
     rooms,
     features: extraFeatures,
     restockPicks,
@@ -100,7 +105,7 @@ export function Onboarding({
   }
 
   function addRoom(type: RoomChoice["type"]) {
-    const label = ADD_ROOM_TYPES.find((item) => item.id === type)?.label ?? "Room";
+    const label = addRoomTypeLabel(type);
     const count = rooms.filter((room) => room.type === type && !room.system).length;
     setRooms((current) => [
       ...current,
@@ -119,7 +124,7 @@ export function Onboarding({
       homeType,
       tenure,
       location: nextLocation,
-      nickname: "Home",
+      nickname: t("onboarding.nicknameHome"),
       rooms,
       features: extraFeatures,
     });
@@ -201,7 +206,7 @@ export function Onboarding({
   async function continueFromZip() {
     const zip = normalizeUsZip(postalCode);
     if (zip && !isValidUsZip(zip)) {
-      setZipError("Enter a 5-digit US ZIP, or skip.");
+      setZipError(t("onboarding.zipError"));
       return;
     }
     if (!zip) {
@@ -237,7 +242,7 @@ export function Onboarding({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(progress * 100)}
-          aria-label="Setup progress"
+          aria-label={t("onboarding.progressAria")}
         >
           <div className="h-full bg-brand transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
         </div>
@@ -248,12 +253,9 @@ export function Onboarding({
         </div>
 
         {step === 0 ? (
-          <Screen
-            title="Your home, calmly kept."
-            copy="Chores, restock reminders, and rooms — private on this iPhone."
-          >
+          <Screen title={t("onboarding.welcomeTitle")} copy={t("onboarding.welcomeCopy")}>
             <Button className="h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
-              Set up my home
+              {t("onboarding.setupCta")}
             </Button>
             <Button
               variant="ghost"
@@ -261,60 +263,55 @@ export function Onboarding({
               disabled={busy}
               onClick={() => void finish(sampleHomeAnswers())}
             >
-              Use a sample home instead
+              {t("onboarding.sampleCta")}
             </Button>
             <button
               type="button"
               className="mt-auto pt-8 text-sm font-medium text-primary"
-              onClick={() => go(1)}
+              onClick={() => setLegalDoc("how-it-works")}
             >
-              How it works
+              {t("onboarding.howItWorksLink")}
             </button>
-            <p className="mt-3 text-sm leading-5 text-muted-foreground">
-              No account. No Cuidala server. See Settings after setup for privacy details and backup.
-            </p>
+            <p className="mt-3 text-sm leading-5 text-muted-foreground">{t("onboarding.privacyHint")}</p>
           </Screen>
         ) : null}
 
         {step === 1 ? (
-          <Screen
-            title="Tell us about your place"
-            copy="Home type fills rooms. How long you’ve been here shapes the first-week checklist."
-          >
-            <p className="mb-2 ui-caption font-medium text-muted-foreground">What are you managing?</p>
+          <Screen title={t("onboarding.placeTitle")} copy={t("onboarding.placeCopy")}>
+            <p className="mb-2 ui-caption font-medium text-muted-foreground">{t("onboarding.whatManaging")}</p>
             <ChoiceGrid
               value={homeType}
               options={[
-                { id: "house", label: "House" },
-                { id: "apartment", label: "Apartment" },
-                { id: "condo", label: "Condo" },
-                { id: "townhouse", label: "Townhome" },
+                { id: "house", label: t("onboarding.homeType.house") },
+                { id: "apartment", label: t("onboarding.homeType.apartment") },
+                { id: "condo", label: t("onboarding.homeType.condo") },
+                { id: "townhouse", label: t("onboarding.homeType.townhouse") },
               ]}
               onChange={(value) => applyType(value as HomeType)}
             />
-            <p className="mb-2 mt-6 ui-caption font-medium text-muted-foreground">How long have you been here?</p>
+            <p className="mb-2 mt-6 ui-caption font-medium text-muted-foreground">{t("onboarding.howLong")}</p>
             <ChoiceGrid
               value={tenure ?? ""}
               options={[
-                { id: "new", label: "Just moved in", hint: "Under a year" },
-                { id: "settled", label: "A few years" },
-                { id: "longtime", label: "A long time" },
+                { id: "new", label: t("onboarding.tenure.new"), hint: t("onboarding.tenure.newHint") },
+                { id: "settled", label: t("onboarding.tenure.settled") },
+                { id: "longtime", label: t("onboarding.tenure.longtime") },
               ]}
               onChange={(value) => setTenure(value as Tenure)}
             />
             <div className="mt-auto flex gap-3 pt-6">
               <Button variant="secondary" className="h-14 flex-1" onClick={() => go(0)}>
-                Back
+                {t("common.back")}
               </Button>
               <Button className="h-14 flex-1" disabled={!tenure} onClick={() => go(2)}>
-                Continue
+                {t("common.continue")}
               </Button>
             </div>
           </Screen>
         ) : null}
 
         {step === 2 ? (
-          <Screen title="Build your home" copy="Toggle rooms, rename them, or add one. Chores attach after you finish.">
+          <Screen title={t("onboarding.buildTitle")} copy={t("onboarding.buildCopy")}>
             <div className="grid gap-2">
               {rooms.map((room) => (
                 <label key={room.key} className="flex items-center gap-3 rounded-2xl bg-card px-3 py-2">
@@ -336,7 +333,7 @@ export function Onboarding({
                       )
                     }
                     className="h-11"
-                    aria-label={`${room.name} name`}
+                    aria-label={t("onboarding.roomNameAria", { name: room.name })}
                   />
                 </label>
               ))}
@@ -350,16 +347,16 @@ export function Onboarding({
                     className="h-11 rounded-2xl bg-secondary text-sm font-medium"
                     onClick={() => addRoom(item.id)}
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </button>
                 ))}
               </div>
             ) : (
               <button type="button" className="mt-4 ui-body font-medium text-brand" onClick={() => setAdding(true)}>
-                + Add room
+                {t("onboarding.addRoom")}
               </button>
             )}
-            <p className="mt-6 ui-caption font-medium text-muted-foreground">Also here</p>
+            <p className="mt-6 ui-caption font-medium text-muted-foreground">{t("onboarding.alsoHere")}</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {EXTRA_HOME_FEATURES.map((item) => {
                 const on = extraFeatures.includes(item.id);
@@ -377,21 +374,21 @@ export function Onboarding({
                       )
                     }
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </button>
                 );
               })}
             </div>
             <div className="mt-auto flex gap-3 pt-6">
               <Button variant="secondary" className="h-14 flex-1" onClick={() => go(1)}>
-                Back
+                {t("common.back")}
               </Button>
               <Button
                 className="h-14 flex-1"
                 disabled={!rooms.some((room) => room.enabled && !room.system)}
                 onClick={() => go(3)}
               >
-                Continue
+                {t("common.continue")}
               </Button>
             </div>
           </Screen>
@@ -399,16 +396,17 @@ export function Onboarding({
 
         {step === 3 ? (
           <Screen
-            title="Where is it?"
-            copy="ZIP is for climate and seasonal tasks. Weather comes from Apple Weather on this iPhone."
+            title={t("onboarding.whereTitle")}
+            copy={t("onboarding.whereCopy")}
             onSkip={() => {
               afterLocation({ ...location, postalCode: undefined });
             }}
+            skipLabel={t("common.skip")}
           >
             <Button className="h-14 w-full" disabled={busy} onClick={() => void requestLocation()}>
-              Allow location
+              {t("onboarding.allowLocation")}
             </Button>
-            <p className="mt-3 text-sm text-muted-foreground">Or type a 5-digit ZIP.</p>
+            <p className="mt-3 text-sm text-muted-foreground">{t("onboarding.orZip")}</p>
             <Input
               inputMode="numeric"
               autoComplete="postal-code"
@@ -417,22 +415,25 @@ export function Onboarding({
                 setPostalCode(normalizeUsZip(event.target.value));
                 setZipError("");
               }}
-              placeholder="ZIP code"
+              placeholder={t("onboarding.zipPlaceholder")}
               className="mt-2 h-14"
-              aria-label="ZIP code"
+              aria-label={t("onboarding.zipPlaceholder")}
             />
             {zipError ? <p className="mt-2 text-sm text-destructive">{zipError}</p> : null}
             <Button className="mt-6 h-14 w-full" disabled={busy} onClick={() => void continueFromZip()}>
-              Continue
+              {t("common.continue")}
             </Button>
           </Screen>
         ) : null}
 
         {step === 4 && walkPhase === "items" ? (
           <Screen
-            title="Walk your house"
-            copy="Recommended items are checked. Uncheck what you don’t buy, add anything we missed. Sizes come later, when you order."
+            title={t("onboarding.walkTitle")}
+            copy={t("onboarding.walkCopy")}
+            onSkip={() => void finish({ ...answers, restockPicks: [], preferredRetailers: ["amazon", "home-depot"] })}
+            skipLabel={t("onboarding.skipWalk")}
           >
+            <p className="mb-3 ui-caption text-muted-foreground">{t("onboarding.walkOptional")}</p>
             <RestockWalkPicker
               picks={restockPicks}
               onChange={(next) => {
@@ -476,10 +477,10 @@ export function Onboarding({
             />
             <div className="mt-auto flex gap-3 pt-6">
               <Button variant="secondary" className="h-14 flex-1" onClick={() => go(3)}>
-                Back
+                {t("common.back")}
               </Button>
               <Button className="h-14 flex-1" disabled={busy} onClick={continueFromWalk}>
-                Continue
+                {t("common.continue")}
               </Button>
             </div>
           </Screen>
@@ -487,11 +488,12 @@ export function Onboarding({
 
         {step === 4 && walkPhase === "stores" ? (
           <Screen
-            title="Where do you usually shop?"
-            copy="Order buttons open your stores first. You can change this any time."
+            title={t("onboarding.storesTitle")}
+            copy={t("onboarding.storesCopy")}
             onSkip={() => void finish({ ...answers, restockPicks, preferredRetailers: ["amazon", "home-depot"] })}
-            skipLabel="Keep these — I'll change it later"
+            skipLabel={t("onboarding.skipWalk")}
           >
+            <p className="mb-3 ui-caption text-muted-foreground">{t("onboarding.walkOptional")}</p>
             <div className="flex flex-wrap gap-1.5">
               {RETAILER_CHIPS.map((chip) => {
                 const index = preferredRetailers.indexOf(chip.id);
@@ -513,19 +515,20 @@ export function Onboarding({
             </div>
             <div className="mt-auto flex gap-3 pt-6">
               <Button variant="secondary" className="h-14 flex-1" onClick={() => setWalkPhase("items")}>
-                Back
+                {t("common.back")}
               </Button>
               <Button
                 className="h-14 flex-1"
                 disabled={busy}
                 onClick={() => void finish({ ...answers, restockPicks, preferredRetailers })}
               >
-                Show me my chores
+                {t("onboarding.showChores")}
               </Button>
             </div>
           </Screen>
         ) : null}
       </div>
+      <LegalDocSheet doc={legalDoc} onOpenChange={(open) => !open && setLegalDoc(null)} />
     </div>
   );
 }
@@ -535,7 +538,7 @@ function Screen({
   copy,
   children,
   onSkip,
-  skipLabel = "Skip",
+  skipLabel,
 }: {
   title: string;
   copy: string;
@@ -543,6 +546,7 @@ function Screen({
   onSkip?: () => void;
   skipLabel?: string;
 }) {
+  const { t } = useLocale();
   return (
     <div className="flex flex-1 flex-col pt-10">
       <h1 className="ui-heading ui-display leading-tight font-semibold tracking-tight">{title}</h1>
@@ -550,7 +554,7 @@ function Screen({
       <div className="mt-6 flex flex-1 flex-col">{children}</div>
       {onSkip ? (
         <button type="button" className="mt-4 ui-caption font-medium text-brand" onClick={onSkip}>
-          {skipLabel}
+          {skipLabel ?? t("common.skip")}
         </button>
       ) : null}
     </div>

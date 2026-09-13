@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { addCalendarYears, formatDueDate, formatShortDate, parseISODate, startOfDay, toISODate } from "@/lib/dates";
 import type { HomeAsset } from "@/lib/types";
 
@@ -23,7 +24,7 @@ export function warrantyBadgeLabel(asset: Pick<HomeAsset, "warrantyUntil">, toda
   if (!Number.isFinite(end)) return null;
   const days = Math.round((end - startOfDay(today)) / 86_400_000);
   if (days < 0 || days > WARRANTY_BADGE_DAYS) return null;
-  return `Warranty ends ${formatShortDate(asset.warrantyUntil)}`;
+  return tActive("warranty.ends", { date: formatShortDate(asset.warrantyUntil) });
 }
 
 export function warrantyNotificationsFor(
@@ -42,10 +43,13 @@ export function warrantyNotificationsFor(
     if (at.getTime() <= today.getTime()) continue;
     notices.push({
       id: `warranty-${asset.id}`,
-      title: "Warranty ending soon",
+      title: tActive("warranty.endingSoon"),
       body: privateNotifications
-        ? "Open Cuidala for details."
-        : `${asset.name} warranty ends ${formatDueDate(asset.warrantyUntil)}. If anything’s been acting up, get it looked at while it’s covered.`,
+        ? tActive("digest.openDetails")
+        : tActive("warranty.bodyNamed", {
+            name: asset.name,
+            date: formatDueDate(asset.warrantyUntil),
+          }),
       at,
       extra: { tab: "home" },
     });

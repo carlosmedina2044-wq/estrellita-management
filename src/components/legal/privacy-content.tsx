@@ -1,75 +1,55 @@
+"use client";
+
+import { useLocale } from "@/i18n/locale-provider";
+
 export function PrivacyContent() {
+  const { t } = useLocale();
   return (
     <div className="grid gap-3 ui-body leading-6">
-      <p className="text-sm text-muted-foreground">Effective August 2026</p>
+      <p className="text-sm text-muted-foreground">{t("legal.privacy.effective")}</p>
 
-      <h2 className="mt-2 font-semibold">What Cuidala is</h2>
-      <p>
-        Cuidala is a household maintenance app. It keeps a list of your rooms, chores, appliances, and the
-        consumables you need to reorder, and tells you when to order them. v1 is one home on one iPhone,
-        sold on the US App Store.
-      </p>
+      <h2 className="mt-2 font-semibold">{t("legal.privacy.whatTitle")}</h2>
+      <p>{t("legal.privacy.whatBody")}</p>
 
-      <h2 className="mt-2 font-semibold">Data stored on your device</h2>
-      <p>
-        Everything you enter (home name, rooms, chores, notes, appliance details, consumables, completion history,
-        your ZIP code, and the settings you choose) is stored only on your iPhone. It is encrypted at rest with a
-        key held in the iOS Keychain, unlocked with Face ID or your device passcode. That key stays on this iPhone
-        and does not travel with iCloud backup. Use the backup password file in Settings to move your home to a new
-        phone. Cuidala has no user accounts and no servers that receive this data.
-      </p>
+      <h2 className="mt-2 font-semibold">{t("legal.privacy.storedTitle")}</h2>
+      <p>{t("legal.privacy.storedBody")}</p>
 
-      <h2 className="mt-2 font-semibold">Data that leaves your device</h2>
+      <h2 className="mt-2 font-semibold">{t("legal.privacy.leavesTitle")}</h2>
       <ul className="list-disc space-y-1 pl-5">
         <li>
-          <strong>Weather.</strong> Forecasts come from Apple WeatherKit on this iPhone. Apple may receive a
-          location to return the forecast. ZIP is stored on device to pick a climate zone. Cuidala does not send
-          weather or location to its own servers.
+          <strong>{t("legal.privacy.weatherStrong")}</strong> {t("legal.privacy.weatherBody")}
         </li>
         <li>
-          <strong>Retailer links.</strong> When you tap Order or Find it, the retailer’s website opens in an in-app
-          Safari view. What you do there is governed by that retailer’s policy. Cuidala does not place orders,
-          see what you buy, or store payment information.
+          <strong>{t("legal.privacy.retailerStrong")}</strong> {t("legal.privacy.retailerBody")}
         </li>
       </ul>
-      <p>That is the complete list. Cuidala does not use analytics, advertising, or crash-reporting services.</p>
+      <p>{t("legal.privacy.completeList")}</p>
 
-      <h2 className="mt-2 font-semibold">App Store privacy label</h2>
-      <p>
-        Data Not Collected. WeatherKit requests are handled by Apple, not collected by Cuidala. ZIP and chores
-        stay on this iPhone.
-      </p>
+      <h2 className="mt-2 font-semibold">{t("legal.privacy.labelTitle")}</h2>
+      <p>{t("legal.privacy.labelBody")}</p>
 
-      <h2 className="mt-2 font-semibold">Permissions</h2>
+      <h2 className="mt-2 font-semibold">{t("legal.privacy.permTitle")}</h2>
       <ul className="list-disc space-y-1 pl-5">
         <li>
-          <strong>Location (optional).</strong> Used during setup to pick seasonal tasks and to request Apple
-          Weather. ZIP can be typed instead.
+          <strong>{t("legal.privacy.locStrong")}</strong> {t("legal.privacy.locBody")}
         </li>
         <li>
-          <strong>Notifications (optional).</strong> Local reminders scheduled on your device for restock dates
-          and a weekly digest. You can hide item names on the lock screen in Settings.
+          <strong>{t("legal.privacy.notifStrong")}</strong> {t("legal.privacy.notifBody")}
         </li>
         <li>
-          <strong>Face ID / Touch ID (optional).</strong> Used to lock the app. Biometric data never leaves the
-          Secure Enclave and is not available to Cuidala.
+          <strong>{t("legal.privacy.bioStrong")}</strong> {t("legal.privacy.bioBody")}
         </li>
       </ul>
 
-      <h2 className="mt-2 font-semibold">Deleting your data</h2>
-      <p>
-        Deleting the app removes your home from this iPhone. The Keychain key is removed by Erase everything in
-        Settings, not by deleting the app. Scheduled reminders go away with the app. Because nothing is stored
-        elsewhere, there is nothing else to delete.
-      </p>
+      <h2 className="mt-2 font-semibold">{t("legal.privacy.deleteTitle")}</h2>
+      <p>{t("legal.privacy.deleteBody")}</p>
 
-      <h2 className="mt-2 font-semibold">Children</h2>
-      <p>Cuidala is not directed at children under 13 and does not knowingly collect information from them.</p>
+      <h2 className="mt-2 font-semibold">{t("legal.privacy.childrenTitle")}</h2>
+      <p>{t("legal.privacy.childrenBody")}</p>
 
-      <h2 className="mt-2 font-semibold">Changes and contact</h2>
+      <h2 className="mt-2 font-semibold">{t("legal.privacy.contactTitle")}</h2>
       <p>
-        If this policy changes, the new version ships with an app update and the effective date above changes.
-        Questions:{" "}
+        {t("legal.privacy.contactBody")}{" "}
         <a className="text-primary" href="mailto:privacy@cuidala.app">
           privacy@cuidala.app
         </a>

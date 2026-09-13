@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { tActive } from "@/i18n";
+import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { Button } from "@/components/ui/button";
@@ -27,7 +29,7 @@ import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved
 import { sizePlaceholder } from "@/lib/item-label";
 import { toISODate } from "@/lib/dates";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
-import { CHECKIN_LEVELS, CHECKIN_OPTIONS, ratePerDayFor, type CheckinLevel, type RestockFlowHandlers } from "@/lib/restock";
+import { CHECKIN_LEVELS, checkinOptions, ratePerDayFor, type CheckinLevel, type RestockFlowHandlers } from "@/lib/restock";
 import type { Duty, DutyDraft, Household, Room, SupplyAutomation } from "@/lib/types";
 
 type Draft = {
@@ -42,11 +44,11 @@ type Draft = {
   lifespanMonths: 1 | 3 | 6 | 12 | null;
 };
 
-const LIFESPAN_PILLS: { months: 1 | 3 | 6 | 12; label: string }[] = [
-  { months: 1, label: "1 month" },
-  { months: 3, label: "3 months" },
-  { months: 6, label: "6 months" },
-  { months: 12, label: "A year" },
+const LIFESPAN_PILLS: { months: 1 | 3 | 6 | 12; labelKey: "consumable.span.1m" | "consumable.span.3m" | "consumable.span.6m" | "consumable.span.1y" }[] = [
+  { months: 1, labelKey: "consumable.span.1m" },
+  { months: 3, labelKey: "consumable.span.3m" },
+  { months: 6, labelKey: "consumable.span.6m" },
+  { months: 12, labelKey: "consumable.span.1y" },
 ];
 
 function lifespanFromAutomation(automation: SupplyAutomation | null): 1 | 3 | 6 | 12 | null {
@@ -93,6 +95,7 @@ export function ConsumableForm({
   onDelete?: (id: string) => void;
   focusField?: "sizeSpec";
 } & RestockFlowHandlers) {
+  const { t } = useLocale();
   const [draft, setDraft] = useState<Draft>(emptyDraft(defaultRoom));
   const [formError, setFormError] = useState<string | null>(null);
   const [advanced, setAdvanced] = useState(false);
@@ -126,8 +129,8 @@ export function ConsumableForm({
   function submit() {
     const itemName = draft.itemName.trim();
     if (!itemName) {
-      setFormError("Name the item to order.");
-      toast.error("Name the item to order.");
+      setFormError(t("restock.nameRequired"));
+      toast.error(t("restock.nameRequired"));
       return;
     }
     const link = parseOptionalRetailerUrl(draft.retailerUrl);
@@ -176,7 +179,7 @@ export function ConsumableForm({
           : {}),
       },
     });
-    toast.success(automation ? "Saved" : "Added to Restock");
+    toast.success(automation ? t("common.saved") : t("restock.addedToRestock"));
     closeAfterClick();
   }
 
@@ -188,19 +191,19 @@ export function ConsumableForm({
         className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader className="shrink-0 pb-2">
-          <SheetTitle>{automation ? "Edit item" : "New item"}</SheetTitle>
+          <SheetTitle>{automation ? t("restock.editItem") : t("restock.newItem")}</SheetTitle>
         </SheetHeader>
         <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4">
-          <Field label="Item">
+          <Field label={t("restock.field.item")}>
             <Input
               value={draft.itemName}
               onChange={(event) => setDraft((current) => ({ ...current, itemName: event.target.value }))}
-              placeholder="HVAC filter"
+              placeholder={t("restock.itemPlaceholder")}
               className="h-12"
               autoFocus={!automation && focusField !== "sizeSpec"}
             />
           </Field>
-          <Field label="Size or spec">
+          <Field label={t("restock.field.size")}>
             <Input
               value={draft.sizeSpec}
               onChange={(event) => setDraft((current) => ({ ...current, sizeSpec: event.target.value }))}
@@ -211,7 +214,7 @@ export function ConsumableForm({
             />
           </Field>
           <div className="grid gap-1.5">
-            <p className="ui-caption font-medium">One usually lasts</p>
+            <p className="ui-caption font-medium">{t("consumable.oneUsuallyLasts")}</p>
             <div className="flex flex-wrap gap-1.5">
               {LIFESPAN_PILLS.map((item) => (
                 <button
@@ -229,12 +232,12 @@ export function ConsumableForm({
                     }))
                   }
                 >
-                  {item.label}
+                  {t(item.labelKey)}
                 </button>
               ))}
             </div>
           </div>
-          <Field label="Used in">
+          <Field label={t("restock.field.usedIn")}>
             <Select
               value={draft.room}
               onValueChange={(value) => setDraft((current) => ({ ...current, room: value as Room }))}
@@ -262,7 +265,7 @@ export function ConsumableForm({
             </Select>
           </Field>
           {automation ? (
-            <Field label="On hand">
+            <Field label={t("restock.field.onHand")}>
               <Input
                 type="number"
                 min={0}
@@ -273,9 +276,9 @@ export function ConsumableForm({
             </Field>
           ) : (
             <div className="grid gap-1.5">
-              <p className="ui-caption font-medium">On hand</p>
+              <p className="ui-caption font-medium">{t("restock.field.onHand")}</p>
               <div className="grid grid-cols-2 gap-2">
-                {CHECKIN_OPTIONS.map((option) => (
+                {checkinOptions().map((option) => (
                   <Button
                     key={option.level}
                     type="button"
@@ -307,11 +310,11 @@ export function ConsumableForm({
             className="text-left ui-caption font-medium text-primary"
             onClick={() => setAdvanced((current) => !current)}
           >
-            Advanced
+            {t("consumable.advanced")}
           </button>
           {advanced ? (
             <>
-              <Field label="Where you order it">
+              <Field label={t("restock.field.whereOrder")}>
                 <SavedRetailerField
                   value={draft.retailerUrl}
                   saved={household.savedRetailerLinks ?? []}
@@ -321,7 +324,7 @@ export function ConsumableForm({
                   Optional. You can also pick a store the first time you order.
                 </p>
               </Field>
-              <Field label="Order at or below">
+              <Field label={t("restock.field.orderAtOrBelow")}>
                 <Input
                   type="number"
                   min={0}
@@ -334,7 +337,7 @@ export function ConsumableForm({
                   Optional. Also flag for ordering at this count, on top of the automatic timing.
                 </p>
               </Field>
-              <Field label="Lead time (days)">
+              <Field label={t("restock.field.leadTime")}>
                 <Input
                   type="number"
                   min={0}
@@ -369,7 +372,7 @@ export function ConsumableForm({
             </Button>
           ) : null}
           <Button type="button" className="h-12" onClick={submit}>
-            {automation ? "Save changes" : "Add item"}
+            {automation ? t("restock.saveChanges") : t("restock.addItem")}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -398,8 +401,8 @@ function EstimatedUseLine({
   const n = Math.max(1, Math.round(1 / resolved.rate));
   return (
     <p className="ui-caption text-muted-foreground">
-      Estimated use: about 1 every {n} days
-      {resolved.source === "observed" ? " (from your orders)" : ""}
+      {tActive("restock.estimatedUse", { n })}
+      {resolved.source === "observed" ? tActive("restock.fromOrders") : ""}
     </p>
   );
 }

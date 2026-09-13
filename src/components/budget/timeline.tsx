@@ -1,10 +1,14 @@
 "use client";
 
+import { tActive } from "@/i18n";
+import { useLocale } from "@/i18n/locale-provider";
+
 import { useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { spikeLabel } from "@/lib/budget";
+import { getActiveDateLocale } from "@/lib/dates";
 import {
   formatCostRange,
   forecastSourceBlurb,
@@ -16,26 +20,26 @@ import {
 import type { AppNavigateTarget } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-function shortMonth(key: string) {
+function shortMonth(key: string, locale: string) {
   const [year, month] = key.split("-").map(Number);
-  return new Date(year, (month ?? 1) - 1, 1).toLocaleDateString("en-US", { month: "short" });
+  return new Date(year, (month ?? 1) - 1, 1).toLocaleDateString(locale, { month: "short" });
 }
 
-function longMonth(key: string) {
+function longMonth(key: string, locale: string) {
   const [year, month] = key.split("-").map(Number);
-  return new Date(year, (month ?? 1) - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  return new Date(year, (month ?? 1) - 1, 1).toLocaleDateString(locale, { month: "long", year: "numeric" });
 }
 
-function windowLabel(months: ForecastMonth[]) {
+function windowLabel(months: ForecastMonth[], locale: string) {
   if (months.length === 0) return "";
   const first = months[0].month;
   const last = months[months.length - 1].month;
   const start = new Date(Number(first.slice(0, 4)), Number(first.slice(5, 7)) - 1, 1);
   const end = new Date(Number(last.slice(0, 4)), Number(last.slice(5, 7)) - 1, 1);
   if (start.getFullYear() === end.getFullYear()) {
-    return `${start.toLocaleDateString("en-US", { month: "short" })}–${end.toLocaleDateString("en-US", { month: "short" })} ${end.getFullYear()}`;
+    return `${start.toLocaleDateString(locale, { month: "short" })}–${end.toLocaleDateString(locale, { month: "short" })} ${end.getFullYear()}`;
   }
-  return `${start.toLocaleDateString("en-US", { month: "short", year: "numeric" })}–${end.toLocaleDateString("en-US", { month: "short", year: "numeric" })}`;
+  return `${start.toLocaleDateString(locale, { month: "short", year: "numeric" })}–${end.toLocaleDateString(locale, { month: "short", year: "numeric" })}`;
 }
 
 function targetFor(item: ForecastItem): AppNavigateTarget | null {
@@ -59,6 +63,7 @@ export function QuarterTimeline({
   onUpdateEstimate: (assetId: string, amount: number) => void;
   onNavigate?: (target: AppNavigateTarget) => void;
 }) {
+  const { t, dateLocale } = useLocale();
   const [offset, setOffset] = useState(0);
   const [openMonth, setOpenMonth] = useState<string>(forecast.monthly[0]?.month ?? "");
   const maxOffset = Math.max(0, Math.ceil(forecast.monthly.length / 3) - 1);
@@ -81,22 +86,22 @@ export function QuarterTimeline({
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="ui-heading ui-title font-semibold">Next 3 months</h2>
+        <h2 className="ui-heading ui-title font-semibold">{t("budget.next3Title")}</h2>
         <div className="flex items-center gap-1">
           <button
             type="button"
             className="flex size-11 items-center justify-center rounded-full text-foreground disabled:text-muted-foreground"
-            aria-label="Previous 3 months"
+            aria-label={t("budget.prev3")}
             disabled={offset <= 0}
             onClick={() => setOffset((value) => Math.max(0, value - 1))}
           >
             <ChevronLeft className="size-5" />
           </button>
-          <p className="min-w-28 text-center text-sm font-medium">{windowLabel(windowMonths)}</p>
+          <p className="min-w-28 text-center text-sm font-medium">{windowLabel(windowMonths, dateLocale)}</p>
           <button
             type="button"
             className="flex size-11 items-center justify-center rounded-full text-foreground disabled:text-muted-foreground"
-            aria-label="Next 3 months"
+            aria-label={t("budget.next3")}
             disabled={offset >= maxOffset}
             onClick={() => setOffset((value) => Math.min(maxOffset, value + 1))}
           >
@@ -122,7 +127,7 @@ export function QuarterTimeline({
                   active && "bg-muted/70",
                 )}
                 aria-pressed={active}
-                aria-label={`${longMonth(month.month)} ${formatCostRange({ low: month.total, mid: month.total, high: month.total })}`}
+                aria-label={`${longMonth(month.month, dateLocale)} ${formatCostRange({ low: month.total, mid: month.total, high: month.total })}`}
               >
                 {label ? (
                   <span className="line-clamp-2 text-center ui-caption leading-tight text-primary">{label}</span>
@@ -130,13 +135,13 @@ export function QuarterTimeline({
                   <span className="h-7" />
                 )}
                 <span className="ui-caption font-medium tabular-nums">
-                  {month.total ? `$${Math.round(month.total).toLocaleString()}` : "—"}
+                  {month.total ? `$${Math.round(month.total).toLocaleString(getActiveDateLocale())}` : "—"}
                 </span>
                 <span
                   className={cn("w-full rounded-md", spike ? "bg-warning" : "bg-primary")}
                   style={{ height: `${height}%` }}
                 />
-                <span className="ui-caption text-muted-foreground">{shortMonth(month.month)}</span>
+                <span className="ui-caption text-muted-foreground">{shortMonth(month.month, dateLocale)}</span>
               </button>
             );
           })}
@@ -146,6 +151,7 @@ export function QuarterTimeline({
       {selected ? (
         <MonthDetail
           month={selected}
+          dateLocale={dateLocale}
           onLogPurchase={onLogPurchase}
           onUpdateEstimate={onUpdateEstimate}
           onNavigate={onNavigate}
@@ -157,11 +163,13 @@ export function QuarterTimeline({
 
 function MonthDetail({
   month,
+  dateLocale,
   onLogPurchase,
   onUpdateEstimate,
   onNavigate,
 }: {
   month: ForecastMonth;
+  dateLocale: string;
   onLogPurchase: (item: ForecastItem) => void;
   onUpdateEstimate: (assetId: string, amount: number) => void;
   onNavigate?: (target: AppNavigateTarget) => void;
@@ -173,15 +181,15 @@ function MonthDetail({
 
   return (
     <div className="mt-3 rounded-2xl bg-card px-4 py-4">
-      <p className="font-medium">{longMonth(month.month)}</p>
+      <p className="font-medium">{longMonth(month.month, dateLocale)}</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        {month.total ? `About $${Math.round(month.total).toLocaleString()} this month.` : "Nothing scheduled this month."}
+        {month.total ? tActive("budget.aboutThisMonth", { amount: Math.round(month.total).toLocaleString(getActiveDateLocale()) }) : tActive("budget.nothingThisMonth")}
       </p>
       {month.items.length === 0 ? null : (
         <div className="mt-3 grid gap-3">
           {replacements.length > 0 ? (
             <Group
-              title={`Replacements ($${Math.round(replacements.reduce((sum, item) => sum + item.cost.mid, 0)).toLocaleString()})`}
+              title={tActive("budget.replacements", { amount: Math.round(replacements.reduce((sum, item) => sum + item.cost.mid, 0)).toLocaleString(getActiveDateLocale()) })}
               open={open.replacements}
               onToggle={() => setOpen((value) => ({ ...value, replacements: !value.replacements }))}
             >
@@ -203,7 +211,7 @@ function MonthDetail({
           ) : null}
           {supplies.length > 0 ? (
             <Group
-              title={`Routine supplies ($${Math.round(supplies.reduce((sum, item) => sum + item.cost.mid, 0)).toLocaleString()})`}
+              title={tActive("budget.routineSupplies", { amount: Math.round(supplies.reduce((sum, item) => sum + item.cost.mid, 0)).toLocaleString(getActiveDateLocale()) })}
               open={open.supplies}
               onToggle={() => setOpen((value) => ({ ...value, supplies: !value.supplies }))}
             >
@@ -235,11 +243,12 @@ function Group({
   onToggle: () => void;
   children: ReactNode;
 }) {
+  const { t } = useLocale();
   return (
     <div>
       <button type="button" className="flex w-full items-center justify-between py-1 text-left" onClick={onToggle}>
         <span className="text-sm font-medium">{title}</span>
-        <span className="ui-caption text-muted-foreground">{open ? "Hide" : "Show"}</span>
+        <span className="ui-caption text-muted-foreground">{open ? t("budget.hide") : t("budget.show")}</span>
       </button>
       {open ? <ul className="mt-2 grid gap-3">{children}</ul> : null}
     </div>
@@ -261,6 +270,7 @@ function ForecastRow({
   onLogPurchase: () => void;
   onNavigate?: (target: AppNavigateTarget) => void;
 }) {
+  const { t } = useLocale();
   const target = targetFor(item);
   const [estimate, setEstimate] = useState("");
 
@@ -274,7 +284,7 @@ function ForecastRow({
         </button>
       ) : (
         <p className="mt-1 ui-caption text-muted-foreground">
-          {item.source === "catalog" ? "Typical supply price." : forecastSourceTag(item.source)}
+          {item.source === "catalog" ? tActive("budget.typicalSupply") : forecastSourceTag(item.source)}
         </p>
       )}
       {editing && onSaveEstimate ? (
@@ -282,7 +292,7 @@ function ForecastRow({
           <Input
             inputMode="decimal"
             className="h-11"
-            placeholder="Your estimate"
+            placeholder={tActive("budget.yourEstimate")}
             value={estimate}
             onChange={(event) => setEstimate(event.target.value)}
           />
@@ -293,17 +303,15 @@ function ForecastRow({
               if (Number.isFinite(value) && value > 0) onSaveEstimate(value);
             }}
           >
-            Save
+            {t("common.save")}
           </Button>
         </div>
       ) : null}
       <div className="mt-2 flex flex-wrap gap-2">
-        <Button variant="secondary" className="h-11" onClick={onLogPurchase}>
-          Log a purchase
-        </Button>
+        <Button variant="secondary" className="h-11" onClick={onLogPurchase}>{tActive("budget.logPurchase")}</Button>
         {target && onNavigate ? (
           <Button variant="ghost" className="h-11" onClick={() => onNavigate(target)}>
-            Open
+            {t("budget.open")}
           </Button>
         ) : null}
       </div>

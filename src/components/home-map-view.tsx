@@ -2,6 +2,8 @@
 
 import { AlertCircle, Package } from "lucide-react";
 import { useEffect, useState } from "react";
+import { tActive } from "@/i18n";
+import { useLocale } from "@/i18n/locale-provider";
 import { RoomTypeIcon } from "@/components/room-type-icon";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { nodeStatus, statusText, type NodeStatus } from "@/lib/node-status";
@@ -23,6 +25,7 @@ export function HomeMapView({
   onSelectRoom: (roomId: string) => void;
   onReorder?: (floorId: string | null, orderedIds: string[]) => void;
 }) {
+  const { t } = useLocale();
   const floors = floorsInOrder(household);
   const system = systemRoomList(household);
   const extraNullRooms = household.rooms.some((room) => room.floorId === null && !room.system);
@@ -32,7 +35,7 @@ export function HomeMapView({
     <div className="flex flex-col gap-5">
       {system.length > 0 ? (
         <section>
-          <h2 className="ui-heading mb-2 ui-card font-semibold">Whole home</h2>
+          <h2 className="ui-heading mb-2 ui-card font-semibold">{t("map.wholeHome")}</h2>
           <TileGrid
             rooms={system}
             household={household}
@@ -88,12 +91,12 @@ function roomCaption(status: NodeStatus, nearReplacement: boolean) {
     return { text: `${status.reorderPending} to reorder`, className: "text-warning" };
   }
   if (nearReplacement) {
-    return { text: "Replacement soon", className: "text-warning" };
+    return { text: tActive("home.replacementSoon"), className: "text-warning" };
   }
   if (status.total > 0) {
     return { text: `${status.total} to do`, className: "text-muted-foreground" };
   }
-  return { text: "All caught up", className: "text-muted-foreground" };
+  return { text: tActive("home.allCaughtUp"), className: "text-muted-foreground" };
 }
 
 function TileGrid({

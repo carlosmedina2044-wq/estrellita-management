@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { addDays, parseISODate } from "@/lib/dates";
 import { isOverdueFor } from "@/lib/duties";
 import { itemNameWithSize } from "@/lib/item-label";
@@ -107,13 +108,13 @@ function arrivalNotice(
   return {
     id: allocateId(used, `arrive:${item.id}`),
     title: household.restockDigest.privateNotifications
-      ? "Did your order arrive?"
-      : `Did the ${item.itemName} arrive?`,
+      ? tActive("notify.didOrderArrive")
+      : tActive("notify.didItemArrive", { name: item.itemName }),
     body: household.restockDigest.privateNotifications
-      ? "Open Cuidala for details."
+      ? tActive("digest.openDetails")
       : hasLinkedDuty(item, household)
-        ? "Tap to mark it received. The install chore is waiting on it."
-        : "Tap to mark it received.",
+        ? tActive("notify.tapReceivedInstall")
+        : tActive("notify.tapReceived"),
     schedule: scheduleAt(at),
     extra: { tab: "restock", itemId: item.id, action: "receive" },
   };
@@ -186,11 +187,11 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
     notifications.push({
       id: allocateId(used, item.id),
       title: household.restockDigest.privateNotifications
-        ? "Order a supply"
-        : `Order ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
+        ? tActive("notify.orderSupply")
+        : tActive("notify.orderNamed", { name: itemNameWithSize(item.itemName, item.sizeSpec) }),
       body: household.restockDigest.privateNotifications
-        ? "Open Cuidala for details."
-        : "Order today so it arrives before you run out.",
+        ? tActive("digest.openDetails")
+        : tActive("notify.orderToday"),
       schedule: scheduleAt(due),
       extra: { tab: "restock", itemId: item.id },
     });
@@ -212,11 +213,11 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
     notifications.push({
       id: allocateId(used, `followup:${item.id}`),
       title: household.restockDigest.privateNotifications
-        ? "Still to order a supply"
-        : `Still to order: ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
+        ? tActive("notify.stillOrderSupply")
+        : tActive("notify.stillOrderNamed", { name: itemNameWithSize(item.itemName, item.sizeSpec) }),
       body: household.restockDigest.privateNotifications
-        ? "Open Cuidala for details."
-        : "No rush. Tap when you want to order.",
+        ? tActive("digest.openDetails")
+        : tActive("notify.noRush"),
       schedule: scheduleAt(at),
       extra: { tab: "restock", itemId: item.id, action: "followup" },
     });

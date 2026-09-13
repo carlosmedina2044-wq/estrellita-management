@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/i18n/locale-provider";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { addDays, formatMonthTitle, sameDay, startOfMonth, startOfWeek, toISODate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -19,6 +21,7 @@ export function DayCalendar({
   onSelect: (date: Date) => void;
   onMonthChange: (date: Date) => void;
 }) {
+  const { t } = useLocale();
   const start = startOfWeek(startOfMonth(month));
   const days = Array.from({ length: 42 }, (_, index) => addDays(start, index));
 
@@ -29,7 +32,7 @@ export function DayCalendar({
           type="button"
           className="flex size-11 items-center justify-center text-primary"
           onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
-          aria-label="Previous month"
+          aria-label={t("calendar.prevMonth")}
         >
           <ChevronLeft className="size-5" />
         </button>
@@ -38,7 +41,7 @@ export function DayCalendar({
           type="button"
           className="flex size-11 items-center justify-center text-primary"
           onClick={() => onMonthChange(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
-          aria-label="Next month"
+          aria-label={t("calendar.nextMonth")}
         >
           <ChevronRight className="size-5" />
         </button>

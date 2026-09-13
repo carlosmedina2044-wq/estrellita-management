@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,7 @@ export function LogPurchaseSheet({
   onOpenChange: (open: boolean) => void;
   onSave: (input: { actualCost: number; completedOn: string; laborKind?: LaborKind }) => void;
 }) {
+  const { t } = useLocale();
   const [amount, setAmount] = useState("");
   const [completedOn, setCompletedOn] = useState(todayISO());
   const [laborKind, setLaborKind] = useState<LaborKind | undefined>(undefined);
@@ -50,14 +52,14 @@ export function LogPurchaseSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
-          <SheetTitle>{isReplacement ? "I replaced this" : "Log a purchase"}</SheetTitle>
+          <SheetTitle>{isReplacement ? t("budget.iReplaced") : t("budget.logPurchase")}</SheetTitle>
           <SheetDescription>
-            {item ? item.label : "What did you pay?"} Capture the real cost so future estimates get better.
+            {t("budget.captureCost", { intro: item ? item.label : t("budget.whatDidYouPay") })}
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 px-4 pb-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="purchase-amount">What did you pay?</Label>
+            <Label htmlFor="purchase-amount">{t("budget.whatDidYouPay")}</Label>
             <Input
               id="purchase-amount"
               inputMode="decimal"
@@ -68,7 +70,7 @@ export function LogPurchaseSheet({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="purchase-date">When?</Label>
+            <Label htmlFor="purchase-date">{t("budget.when")}</Label>
             <Input
               id="purchase-date"
               type="date"
@@ -79,11 +81,11 @@ export function LogPurchaseSheet({
           </div>
           {isReplacement ? (
             <div className="grid gap-1.5">
-              <p className="text-sm font-medium">Did you DIY or hire someone?</p>
+              <p className="text-sm font-medium">{t("budget.diyOrHire")}</p>
               <div className="flex rounded-full bg-secondary p-1">
                 {([
-                  ["diy", "I did it"],
-                  ["hired", "I hired help"],
+                  ["diy", t("budget.iDidIt")],
+                  ["hired", t("budget.iHired")],
                 ] as const).map(([value, label]) => (
                   <button
                     key={value}
@@ -112,7 +114,7 @@ export function LogPurchaseSheet({
               onSave(payload);
             }}
           >
-            Save
+            {t("common.save")}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -131,14 +133,16 @@ export function DeferSheet({
   onOpenChange: (open: boolean) => void;
   onSave: (months: 6 | 12, reason?: string) => void;
 }) {
+  const { t } = useLocale();
+  const stillWorking = t("budget.stillWorking");
   const [months, setMonths] = useState<6 | 12>(6);
-  const [reason, setReason] = useState("still working fine");
+  const [reason, setReason] = useState(stillWorking);
   const [prev, setPrev] = useState(false);
   if (open !== prev) {
     setPrev(open);
     if (open) {
       setMonths(6);
-      setReason("still working fine");
+      setReason(stillWorking);
     }
   }
 
@@ -146,9 +150,9 @@ export function DeferSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
-          <SheetTitle>I’ll wait</SheetTitle>
+          <SheetTitle>{t("budget.illWait")}</SheetTitle>
           <SheetDescription>
-            {item ? `Push ${item.label.replace(/ replacement$/i, "")} out if it’s still doing the job.` : "Push this out."}
+            {item ? t("budget.pushOutNamed", { label: item.label.replace(/ replacement$/i, "") }) : t("budget.pushOut")}
           </SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 px-4 pb-2">
@@ -163,18 +167,18 @@ export function DeferSheet({
                   months === value ? "bg-card shadow-sm" : "text-secondary-foreground",
                 )}
               >
-                {value} months
+                {t("budget.monthsN", { count: value })}
               </button>
             ))}
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="defer-reason">Why?</Label>
+            <Label htmlFor="defer-reason">{t("budget.why")}</Label>
             <Input
               id="defer-reason"
               className="h-12"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
-              placeholder="still working fine"
+              placeholder={stillWorking}
             />
           </div>
         </div>
@@ -188,7 +192,7 @@ export function DeferSheet({
               onSave(nextMonths, nextReason);
             }}
           >
-            Defer {months} months
+            {t("budget.deferMonths", { count: months })}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -209,6 +213,7 @@ export function FundSheet({
   onOpenChange: (open: boolean) => void;
   onSave: (input: { balance: number; monthlyContribution?: number }) => void;
 }) {
+  const { t } = useLocale();
   const [amount, setAmount] = useState("");
   const [monthly, setMonthly] = useState("");
   const [prev, setPrev] = useState(false);
@@ -226,12 +231,12 @@ export function FundSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
-          <SheetTitle>Home maintenance fund</SheetTitle>
-          <SheetDescription>How much do you have saved for repairs and replacements?</SheetDescription>
+          <SheetTitle>{t("budget.fundTitle")}</SheetTitle>
+          <SheetDescription>{t("budget.fundAskRepairs")}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 px-4 pb-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="fund-balance">Saved so far</Label>
+            <Label htmlFor="fund-balance">{t("budget.savedSoFar")}</Label>
             <Input
               id="fund-balance"
               inputMode="decimal"
@@ -242,7 +247,7 @@ export function FundSheet({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="fund-monthly">What I set aside each month (optional)</Label>
+            <Label htmlFor="fund-monthly">{t("budget.setAsideMonthly")}</Label>
             <Input
               id="fund-monthly"
               inputMode="decimal"
@@ -267,7 +272,7 @@ export function FundSheet({
               onSave(payload);
             }}
           >
-            Save
+            {t("common.save")}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -296,6 +301,7 @@ export function ViewOptionsSheet({
   onHomeValue: (value: number | null) => void;
   onShare: () => void;
 }) {
+  const { t } = useLocale();
   const [thresholdText, setThresholdText] = useState(String(threshold));
   const [homeText, setHomeText] = useState(homeValue != null ? String(homeValue) : "");
   const [prev, setPrev] = useState(false);
@@ -311,12 +317,12 @@ export function ViewOptionsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <SheetHeader>
-          <SheetTitle>View options</SheetTitle>
-          <SheetDescription>Look-ahead, big-expense threshold, and home value for the 1% rule.</SheetDescription>
+          <SheetTitle>{t("budget.viewOptions")}</SheetTitle>
+          <SheetDescription>{t("budget.viewOptionsBody")}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-4 px-4 pb-4">
           <div className="grid gap-1.5">
-            <p className="text-sm font-medium">Look ahead</p>
+            <p className="text-sm font-medium">{t("budget.lookAhead")}</p>
             <div className="flex rounded-full bg-secondary p-1">
               {([12, 24, 36] as const).map((item) => (
                 <button
@@ -328,13 +334,13 @@ export function ViewOptionsSheet({
                     horizon === item ? "bg-card shadow-sm" : "text-secondary-foreground",
                   )}
                 >
-                  {item} mo
+                  {t("budget.monthsShort", { count: item })}
                 </button>
               ))}
             </div>
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="threshold">Show as a big expense above</Label>
+            <Label htmlFor="threshold">{t("budget.bigExpenseAbove")}</Label>
             <Input
               id="threshold"
               inputMode="decimal"
@@ -348,7 +354,7 @@ export function ViewOptionsSheet({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor="home-value">Home value (for the 1% rule)</Label>
+            <Label htmlFor="home-value">{t("budget.homeValue1pct")}</Label>
             <Input
               id="home-value"
               inputMode="decimal"
@@ -367,10 +373,10 @@ export function ViewOptionsSheet({
             />
           </div>
           <button type="button" className="h-11 text-left ui-body font-medium text-primary" onClick={onShare}>
-            Share a summary
+            {t("budget.shareSummary")}
           </button>
           <p className="ui-caption text-muted-foreground">
-            Big expenses currently start at {formatMoney(threshold)}.
+            {t("budget.bigExpensesStart", { amount: formatMoney(threshold) })}
           </p>
         </div>
       </SheetContent>

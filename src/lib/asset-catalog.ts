@@ -1,3 +1,4 @@
+import { tAssetTypeLabel } from "@/i18n/content";
 import type { AssetType } from "@/lib/types";
 
 export type CatalogCost = { low: number; mid: number; high: number };
@@ -213,4 +214,10 @@ export function catalogEntry(type: AssetType): AssetCatalogEntry {
 
 export function catalogLabel(type: AssetType): string {
   return catalogEntry(type).label;
+}
+
+/** Localized catalog label for display; English `catalogLabel` stays for storage/matching. */
+export function assetLabel(type: AssetType | string): string {
+  const entry = catalogEntry(normalizeAssetType(type));
+  return tAssetTypeLabel(entry.type, entry.label);
 }

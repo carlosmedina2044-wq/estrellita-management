@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, Package, Settings, Share2, UserRound } from "lucide-react";
+import { CalendarDays, ChevronDown, Package, Settings, Share2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -27,6 +27,7 @@ import {
   todaysOpenDuties,
   type OutstandingScope,
 } from "@/lib/duties";
+import { tDutyTitle } from "@/i18n/content";
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
@@ -107,6 +108,7 @@ export function TodayView({
   const [teachingHidden, setTeachingHidden] = useState(false);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
+  const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const [prevFocus, setPrevFocus] = useState(focus);
   if (focus !== prevFocus) {
     setPrevFocus(focus);
@@ -172,7 +174,7 @@ export function TodayView({
     }
     onComplete(duty.id);
     void import("@/lib/native/haptics").then((m) => m.hapticComplete()).catch(() => {});
-    toast.success(duty.title, {
+    toast.success(tDutyTitle(duty.title), {
       action: {
         label: t("today.undoToast"),
         onClick: () => {
@@ -185,9 +187,9 @@ export function TodayView({
 
   async function share() {
     const text = shareText(household, cleanerOpen.length ? cleanerOpen : open);
-    const result = await nativeShare(`${household.householdName} today`, text);
-    if (result === "copied") toast.success("Copied today's list");
-    if (result === "failed") toast.error("Couldn't share the list");
+    const result = await nativeShare(t("share.todayTitle", { name: household.householdName }), text);
+    if (result === "copied") toast.success(t("share.copiedToday"));
+    if (result === "failed") toast.error(t("share.failedList"));
   }
 
   function dutyRow(
@@ -499,20 +501,20 @@ export function TodayView({
           <div className="flex items-start gap-3">
             <BrandMark size="sm" className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="ui-body font-medium">Tip</p>
+              <p className="ui-body font-medium">{t("teaching.tip")}</p>
               <p className="mt-0.5 ui-caption text-muted-foreground">
                 {!household.teaching.checkedChore
-                  ? "Check off one chore on Today."
+                  ? t("teaching.checkChore")
                   : !household.teaching.openedRestock
-                    ? "Open Restock and see what is running low."
+                    ? t("teaching.openRestock")
                     : !household.teaching.setDigestOrZip
-                      ? "Turn on the weekly restock reminder, or add a ZIP."
-                      : "You’re set."}
+                      ? t("teaching.digestOrZip")
+                      : t("teaching.youreSet")}
               </p>
               <div className="mt-2 flex gap-2">
                 {!household.teaching.openedRestock ? (
                   <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
-                    Restock
+                    {t("tabs.restock")}
                   </Button>
                 ) : !household.teaching.setDigestOrZip ? (
                   <Button className="h-11 px-3" onClick={() => onOpenDigest?.()}>
@@ -526,7 +528,7 @@ export function TodayView({
                     setTeachingHidden(true);
                   }}
                 >
-                  Got it
+                  {t("common.gotIt")}
                 </Button>
               </div>
             </div>
@@ -534,16 +536,36 @@ export function TodayView({
         </div>
       ) : null}
 
-      <Button variant="secondary" className="h-12 rounded-full" onClick={share}>
-        <Share2 className="size-4" />
-        Share list
-      </Button>
-      {hasCleaner ? (
-        <Button variant="secondary" className="h-12 rounded-full" onClick={onStartCleanerVisit}>
-          <UserRound className="size-4" />
-          Hand to cleaner
-        </Button>
-      ) : null}
+      <div className="rounded-2xl bg-muted/70">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+          aria-expanded={moreOptionsOpen}
+          onClick={() => setMoreOptionsOpen((current) => !current)}
+        >
+          <span className="ui-body font-medium">{t("today.moreOptions")}</span>
+          <ChevronDown
+            className={cn(
+              "size-4 shrink-0 text-muted-foreground transition-transform",
+              moreOptionsOpen && "rotate-180",
+            )}
+          />
+        </button>
+        {moreOptionsOpen ? (
+          <div className="grid gap-2 px-4 pb-4">
+            <Button variant="secondary" className="h-12 rounded-full" onClick={share}>
+              <Share2 className="size-4" />
+              {t("today.shareList")}
+            </Button>
+            {hasCleaner ? (
+              <Button variant="secondary" className="h-12 rounded-full" onClick={onStartCleanerVisit}>
+                <UserRound className="size-4" />
+                {t("today.handToCleaner")}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {weatherLine && !needsZip ? (
         <AppleWeatherAttribution attribution={weatherAttribution} />

@@ -32,7 +32,7 @@ export const DEFAULT_ATTRIBUTES: HomeAttributes = {
 export const DEFAULT_LOCATION: HomeLocation = {};
 
 export const DEFAULT_LOCK_SETTINGS: LockSettings = {
-  requireFaceId: true,
+  requireFaceId: false,
   lockAfter: "2min",
 };
 

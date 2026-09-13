@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 /**
  * restockPlacement() bucket rules
  *
@@ -14,7 +15,7 @@
  * Runway and rate: no check-ins keeps the default rate (duty cadence or
  * lifespan). A check-in that reports more stock than predicted is a refill.
  */
-import { addCalendarMonths, addCalendarYears, addDays, parseISODate, startOfDay, toISODate } from "@/lib/dates";
+import { addCalendarMonths, addCalendarYears, addDays, getActiveDateLocale, parseISODate, startOfDay, toISODate } from "@/lib/dates";
 import { isDoneThisPeriod, isOverdue, lastCompletion, nextDueDate } from "@/lib/duties";
 import { retailerUrlFor } from "@/lib/retailer";
 import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, isOrdered, leadTimeDaysFor } from "@/lib/supply";
@@ -32,6 +33,16 @@ export const CHECKIN_LEVELS = {
   out: 0,
 } as const;
 export type CheckinLevel = keyof typeof CHECKIN_LEVELS;
+export function checkinOptions(): { level: CheckinLevel; label: string; short: string }[] {
+  return [
+    { level: "plenty", label: tActive("supply.plenty"), short: tActive("restock.level.full") },
+    { level: "half", label: tActive("supply.half"), short: tActive("restock.level.half") },
+    { level: "low", label: tActive("supply.low"), short: tActive("restock.level.low") },
+    { level: "out", label: tActive("supply.out"), short: tActive("restock.level.out") },
+  ];
+}
+
+/** @deprecated Prefer checkinOptions() for localized labels. */
 export const CHECKIN_OPTIONS: { level: CheckinLevel; label: string; short: string }[] = [
   { level: "plenty", label: "Plenty left", short: "Full" },
   { level: "half", label: "About half", short: "Half" },
@@ -97,20 +108,20 @@ export function partStatusForDuty(
   const placement = restockPlacement(item, household, now);
   if (placement.bucket === "ordered") {
     const day = item.expectedArrivalDate
-      ? new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(new Date(parseISODate(item.expectedArrivalDate)))
+      ? new Intl.DateTimeFormat(getActiveDateLocale(), { weekday: "short" }).format(new Date(parseISODate(item.expectedArrivalDate)))
       : "";
-    return { kind: "arriving", label: day ? `Arriving ${day}` : "Arriving" };
+    return { kind: "arriving", label: day ? tActive("supply.arrivingDay", { day }) : tActive("restock.onTheWay") };
   }
   if (item.onHand <= 0 && placement.bucket === "order_now") {
-    return { kind: "order_first", label: "Order first" };
+    return { kind: "order_first", label: tActive("supply.orderFirst") };
   }
   if (item.onHand > 0) {
     const installedAt = item.installedAt ?? null;
     const overdue = isOverdue(duty, household.completions, now, installedAt);
     const next = nextDueDate(duty, household.completions, now, installedAt);
     const dueSoon = Boolean(next) && startOfDay(next!) <= startOfDay(addDays(now, 7));
-    if (overdue || dueSoon) return { kind: "install_today", label: "Supplies ready" };
-    return { kind: "part_on_hand", label: "Supplies on hand" };
+    if (overdue || dueSoon) return { kind: "install_today", label: tActive("supply.suppliesReady") };
+    return { kind: "part_on_hand", label: tActive("supply.suppliesOnHand") };
   }
   return null;
 }
@@ -560,12 +571,12 @@ export function orderNowCostCaption(items: SupplyAutomation[]): string | null {
     .filter((value): value is number => value != null && Number.isFinite(value) && value > 0);
   if (priced.length === 0) return null;
   const total = Math.round(priced.reduce((sum, value) => sum + value, 0));
-  const label = `~$${total.toLocaleString()}`;
-  return priced.length < items.length ? `at least ${label}` : label;
+  const label = `~$${total.toLocaleString(getActiveDateLocale())}`;
+  return priced.length < items.length ? tActive("restock.atLeast", { amount: label }) : label;
 }
 
 export function orderNowOnHandCaption(onHand: number): string {
-  return onHand <= 0 ? "None on hand" : `On hand ${onHand}`;
+  return onHand <= 0 ? tActive("supply.noneOnHand") : tActive("supply.onHandN", { n: onHand });
 }
 
 export function digestCandidates(
@@ -624,6 +635,16 @@ export type RestockFlowHandlers = {
   onMarkTip?: (tip: string) => void;
 };
 
+export function arrivalOffsets(): { id: string; days: number; label: string }[] {
+  return [
+    { id: "tomorrow", days: 1, label: tActive("restock.offset.tomorrow") },
+    { id: "two", days: 2, label: tActive("restock.offset.2days") },
+    { id: "week", days: 5, label: tActive("restock.offset.thisWeek") },
+    { id: "next", days: 10, label: tActive("restock.offset.nextWeek") },
+  ];
+}
+
+/** @deprecated Prefer arrivalOffsets() for localized labels. */
 export const ARRIVAL_OFFSETS = [
   { id: "tomorrow", days: 1, label: "Tomorrow" },
   { id: "two", days: 2, label: "2 days" },

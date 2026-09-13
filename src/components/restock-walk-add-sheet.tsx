@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,12 +23,7 @@ import {
 import type { Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const INTERVALS: { months: CustomRestockItem["intervalMonths"]; label: string }[] = [
-  { months: 1, label: "1 month" },
-  { months: 3, label: "3 months" },
-  { months: 6, label: "6 months" },
-  { months: 12, label: "A year" },
-];
+const INTERVAL_MONTHS: CustomRestockItem["intervalMonths"][] = [1, 3, 6, 12];
 
 function catalogMonths(entry: CatalogSuggestion): CustomRestockItem["intervalMonths"] {
   let months = entry.lifespanValue;
@@ -54,6 +50,7 @@ export function RestockWalkAddSheet({
   onSave: (item: CustomRestockItem) => void;
   onMoreOptions?: () => void;
 }) {
+  const { t } = useLocale();
   const defaultRoom = defaultRoomForGroup(household, group);
   const resetKey = `${open}:${group}:${initial?.itemName ?? ""}:${initial?.roomId ?? ""}`;
   const [prevKey, setPrevKey] = useState(resetKey);
@@ -82,6 +79,14 @@ export function RestockWalkAddSheet({
     return true;
   });
   const showChips = !chipApplied && chips.length > 0;
+  const intervalLabel = (months: CustomRestockItem["intervalMonths"]) =>
+    months === 1
+      ? t("restock.interval.1m")
+      : months === 3
+        ? t("restock.interval.3m")
+        : months === 6
+          ? t("restock.interval.6m")
+          : t("restock.interval.1y");
 
   function applyChip(entry: CatalogSuggestion) {
     setItemName(entry.itemName);
@@ -113,11 +118,11 @@ export function RestockWalkAddSheet({
         className="max-h-[calc(100dvh-env(safe-area-inset-top,0px)-24px)] gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader className="shrink-0 pb-2">
-          <SheetTitle>Add something you buy</SheetTitle>
+          <SheetTitle>{initial ? t("restock.editCustomTitle") : t("restock.addSomethingBuy")}</SheetTitle>
         </SheetHeader>
         <div data-keyboard-scroll className="flex min-h-0 flex-col gap-3 overflow-y-auto px-4 pb-4">
           <div className="grid gap-1.5">
-            <Label htmlFor="walk-add-name">Item</Label>
+            <Label htmlFor="walk-add-name">{t("restock.field.item")}</Label>
             <Input
               id="walk-add-name"
               value={itemName}
@@ -125,7 +130,7 @@ export function RestockWalkAddSheet({
                 setItemName(event.target.value);
                 setChipApplied(false);
               }}
-              placeholder="e.g. water softener salt"
+              placeholder={t("restock.customPlaceholder")}
               className="h-12"
             />
           </div>
@@ -144,25 +149,25 @@ export function RestockWalkAddSheet({
             </div>
           ) : null}
           <div className="grid gap-1.5">
-            <p className="ui-caption font-medium">One usually lasts</p>
+            <p className="ui-caption font-medium">{t("restock.oneUsuallyLasts")}</p>
             <div className="flex flex-wrap gap-1.5">
-              {INTERVALS.map((item) => (
+              {INTERVAL_MONTHS.map((months) => (
                 <button
-                  key={item.months}
+                  key={months}
                   type="button"
                   className={cn(
                     "h-11 rounded-full px-3 ui-caption font-medium",
-                    intervalMonths === item.months ? "bg-primary text-primary-foreground" : "bg-secondary",
+                    intervalMonths === months ? "bg-primary text-primary-foreground" : "bg-secondary",
                   )}
-                  onClick={() => setIntervalMonths(item.months)}
+                  onClick={() => setIntervalMonths(months)}
                 >
-                  {item.label}
+                  {intervalLabel(months)}
                 </button>
               ))}
             </div>
           </div>
           <div className="grid gap-1.5">
-            <Label>Used in</Label>
+            <Label>{t("restock.field.usedIn")}</Label>
             <Select value={roomId} onValueChange={setRoomId}>
               <SelectTrigger className="h-12 w-full">
                 <SelectValue />
@@ -181,11 +186,11 @@ export function RestockWalkAddSheet({
             disabled={!itemName.trim()}
             onClick={submit}
           >
-            Add
+            {t("common.add")}
           </Button>
           {onMoreOptions ? (
             <button type="button" className="text-center ui-caption font-medium text-brand" onClick={onMoreOptions}>
-              More options
+              {t("chore.moreOptions")}
             </button>
           ) : null}
         </div>

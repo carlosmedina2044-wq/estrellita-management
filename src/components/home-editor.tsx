@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import {
   roomsOnFloor,
   userRooms,
 } from "@/lib/home-model";
+import { assetLabel, catalogLabel } from "@/lib/asset-catalog";
 import type { AssetType, HomeFloor, Household, RoomType } from "@/lib/types";
 
 export function HomeEditor({
@@ -38,6 +40,7 @@ export function HomeEditor({
   focusAssetId?: string;
   onFocusHandled?: () => void;
 }) {
+  const { t } = useLocale();
   const [floorName, setFloorName] = useState("");
   const [roomType, setRoomType] = useState<RoomType>("bedroom");
   const [roomFloor, setRoomFloor] = useState(household.floors[0]?.id ?? "");
@@ -61,7 +64,7 @@ export function HomeEditor({
   const floors = floorsInOrder(household);
 
   function addFloor() {
-    const name = floorName.trim() || `Floor ${household.floors.length + 1}`;
+    const name = floorName.trim() || t("home.floorN", { n: household.floors.length + 1 });
     const floor: HomeFloor = {
       id: crypto.randomUUID(),
       name,
@@ -70,12 +73,12 @@ export function HomeEditor({
     onChange({ ...household, floors: [...household.floors, floor] });
     setFloorName("");
     setRoomFloor(floor.id);
-    toast.success("Floor added");
+    toast.success(t("home.floorAdded"));
   }
 
   function addRoom() {
     if (!roomFloor) {
-      toast.error("Add a floor first");
+      toast.error(t("home.addFloorFirst"));
       return;
     }
     const name = roomName.trim() || defaultRoomName(roomType, household.rooms);
@@ -94,7 +97,7 @@ export function HomeEditor({
     });
     setRoomName("");
     const hints = suggestionsForRoom(roomType);
-    if (hints[0]) toast.message(`Suggestion: ${hints[0].itemName}`, { description: hints[0].hint });
+    if (hints[0]) toast.message(t("home.suggestion", { name: hints[0].itemName }), { description: hints[0].hint });
   }
 
   function confirmDelete() {
@@ -105,7 +108,7 @@ export function HomeEditor({
       household.duties.some((duty) => duty.room === deleteId) ||
       household.supplyAutomations.some((item) => item.room === deleteId);
     if (hasWork && !reassignTo) {
-      toast.error("Reassign this room’s jobs, or they will be deleted.");
+      toast.error(t("home.reassignJobs"));
     }
     onChange(
       deleteRoomFromHousehold(
@@ -121,10 +124,9 @@ export function HomeEditor({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <p className="font-medium">Floors and rooms</p>
+        <p className="font-medium">{t("home.floorsAndRooms")}</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Whole Home and Exterior stay on the map. Delete a room only after you reassign or drop its
-          jobs.
+{t("home.floorsAndRoomsBody")}
         </p>
       </div>
 
@@ -166,7 +168,7 @@ export function HomeEditor({
                     setReassignTo(userRooms(household).find((item) => item.id !== room.id)?.id ?? "");
                   }}
                 >
-                  Delete
+                  {t("home.delete")}
                 </Button>
               </div>
             ))}
@@ -175,25 +177,25 @@ export function HomeEditor({
       ))}
 
       <div className="grid gap-2">
-        <Label className="text-xs font-medium text-muted-foreground">Add a floor</Label>
+        <Label className="text-xs font-medium text-muted-foreground">{t("home.addFloor")}</Label>
         <div className="flex gap-2">
           <Input
             value={floorName}
             onChange={(event) => setFloorName(event.target.value)}
-            placeholder="Basement"
+            placeholder={t("home.basementPlaceholder")}
             className="h-11"
           />
           <Button type="button" variant="secondary" className="h-11" onClick={addFloor}>
-            Add
+            {t("home.add")}
           </Button>
         </div>
       </div>
 
       <div className="grid gap-2">
-        <Label className="text-xs font-medium text-muted-foreground">Add a room</Label>
+        <Label className="text-xs font-medium text-muted-foreground">{t("home.addARoom")}</Label>
         <Select value={roomFloor} onValueChange={setRoomFloor}>
           <SelectTrigger className="h-11 w-full">
-            <SelectValue placeholder="Floor" />
+            <SelectValue placeholder={t("home.floorPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {floors.map((floor) => (
@@ -218,24 +220,24 @@ export function HomeEditor({
         <Input
           value={roomName}
           onChange={(event) => setRoomName(event.target.value)}
-          placeholder="Optional name"
+          placeholder={t("home.optionalName")}
           className="h-11"
         />
         {roomHints.length > 0 ? (
           <p className="text-xs text-muted-foreground">
-            Suggested items: {roomHints.map((item) => item.itemName).join(", ")}
+            {t("home.suggestedItems", { list: roomHints.map((item) => item.itemName).join(", ") })}
           </p>
         ) : null}
         <Button type="button" className="h-11" onClick={addRoom}>
-          Add room
+          {t("home.addRoomCta")}
         </Button>
       </div>
 
       <div className="grid gap-2">
-        <Label className="text-xs font-medium text-muted-foreground">Add an asset</Label>
+        <Label className="text-xs font-medium text-muted-foreground">{t("home.addAnAsset")}</Label>
         <Select value={assetRoom} onValueChange={setAssetRoom}>
           <SelectTrigger className="h-11 w-full">
-            <SelectValue placeholder="Room" />
+            <SelectValue placeholder={t("home.roomPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {household.rooms.map((room) => (
@@ -252,7 +254,7 @@ export function HomeEditor({
           <SelectContent>
             {ASSET_TYPES.map((item) => (
               <SelectItem key={item.id} value={item.id}>
-                {item.label}
+                {assetLabel(item.id)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -260,11 +262,11 @@ export function HomeEditor({
         <Input
           value={assetName}
           onChange={(event) => setAssetName(event.target.value)}
-          placeholder="Optional name"
+          placeholder={t("home.optionalName")}
           className="h-11"
         />
         <div className="grid gap-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Install date</Label>
+          <Label className="text-xs font-medium text-muted-foreground">{t("home.installDate")}</Label>
           <Input
             type="date"
             value={assetInstall}
@@ -273,7 +275,7 @@ export function HomeEditor({
           />
         </div>
         <div className="grid gap-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">Warranty until</Label>
+          <Label className="text-xs font-medium text-muted-foreground">{t("home.warrantyUntil")}</Label>
           <Input
             type="date"
             value={assetWarranty}
@@ -289,7 +291,7 @@ export function HomeEditor({
                   className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
                   onClick={() => setAssetWarranty(warrantyFromInstall(assetInstall, years))}
                 >
-                  +{years} yr
+                  {t("home.yearsShort", { n: years })}
                 </button>
               ))}
             </div>
@@ -297,7 +299,7 @@ export function HomeEditor({
         </div>
         {assetHints.length > 0 ? (
           <p className="text-xs text-muted-foreground">
-            Suggested items: {assetHints.map((item) => item.itemName).join(", ")}
+            {t("home.suggestedItems", { list: assetHints.map((item) => item.itemName).join(", ") })}
           </p>
         ) : null}
         <Button
@@ -306,11 +308,11 @@ export function HomeEditor({
           className="h-11"
           onClick={() => {
             if (!assetRoom) {
-              toast.error("Pick a room first");
+              toast.error(t("home.pickRoomFirst"));
               return;
             }
             const name =
-              assetName.trim() || ASSET_TYPES.find((item) => item.id === assetType)?.label || "Asset";
+              assetName.trim() || catalogLabel(assetType) || t("home.assetFallback");
             onChange({
               ...household,
               assets: [
@@ -329,19 +331,19 @@ export function HomeEditor({
             setAssetInstall("");
             setAssetWarranty("");
             if (assetHints[0]) {
-              toast.message(`Suggestion: ${assetHints[0].itemName}`, { description: assetHints[0].hint });
+              toast.message(t("home.suggestion", { name: assetHints[0].itemName }), { description: assetHints[0].hint });
             } else {
-              toast.success("Asset added");
+              toast.success(t("home.assetAdded"));
             }
           }}
         >
-          Add asset
+          {t("home.addAssetCta")}
         </Button>
       </div>
 
       {household.assets.length > 0 ? (
         <div className="grid gap-3">
-          <p className="font-medium">Assets</p>
+          <p className="font-medium">{t("home.assets")}</p>
           {household.assets.map((asset) => {
             const badge = warrantyBadgeLabel(asset);
             const room = household.rooms.find((item) => item.id === asset.roomId);
@@ -349,11 +351,11 @@ export function HomeEditor({
               <section key={asset.id} id={`home-asset-${asset.id}`} className="rounded-2xl bg-card p-4">
                 <p className="font-medium">{asset.name}</p>
                 <p className="mt-0.5 ui-caption text-muted-foreground">
-                  {room?.name ?? "Home"}
+                  {room?.name ?? t("home.homeFallback")}
                   {badge ? ` · ${badge}` : ""}
                 </p>
                 <div className="mt-3 grid gap-2">
-                  <Label className="text-xs font-medium text-muted-foreground">Install date</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">{t("home.installDate")}</Label>
                   <Input
                     type="date"
                     value={asset.installDate ?? ""}
@@ -367,7 +369,7 @@ export function HomeEditor({
                     }
                     className="h-11"
                   />
-                  <Label className="text-xs font-medium text-muted-foreground">Warranty until</Label>
+                  <Label className="text-xs font-medium text-muted-foreground">{t("home.warrantyUntil")}</Label>
                   <Input
                     type="date"
                     value={asset.warrantyUntil ?? ""}
@@ -399,7 +401,7 @@ export function HomeEditor({
                             })
                           }
                         >
-                          +{years} yr
+                          {t("home.yearsShort", { n: years })}
                         </button>
                       ))}
                     </div>
@@ -413,13 +415,13 @@ export function HomeEditor({
 
       {deleteId ? (
         <div className="rounded-2xl bg-accent p-4">
-          <p className="font-medium">Delete this room?</p>
+          <p className="font-medium">{t("home.deleteRoomTitle")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Reassign its duties and reorders, or delete them with the room.
+            {t("home.deleteRoomBody")}
           </p>
           <Select value={reassignTo} onValueChange={setReassignTo}>
             <SelectTrigger className="mt-3 h-11 w-full">
-              <SelectValue placeholder="Move jobs to…" />
+              <SelectValue placeholder={t("home.moveJobsTo")} />
             </SelectTrigger>
             <SelectContent>
               {userRooms(household)
@@ -433,10 +435,10 @@ export function HomeEditor({
           </Select>
           <div className="mt-3 flex gap-2">
             <Button type="button" variant="secondary" className="h-11 flex-1" onClick={() => setDeleteId(null)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button type="button" variant="destructive" className="h-11 flex-1" onClick={confirmDelete}>
-              Confirm
+              {t("home.confirm")}
             </Button>
           </div>
         </div>

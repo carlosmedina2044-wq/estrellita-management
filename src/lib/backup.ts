@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { b64ToBytes, bytesToB64, encryptJson, decryptJson, importRawKey } from "@/lib/crypto";
 import { isPlainObject, sanitizeText } from "@/lib/sanitize";
 
@@ -59,7 +60,7 @@ export function normalizePassphrase(value: string): string {
 function passphraseTooShort(value: string, min: number): string | null {
   const passphrase = normalizePassphrase(value);
   if (passphrase.length < min) {
-    return `Passphrases are at least ${min} characters.`;
+    return tActive("backup.minChars", { min });
   }
   return null;
 }
@@ -72,12 +73,12 @@ export function openPassphraseError(value: string): string | null {
   return passphraseTooShort(value, BACKUP_OPEN_MIN_PASSPHRASE);
 }
 
-/** Hint when the passphrase looks like a single dictionary word. */
+/** Hint when the password looks like a single dictionary word. */
 export function passphraseHint(value: string): string | null {
   const passphrase = normalizePassphrase(value);
   if (passphrase.length < BACKUP_MIN_PASSPHRASE) return null;
   if (/^[A-Za-z]+$/.test(passphrase) && !/\s/.test(passphrase)) {
-    return "A few unrelated words are stronger than one word.";
+    return tActive("backup.hint.words");
   }
   return null;
 }
@@ -123,19 +124,19 @@ export async function sealBackup(
 
 export async function openBackup(raw: string, passphrase: string): Promise<string> {
   const cleaned = normalizePassphrase(passphrase);
-  if (!cleaned) throw new Error("Enter the passphrase for this backup.");
+  if (!cleaned) throw new Error(tActive("backup.err.enterPass"));
   const short = openPassphraseError(cleaned);
   if (short) throw new Error(short);
   if (raw.length > BACKUP_MAX_FILE_BYTES) {
-    throw new Error("That file is too large to be a Cuidala backup.");
+    throw new Error(tActive("backup.err.tooLarge"));
   }
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error("That file isn’t a Cuidala backup.");
+    throw new Error(tActive("backup.err.notBackup"));
   }
-  if (!isBackupEnvelope(parsed)) throw new Error("That file isn’t a Cuidala backup.");
+  if (!isBackupEnvelope(parsed)) throw new Error(tActive("backup.err.notBackup"));
   const key = await deriveBackupKey(cleaned, b64ToBytes(parsed.salt), parsed.iterations);
   try {
     return await decryptJson(
@@ -150,6 +151,6 @@ export async function openBackup(raw: string, passphrase: string): Promise<strin
       BACKUP_AAD,
     );
   } catch {
-    throw new Error("Wrong passphrase, or the file is damaged.");
+    throw new Error(tActive("backup.err.wrongPass"));
   }
 }

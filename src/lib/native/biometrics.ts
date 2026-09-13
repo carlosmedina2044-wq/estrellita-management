@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { isNative } from "@/lib/native/platform";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 
@@ -5,6 +6,11 @@ export type { LockMethod };
 export { lockMethodLabel };
 
 /** Shown on Apple’s Face ID / Touch ID sheet. Empty string hides the button. */
+export function deviceOwnerFallbackTitle(): string {
+  return tActive("biometrics.enterPasscode");
+}
+
+/** English fallback for tests / static checks; prefer deviceOwnerFallbackTitle() at runtime. */
 export const DEVICE_OWNER_FALLBACK_TITLE = "Enter Passcode";
 
 /** Capacitor rejects missing native methods with this code. */
@@ -55,7 +61,7 @@ export function isOwnerPromptInFlight() {
  * Resolves true only when the system confirms the user; any error or
  * cancellation resolves false. Callers must treat false as "stay locked".
  */
-export async function verifyDeviceOwner(reason = "Unlock Cuidala"): Promise<boolean> {
+export async function verifyDeviceOwner(reason = tActive("biometrics.unlockCuidala")): Promise<boolean> {
   if (!isNative()) return false;
   promptInFlight += 1;
   try {
@@ -63,7 +69,7 @@ export async function verifyDeviceOwner(reason = "Unlock Cuidala"): Promise<bool
       const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
       await CuidalaDeviceKey.verifyOwner({
         reason,
-        fallbackTitle: DEVICE_OWNER_FALLBACK_TITLE,
+        fallbackTitle: deviceOwnerFallbackTitle(),
       });
       return true;
     } catch (error) {
@@ -77,7 +83,7 @@ export async function verifyDeviceOwner(reason = "Unlock Cuidala"): Promise<bool
       title: "Cuidala",
       subtitle: reason,
       useFallback: true,
-      fallbackTitle: DEVICE_OWNER_FALLBACK_TITLE,
+      fallbackTitle: deviceOwnerFallbackTitle(),
     });
     return true;
   } catch {

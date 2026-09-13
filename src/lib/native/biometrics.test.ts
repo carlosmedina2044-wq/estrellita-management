@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   DEVICE_OWNER_FALLBACK_TITLE,
+  deviceOwnerFallbackTitle,
   isUnimplementedPluginError,
 } from "@/lib/native/biometrics";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
@@ -38,6 +39,7 @@ for (const method of Object.keys(expected) as LockMethod[]) {
 test("device-owner fallback title is a visible Enter Passcode label", () => {
   assert.equal(DEVICE_OWNER_FALLBACK_TITLE, "Enter Passcode");
   assert.notEqual(DEVICE_OWNER_FALLBACK_TITLE, "");
+  assert.equal(deviceOwnerFallbackTitle(), "Enter Passcode");
 });
 
 test("unimplemented plugin errors are the only ones that fall through", () => {

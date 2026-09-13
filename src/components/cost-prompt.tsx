@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLocale } from "@/i18n/locale-provider";
 import { parseCostInput } from "@/lib/costs";
 
 export function CostPrompt({
@@ -14,19 +15,20 @@ export function CostPrompt({
   onSave: (amount: number) => void;
   onSkip: () => void;
 }) {
+  const { t } = useLocale();
   const [value, setValue] = useState(suggested != null ? String(suggested) : "");
   const parsed = parseCostInput(value);
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">
-      <span className="ui-caption text-muted-foreground">What did it cost? (optional)</span>
+      <span className="ui-caption text-muted-foreground">{t("cost.optional")}</span>
       <Input
         inputMode="decimal"
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="0.00"
         className="h-11 w-24"
-        aria-label="What did it cost?"
+        aria-label={t("cost.whatDidItCost")}
       />
       <Button
         type="button"
@@ -37,10 +39,10 @@ export function CostPrompt({
           if (parsed != null) onSave(parsed);
         }}
       >
-        {parsed == null ? "Enter an amount" : "Save"}
+        {parsed == null ? t("cost.enterAmount") : t("common.save")}
       </Button>
       <Button type="button" className="h-11 px-3" onClick={onSkip}>
-        Skip
+        {t("common.skip")}
       </Button>
     </div>
   );

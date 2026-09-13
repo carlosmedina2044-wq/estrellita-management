@@ -26,7 +26,7 @@ test("backup round-trip restores the household JSON", async () => {
 
 test("wrong passphrase cannot open a backup", async () => {
   const file = await sealBackup("secret household", "correct horse");
-  await assert.rejects(() => openBackup(file, "wrong horse"), /Wrong passphrase/);
+  await assert.rejects(() => openBackup(file, "wrong horse"), /Wrong password/);
 });
 
 test("rejects a short passphrase", async () => {

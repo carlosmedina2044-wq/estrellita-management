@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { tActive } from "@/i18n";
+import { useLocale } from "@/i18n/locale-provider";
 import { Ellipsis } from "lucide-react";
 import { toast } from "sonner";
 import { RetailerPickerSheet } from "@/components/retailer-picker-sheet";
@@ -18,7 +20,7 @@ import { hapticOrdered } from "@/lib/native/haptics";
 import { isNative } from "@/lib/native/platform";
 import { RETAILER_CHIPS } from "@/lib/retailer";
 import {
-  ARRIVAL_OFFSETS,
+  arrivalOffsets,
   closestArrivalOffset,
   observedLeadTimeDays,
   orderNowOnHandCaption,
@@ -110,6 +112,7 @@ export function RestockOrderButton({
   subdued?: boolean;
   early?: boolean;
 }) {
+  const { t } = useLocale();
   const [sheet, setSheet] = useState<OrderSheet>("closed");
   const confirmCommitted = useRef(false);
   const [waitingResume, setWaitingResume] = useState(false);
@@ -146,7 +149,7 @@ export function RestockOrderButton({
     onOrdered?.(details);
     setSheet("closed");
     void hapticOrdered();
-    toast.success("Marked ordered", { description: item.itemName });
+    toast.success(t("restock.markedOrdered"), { description: item.itemName });
   }
 
   function maybeAsk(retailer?: string) {
@@ -171,10 +174,10 @@ export function RestockOrderButton({
     const lead = leadTimeDaysFor(item);
     onReceived?.(qty, paid);
     if (observed != null && shouldOfferLeadTime(lead, observed) && onApplyLeadTime) {
-      toast.message(`Took ${observed} days, not ${lead}. Use ${observed} next time?`, {
+      toast.message(t("restock.leadTimeToast", { observed, lead }), {
         duration: 10_000,
         action: {
-          label: `Use ${observed}`,
+          label: t("restock.useObserved", { observed }),
           onClick: () => onApplyLeadTime(observed),
         },
       });
@@ -230,21 +233,58 @@ export function RestockOrderButton({
   if (placement.nudgeArrive) {
     return (
       <div className="grid gap-2">
-        <p className="ui-caption text-muted-foreground">Did it arrive?</p>
+        <p className="ui-caption text-muted-foreground">{t("restock.didItArrive")}</p>
         {onReceived ? (
           <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setSheet("receive")}>
-            Received
+            {t("restock.itArrived")}
           </Button>
         ) : null}
-        {onStillWaiting ? (
-          <Button type="button" variant="secondary" className="h-11" onClick={onStillWaiting}>
-            Still waiting
-          </Button>
-        ) : null}
-        {onNeverCame ? (
-          <Button type="button" variant="ghost" className="h-11" onClick={onNeverCame}>
-            Never came
-          </Button>
+        {onStillWaiting || onNeverCame ? (
+          <>
+            <button
+              type="button"
+              className="text-left ui-caption font-medium text-primary"
+              onClick={() => setSheet("overflow")}
+            >
+              {t("restock.moreOptions")}
+            </button>
+            <Sheet open={sheet === "overflow"} onOpenChange={(open) => setSheet(open ? "overflow" : "closed")}>
+              <SheetContent side="bottom" className="gap-0">
+                <SheetHeader>
+                  <SheetTitle>{t("restock.moreOptions")}</SheetTitle>
+                  <SheetDescription>{item.itemName}</SheetDescription>
+                </SheetHeader>
+                <div className="grid gap-2 px-4 pb-4">
+                  {onStillWaiting ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="h-12"
+                      onClick={() => {
+                        setSheet("closed");
+                        onStillWaiting();
+                      }}
+                    >
+                      {t("restock.stillWaiting")}
+                    </Button>
+                  ) : null}
+                  {onNeverCame ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-12"
+                      onClick={() => {
+                        setSheet("closed");
+                        onNeverCame();
+                      }}
+                    >
+                      {t("restock.neverCame")}
+                    </Button>
+                  ) : null}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </>
         ) : null}
         {receiveDialog}
       </div>
@@ -262,7 +302,7 @@ export function RestockOrderButton({
               variant="ghost"
               size="icon"
               className="size-11 shrink-0"
-              aria-label="More"
+              aria-label={t("restock.moreOptions")}
               onClick={() => setSheet("overflow")}
             >
               <Ellipsis className="size-4" />
@@ -271,14 +311,14 @@ export function RestockOrderButton({
         </div>
         {onReceived ? (
           <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setSheet("receive")}>
-            Received
+            {t("restock.itArrived")}
           </Button>
         ) : null}
         {receiveDialog}
         <Sheet open={sheet === "overflow"} onOpenChange={(open) => setSheet(open ? "overflow" : "closed")}>
           <SheetContent side="bottom" className="gap-0">
             <SheetHeader>
-              <SheetTitle>On the way</SheetTitle>
+              <SheetTitle>{t("restock.moreOptions")}</SheetTitle>
               <SheetDescription>{item.itemName}</SheetDescription>
             </SheetHeader>
             <div className="grid gap-2 px-4 pb-4">
@@ -291,7 +331,7 @@ export function RestockOrderButton({
                     setSheet("date");
                   }}
                 >
-                  Change date
+                  {t("restock.changeDate")}
                 </Button>
               ) : null}
               {onNeverCame ? (
@@ -304,7 +344,7 @@ export function RestockOrderButton({
                     onNeverCame();
                   }}
                 >
-                  Didn’t order after all
+                  {t("restock.didntOrder")}
                 </Button>
               ) : null}
             </div>
@@ -333,7 +373,7 @@ export function RestockOrderButton({
         className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")}
         onClick={() => setSheet("picker")}
       >
-        {early ? "Order early" : "Order"}
+        {early ? t("restock.orderEarly") : t("common.order")}
       </Button>
 
       <RetailerPickerSheet
@@ -404,11 +444,13 @@ function OrderConfirmSheet({
   onOpenChange: (open: boolean) => void;
   onConfirm: (details: MarkOrderedDetails) => void;
 }) {
+  const { t } = useLocale();
   const defaultOffset = closestArrivalOffset(leadTimeDaysFor(item));
   const [offset, setOffset] = useState<number | "date">(defaultOffset);
   const [dateDraft, setDateDraft] = useState(() => toISODate(addDays(new Date(), defaultOffset)));
   const [qty, setQty] = useState(Math.max(1, item.qtyPerOrder || 1));
   const [sizeDraft, setSizeDraft] = useState("");
+  const [moreOpen, setMoreOpen] = useState(false);
   const size = (item.sku || item.sizeSpec || "").trim();
   const askSize = !size && !item.retailerUrl;
   const store = retailerCaption(retailer || item.preferredRetailer);
@@ -421,6 +463,7 @@ function OrderConfirmSheet({
     setDateDraft(toISODate(addDays(new Date(), next)));
     setQty(Math.max(1, item.qtyPerOrder || 1));
     setSizeDraft("");
+    setMoreOpen(false);
   }
 
   function arrivalDate() {
@@ -428,11 +471,20 @@ function OrderConfirmSheet({
     return toISODate(addDays(new Date(), offset));
   }
 
+  function confirmDetails(): MarkOrderedDetails {
+    return {
+      expectedArrivalDate: arrivalDate(),
+      qty,
+      retailer: retailer || item.preferredRetailer,
+      sizeSpec: askSize ? sizeDraft.trim() || undefined : undefined,
+    };
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0">
         <SheetHeader>
-          <SheetTitle>Did you finish ordering?</SheetTitle>
+          <SheetTitle>{t("restock.finishOrderingTitle")}</SheetTitle>
           <SheetDescription>
             {item.itemName}
             {size ? ` · ${size}` : ""}
@@ -440,75 +492,87 @@ function OrderConfirmSheet({
           </SheetDescription>
         </SheetHeader>
         <div className="grid gap-4 px-4 pb-4">
-          {askSize ? (
-            <div className="grid gap-1.5">
-              <label htmlFor="order-size" className="ui-caption text-muted-foreground">
-                Size or model (optional)
-              </label>
-              <Input
-                id="order-size"
-                value={sizeDraft}
-                onChange={(event) => setSizeDraft(event.target.value)}
-                placeholder="20x25x1"
-                className="h-12"
-              />
-            </div>
-          ) : null}
           {showArrivalTip ? (
             <TeachingTip onDismiss={() => onDismissArrivalTip?.()}>
-              Pick the day it should get here. We check in the day after, then you mark it received.
+              {t("restock.arrivalTip")}
             </TeachingTip>
           ) : null}
-          <div className="grid gap-1.5">
-            <p className="ui-caption font-medium">When does it arrive?</p>
-            <ArrivalChips offset={offset} dateDraft={dateDraft} onOffset={setOffset} onDate={setDateDraft} />
-          </div>
-          <div className="grid gap-1.5">
-            <p className="ui-caption font-medium">How many?</p>
-            <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                className="size-11"
-                aria-label="Decrease quantity"
-                onClick={() => setQty((current) => Math.max(1, current - 1))}
-              >
-                −
-              </Button>
-              <span className="min-w-8 text-center ui-card font-medium">{qty}</span>
-              <Button
-                type="button"
-                variant="secondary"
-                className="size-11"
-                aria-label="Increase quantity"
-                onClick={() => setQty((current) => Math.min(99, current + 1))}
-              >
-                +
-              </Button>
-            </div>
-          </div>
           <div className="grid gap-2">
             <Button
               type="button"
               className="h-12"
-              onClick={() =>
-                onConfirm({
-                  expectedArrivalDate: arrivalDate(),
-                  qty,
-                  retailer: retailer || item.preferredRetailer,
-                  sizeSpec: askSize ? sizeDraft.trim() || undefined : undefined,
-                })
-              }
+              onClick={() => onConfirm(confirmDetails())}
             >
-              Yes
+              {t("restock.orderSimple")}
             </Button>
             <Button type="button" variant="secondary" className="h-12" onClick={() => onOpenChange(false)}>
-              Not yet
-            </Button>
-            <Button type="button" variant="ghost" className="h-12" onClick={() => onOpenChange(false)}>
-              Cancel
+              {t("restock.notYet")}
             </Button>
           </div>
+          <button
+            type="button"
+            className="text-left ui-caption font-medium text-primary"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((current) => !current)}
+          >
+            {t("restock.moreOptions")}
+          </button>
+          {moreOpen ? (
+            <div className="grid gap-4">
+              {askSize ? (
+                <div className="grid gap-1.5">
+                  <label htmlFor="order-size" className="ui-caption text-muted-foreground">
+                    {t("restock.sizeOptional")}
+                  </label>
+                  <Input
+                    id="order-size"
+                    value={sizeDraft}
+                    onChange={(event) => setSizeDraft(event.target.value)}
+                    placeholder={t("restock.sizePlaceholder")}
+                    className="h-12"
+                  />
+                </div>
+              ) : null}
+              <div className="grid gap-1.5">
+                <p className="ui-caption font-medium">{t("restock.whenArriveTitle")}</p>
+                <ArrivalChips offset={offset} dateDraft={dateDraft} onOffset={setOffset} onDate={setDateDraft} />
+              </div>
+              <div className="grid gap-1.5">
+                <p className="ui-caption font-medium">{t("restock.howManyTitle")}</p>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="size-11"
+                    aria-label={t("restock.decreaseQty")}
+                    onClick={() => setQty((current) => Math.max(1, current - 1))}
+                  >
+                    −
+                  </Button>
+                  <span className="min-w-8 text-center ui-card font-medium">{qty}</span>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="size-11"
+                    aria-label={t("restock.increaseQty")}
+                    onClick={() => setQty((current) => Math.min(99, current + 1))}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+              <Button
+                type="button"
+                className="h-12"
+                onClick={() => onConfirm(confirmDetails())}
+              >
+                {t("restock.orderSimple")}
+              </Button>
+            </div>
+          ) : null}
+          <Button type="button" variant="ghost" className="h-12" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
@@ -526,6 +590,7 @@ function ChangeDateSheet({
   onOpenChange: (open: boolean) => void;
   onConfirm: (date: string) => void;
 }) {
+  const { t } = useLocale();
   const defaultOffset = closestArrivalOffset(leadTimeDaysFor(item));
   const [offset, setOffset] = useState<number | "date">(item.expectedArrivalDate ? "date" : defaultOffset);
   const [dateDraft, setDateDraft] = useState(
@@ -545,13 +610,13 @@ function ChangeDateSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0">
         <SheetHeader>
-          <SheetTitle>When does it arrive?</SheetTitle>
+          <SheetTitle>{t("restock.whenArriveTitle")}</SheetTitle>
           <SheetDescription>{item.itemName}</SheetDescription>
         </SheetHeader>
         <div className="grid gap-4 px-4 pb-4">
           <ArrivalChips offset={offset} dateDraft={dateDraft} onOffset={setOffset} onDate={setDateDraft} />
           <Button type="button" className="h-12" onClick={() => onConfirm(arrivalDate)}>
-            Save date
+            {t("restock.saveDate")}
           </Button>
         </div>
       </SheetContent>
@@ -570,10 +635,11 @@ function ArrivalChips({
   onOffset: (value: number | "date") => void;
   onDate: (value: string) => void;
 }) {
+  const { t } = useLocale();
   return (
     <>
       <div className="flex flex-wrap gap-1.5">
-        {ARRIVAL_OFFSETS.map((option) => (
+        {arrivalOffsets().map((option) => (
           <Button
             key={option.id}
             type="button"
@@ -595,7 +661,7 @@ function ArrivalChips({
           className="h-11 rounded-full"
           onClick={() => onOffset("date")}
         >
-          Pick a date
+          {t("restock.pickDate")}
         </Button>
       </div>
       {offset === "date" ? (
@@ -620,6 +686,7 @@ function ReceiveDialog({
   onOpenChange: (open: boolean) => void;
   onConfirm: (qty: number, paid?: number) => void;
 }) {
+  const { t } = useLocale();
   const [costDraft, setCostDraft] = useState(suggestedCost != null ? String(suggestedCost) : "");
   const parsedCost = Number(costDraft);
   const paid = Number.isFinite(parsedCost) && parsedCost >= 0 ? Math.round(parsedCost * 100) / 100 : undefined;
@@ -627,7 +694,7 @@ function ReceiveDialog({
   function confirm(withCost: boolean) {
     const amount = Math.max(1, Number(qty) || 1);
     onConfirm(amount, withCost ? paid : undefined);
-    toast.success("Marked received");
+    toast.success(t("restock.markedReceived"));
     onOpenChange(false);
   }
 
@@ -635,28 +702,28 @@ function ReceiveDialog({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0">
         <SheetHeader>
-          <SheetTitle>How many?</SheetTitle>
-          <SheetDescription>Adds to what you have on hand and moves this back to Stocked.</SheetDescription>
+          <SheetTitle>{t("restock.howManyTitle")}</SheetTitle>
+          <SheetDescription>{t("restock.howManyBody")}</SheetDescription>
         </SheetHeader>
         <div className="grid gap-3 px-4 pb-4">
           <Input type="number" min={1} value={qty} onChange={(event) => onQty(event.target.value)} className="h-11" />
-          <p className="ui-caption text-muted-foreground">What did it cost?</p>
+          <p className="ui-caption text-muted-foreground">{t("cost.whatDidItCost")}</p>
           <Input
             inputMode="decimal"
             value={costDraft}
             onChange={(event) => setCostDraft(event.target.value)}
             placeholder="0.00"
             className="h-11"
-            aria-label="What did it cost?"
+            aria-label={t("cost.whatDidItCost")}
           />
           <Button type="button" className="h-12" onClick={() => confirm(true)}>
-            Add to stock
+            {t("restock.addToStock")}
           </Button>
           <Button type="button" variant="secondary" className="h-12" onClick={() => confirm(false)}>
-            Skip cost
+            {t("restock.skipCost")}
           </Button>
           <Button type="button" variant="ghost" className="h-12" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
         </div>
       </SheetContent>
@@ -670,9 +737,12 @@ function retailerCaption(value?: string): string {
 }
 
 function arrivalLine(item: SupplyAutomation): string {
-  if (!item.expectedArrivalDate) return "On the way";
+  if (!item.expectedArrivalDate) return tActive("restock.onTheWay");
   const store = retailerCaption(typeof item.preferredRetailer === "string" ? item.preferredRetailer : undefined);
-  return `Arriving ${formatWeekdayDate(item.expectedArrivalDate)}${store ? ` · ${store}` : ""}`;
+  return tActive("restock.arrivingStore", {
+    date: formatWeekdayDate(item.expectedArrivalDate),
+    store: store ? ` · ${store}` : "",
+  });
 }
 
 export function OrderByLine({
@@ -682,6 +752,7 @@ export function OrderByLine({
   item: SupplyAutomation;
   household: Pick<Household, "duties" | "completions" | "restockSafetyBufferDays">;
 }) {
+  const { t } = useLocale();
   const placement = restockPlacement(item, household);
   if (placement.bucket === "ordered" && item.expectedArrivalDate) {
     return <>{arrivalLine(item)}</>;
@@ -693,6 +764,6 @@ export function OrderByLine({
       </>
     );
   }
-  if (placement.orderByDate) return <>Order by {formatDueDate(placement.orderByDate)}</>;
-  return <>Stocked</>;
+  if (placement.orderByDate) return <>{t("restock.orderBy", { date: formatDueDate(placement.orderByDate) })}</>;
+  return <>{t("restock.stocked")}</>;
 }

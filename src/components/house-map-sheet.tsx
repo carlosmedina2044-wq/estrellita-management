@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { DutyForm } from "@/components/duty-form";
@@ -24,6 +25,7 @@ import {
   wasCompletedToday,
 } from "@/lib/duties";
 import { ASSET_TYPES, roomById } from "@/lib/home-model";
+import { assetLabel, catalogLabel } from "@/lib/asset-catalog";
 import { warrantyBadgeLabel } from "@/lib/warranty";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { ItemName } from "@/components/item-name";
@@ -56,6 +58,7 @@ export function HouseMapSheet({
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
 } & RestockFlowHandlers) {
+  const { t } = useLocale();
   const selected = roomId;
   const [editing, setEditing] = useState<Duty | null>(null);
   const [creating, setCreating] = useState(false);
@@ -93,7 +96,7 @@ export function HouseMapSheet({
   function addAsset() {
     if (!selected || !onChangeTree) return;
     const type = assetType;
-    const name = assetName.trim() || ASSET_TYPES.find((item) => item.id === type)?.label || "Asset";
+    const name = assetName.trim() || catalogLabel(type) || t("home.assetFallback");
     onChangeTree({
       ...household,
       assets: [
@@ -104,9 +107,9 @@ export function HouseMapSheet({
     setAssetName("");
     const suggestion = suggestionsForAsset(type)[0];
     if (suggestion) {
-      toast.message(`Suggestion: ${suggestion.itemName}`, { description: suggestion.hint });
+      toast.message(t("home.suggestion", { name: suggestion.itemName }), { description: suggestion.hint });
     } else {
-      toast.success("Asset added");
+      toast.success(t("home.assetAdded"));
     }
   }
 
@@ -119,7 +122,7 @@ export function HouseMapSheet({
           className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
           <SheetHeader className="shrink-0 pb-2">
-            <SheetTitle>{selectedRoom?.name ?? "Room"}</SheetTitle>
+            <SheetTitle>{selectedRoom?.name ?? t("map.roomFallback")}</SheetTitle>
           </SheetHeader>
           <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-5 px-4 pb-4">
             {selectedRoom ? (
@@ -127,7 +130,7 @@ export function HouseMapSheet({
                 <div>
                   <h2 className="ui-heading ui-display font-semibold">{selectedRoom.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {roomOpen.length === 0 ? "All clear" : `${roomOpen.length} open`}
+                    {roomOpen.length === 0 ? t("home.allClear") : t("common.openCount", { count: roomOpen.length })}
                   </p>
                 </div>
                 {roomOpen.length === 0 && roomDone.length === 0 && roomUpcoming.length === 0 ? (
@@ -176,7 +179,7 @@ export function HouseMapSheet({
                 )}
                 {roomConsumables.length > 0 ? (
                   <section>
-                    <h3 className="mb-2 ui-caption font-medium text-muted-foreground">Items</h3>
+                    <h3 className="mb-2 ui-caption font-medium text-muted-foreground">{t("map.items")}</h3>
                     <ul className="grid gap-2">
                       {roomConsumables.map((item) => {
                         const placement = restockPlacement(item, household, now);
@@ -187,8 +190,8 @@ export function HouseMapSheet({
                           </p>
                           <p className="mt-0.5 ui-caption text-muted-foreground">
                             {placement.bucket === "ordered" && item.expectedArrivalDate
-                              ? `Arriving ~${item.expectedArrivalDate}`
-                              : `On hand ${item.onHand} · lead ${item.leadTimeDays}d`}
+                              ? t("home.arrivingApprox", { date: item.expectedArrivalDate })
+                              : t("home.onHandLead", { onHand: item.onHand, lead: item.leadTimeDays })}
                           </p>
                           {placement.bucket === "order_now" ? (
                             <div className="mt-2">
@@ -206,9 +209,9 @@ export function HouseMapSheet({
                   </section>
                 ) : null}
                 <section>
-                  <h3 className="mb-2 ui-caption font-medium text-muted-foreground">Assets</h3>
+                  <h3 className="mb-2 ui-caption font-medium text-muted-foreground">{t("map.assets")}</h3>
                   {roomAssets.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No appliances or units tagged yet.</p>
+                    <p className="text-sm text-muted-foreground">{t("map.noAssets")}</p>
                   ) : (
                     <ul className="mb-3 grid gap-2">
                       {roomAssets.map((asset) => {
@@ -217,7 +220,7 @@ export function HouseMapSheet({
                         <li key={asset.id} className="rounded-2xl bg-card px-4 py-3 text-sm">
                           <p className="font-medium">{asset.name}</p>
                           <p className="mt-0.5 ui-caption text-muted-foreground">
-                            {ASSET_TYPES.find((item) => item.id === asset.type)?.label ?? asset.type}
+                            {assetLabel(asset.type)}
                             {badge ? ` · ${badge}` : ""}
                           </p>
                         </li>
@@ -234,7 +237,7 @@ export function HouseMapSheet({
                         <SelectContent>
                           {ASSET_TYPES.map((item) => (
                             <SelectItem key={item.id} value={item.id}>
-                              {item.label}
+                              {assetLabel(item.id)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -243,7 +246,7 @@ export function HouseMapSheet({
                         <Input
                           value={assetName}
                           onChange={(event) => setAssetName(event.target.value)}
-                          placeholder="Optional name"
+                          placeholder={t("home.optionalName")}
                           className="h-11"
                         />
                         <Button type="button" variant="secondary" className="h-11 shrink-0" onClick={addAsset}>
@@ -264,7 +267,7 @@ export function HouseMapSheet({
                   onClick={() => createGuard.tryOpen(() => setCreating(true))}
                 >
                   <Plus className="size-4" />
-                  Add a chore in {selectedRoom.name}
+                  {t("map.addChoreIn", { room: selectedRoom.name })}
                 </Button>
               </div>
             ) : (

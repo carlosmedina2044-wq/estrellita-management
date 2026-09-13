@@ -14,6 +14,7 @@ import {
   isAppLocale,
   localeDateTag,
   LOCALE_PREF_KEY,
+  setActiveAppLocale,
   translate,
   type AppLocale,
   type MessageKey,
@@ -23,7 +24,7 @@ import { kvGet, kvSet } from "@/lib/native/kv";
 
 type LocaleContextValue = {
   locale: AppLocale;
-  /** null = follow device languages */
+  /** system = follow device languages */
   preference: AppLocale | "system";
   setPreference: (next: AppLocale | "system") => void;
   t: (key: MessageKey, params?: Record<string, string | number>) => string;
@@ -32,15 +33,23 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
+function htmlLang(locale: AppLocale): string {
+  return locale === "pt-BR" ? "pt-BR" : locale === "es" ? "es-MX" : "en";
+}
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [preference, setPreferenceState] = useState<AppLocale | "system">("system");
   const [deviceLocale, setDeviceLocale] = useState<AppLocale>("en");
   const [ready, setReady] = useState(false);
 
+  const refreshDeviceLocale = useCallback(() => {
+    setDeviceLocale(detectDeviceLocale());
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      setDeviceLocale(detectDeviceLocale());
+      refreshDeviceLocale();
       try {
         const stored = await kvGet(LOCALE_PREF_KEY);
         if (!cancelled && isAppLocale(stored)) setPreferenceState(stored);
@@ -53,7 +62,32 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshDeviceLocale]);
+
+  // When iPhone language changes while the app is backgrounded, System mode picks it up.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshDeviceLocale();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("languagechange", refreshDeviceLocale);
+
+    let removeResume: (() => void) | undefined;
+    void import("@capacitor/app")
+      .then(async ({ App }) => {
+        const handle = await App.addListener("resume", refreshDeviceLocale);
+        removeResume = () => {
+          void handle.remove();
+        };
+      })
+      .catch(() => {});
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("languagechange", refreshDeviceLocale);
+      removeResume?.();
+    };
+  }, [refreshDeviceLocale]);
 
   const setPreference = useCallback((next: AppLocale | "system") => {
     setPreferenceState(next);
@@ -70,8 +104,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.documentElement.lang = locale === "pt-BR" ? "pt-BR" : locale;
+    document.documentElement.lang = htmlLang(locale);
     setActiveDateLocale(localeDateTag(locale));
+    setActiveAppLocale(locale);
   }, [locale]);
 
   const value = useMemo<LocaleContextValue>(
@@ -84,11 +119,6 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     }),
     [locale, preference, setPreference],
   );
-
-  // Avoid flashing wrong language before preference loads.
-  if (!ready) {
-    return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
-  }
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }

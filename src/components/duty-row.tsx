@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/i18n/locale-provider";
+import { tDutyTitle } from "@/i18n/content";
 import { Check, Circle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { dutySubtitle, installedAtFor } from "@/lib/duties";
@@ -35,8 +37,10 @@ export function DutyRow({
   onToggle: () => void;
   onOpen?: () => void;
 }) {
+  const { t } = useLocale();
+  const title = tDutyTitle(duty.title);
   let subtitle = missingPartHint
-    ? "No part on hand. Order first, or mark done if you already have it."
+    ? t("chore.noPart")
     : household
       ? dutySubtitle(duty, household.completions, now, installedAtFor(household, duty.id), household, overdue)
       : dutySubtitle(duty, [], now, undefined, undefined, overdue);
@@ -44,17 +48,17 @@ export function DutyRow({
     overdue &&
     (partChip?.kind === "install_today" || partChip?.kind === "part_on_hand")
   ) {
-    subtitle = `Supplies on hand · ${subtitle}`;
+    subtitle = t("chore.suppliesOnHand", { subtitle });
   }
 
   const statusChip = overdue && !hideOverdueChip
-    ? { label: "Overdue", className: "", destructive: true }
+    ? { label: t("chore.overdue"), className: "", destructive: true }
     : partChip && partChip.kind === "arriving"
       ? { label: partChip.label, className: "bg-secondary text-muted-foreground" }
       : partChip && partChip.kind === "install_today"
         ? { label: partChip.label, className: "bg-success/15 text-success" }
         : upcoming
-          ? { label: "Upcoming", className: "bg-secondary text-muted-foreground" }
+          ? { label: t("chore.upcoming"), className: "bg-secondary text-muted-foreground" }
           : null;
 
   return (
@@ -63,7 +67,7 @@ export function DutyRow({
         type="button"
         onClick={onToggle}
         className="flex size-11 shrink-0 items-center justify-center text-primary"
-        aria-label={done ? `Undo ${duty.title}` : `Complete ${duty.title}`}
+        aria-label={done ? t("chore.undoAria", { title }) : t("chore.completeAria", { title })}
       >
         {done ? (
           <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -87,11 +91,11 @@ export function DutyRow({
                 done && "text-muted-foreground line-through",
               )}
             >
-              {duty.title}
+              {title}
             </span>
             {duty.audience === "cleaner" && !done ? (
               <Badge variant="secondary" className={CHIP}>
-                Cleaner
+                {t("audience.cleaner")}
               </Badge>
             ) : null}
             {statusChip && !done ? (

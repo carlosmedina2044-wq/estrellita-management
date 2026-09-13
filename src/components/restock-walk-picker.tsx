@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
+import { tWalkGroupLabel, tWalkItemHint, tWalkItemName } from "@/i18n/content";
 import {
   RESTOCK_WALK_GROUPS,
   catalogItemForSupply,
@@ -32,6 +34,7 @@ export function RestockWalkPicker({
   onAddCustom?: (group: RestockWalkGroup) => void;
   onEditCustom?: (pick: CustomRestockPick) => void;
 }) {
+  const { t } = useLocale();
   const [typingId, setTypingId] = useState<string | null>(null);
   const visible = visibleWalkItems(context);
   const missing = sizeWarning
@@ -39,7 +42,7 @@ export function RestockWalkPicker({
         if (isCustomRestockPick(pick)) return [];
         const item = visible.find((entry) => entry.id === pick.id);
         if (!item?.variants?.length || pick.variant?.trim()) return [];
-        return [item.itemName];
+        return [tWalkItemName(item)];
       })
     : [];
 
@@ -73,10 +76,10 @@ export function RestockWalkPicker({
     <div className="grid gap-5">
       {missing.length > 0 ? (
         <div className="rounded-2xl bg-secondary px-3 py-3">
-          <p className="ui-body font-medium">Sizes to confirm: {missing.join(", ")}</p>
+          <p className="ui-body font-medium">{t("restock.sizesToConfirm", { names: missing.join(", ") })}</p>
           {onSkipSizes ? (
             <button type="button" className="mt-2 ui-caption font-medium text-brand" onClick={onSkipSizes}>
-              Skip for now
+              {t("restock.skipForNow")}
             </button>
           ) : null}
         </div>
@@ -90,7 +93,7 @@ export function RestockWalkPicker({
         if (items.length === 0 && custom.length === 0 && !onAddCustom && group.id !== "bath") return null;
         return (
           <section key={group.id}>
-            <h2 className="mb-2 px-1 ui-caption font-medium text-muted-foreground">{group.label}</h2>
+            <h2 className="mb-2 px-1 ui-caption font-medium text-muted-foreground">{tWalkGroupLabel(group.id)}</h2>
             <div className="grid gap-2">
               {items.map((item) => {
                 const pick = catalogPick(item.id);
@@ -109,9 +112,9 @@ export function RestockWalkPicker({
                         className="mt-1 size-5 accent-primary disabled:opacity-60"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block ui-card font-medium">{item.itemName}</span>
+                        <span className="block ui-card font-medium">{tWalkItemName(item)}</span>
                         <span className="mt-0.5 block ui-caption text-muted-foreground">
-                          {tracked ? "Tracking" : item.hint}
+                          {tracked ? t("restock.tracking") : tWalkItemHint(item)}
                         </span>
                       </span>
                     </label>
@@ -145,7 +148,7 @@ export function RestockWalkPicker({
                               if (!typed) setVariant(item.id, "");
                             }}
                           >
-                            Type it
+                            {t("restock.typeIt")}
                           </button>
                         </div>
                         {typing ? (
@@ -154,7 +157,7 @@ export function RestockWalkPicker({
                             onChange={(event) => setVariant(item.id, event.target.value)}
                             placeholder="20×20×1"
                             inputMode="text"
-                            aria-label={`${item.itemName} size`}
+                            aria-label={t("restock.sizeAria", { name: tWalkItemName(item) })}
                             className="mt-2 h-11 w-full rounded-xl bg-secondary px-3 ui-body"
                           />
                         ) : null}
@@ -196,7 +199,7 @@ export function RestockWalkPicker({
                   className="rounded-2xl border border-dashed border-border px-3 py-3 text-left ui-body font-medium text-brand"
                   onClick={() => onAddCustom(group.id)}
                 >
-                  + Add something you buy for the {group.label.toLowerCase()}
+                  {t("restock.addSomething")} you buy for the {group.label.toLowerCase()}
                 </button>
               ) : null}
             </div>

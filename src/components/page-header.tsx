@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
+import { useLocale } from "@/i18n/locale-provider";
 
 export function PageHeader({
   title,
@@ -7,7 +10,7 @@ export function PageHeader({
   subtitle,
   action,
   onBack,
-  backLabel = "Back",
+  backLabel,
 }: {
   title: string;
   eyebrow?: ReactNode;
@@ -16,13 +19,16 @@ export function PageHeader({
   onBack?: () => void;
   backLabel?: string;
 }) {
+  const { t } = useLocale();
+  const resolvedBackLabel = backLabel ?? t("common.back");
+
   return (
     <header className="flex items-start justify-between gap-3">
       <div className="flex min-w-0 items-start gap-1">
         {onBack ? (
           <button
             type="button"
-            aria-label={backLabel}
+            aria-label={resolvedBackLabel}
             onClick={onBack}
             className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-foreground"
           >

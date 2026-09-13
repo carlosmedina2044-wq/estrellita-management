@@ -42,7 +42,8 @@ import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
 import { forCleanerSession, PERSIST_FAILED_EVENT } from "@/lib/storage";
-import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_REENGAGE, withTeaching } from "@/lib/teaching";
+import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_KEEP_PRIVATE, TIP_LOCK_REENGAGE, withTeaching } from "@/lib/teaching";
+import { lockMethodLabel } from "@/lib/native/lock-labels";
 import { isRootTab, type AppNavigateTarget, type RootTab } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -95,7 +96,7 @@ export function AppShell() {
   const [stack, setStack] = useState<AppNavigateTarget[]>([]);
   const [nav, setNav] = useState<AppNavigateTarget | null>(null);
   const top = stack[stack.length - 1] ?? null;
-  const backLabel = rootTab === "today" ? "Today" : rootTab === "restock" ? "Restock" : "Home";
+  const backLabel = rootTab === "today" ? t("tabs.today") : rootTab === "restock" ? t("tabs.restock") : t("tabs.home");
   const navigate = useCallback((target: AppNavigateTarget) => {
     setNav(target);
     if (isRootTab(target.tab)) {
@@ -128,7 +129,7 @@ export function AppShell() {
   const [locked, setLocked] = useState(true);
   const [lockMethod, setLockMethod] = useState<LockMethod | null>(null);
   const canLock = lockMethod === null ? null : lockMethod !== "none";
-  const requireFaceId = sessionMeta?.requireFaceId ?? household.lockSettings?.requireFaceId ?? true;
+  const requireFaceId = sessionMeta?.requireFaceId ?? household.lockSettings?.requireFaceId ?? false;
   const lockAfter = sessionMeta?.lockAfter ?? household.lockSettings?.lockAfter ?? "2min";
   const cleanerVisitActive = sessionMeta?.cleanerVisitActive ?? household.mode === "cleaner";
   const onboarded = sessionMeta?.onboarded ?? household.onboarded;
@@ -219,7 +220,7 @@ export function AppShell() {
   }, [onboarded, requireFaceId, lockAfter, cleanerVisitActive, canLock, lockSession]);
 
   useEffect(() => {
-    const onFail = () => toast.error("Couldn’t save. Try again, or back up in Settings.");
+    const onFail = () => toast.error(t("shell.saveFailed"));
     window.addEventListener(PERSIST_FAILED_EVENT, onFail);
     return () => window.removeEventListener(PERSIST_FAILED_EVENT, onFail);
   }, []);
@@ -238,7 +239,7 @@ export function AppShell() {
       try {
         const payload = await fetchForecastFor({ lat, lng, postalCode: zip });
         if (cancelled) return;
-        if (!payload) throw new Error("Weather unavailable");
+        if (!payload) throw new Error(t("shell.weatherUnavailable"));
         setForecast(payload);
         setWeatherError(null);
         const attribution = await fetchWeatherAttribution();
@@ -275,16 +276,16 @@ export function AppShell() {
         if (addedDuties > 0) {
           toast.message(
             addedDuties === 1
-              ? "A weather chore was added to Today"
-              : `${addedDuties} weather chores were added to Today`,
+              ? t("shell.weatherChoreAdded")
+              : t("shell.weatherChoresAdded", { count: addedDuties }),
           );
         }
       } catch {
         if (cancelled) return;
-        setWeatherError("Could not refresh weather");
+        setWeatherError(t("shell.weatherRefreshFailed"));
         updateTree((current) => ({
           ...current,
-          weatherStatus: { ...current.weatherStatus, lastError: "Weather provider failed" },
+          weatherStatus: { ...current.weatherStatus, lastError: t("shell.weatherProviderFailed") },
         }));
       }
     })();
@@ -364,7 +365,7 @@ export function AppShell() {
         onConfirmEraseChange={setConfirmErase}
         onErase={() => {
           void eraseEverything().then((result) => {
-            if (!result.ok) toast.error("Couldn’t erase this home. Try again.");
+            if (!result.ok) toast.error(t("shell.eraseFailed"));
           });
         }}
       />
@@ -379,7 +380,7 @@ export function AppShell() {
     return (
       <FaceLock
         method={lockMethod ?? "passcode"}
-        performUnlock={() => unlockSession("Unlock Cuidala")}
+        performUnlock={() => unlockSession(t("biometrics.unlockCuidala"))}
         onUnlocked={() => {
           setLocked(false);
         }}
@@ -413,7 +414,7 @@ export function AppShell() {
         onUndo={undoCompletion}
         onEndVisit={async () => {
           if (canLock) {
-            const ok = await verifyDeviceOwner("Hand the phone back");
+            const ok = await verifyDeviceOwner(t("biometrics.handPhoneBack"));
             if (!ok) return false;
           }
           endCleanerVisit();
@@ -437,13 +438,59 @@ export function AppShell() {
     onMarkTip: (tip: string) => updateTree((current) => markTipSeen(current, tip)),
   };
 
+  const showLockKeepPrivate =
+    canLock === true &&
+    !requireFaceId &&
+    !hasSeenTip(household, TIP_LOCK_KEEP_PRIVATE) &&
+    (() => {
+      const start = household.teaching?.startedAt;
+      if (!start) return false;
+      const startMs = Date.parse(`${start}T00:00:00`);
+      if (!Number.isFinite(startMs)) return false;
+      return (Date.now() - startMs) / 86_400_000 < 1;
+    })();
+  const lockMethodNoun = lockMethodLabel(lockMethod ?? "passcode").noun;
+
   const todayActive = top === null && rootTab === "today";
   const homeActive = top === null && rootTab === "home";
   const restockActive = top === null && rootTab === "restock";
-  const pushBackLabel = `Back to ${backLabel}`;
+  const pushBackLabel = t("shell.backTo", { label: backLabel });
 
   return (
     <div className="app-frame">
+      <AlertDialog
+        open={showLockKeepPrivate}
+        onOpenChange={(open) => {
+          if (!open) {
+            updateTree((current) => markTipSeen(current, TIP_LOCK_KEEP_PRIVATE));
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <BrandMark size="sm" className="mx-auto mb-2" />
+            <AlertDialogTitle>{t("lock.keepPrivateTitle", { method: lockMethodNoun })}</AlertDialogTitle>
+            <AlertDialogDescription>{t("lock.keepPrivateBody")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => updateTree((current) => markTipSeen(current, TIP_LOCK_KEEP_PRIVATE))}
+            >
+              {t("lock.skipForNow")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                updateTree((current) => ({
+                  ...markTipSeen(current, TIP_LOCK_KEEP_PRIVATE),
+                  lockSettings: { ...current.lockSettings, requireFaceId: true },
+                }));
+              }}
+            >
+              {t("lock.enable")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <main className="app-shell-main relative min-w-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div hidden={!todayActive} inert={!todayActive} className="app-keep-alive">
           <TodayView
@@ -594,11 +641,11 @@ export function AppShell() {
         ) : null}
       </main>
 
-      <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40" aria-label="Main">
+      <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-background" aria-label={t("common.mainNav")}>
         <div
           role="tablist"
-          aria-label="Main"
-          className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl"
+          aria-label={t("common.mainNav")}
+          className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background px-1 pt-1 pb-2"
         >
           <NavButton
             label={t("tabs.today")}
@@ -689,15 +736,13 @@ function LoadFailed({
         <AlertDialogContent>
           <AlertDialogHeader>
             <BrandMark size="sm" className="mx-auto mb-2" />
-            <AlertDialogTitle>Erase everything?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Rooms, chores, items, history, and reminders on this iPhone will be deleted. This cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("settings.eraseTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("settings.eraseBody")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-white" onClick={onErase}>
-              Erase
+              {t("settings.eraseConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -719,7 +764,8 @@ function NavButton({
   badge?: number;
   onClick: () => void;
 }) {
-  const ariaLabel = badge ? `${label}, ${badge} to order` : label;
+  const { t } = useLocale();
+  const ariaLabel = badge ? t("tabs.toOrderBadge", { label, count: badge }) : label;
   return (
     <button
       type="button"
@@ -744,13 +790,20 @@ function NavButton({
 }
 
 function HomeStatusLine({ summary }: { summary: ReturnType<typeof homeSummary> | null }) {
+  const { t } = useLocale();
   if (!summary || (summary.total === 0 && summary.reorderPending === 0)) {
-    return <span>All caught up</span>;
+    return <span>{t("home.allCaughtUp")}</span>;
   }
   const parts: Array<{ key: string; text: string; urgent?: boolean }> = [];
-  if (summary.overdue) parts.push({ key: "overdue", text: `${summary.overdue} overdue`, urgent: true });
-  if (summary.dueSoon) parts.push({ key: "soon", text: `${summary.dueSoon} due soon` });
-  if (summary.reorderPending) parts.push({ key: "reorder", text: `${summary.reorderPending} to reorder` });
+  if (summary.overdue) {
+    parts.push({ key: "overdue", text: t("home.overdueCount", { count: summary.overdue }), urgent: true });
+  }
+  if (summary.dueSoon) {
+    parts.push({ key: "soon", text: t("home.dueSoonCount", { count: summary.dueSoon }) });
+  }
+  if (summary.reorderPending) {
+    parts.push({ key: "reorder", text: t("home.toReorderCount", { count: summary.reorderPending }) });
+  }
   return (
     <span>
       {parts.map((part, index) => (

@@ -34,8 +34,8 @@ import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
 import { ZipSheet } from "@/components/zip-prompt";
 import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
+import { tActive, type AppLocale } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
-import type { AppLocale } from "@/i18n";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +50,7 @@ function problemMailto(household: Household): string {
   const items = household.supplyAutomations.length;
   const pending = plannedNotifications(household).length;
   const body = [
-    "Describe what happened:",
+    tActive("settings.reportBody"),
     "",
     "",
     "---",
@@ -111,9 +111,9 @@ export function HomeView({
   const persistTimer = useRef<number | null>(null);
 
   const HOUR_PRESETS = [
-    { id: "morning", label: "Morning", hour: 8 },
-    { id: "afternoon", label: "Afternoon", hour: 14 },
-    { id: "evening", label: "Evening", hour: 19 },
+    { id: "morning", label: t("settings.morning"), hour: 8 },
+    { id: "afternoon", label: t("settings.afternoon"), hour: 14 },
+    { id: "evening", label: t("settings.evening"), hour: 19 },
   ] as const;
 
   useEffect(() => {
@@ -173,7 +173,7 @@ export function HomeView({
         title={t("settings.title")}
         subtitle={t("settings.subtitle")}
         onBack={onBack}
-        backLabel={backLabel === "Back to Home" ? t("settings.backHome") : backLabel}
+        backLabel={backLabel === "Back to Home" || backLabel === t("settings.backHome") ? t("settings.backHome") : backLabel}
       />
       <section>
         <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.language")}</h2>
@@ -436,7 +436,7 @@ export function HomeView({
               onCheckedChange={(next) => {
                 void (async () => {
                   if (!next && canLock) {
-                    const ok = await verifyDeviceOwner("Turn off app lock");
+                    const ok = await verifyDeviceOwner(t("settings.turnOffLock"));
                     if (!ok) return;
                   }
                   await onUpdate({
@@ -558,15 +558,15 @@ export function HomeView({
               onClick={() => {
                 void (async () => {
                   if (canLock) {
-                    const verified = await verifyDeviceOwner("Erase everything");
+                    const verified = await verifyDeviceOwner(t("settings.eraseEverything"));
                     if (!verified) {
-                      toast.error("Couldn’t verify it’s you.");
+                      toast.error(t("settings.verifyFailed"));
                       return;
                     }
                   }
                   const result = await onErase();
                   if (result.ok) toast.success(t("settings.eraseAll"));
-                  else toast.error("Couldn’t erase this home. Try again.");
+                  else toast.error(t("shell.eraseFailed"));
                 })();
               }}
             >
@@ -582,7 +582,7 @@ export function HomeView({
           onOpenChange={setZipOpen}
           onSave={async (zip) => {
             const result = await onSavePostalCode(zip);
-            if (result.ok) toast.success("ZIP saved");
+            if (result.ok) toast.success(t("zip.saved"));
             return result;
           }}
         />
@@ -593,7 +593,7 @@ export function HomeView({
           onOpenChange={setZipOpen}
           onSave={async (zip) => {
             await onUpdate({ location: { ...household.location, postalCode: zip } });
-            toast.success("ZIP saved");
+            toast.success(t("zip.saved"));
             return { ok: true };
           }}
         />
@@ -601,11 +601,11 @@ export function HomeView({
       <Sheet open={hourSheet} onOpenChange={setHourSheet}>
         <SheetContent side="bottom" size="form" className="gap-0">
           <SheetHeader>
-            <SheetTitle>Digest time</SheetTitle>
+            <SheetTitle>{t("settings.digestTime")}</SheetTitle>
           </SheetHeader>
           <div className="grid gap-3 px-4 pb-4">
             <Label htmlFor="digest-hour" className="ui-caption text-muted-foreground">
-              Hour
+              {t("settings.digestHour")}
             </Label>
             <Input
               id="digest-hour"
@@ -619,7 +619,7 @@ export function HomeView({
               className="h-12"
             />
             <Button type="button" className="h-12" onClick={() => setHourSheet(false)}>
-              Done
+              {t("common.done")}
             </Button>
           </div>
         </SheetContent>

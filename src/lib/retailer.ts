@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { TEXT_LIMITS } from "@/lib/sanitize";
 import { RETAILER_IDS, type Household, type RetailerId, type SavedRetailerLink, type SupplyAutomation } from "@/lib/types";
 
@@ -215,7 +216,7 @@ export function isProductPageUrl(value: string): boolean {
 
 export function parseRetailerInput(input: string): RetailerRef {
   const value = input.trim();
-  if (!value) return { ok: false, error: "Paste a product link." };
+  if (!value) return { ok: false, error: tActive("retailer.pasteLink") };
   if (ASIN.test(value)) {
     const asin = value.toUpperCase();
     return { ok: true, url: amazonUrlFromAsin(asin), asin, productPage: true };
@@ -225,10 +226,10 @@ export function parseRetailerInput(input: string): RetailerRef {
   try {
     url = new URL(value.includes("://") ? value : `https://${value}`);
   } catch {
-    return { ok: false, error: "That doesn’t look like a product link." };
+    return { ok: false, error: tActive("retailer.badLink") };
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    return { ok: false, error: "That doesn’t look like a product link." };
+    return { ok: false, error: tActive("retailer.badLink") };
   }
 
   const host = url.hostname.replace(/^www\./i, "");

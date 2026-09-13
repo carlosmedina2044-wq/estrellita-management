@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "@/i18n/locale-provider";
 import { Button } from "@/components/ui/button";
 import type { FundHealth } from "@/lib/budget";
 import { formatMoney } from "@/lib/forecast";
@@ -11,19 +12,23 @@ export function FundHero({
   health: FundHealth;
   onEditFund: () => void;
 }) {
+  const { t } = useLocale();
+
   if (health.saved == null) {
     return (
       <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
-        <p className="text-sm text-muted-foreground">Home maintenance fund</p>
+        <p className="text-sm text-muted-foreground">{t("budget.fundTitle")}</p>
         <p className="ui-heading mt-1 ui-display font-semibold tracking-tight leading-tight">
-          How much do you have saved for home maintenance?
+          {t("budget.fundAsk")}
         </p>
         <p className="mt-2 text-sm leading-5 text-muted-foreground">
-          Suggested set-aside is {formatMoney(health.suggestedMonthly)}/month so you’re ready for the next 12 months
-          ({formatMoney(health.needed12)} total).
+          {t("budget.fundSuggestedBody", {
+            amount: formatMoney(health.suggestedMonthly),
+            total: formatMoney(health.needed12),
+          })}
         </p>
         <Button className="mt-4 h-11 w-full" onClick={onEditFund}>
-          Set a balance
+          {t("budget.setBalance")}
         </Button>
         {health.onePercentCopy ? (
           <p className="mt-3 ui-caption leading-5 text-muted-foreground">{health.onePercentCopy}</p>
@@ -33,17 +38,21 @@ export function FundHero({
   }
 
   const covered = health.coveragePct ?? 0;
+  const coveredLabel =
+    covered >= 100
+      ? t("budget.coveredSet", { pct: covered })
+      : covered >= 70
+        ? t("budget.coveredGood", { pct: covered })
+        : t("budget.coveredPct", { pct: covered });
+
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
-      <p className="text-sm text-muted-foreground">Home maintenance fund</p>
-      <p className="ui-display mt-1">{formatMoney(health.saved)} saved</p>
+      <p className="text-sm text-muted-foreground">{t("budget.fundTitle")}</p>
+      <p className="ui-display mt-1">{t("budget.savedAmount", { amount: formatMoney(health.saved) })}</p>
       <p className="ui-title mt-1 font-medium text-muted-foreground">
-        {formatMoney(health.needed12)} needed in the next 12 months
+        {t("budget.needed12", { amount: formatMoney(health.needed12) })}
       </p>
-      <p className="mt-2 text-sm font-medium">
-        You’re {covered}% covered
-        {covered >= 100 ? ". Set for the year." : covered >= 70 ? ". In good shape." : "."}
-      </p>
+      <p className="mt-2 text-sm font-medium">{coveredLabel}</p>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
         <div
           className="h-full rounded-full bg-primary transition-all duration-500"
@@ -51,13 +60,13 @@ export function FundHero({
         />
       </div>
       <p className="mt-3 text-sm leading-5 text-muted-foreground">
-        Suggested pace: {formatMoney(health.suggestedMonthly)}/month.
+        {t("budget.suggestedPace", { amount: formatMoney(health.suggestedMonthly) })}
       </p>
       {health.onePercentCopy ? (
         <p className="mt-2 ui-caption leading-5 text-muted-foreground">{health.onePercentCopy}</p>
       ) : null}
       <button type="button" className="mt-3 ui-body font-medium text-primary" onClick={onEditFund}>
-        Update balance
+        {t("budget.updateBalance")}
       </button>
     </section>
   );

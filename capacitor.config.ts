@@ -10,8 +10,11 @@ const config: CapacitorConfig = {
   appId: "com.cuidala.app",
   appName: "Cuidala",
   webDir: "out",
+  // Match brand cream so the status-bar / Dynamic Island region is never white
+  // when contentInset is never (edge-to-edge WebView).
+  backgroundColor: "#faf6ef",
   ios: {
-    contentInset: "automatic",
+    contentInset: "never",
     preferredContentMode: "recommended",
     // WeatherKit is native. No WKWebView weather hosts, so no app-bound domains.
     limitsNavigationsToAppBoundDomains: false,

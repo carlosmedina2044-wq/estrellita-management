@@ -3,6 +3,7 @@ import { deriveClimate } from "@/lib/climate";
 import { addDays, toISODate } from "@/lib/dates";
 import { installDateFromAge } from "@/lib/forecast";
 import { defaultRoomName, systemRooms, WHOLE_HOME_ID } from "@/lib/home-model";
+import { tActive } from "@/i18n";
 import starterSeed from "@/lib/onboarding/starter-chores.json";
 import { matchingPlaybooks } from "@/lib/playbooks";
 import { sampleHomeRooms, type RoomChoice } from "@/lib/onboarding/rooms";
@@ -136,10 +137,9 @@ export function defaultFeatures(homeType: HomeType, location: HomeLocation): Fea
 }
 
 function floorName(index: number, count: number): string {
-  if (count === 1) return "Main";
-  if (index === 0) return "Main";
-  if (index === 1) return "Upstairs";
-  return `Floor ${index + 1}`;
+  if (count === 1 || index === 0) return tActive("content.floor.main");
+  if (index === 1) return tActive("content.floor.upstairs");
+  return tActive("content.floor.n", { n: index + 1 });
 }
 
 function uid(): string {
@@ -160,7 +160,7 @@ export function sampleHomeAnswers(): OnboardingAnswers {
   return {
     homeType: "house",
     location: {},
-    nickname: "Sample home",
+    nickname: tActive("content.sampleHome"),
     rooms: sampleHomeRooms(),
     ages: {},
     restockPicks: SAMPLE_RESTOCK_PICKS,
@@ -228,8 +228,8 @@ export function generateHomeFromAnswers(
   const houseLike = answers.homeType === "house" || answers.homeType === "townhouse";
   const rooms: HomeRoom[] = [
     ...systemRooms({
-      wholeHome: houseLike ? "Home systems" : "Whole Home",
-      exterior: houseLike ? "Outdoors" : "Exterior",
+      wholeHome: houseLike ? tActive("content.room.homeSystems") : tActive("content.room.wholeHome"),
+      exterior: houseLike ? tActive("content.room.outdoors") : tActive("content.room.exterior"),
     }),
   ];
   if (chosenRooms) {
@@ -266,7 +266,7 @@ export function generateHomeFromAnswers(
     if (features.includes("hasGarage")) addRoom(rooms, mainId, "garage");
     if (features.includes("hasHomeOffice")) addRoom(rooms, bedFloor, "office");
     if (features.includes("hasBasement")) {
-      const basement: HomeFloor = { id: "basement", name: "Basement", sortOrder: -1 };
+      const basement: HomeFloor = { id: "basement", name: tActive("content.room.basement"), sortOrder: -1 };
       floors.unshift(basement);
       floors.forEach((floor, index) => {
         floor.sortOrder = index;

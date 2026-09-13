@@ -1,5 +1,7 @@
 "use client";
 
+import { useLocale } from "@/i18n/locale-provider";
+
 import { BrandMark } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +18,7 @@ export function EmptyGuide({
   onUpdateAsset: (assetId: string, patch: { installDate?: string; replacementCostEstimate?: number }) => void;
   onGoHome?: () => void;
 }) {
+  const { t } = useLocale();
   const ranked = [...assets].sort((a, b) => {
     const aCost = catalogEntry(normalizeAssetType(a.type)).defaultReplacementCost.mid;
     const bCost = catalogEntry(normalizeAssetType(b.type)).defaultReplacementCost.mid;
@@ -28,12 +31,12 @@ export function EmptyGuide({
         <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
           <BrandMark size="sm" />
         </span>
-        <p className="ui-heading mt-4 ui-title font-semibold">Nothing priced yet</p>
+        <p className="ui-heading mt-4 ui-title font-semibold">{t("budget.nothingPriced")}</p>
         <p className="mt-1 ui-body text-muted-foreground">
-          Add a date or cost on Home so we can estimate upkeep and replacements.
+          {t("budget.nothingPricedBody")}
         </p>
         <Button className="mt-5 h-11 w-full" onClick={onGoHome}>
-          Go to Home
+          {t("budget.goHome")}
         </Button>
       </section>
     );
@@ -41,9 +44,9 @@ export function EmptyGuide({
 
   return (
     <section className="rounded-2xl bg-card px-4 py-5">
-      <p className="font-medium">Price a few big items to get a forecast</p>
+      <p className="font-medium">{t("budget.priceBigItems")}</p>
       <p className="mt-1 text-sm text-muted-foreground">
-        A date and a replacement cost is enough. We’ll fill typical ranges if you skip the price.
+        {t("budget.priceBigBody")}
       </p>
       <ul className="mt-4 grid gap-4">
         {ranked.map((asset) => {
@@ -52,7 +55,7 @@ export function EmptyGuide({
             <li key={asset.id} className="grid gap-2">
               <p className="font-medium">{asset.name}</p>
               <label className="grid gap-1.5">
-                <span className="text-sm text-muted-foreground">When was this installed or last replaced?</span>
+                <span className="text-sm text-muted-foreground">{t("budget.whenInstalled")}</span>
                 <Input
                   type="date"
                   className="h-12"
@@ -64,8 +67,10 @@ export function EmptyGuide({
               </label>
               <label className="grid gap-1.5">
                 <span className="text-sm text-muted-foreground">
-                  Replacement cost (typical {formatMoney(catalog.defaultReplacementCost.low)}–
-                  {formatMoney(catalog.defaultReplacementCost.high)})
+                  {t("budget.replacementTypical", {
+                    low: formatMoney(catalog.defaultReplacementCost.low),
+                    high: formatMoney(catalog.defaultReplacementCost.high),
+                  })}
                 </span>
                 <Input
                   type="number"

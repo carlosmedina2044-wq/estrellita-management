@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { addDays, startOfDay } from "@/lib/dates";
 import { isDueToday, isOverdue, nextDueDate } from "@/lib/duties";
 import { groupRestock, restockPlacement } from "@/lib/restock";
@@ -105,7 +106,7 @@ export function nodeStatus(
 }
 
 export function statusText(status: Pick<NodeStatus, "overdue" | "dueSoon" | "total" | "reorderPending">): string {
-  if (status.total === 0 && status.reorderPending === 0) return "All caught up";
+  if (status.total === 0 && status.reorderPending === 0) return tActive("node.allCaughtUp");
   const parts: string[] = [];
   if (status.overdue) parts.push(`${status.overdue} overdue`);
   if (status.dueSoon) parts.push(`${status.dueSoon} due soon`);

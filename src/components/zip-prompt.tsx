@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useLocale } from "@/i18n/locale-provider";
 import { isValidUsZip, normalizeUsZip } from "@/lib/climate";
 
 export function ZipSheet({
@@ -17,6 +18,7 @@ export function ZipSheet({
   onOpenChange: (open: boolean) => void;
   onSave: (zip: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
+  const { t } = useLocale();
   const [zip, setZip] = useState(initialZip);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,14 +36,14 @@ export function ZipSheet({
   async function submit() {
     const next = normalizeUsZip(zip);
     if (!isValidUsZip(next)) {
-      setError("Enter a 5-digit US ZIP, or skip.");
+      setError(t("zip.errorInvalidOrSkip"));
       return;
     }
     setBusy(true);
     const result = await onSave(next);
     setBusy(false);
     if (!result.ok) {
-      setError(result.error ?? "Could not save that ZIP.");
+      setError(result.error ?? t("zip.saveFailed"));
       return;
     }
     onOpenChange(false);
@@ -54,8 +56,8 @@ export function ZipSheet({
         className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader>
-          <SheetTitle>Add your ZIP</SheetTitle>
-          <SheetDescription>Used for weather and which seasonal jobs apply. Not stored more precisely than the ZIP.</SheetDescription>
+          <SheetTitle>{t("zip.addTitle")}</SheetTitle>
+          <SheetDescription>{t("zip.addBody")}</SheetDescription>
         </SheetHeader>
         <div className="flex flex-col gap-3 px-4 pb-4">
           <Input
@@ -66,20 +68,20 @@ export function ZipSheet({
               setZip(normalizeUsZip(event.target.value));
               setError("");
             }}
-            placeholder="ZIP code"
+            placeholder={t("zip.placeholder")}
             className="h-14"
-            aria-label="ZIP code"
+            aria-label={t("zip.placeholder")}
           />
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <Button className="h-12 w-full" disabled={busy} onClick={() => void submit()}>
-            {busy ? "Saving…" : "Save ZIP"}
+            {busy ? t("zip.saving") : t("zip.saveCta")}
           </Button>
           <button
             type="button"
             className="h-11 ui-body font-medium text-primary"
             onClick={() => onOpenChange(false)}
           >
-            Skip for now
+            {t("restock.skipForNow")}
           </button>
         </div>
       </SheetContent>
@@ -94,6 +96,7 @@ export function ZipField({
   value?: string;
   onSave: (zip: string) => Promise<{ ok: boolean; error?: string }>;
 }) {
+  const { t } = useLocale();
   const [zip, setZip] = useState(normalizeUsZip(value ?? ""));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -107,14 +110,14 @@ export function ZipField({
   async function submit() {
     const next = normalizeUsZip(zip);
     if (!isValidUsZip(next)) {
-      setError("Enter a 5-digit US ZIP.");
+      setError(t("zip.errorInvalid"));
       return;
     }
     setBusy(true);
     const result = await onSave(next);
     setBusy(false);
     if (!result.ok) {
-      setError(result.error ?? "Could not save that ZIP.");
+      setError(result.error ?? t("zip.saveFailed"));
       return;
     }
     setError("");
@@ -130,13 +133,13 @@ export function ZipField({
           setZip(normalizeUsZip(event.target.value));
           setError("");
         }}
-        placeholder="ZIP code"
+        placeholder={t("zip.placeholder")}
         className="h-12"
-        aria-label="ZIP code"
+        aria-label={t("zip.placeholder")}
       />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="button" className="h-12 w-full" disabled={busy} onClick={() => void submit()}>
-        {busy ? "Saving…" : "Save ZIP"}
+        {busy ? t("zip.saving") : t("zip.saveCta")}
       </Button>
     </div>
   );

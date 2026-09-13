@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { isNative } from "@/lib/native/platform";
 
 export async function shareText(title: string, text: string): Promise<"shared" | "copied" | "failed"> {
@@ -43,9 +44,9 @@ export async function shareBackupFile(
     });
     const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Temporary });
     await Share.share({
-      title: "Cuidala backup",
+      title: tActive("share.backupTitle"),
       files: [uri],
-      dialogTitle: "Save your Cuidala backup",
+      dialogTitle: tActive("share.backupDialog"),
     });
     return "shared";
   } catch (error) {

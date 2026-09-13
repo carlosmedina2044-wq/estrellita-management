@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useLocale } from "@/i18n/locale-provider";
+import { seedTitleForSave, tDutyTitle } from "@/i18n/content";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,7 +27,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { AUDIENCES, EFFORTS, FREQUENCIES, WEEKDAYS } from "@/lib/constants";
+import { audienceOptions, effortOptions, frequencyOptions, weekdayLabel } from "@/lib/constants";
 import { todayISO } from "@/lib/dates";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
@@ -88,7 +90,7 @@ const emptyDraft: Draft = {
 
 function fromDuty(duty: Duty, automation?: SupplyAutomation | null): Draft {
   return {
-    title: duty.title,
+    title: tDutyTitle(duty.title),
     notes: duty.notes,
     room: duty.room,
     audience: duty.audience,
@@ -130,6 +132,7 @@ export function DutyForm({
   onSave: (input: DutyDraft) => void;
   onDelete?: (id: string) => void;
 } & RestockFlowHandlers) {
+  const { t } = useLocale();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [formError, setFormError] = useState<string | null>(null);
   const [showNotes, setShowNotes] = useState(false);
@@ -168,21 +171,22 @@ export function DutyForm({
   }
 
   function submit() {
-    const title = draft.title.trim();
+    const title = seedTitleForSave(draft.title.trim(), duty?.title);
     if (!title) {
-      setFormError("Give this chore a name.");
-      toast.error("Give this chore a name.");
+      setFormError(t("chore.giveName"));
+      toast.error(t("chore.giveName"));
       return;
     }
     if (draft.trackSupply && !draft.itemName.trim()) {
       setShowSupply(true);
-      setFormError("Name the item to order.");
-      toast.error("Name the item to order.");
+      setFormError(t("restock.nameRequired"));
+      toast.error(t("restock.nameRequired"));
       return;
     }
     const link = draft.trackSupply ? parseOptionalRetailerUrl(draft.retailerUrl) : { ok: true as const, url: "" };
     if (!link.ok) {
       setShowSupply(true);
+      setShowAdvanced(true);
       setFormError(link.error);
       toast.error(link.error);
       return;
@@ -227,10 +231,10 @@ export function DutyForm({
         className="gap-0 rounded-t-3xl pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader className="shrink-0 pb-2">
-          <SheetTitle>{duty ? "Edit chore" : "New chore"}</SheetTitle>
+          <SheetTitle>{duty ? t("chore.edit") : t("chore.new")}</SheetTitle>
         </SheetHeader>
         <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-3">
-          <Field label="Chore">
+          <Field label={t("chore.field.chore")}>
             <Input
               value={draft.title}
               onChange={(event) =>
@@ -240,13 +244,13 @@ export function DutyForm({
                   itemName: current.itemName || event.target.value,
                 }))
               }
-              placeholder="Replace air purifier filters"
+              placeholder={t("chore.placeholder")}
               className="h-12"
               autoFocus={!duty}
             />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Room">
+            <Field label={t("duty.field.room")}>
               <Select
                 value={draft.room}
                 onValueChange={(value) => setDraft((current) => ({ ...current, room: value as Room }))}
@@ -257,7 +261,7 @@ export function DutyForm({
                 <SelectContent>
                                         {systemRoomList(household).length > 0 ? (
                         <SelectGroup>
-                          <SelectLabel>Always</SelectLabel>
+                          <SelectLabel>{t("duty.field.always")}</SelectLabel>
                           {systemRoomList(household).map((room) => (
                             <SelectItem key={room.id} value={room.id}>
                               {room.name}
@@ -278,7 +282,7 @@ export function DutyForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Who does this">
+            <Field label={t("chore.whoDoes")}>
               <Select
                 value={draft.audience}
                 onValueChange={(value) =>
@@ -289,7 +293,7 @@ export function DutyForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {AUDIENCES.map((item) => (
+                  {audienceOptions().map((item) => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.label}
                     </SelectItem>
@@ -298,7 +302,7 @@ export function DutyForm({
               </Select>
             </Field>
           </div>
-          <Field label="Repeats">
+          <Field label={t("chore.repeats")}>
             <Select
               value={draft.frequency}
               onValueChange={(value) =>
@@ -309,7 +313,7 @@ export function DutyForm({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {FREQUENCIES.map((item) => (
+                {frequencyOptions().map((item) => (
                   <SelectItem key={item.id} value={item.id}>
                     {item.label}
                   </SelectItem>
@@ -318,7 +322,7 @@ export function DutyForm({
             </Select>
           </Field>
           {draft.frequency === "weekly" ? (
-            <Field label="Weekday">
+            <Field label={t("chore.weekday")}>
               <Select
                 value={draft.weekday}
                 onValueChange={(value) => setDraft((current) => ({ ...current, weekday: value }))}
@@ -327,9 +331,9 @@ export function DutyForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {WEEKDAYS.map((day, index) => (
-                    <SelectItem key={day} value={String(index)}>
-                      {day}
+                  {[0, 1, 2, 3, 4, 5, 6].map((index) => (
+                    <SelectItem key={index} value={String(index)}>
+                      {weekdayLabel(index)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -337,7 +341,7 @@ export function DutyForm({
             </Field>
           ) : null}
           {draft.frequency === "monthly" ? (
-            <Field label="Day of month">
+            <Field label={t("chore.dayOfMonth")}>
               <Input
                 type="number"
                 min={1}
@@ -351,7 +355,7 @@ export function DutyForm({
             </Field>
           ) : null}
           {draft.frequency === "once" ? (
-            <Field label="Due date">
+            <Field label={t("chore.dueDate")}>
               <Input
                 type="date"
                 value={draft.dueDate}
@@ -373,14 +377,14 @@ export function DutyForm({
           <Disclosure
             open={showNotes}
             onOpenChange={setShowNotes}
-            label="Notes"
-            hint={draft.notes.trim() ? draft.notes.trim() : "Optional details for the person doing it"}
+            label={t("chore.notes")}
+            hint={draft.notes.trim() ? draft.notes.trim() : t("chore.notesHint")}
           >
-            <Field label="Notes for the person doing it">
+            <Field label={t("chore.notesLabel")}>
               <Textarea
                 value={draft.notes}
                 onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Green cloth for stainless. Spare bags under the sink."
+                placeholder={t("chore.notesPlaceholder")}
                 className="min-h-24 text-base"
               />
             </Field>
@@ -389,11 +393,11 @@ export function DutyForm({
           <Disclosure
             open={showSupply}
             onOpenChange={setShowSupply}
-            label="Item"
+            label={t("duty.field.item")}
             hint={
               draft.trackSupply
-                ? draft.itemName.trim() || "This task uses an item"
-                : "This task uses an item"
+                ? draft.itemName.trim() || t("chore.usesItem")
+                : t("chore.usesItem")
             }
           >
             <label className="flex items-start gap-3 text-sm">
@@ -409,26 +413,26 @@ export function DutyForm({
                 }
               />
               <span>
-                <span className="block font-medium">This task uses an item</span>
+                <span className="block font-medium">{t("duty.usesItem")}</span>
                 <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Tracks runway and when to order. Checkout stays on the retailer’s site.
+                  {t("restock.emptyBodyAlt1")}
                 </span>
               </span>
             </label>
 
             {draft.trackSupply ? (
               <div className="grid gap-3">
-                <Field label="Item">
+                <Field label={t("duty.field.item")}>
                   <Input
                     value={draft.itemName}
                     onChange={(event) =>
                       setDraft((current) => ({ ...current, itemName: event.target.value }))
                     }
-                    placeholder="HVAC filter"
+                    placeholder={t("restock.itemPlaceholder")}
                     className="h-12"
                   />
                 </Field>
-                <Field label="Size or spec">
+                <Field label={t("restock.field.size")}>
                   <Input
                     value={draft.sizeSpec}
                     onChange={(event) =>
@@ -437,52 +441,6 @@ export function DutyForm({
                     placeholder={sizePlaceholder(draft.itemName)}
                     maxLength={40}
                     className="h-12"
-                  />
-                </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="On hand">
-                    <Input
-                      type="number"
-                      min={0}
-                      value={draft.onHand}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, onHand: event.target.value }))
-                      }
-                      className="h-12"
-                    />
-                  </Field>
-                  <Field label="Order at or below">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={99}
-                      value={draft.reorderAt}
-                      onChange={(event) =>
-                        setDraft((current) => ({ ...current, reorderAt: event.target.value }))
-                      }
-                      className="h-12"
-                    />
-                  </Field>
-                </div>
-                <p className="ui-caption text-muted-foreground">
-                  When on hand is this many or fewer, it shows on Today with Order. 0 means order when you’re out.
-                </p>
-                <Field label="Lead time (days)">
-                  <Input
-                    type="number"
-                    min={0}
-                    value={draft.leadTimeDays}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, leadTimeDays: event.target.value }))
-                    }
-                    className="h-12"
-                  />
-                </Field>
-                <Field label="Where you order it">
-                  <SavedRetailerField
-                    value={draft.retailerUrl}
-                    saved={household.savedRetailerLinks ?? []}
-                    onChange={(retailerUrl) => setDraft((current) => ({ ...current, retailerUrl }))}
                   />
                 </Field>
                 {supplyAutomation ? (
@@ -499,10 +457,14 @@ export function DutyForm({
           <Disclosure
             open={showAdvanced}
             onOpenChange={setShowAdvanced}
-            label="More options"
-            hint={EFFORTS.find((item) => item.id === draft.effort)?.label ?? "Effort"}
+            label={t("duty.advanced")}
+            hint={
+              draft.trackSupply
+                ? t("chore.moreOptions")
+                : (effortOptions().find((item) => item.id === draft.effort)?.label ?? t("chore.effort"))
+            }
           >
-            <Field label="Effort">
+            <Field label={t("chore.effort")}>
               <Select
                 value={draft.effort}
                 onValueChange={(value) =>
@@ -513,7 +475,7 @@ export function DutyForm({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {EFFORTS.map((item) => (
+                  {effortOptions().map((item) => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.label}
                     </SelectItem>
@@ -521,6 +483,53 @@ export function DutyForm({
                 </SelectContent>
               </Select>
             </Field>
+            {draft.trackSupply ? (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t("restock.field.onHand")}>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={draft.onHand}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, onHand: event.target.value }))
+                      }
+                      className="h-12"
+                    />
+                  </Field>
+                  <Field label={t("restock.field.orderAtOrBelow")}>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={99}
+                      value={draft.reorderAt}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, reorderAt: event.target.value }))
+                      }
+                      className="h-12"
+                    />
+                  </Field>
+                </div>
+                <Field label={t("restock.field.leadTime")}>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={draft.leadTimeDays}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, leadTimeDays: event.target.value }))
+                    }
+                    className="h-12"
+                  />
+                </Field>
+                <Field label={t("restock.field.whereOrder")}>
+                  <SavedRetailerField
+                    value={draft.retailerUrl}
+                    saved={household.savedRetailerLinks ?? []}
+                    onChange={(retailerUrl) => setDraft((current) => ({ ...current, retailerUrl }))}
+                  />
+                </Field>
+              </>
+            ) : null}
           </Disclosure>
           {formError ? (
             <p role="alert" className="text-sm font-medium text-destructive">
@@ -539,11 +548,11 @@ export function DutyForm({
                 closeAfterClick();
               }}
             >
-              Delete
+              {t("common.delete")}
             </Button>
           ) : null}
           <Button type="button" className="h-11 min-w-0 flex-1" onClick={submit}>
-            {duty ? "Save changes" : "Add chore"}
+            {duty ? t("chore.saveChanges") : t("chore.add")}
           </Button>
         </SheetFooter>
       </SheetContent>

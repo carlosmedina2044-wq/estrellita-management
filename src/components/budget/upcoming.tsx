@@ -1,14 +1,18 @@
 "use client";
 
+import { tActive } from "@/i18n";
+import { tSpendingCategory } from "@/i18n/content";
+import { useLocale } from "@/i18n/locale-provider";
+
 import { Button } from "@/components/ui/button";
 import { formatCostRange, formatMoney, monthsUntil, type ForecastItem } from "@/lib/forecast";
 import type { HomeAsset, HomeRoom } from "@/lib/types";
 
 function countdown(month: string): string {
   const months = monthsUntil(month);
-  if (months <= 0) return "due now";
-  if (months === 1) return "~1 month away";
-  return `~${months} months away`;
+  if (months <= 0) return tActive("budget.dueNow");
+  if (months === 1) return tActive("budget.monthAway1");
+  return tActive("budget.monthsAwayN", { count: months });
 }
 
 export function UpcomingExpenses({
@@ -24,12 +28,13 @@ export function UpcomingExpenses({
   onReplace: (item: ForecastItem) => void;
   onDefer: (item: ForecastItem) => void;
 }) {
+  const { t } = useLocale();
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <h2 className="ui-heading ui-title font-semibold">Upcoming big expenses</h2>
-      <p className="mt-1 text-sm text-muted-foreground">The replacements that actually move the needle.</p>
+      <h2 className="ui-heading ui-title font-semibold">{t("budget.upcomingTitle")}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{t("budget.upcomingBody")}</p>
       {items.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">No large replacements in this window.</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("budget.noLarge")}</p>
       ) : (
         <ul className="mt-3 grid gap-3">
           {items.map((item) => {
@@ -41,25 +46,25 @@ export function UpcomingExpenses({
                 <p className="font-medium">{name}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {countdown(item.month)} · {formatCostRange(item.cost)}
-                  {item.overdue ? " · overdue" : ""}
+                  {item.overdue ? t("budget.overdueSuffix") : ""}
                   {room ? ` · ${room.name}` : ""}
                 </p>
                 {asset?.deferReason ? (
-                  <p className="mt-1 ui-caption text-muted-foreground">Waiting: {asset.deferReason}</p>
+                  <p className="mt-1 ui-caption text-muted-foreground">
+                    {t("budget.waiting", { reason: asset.deferReason })}
+                  </p>
                 ) : null}
                 {item.assetId ? (
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <Button className="h-11" onClick={() => onReplace(item)}>
-                      I replaced this
+                      {t("budget.iReplaced")}
                     </Button>
                     <Button variant="secondary" className="h-11" onClick={() => onDefer(item)}>
-                      I’ll wait
+                      {t("budget.illWait")}
                     </Button>
                   </div>
                 ) : null}
-                <p className="mt-2 ui-caption text-muted-foreground">
-                  Logging what you paid trains the forecast. Deferring pushes the date out if it’s still working.
-                </p>
+                <p className="mt-2 ui-caption text-muted-foreground">{t("budget.loggingHint")}</p>
               </li>
             );
           })}
@@ -74,10 +79,11 @@ export function InsightsList({
 }: {
   insights: { id: string; tone: "info" | "warn" | "ok"; title: string; body: string }[];
 }) {
+  const { t } = useLocale();
   if (insights.length === 0) return null;
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <h2 className="ui-heading ui-title font-semibold">What this means</h2>
+      <h2 className="ui-heading ui-title font-semibold">{t("budget.whatThisMeans")}</h2>
       <ul className="mt-3 grid gap-3">
         {insights.map((insight) => (
           <li
@@ -107,25 +113,31 @@ export function SpendingSection({
   categories: { category: string; actual: number; pct: number }[];
   byMonth: { month: string; actual: number }[];
 }) {
+  const { t, dateLocale } = useLocale();
   const logged = actual > 0;
   const delta = planned - actual;
+  const planSuffix = logged && delta > 0 ? t("budget.underPlan") : logged && delta < 0 ? t("budget.overPlan") : ".";
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <h2 className="ui-heading ui-title font-semibold">Spending</h2>
+      <h2 className="ui-heading ui-title font-semibold">{t("budget.spending")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Last {months} months: forecast {formatMoney(planned)}, actual {formatMoney(actual)}
-        {logged && delta > 0 ? ". Under plan." : logged && delta < 0 ? ". Over plan." : "."}
+        {t("budget.spendingSummary", {
+          months,
+          planned: formatMoney(planned),
+          actual: formatMoney(actual),
+        })}
+        {planSuffix}
       </p>
       {!logged ? (
         <p className="mt-3 rounded-2xl bg-card px-4 py-4 text-sm text-muted-foreground">
-          Log a purchase on an upcoming item to start a history. Completions with a price already show up here.
+          {t("budget.logHistoryHint")}
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
           <ul className="rounded-2xl bg-card px-4 py-4">
             {byMonth.map((month) => {
               const [year, mon] = month.month.split("-").map(Number);
-              const label = new Date(year, (mon ?? 1) - 1, 1).toLocaleDateString("en-US", {
+              const label = new Date(year, (mon ?? 1) - 1, 1).toLocaleDateString(dateLocale, {
                 month: "short",
                 year: "numeric",
               });
@@ -144,7 +156,7 @@ export function SpendingSection({
               {categories.map((item) => (
                 <li key={item.category} className="py-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{item.category}</span>
+                    <span className="font-medium">{tSpendingCategory(item.category)}</span>
                     <span className="text-muted-foreground">
                       {item.pct}% · {formatMoney(item.actual)}
                     </span>

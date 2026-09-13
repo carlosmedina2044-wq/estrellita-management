@@ -1,3 +1,5 @@
+import { tActive, type MessageKey } from "@/i18n";
+import { tMonthName } from "@/i18n/content";
 import { catalogEntry, normalizeAssetType } from "@/lib/asset-catalog";
 import { parseISODate, addCalendarMonths } from "@/lib/dates";
 import {
@@ -17,11 +19,11 @@ export type BudgetInsight = {
   body: string;
 };
 
-const SEASONS: { id: "winter" | "spring" | "summer" | "fall"; label: string; months: number[] }[] = [
-  { id: "winter", label: "Winter", months: [12, 1, 2] },
-  { id: "spring", label: "Spring", months: [3, 4, 5] },
-  { id: "summer", label: "Summer", months: [6, 7, 8] },
-  { id: "fall", label: "Fall", months: [9, 10, 11] },
+const SEASONS: { id: "winter" | "spring" | "summer" | "fall"; months: number[] }[] = [
+  { id: "winter", months: [12, 1, 2] },
+  { id: "spring", months: [3, 4, 5] },
+  { id: "summer", months: [6, 7, 8] },
+  { id: "fall", months: [9, 10, 11] },
 ];
 
 function monthNumber(key: string): number {
@@ -52,15 +54,18 @@ function urgencyInsight(household: Household, forecast: ForecastResult, now: Dat
   const top = overdue[0];
   if (!top) return null;
   const years = yearsPastLife(household, top, now);
+  const name = itemName(top);
   const age =
     years != null && years >= 0.5
-      ? `${itemName(top)} is ${Math.max(1, Math.round(years))} year${Math.round(years) === 1 ? "" : "s"} past its expected life. `
-      : `${itemName(top)} is past its expected life. `;
+      ? Math.round(years) === 1
+        ? tActive("budget.insight.pastLifeYear1", { name })
+        : tActive("budget.insight.pastLifeYears", { name, years: Math.max(1, Math.round(years)) })
+      : tActive("budget.insight.pastLife", { name });
   return {
     id: "urgency",
     tone: "warn",
-    title: "Largest risk right now",
-    body: `${age}This is the single largest risk in your forecast (${formatMoney(top.cost.mid)}).`,
+    title: tActive("budget.insight.urgencyTitle"),
+    body: tActive("budget.insight.urgencyBody", { age, cost: formatMoney(top.cost.mid) }),
   };
 }
 
@@ -72,8 +77,11 @@ function backlogInsight(forecast: ForecastResult): BudgetInsight | null {
   return {
     id: "backlog",
     tone: "warn",
-    title: "Catch-up plan",
-    body: `You have ${formatMoney(Math.round(total))} in overdue maintenance. Spreading it over 6 months is about ${formatMoney(monthly)}/month so it doesn’t all hit at once.`,
+    title: tActive("budget.insight.backlogTitle"),
+    body: tActive("budget.insight.backlogBody", {
+      total: formatMoney(Math.round(total)),
+      monthly: formatMoney(monthly),
+    }),
   };
 }
 
@@ -90,8 +98,20 @@ function paceInsight(household: Household, forecast: ForecastResult, now: Date):
     return {
       id: "pace",
       tone: "ok",
-      title: "On track for the next big expense",
-      body: `At ${formatMoney(contribution)}/month, you should cover ${name} (${formatMoney(needed)}) in about ${months} month${months === 1 ? "" : "s"}.`,
+      title: tActive("budget.insight.paceOnTrackTitle"),
+      body:
+        months === 1
+          ? tActive("budget.insight.paceOnTrackBody1", {
+              contribution: formatMoney(contribution),
+              name,
+              needed: formatMoney(needed),
+            })
+          : tActive("budget.insight.paceOnTrackBody", {
+              contribution: formatMoney(contribution),
+              name,
+              needed: formatMoney(needed),
+              months,
+            }),
     };
   }
   const shortfall = Math.round(needed - projected);
@@ -99,9 +119,22 @@ function paceInsight(household: Household, forecast: ForecastResult, now: Date):
   return {
     id: "pace",
     tone: "info",
-    title: "Savings pace",
-    body: `At ${formatMoney(contribution)}/month, you’ll be ${formatMoney(shortfall)} short when ${name} comes due. Consider bumping to ${formatMoney(bumpTo)}/month.`,
+    title: tActive("budget.insight.paceShortTitle"),
+    body: tActive("budget.insight.paceShortBody", {
+      contribution: formatMoney(contribution),
+      shortfall: formatMoney(shortfall),
+      name,
+      bump: formatMoney(bumpTo),
+    }),
   };
+}
+
+function joinItemNames(names: string[]): string {
+  if (names.length === 0) return tActive("budget.insight.severalJobs");
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return tActive("budget.insight.listAnd", { a: names[0], b: names[1] });
+  const head = names.slice(0, -1).join(", ");
+  return `${head},${tActive("budget.insight.listAnd", { a: "", b: names[names.length - 1] })}`;
 }
 
 function seasonalInsight(forecast: ForecastResult): BudgetInsight | null {
@@ -121,25 +154,18 @@ function seasonalInsight(forecast: ForecastResult): BudgetInsight | null {
   names = [...new Set(names.map((n) => n.trim()))];
   const extra = names.length > 3 ? names.length - 3 : 0;
   const shown = names.slice(0, 3);
-  const joined =
-    shown.length === 0
-      ? "Several jobs"
-      : shown.length === 2
-        ? `${shown[0]} and ${shown[1]}`
-        : shown.join(", ").replace(/, ([^,]*)$/, ", and $1");
-  const list = extra > 0 ? `${joined} and ${extra} more` : joined;
-  const monthName = top.peak
-    ? new Date(Number(top.peak.month.slice(0, 4)), Number(top.peak.month.slice(5, 7)) - 1, 1).toLocaleDateString(
-        "en-US",
-        { month: "long" },
-      )
-    : null;
-  const when = monthName ? ` all hit in ${monthName}` : "";
+  const joined = joinItemNames(shown);
+  const list = extra > 0 ? tActive("budget.insight.andMore", { joined, extra }) : joined;
+  const monthIndex = top.peak ? Number(top.peak.month.slice(5, 7)) - 1 : null;
+  const monthName = monthIndex != null && monthIndex >= 0 && monthIndex < 12 ? tMonthName(monthIndex) : null;
+  const when = monthName ? tActive("budget.insight.allHitIn", { month: monthName }) : "";
   return {
     id: "seasonal",
     tone: "info",
-    title: `${top.season.label} is your most expensive stretch`,
-    body: `${list}${when}.`,
+    title: tActive("budget.insight.seasonTitleTpl", {
+      season: tActive(`budget.season.${top.season.id}` as MessageKey),
+    }),
+    body: tActive("budget.insight.seasonBody", { list, when }),
   };
 }
 

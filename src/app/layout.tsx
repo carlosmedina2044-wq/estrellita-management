@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   title: "Cuidala",
   description: "Home maintenance, restock, and seasonal checklists on your iPhone.",
   applicationName: "Cuidala",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Cuidala" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Cuidala" },
   formatDetection: { telephone: false },
   icons: {
     icon: [

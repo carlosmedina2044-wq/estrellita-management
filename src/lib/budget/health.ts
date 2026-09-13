@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { formatMoney, type ForecastResult } from "@/lib/forecast";
 import type { Household } from "@/lib/types";
 
@@ -25,11 +26,15 @@ export function fundHealth(household: Household, forecast12: ForecastResult): Fu
   if (annualPctOfValue != null && homeValue) {
     const band =
       annualPctOfValue < 1
-        ? "below the typical 1–3% range"
+        ? tActive("budget.band.below")
         : annualPctOfValue <= 3
-          ? "within the typical 1–3% range"
-          : "above the typical 1–3% range";
-    onePercentCopy = `Your forecast is ${formatMoney(suggestedMonthly)}/mo, about ${annualPctOfValue}% of your home’s value annually, which is ${band}.`;
+          ? tActive("budget.band.within")
+          : tActive("budget.band.above");
+    onePercentCopy = tActive("budget.onePercent", {
+      monthly: formatMoney(suggestedMonthly),
+      pct: annualPctOfValue,
+      band,
+    });
   }
   return {
     saved,

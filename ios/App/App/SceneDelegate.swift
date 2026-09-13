@@ -9,7 +9,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = CAPBridgeViewController()
+        // Brand cream — matches Capacitor backgroundColor / CSS --background so the
+        // area under the Dynamic Island is never a white native strip.
+        let cream = UIColor(red: 0.980, green: 0.965, blue: 0.937, alpha: 1) // #faf6ef
+        window?.backgroundColor = cream
+        let bridge = CuidalaBridgeViewController()
+        bridge.view.backgroundColor = cream
+        window?.rootViewController = bridge
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)

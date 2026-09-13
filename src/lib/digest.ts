@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { startOfWeek, toISODate } from "@/lib/dates";
 import { itemNameWithSize } from "@/lib/item-label";
 import { digestCandidates } from "@/lib/restock";
@@ -19,33 +20,49 @@ export function digestCopy(
 ): { title: string; body: string } {
   if (privateNotifications) {
     const n = items.length;
+    const chores =
+      overdueCount === 1
+        ? tActive("digest.choreOneShort")
+        : tActive("digest.choreManyShort", { count: overdueCount });
+    const orders =
+      n === 1 ? tActive("digest.orderOneShort") : tActive("digest.orderManyShort", { count: n });
     const title =
       overdueCount > 0 && n > 0
-        ? `${overdueCount === 1 ? "1 chore" : `${overdueCount} chores`} · ${n === 1 ? "1 to order" : `${n} to order`}`
+        ? tActive("digest.privateChoreOrder", { chores, orders })
         : overdueCount > 0
           ? overdueCount === 1
-            ? "1 chore still open"
-            : `${overdueCount} chores still open`
+            ? tActive("digest.choreOpenOne")
+            : tActive("digest.choreOpenMany", { count: overdueCount })
           : n === 1
-            ? "1 thing to order this week"
-            : `${n} things to order this week`;
+            ? tActive("digest.toOrderWeekOne")
+            : tActive("digest.toOrderWeekMany", { count: n });
     return {
       title,
-      body: "Open Cuidala for details.",
+      body: tActive("digest.openDetails"),
     };
   }
   const n = items.length;
   const names = items.slice(0, 3).map((item) => itemNameWithSize(item.itemName, item.sizeSpec));
   if (overdueCount > 0 && n > 0) {
-    const chore = overdueCount === 1 ? "1 chore still open" : `${overdueCount} chores still open`;
-    const order = n === 1 ? "1 thing to order" : `${n} things to order`;
+    const chore =
+      overdueCount === 1
+        ? tActive("digest.choreOpenOne")
+        : tActive("digest.choreOpenMany", { count: overdueCount });
+    const order =
+      n === 1 ? tActive("digest.toOrderOne") : tActive("digest.toOrderMany", { count: n });
     return { title: `${chore}. ${order}.`, body: names.join(" · ") };
   }
   if (overdueCount > 0) {
-    const title = overdueCount === 1 ? "1 chore still open" : `${overdueCount} chores still open`;
-    return { title, body: "A quiet nudge. No rush." };
+    const title =
+      overdueCount === 1
+        ? tActive("digest.choreOpenOne")
+        : tActive("digest.choreOpenMany", { count: overdueCount });
+    return { title, body: tActive("digest.quietNudge") };
   }
-  const title = n === 1 ? "1 thing to order this week" : `${n} things to order this week`;
+  const title =
+    n === 1
+      ? tActive("digest.toOrderWeekOne")
+      : tActive("digest.toOrderWeekMany", { count: n });
   return { title, body: names.join(" · ") };
 }
 

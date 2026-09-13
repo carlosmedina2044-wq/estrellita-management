@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Lock } from "lucide-react";
 import { HomeMapView } from "@/components/home-map-view";
 import { Button } from "@/components/ui/button";
+import { tDutyTitle } from "@/i18n/content";
+import { useLocale } from "@/i18n/locale-provider";
 import { todaysOpenDuties } from "@/lib/duties";
 import { roomById } from "@/lib/home-model";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
@@ -25,6 +27,7 @@ export function CleanerVisit({
   onUndo: (dutyId: string) => void;
   onEndVisit: () => boolean | Promise<boolean>;
 }) {
+  const { t } = useLocale();
   const now = new Date();
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -37,24 +40,24 @@ export function CleanerVisit({
     setBusy(true);
     const ok = await onEndVisit();
     setBusy(false);
-    if (!ok) toast.error(ownerCheck ? "Couldn’t confirm the owner. Try again." : "Couldn’t end the visit.");
+    if (!ok) toast.error(ownerCheck ? t("cleaner.ownerConfirmFailed") : t("cleaner.endFailed"));
   }
 
   return (
     <div className="app-frame px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <header className="pt-1">
-        <p className="text-sm text-muted-foreground">Cleaner visit</p>
+        <p className="text-sm text-muted-foreground">{t("cleaner.visitTitle")}</p>
         <h1 className="ui-heading ui-display font-semibold tracking-tight">
-          {open.length === 0 ? "All caught up" : `${open.length} left`}
+          {open.length === 0 ? t("cleaner.allCaughtUp") : t("common.leftCount", { count: open.length })}
         </h1>
       </header>
 
       {next ? (
         <div className="mt-4 rounded-2xl bg-card p-4">
-          <p className="ui-caption font-medium text-muted-foreground">Next up</p>
-          <p className="ui-heading mt-1 ui-title font-semibold">{next.title}</p>
+          <p className="ui-caption font-medium text-muted-foreground">{t("cleaner.nextUp")}</p>
+          <p className="ui-heading mt-1 ui-title font-semibold">{tDutyTitle(next.title)}</p>
           <Button className="mt-3 h-11 w-full" onClick={() => onComplete(next.id)}>
-            Done. Next
+            {t("cleaner.doneNext")}
           </Button>
         </div>
       ) : null}
@@ -67,11 +70,13 @@ export function CleanerVisit({
               className="self-start ui-body font-medium text-primary"
               onClick={() => setSelected(null)}
             >
-              Map
+              {t("cleaner.map")}
             </button>
             <h2 className="ui-heading ui-title font-semibold">{selectedRoom.name}</h2>
             <p className="text-sm text-muted-foreground">
-              {roomOpen.length === 0 ? "Nothing left here." : `${roomOpen.length} left here. Use Done. Next above.`}
+              {roomOpen.length === 0
+                ? t("cleaner.nothingLeft")
+                : t("cleaner.leftHere", { count: roomOpen.length })}
             </p>
           </div>
         ) : (
@@ -82,8 +87,10 @@ export function CleanerVisit({
       <Button variant="secondary" className="mt-auto h-12" disabled={busy} onClick={() => void finish()}>
         <Lock className="size-4" />
         {ownerCheck
-          ? `Hand phone back (${lockMethod === "passcode" ? "passcode" : lockMethodLabel(lockMethod).noun})`
-          : "Hand phone back"}
+          ? t("cleaner.handBackWith", {
+              method: lockMethod === "passcode" ? t("cleaner.passcode") : lockMethodLabel(lockMethod).noun,
+            })
+          : t("cleaner.handBack")}
       </Button>
 
     </div>

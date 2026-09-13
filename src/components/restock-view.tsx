@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
 import { ChevronDown, Package } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -55,6 +56,7 @@ export function RestockView({
   focus?: AppNavigateTarget | null;
   onFocusHandled?: () => void;
 } & RestockFlowHandlers) {
+  const { t } = useLocale();
   const [creating, setCreating] = useState(false);
   const [editingDuty, setEditingDuty] = useState<Duty | null>(null);
   const [stockedOpen, setStockedOpen] = useState(false);
@@ -114,7 +116,7 @@ export function RestockView({
     <div className="relative flex min-h-full flex-col gap-5">
       <div inert={walking} className={cn("flex flex-col gap-5", walking && "invisible")}>
       <PageHeader
-        title="Restock"
+        title={t("restock.title")}
         action={
           household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
@@ -122,7 +124,7 @@ export function RestockView({
               className="inline-flex h-11 items-center rounded-full px-3 ui-caption font-medium text-primary"
               onClick={startWalk}
             >
-              Walk house
+              {t("restock.walkHouseShort")}
             </button>
           ) : null
         }
@@ -134,16 +136,16 @@ export function RestockView({
             <BrandMark size="sm" />
             <Package className="absolute -bottom-0.5 -right-0.5 size-5 text-primary" aria-hidden />
           </span>
-          <p className="ui-heading mt-4 ui-title font-semibold">Restock is empty</p>
+          <p className="ui-heading mt-4 ui-title font-semibold">{t("restock.emptyTitle")}</p>
           <p className="mt-1 ui-body text-muted-foreground">
-            Tracks what’s running out and when to order. You check out at the store.
+            {t("restock.emptyBodyAlt1")}
           </p>
           <p className="mt-2 ui-body text-muted-foreground">
-            Walk the house once. HVAC filter, water filter, smoke-detector batteries. This tab stays useful after that.
+            {t("restock.emptyBodyAlt2")}
           </p>
           {onWalkHouse ? (
             <Button className="mt-5 h-11 w-full" onClick={startWalk}>
-              Walk your house
+              {t("restock.walkOverlayTitle")}
             </Button>
           ) : null}
         </div>
@@ -152,13 +154,13 @@ export function RestockView({
       {household.supplyAutomations.length > 0 ? (
         weekItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Nothing to order this week.
-            {nextUp ? ` Next up: ${nextUp.item.itemName} around ${formatDueDate(nextUp.date)}.` : ""}
+            {t("restock.nothingThisWeek")}
+            {nextUp ? ` ${t("restock.nextUp", { name: nextUp.item.itemName, date: formatDueDate(nextUp.date) })}` : ""}
           </p>
         ) : (
           <div className="rounded-2xl bg-card px-4 py-4">
             <div className="flex items-baseline justify-between gap-3">
-              <p className="ui-card font-medium">This week</p>
+              <p className="ui-card font-medium">{t("restock.thisWeek")}</p>
               {weekCost ? <p className="ui-caption text-muted-foreground">{weekCost}</p> : null}
             </div>
             <div className="mt-2 flex flex-col gap-2">
@@ -174,7 +176,7 @@ export function RestockView({
                     <span className="block ui-body font-medium">{item.itemName}</span>
                     {placement.orderByDate ? (
                       <span className="mt-0.5 block ui-caption text-muted-foreground">
-                        order by {formatDueDate(placement.orderByDate)}
+                        {t("restock.orderByLower", { date: formatDueDate(placement.orderByDate) })}
                       </span>
                     ) : null}
                   </button>
@@ -187,8 +189,8 @@ export function RestockView({
 
       {needsCheckin.length > 0 ? (
         <div className="rounded-2xl bg-card px-4 py-4">
-          <p className="ui-card font-medium">Quick check</p>
-          <p className="mt-1 ui-caption text-muted-foreground">Keeps the estimates honest.</p>
+          <p className="ui-card font-medium">{t("restock.quickCheck")}</p>
+          <p className="mt-1 ui-caption text-muted-foreground">{t("restock.quickCheckHint")}</p>
           <div className="mt-3 flex flex-col gap-3">
             {needsCheckin.map((item) => (
               <div key={item.id}>
@@ -196,10 +198,10 @@ export function RestockView({
                 <div className="mt-2 flex gap-2">
                   {(
                     [
-                      ["Full", "plenty"],
-                      ["Half", "half"],
-                      ["Low", "low"],
-                      ["Out", "out"],
+                      [t("restock.level.full"), "plenty"],
+                      [t("restock.level.half"), "half"],
+                      [t("restock.level.low"), "low"],
+                      [t("restock.level.out"), "out"],
                     ] as const
                   ).map(([label, level]) => (
                     <Button
@@ -220,7 +222,7 @@ export function RestockView({
       ) : null}
 
       {groups.ordered.length > 0 ? (
-        <Section id="restock-ordered" title="On the way" count={groups.ordered.length}>
+        <Section id="restock-ordered" title={t("restock.onTheWay")} count={groups.ordered.length}>
           {groups.ordered.map((item) => (
             <RestockRow
               key={item.id}
@@ -236,7 +238,7 @@ export function RestockView({
         </Section>
       ) : null}
 
-      <Section id="restock-order_now" title="Order now" count={groups.order_now.length}>
+      <Section id="restock-order_now" title={t("restock.orderNow")} count={groups.order_now.length}>
         {groups.order_now.map((item) => (
           <RestockRow
             key={item.id}
@@ -251,7 +253,7 @@ export function RestockView({
         ))}
       </Section>
 
-      <Section id="restock-coming_up" title="Coming up" count={groups.coming_up.length}>
+      <Section id="restock-coming_up" title={t("restock.comingUp")} count={groups.coming_up.length}>
         {groups.coming_up.map((item) => (
           <RestockRow
             key={item.id}
@@ -273,7 +275,7 @@ export function RestockView({
           onClick={() => setStockedOpen((current) => !current)}
           aria-expanded={stockedOpen}
         >
-          <h2 className="ui-heading ui-card font-semibold">Stocked</h2>
+          <h2 className="ui-heading ui-card font-semibold">{t("restock.stocked")}</h2>
           <span className="inline-flex items-center gap-1 ui-caption text-muted-foreground">
             {groups.stocked.length}
             <ChevronDown className={cn("size-4 transition-transform", stockedOpen && "rotate-180")} />
@@ -308,12 +310,12 @@ export function RestockView({
 
       {walking ? (
         <div className="absolute inset-0 z-10 flex flex-col overflow-y-auto bg-background pb-4">
-          <p className="ui-display">Walk your house</p>
-          <p className="mt-1 text-sm text-muted-foreground">Room by room. Tap what you buy, add anything we missed. Sizes come later, when you order.</p>
+          <p className="ui-display">{t("restock.walkOverlayTitle")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("restock.walkOverlayCopy")}</p>
           {isAfterFirstDay(household) && !hasSeenTip(household, TIP_WALK_AFTER_DAY_ONE) && restock.onMarkTip ? (
             <div className="mt-3">
               <TeachingTip onDismiss={() => restock.onMarkTip?.(TIP_WALK_AFTER_DAY_ONE)}>
-                Walk anytime. Filters, batteries, soap. Takes a few minutes.
+                {t("restock.walkTip")}
               </TeachingTip>
             </div>
           ) : null}
@@ -337,7 +339,7 @@ export function RestockView({
           </div>
           <div className="mt-3 flex gap-2">
             <Button variant="secondary" className="h-11 flex-1" onClick={() => setWalking(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               className="h-11 flex-1"
@@ -458,6 +460,7 @@ function RestockRow({
   onOpenCheckin?: () => void;
   autoReceive?: boolean;
 } & RestockFlowHandlers) {
+  const { t } = useLocale();
   const where = usedWhere(item, household) || roomName(household, item.room);
   const placement = restockPlacement(item, household);
   const catalog = catalogItemForSupply(item);
@@ -482,7 +485,7 @@ function RestockRow({
       </button>
       {needsSize && onAddSize ? (
         <button type="button" className="mt-1 inline-flex min-h-11 items-center pl-7 ui-caption font-medium text-brand" onClick={onAddSize}>
-          Add size
+          {t("restock.addSize")}
         </button>
       ) : null}
       {placement.estimatedLevelFraction != null ? (

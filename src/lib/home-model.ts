@@ -1,3 +1,4 @@
+import { tStoredRoomName } from "@/i18n/content";
 import { catalogLabel, CANONICAL_ASSET_TYPES } from "@/lib/asset-catalog";
 import type {
   AssetType,
@@ -131,7 +132,8 @@ export function roomById(household: Pick<Household, "rooms">, roomId: string): H
 }
 
 export function roomName(household: Pick<Household, "rooms" | "floors" | "assets">, roomId: string): string {
-  return roomById(household, roomId)?.name ?? roomId;
+  const name = roomById(household, roomId)?.name ?? roomId;
+  return tStoredRoomName(name);
 }
 
 export function floorsInOrder(household: Pick<Household, "floors">): HomeFloor[] {

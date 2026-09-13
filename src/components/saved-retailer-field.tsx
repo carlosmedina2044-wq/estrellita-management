@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseRetailerInput, savedRetailerLabel, sortedSavedRetailerLinks } from "@/lib/retailer";
@@ -15,6 +16,7 @@ export function SavedRetailerField({
   saved: SavedRetailerLink[];
   onChange: (url: string) => void;
 }) {
+  const { t } = useLocale();
   const [error, setError] = useState<string | null>(null);
   const suggestions = sortedSavedRetailerLinks(saved);
 
@@ -45,7 +47,7 @@ export function SavedRetailerField({
         value={value}
         onChange={(event) => apply(event.target.value)}
         onBlur={() => commit(value)}
-        placeholder="ebay.com or paste a listing"
+        placeholder={t("retailer.placeholder")}
         className="h-12"
         inputMode="url"
         autoCapitalize="none"
@@ -54,7 +56,7 @@ export function SavedRetailerField({
       />
       {suggestions.length > 0 ? (
         <div>
-          <p className="mb-1.5 ui-caption text-muted-foreground">Saved links</p>
+          <p className="mb-1.5 ui-caption text-muted-foreground">{t("retailer.savedLinks")}</p>
           <div className="flex flex-wrap gap-1.5">
             {suggestions.slice(0, 8).map((item) => {
               const selected = value.trim() === item.url;

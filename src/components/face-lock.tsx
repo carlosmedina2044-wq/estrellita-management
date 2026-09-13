@@ -69,7 +69,7 @@ export function FaceLock({
       <h1 className="ui-heading mt-10 ui-title font-semibold tracking-tight">{t("lock.title")}</h1>
       <p className="mt-2 max-w-xs text-sm text-muted-foreground">
         {cleanerVisitActive
-          ? `A cleaner visit was in progress. The owner unlocks with ${lockMethodLabel(method).noun} to continue or to hand the phone back.`
+          ? t("lock.cleanerVisit", { method: lockMethodLabel(method).noun })
           : lockMethodLabel(method).prompt}
       </p>
       <p className="mt-2 max-w-xs ui-caption text-muted-foreground">{t("lock.passcodeHint")}</p>

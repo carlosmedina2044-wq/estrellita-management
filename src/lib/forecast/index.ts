@@ -1,6 +1,7 @@
 import { catalogEntry, type CatalogCost } from "@/lib/asset-catalog";
+import { getActiveAppLocale, localeDateTag, tActive } from "@/i18n";
+import { tDutyTitle } from "@/i18n/content";
 import { blendedCostFor } from "@/lib/costs";
-import { COST_SOURCE_LABEL } from "@/lib/costs/quotes";
 import { addCalendarMonths, parseISODate, toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
 import { linkedDutyIdsFor, runwayFor } from "@/lib/restock";
@@ -50,16 +51,16 @@ export type ForecastResult = {
 
 export const BIG_TICKET_THRESHOLD = 500;
 
-export function forecastSourceTag(source: ForecastSource): "Paid" | "Your estimate" | "Typical" {
-  if (source === "lastPaid") return "Paid";
-  if (source === "user") return "Your estimate";
-  return "Typical";
+export function forecastSourceTag(source: ForecastSource): string {
+  if (source === "lastPaid") return tActive("forecast.tag.paid");
+  if (source === "user") return tActive("forecast.tag.estimate");
+  return tActive("forecast.tag.typical");
 }
 
 export function forecastSourceBlurb(source: ForecastSource): string {
-  if (source === "lastPaid") return "Based on what you last paid.";
-  if (source === "user") return "Based on your estimate.";
-  return `Based on ${COST_SOURCE_LABEL}. Tap to enter your own estimate.`;
+  if (source === "lastPaid") return tActive("forecast.blurb.paid");
+  if (source === "user") return tActive("forecast.blurb.estimate");
+  return tActive("forecast.blurb.typical");
 }
 
 export function formatCostRange(cost: CatalogCost): string {
@@ -68,9 +69,10 @@ export function formatCostRange(cost: CatalogCost): string {
 }
 
 export function formatMoney(value: number): string {
+  const tag = localeDateTag(getActiveAppLocale());
   const rounded = Math.round(value * 100) / 100;
-  if (Number.isInteger(rounded)) return `$${rounded.toLocaleString("en-US")}`;
-  return `$${rounded.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (Number.isInteger(rounded)) return `$${rounded.toLocaleString(tag)}`;
+  return `$${rounded.toLocaleString(tag, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function monthsUntil(month: string, now = new Date()): number {
@@ -312,7 +314,7 @@ export function buildForecast(
             kind: "task",
             nodeId: duty.nodeId,
             nodeType: duty.nodeType === "asset" ? "asset" : "room",
-            label: duty.title,
+            label: tDutyTitle(duty.title),
             month,
             cost: singleCost(cost),
             confidence: blended.source === "actual" ? "high" : "medium",
@@ -337,7 +339,7 @@ export function buildForecast(
         kind: "task",
         nodeId: duty.nodeId,
         nodeType: duty.nodeType === "asset" ? "asset" : "room",
-        label: duty.title,
+        label: tDutyTitle(duty.title),
         month,
         cost: singleCost(cost),
         confidence: blended.source === "actual" ? "high" : "medium",

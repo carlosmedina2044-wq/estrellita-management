@@ -1,7 +1,8 @@
 import playbookSeed from "@/lib/playbooks/playbooks.json";
 import triggerSeed from "@/lib/weather/triggers.json";
+import { tTriggerName } from "@/i18n/content";
 import { deriveClimate } from "@/lib/climate";
-import { addDays } from "@/lib/dates";
+import { addDays, getActiveDateLocale } from "@/lib/dates";
 import { lastCompletion } from "@/lib/duties";
 import { EXTERIOR_ID, WHOLE_HOME_ID } from "@/lib/home-model";
 import { normalizeAssetType } from "@/lib/asset-catalog";
@@ -194,7 +195,7 @@ export function seasonSectionModel(
     const trigger = triggers.find((item) => item.id === fire.triggerId);
     if (!trigger) continue;
     fires.push({
-      name: trigger.name,
+      name: tTriggerName(trigger.id, trigger.name),
       taskCount: trigger.tasks.length,
       firedAt: fire.firedAt,
     });
@@ -238,7 +239,7 @@ export type TimelineMonth = {
 };
 
 function timelineLabel(month: number, year: number, nowYear: number): string {
-  const short = new Date(year, month - 1, 1).toLocaleString("en-US", { month: "short" });
+  const short = new Date(year, month - 1, 1).toLocaleString(getActiveDateLocale(), { month: "short" });
   if (year === nowYear) return short;
   return `${short} ’${String(year).slice(-2)}`;
 }

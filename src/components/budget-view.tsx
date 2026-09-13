@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { EmptyGuide } from "@/components/budget/empty-guide";
@@ -42,7 +43,7 @@ export function BudgetView({
   onChange,
   onNavigate,
   onBack,
-  backLabel = "Back to Home",
+  backLabel,
 }: {
   household: Household;
   onChange: (updater: (current: Household) => Household) => void;
@@ -50,6 +51,7 @@ export function BudgetView({
   onBack?: () => void;
   backLabel?: string;
 }) {
+  const { t, dateLocale } = useLocale();
   const [horizon, setHorizon] = useState<12 | 24 | 36>(12);
   const [fundOpen, setFundOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -72,29 +74,42 @@ export function BudgetView({
   );
   const empty = forecast.totals.total === 0;
   const updated = household.maintenanceFund?.updatedAt
-    ? `Fund updated ${new Date(household.maintenanceFund.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-    : "Forecast updates as you log purchases";
+    ? t("budget.fundUpdated", {
+        date: new Date(household.maintenanceFund.updatedAt).toLocaleDateString(dateLocale, {
+          month: "short",
+          day: "numeric",
+        }),
+      })
+    : t("budget.forecastUpdates");
 
   async function shareSummary() {
     const next = forecast.bigTicket[0];
     const lines = [
-      "Cuidala home budget",
+      t("budget.shareTitle"),
       health.saved != null
-        ? `${health.saved.toLocaleString("en-US")} saved · ${health.needed12.toLocaleString("en-US")} needed in 12 months · ${health.coveragePct}% covered`
-        : `Suggested set-aside ${health.suggestedMonthly.toLocaleString("en-US")}/month`,
+        ? t("budget.savedNeeded", {
+            saved: health.saved.toLocaleString(dateLocale),
+            needed: health.needed12.toLocaleString(dateLocale),
+            pct: health.coveragePct ?? 0,
+          })
+        : t("budget.suggestedSetAside", { amount: health.suggestedMonthly.toLocaleString(dateLocale) }),
       next
-        ? `Next big expense: ${next.label.replace(/ replacement$/i, "")}, ${monthsUntil(next.month) <= 0 ? "due now" : `~${monthsUntil(next.month)} months`} · ${formatCostRange(next.cost)}`
+        ? t("budget.nextBig", {
+            label: next.label.replace(/ replacement$/i, ""),
+            when: monthsUntil(next.month) <= 0 ? t("budget.dueNow") : t("budget.monthsAway", { count: monthsUntil(next.month) }),
+            cost: formatCostRange(next.cost),
+          })
         : null,
     ].filter(Boolean);
-    const result = await shareText("Home budget", lines.join("\n"));
-    if (result === "copied") toast.success("Summary copied");
-    if (result === "failed") toast.error("Couldn’t share that");
+    const result = await shareText(t("budget.homeBudget"), lines.join("\n"));
+    if (result === "copied") toast.success(t("budget.summaryCopied"));
+    if (result === "failed") toast.error(t("budget.shareFailed"));
   }
 
   return (
     <div className="flex min-w-0 flex-col gap-5 pb-8">
       <PageHeader
-        title="Budget"
+        title={t("budget.title")}
         subtitle={updated}
         onBack={onBack}
         backLabel={backLabel}
@@ -102,7 +117,7 @@ export function BudgetView({
           <button
             type="button"
             className="flex size-11 items-center justify-center rounded-full text-foreground"
-            aria-label="View options"
+            aria-label={t("budget.viewOptions")}
             onClick={() => setOptionsOpen(true)}
           >
             <MoreHorizontal className="size-5" />
@@ -154,9 +169,9 @@ export function BudgetView({
 
       {forecast.missingData.length > 0 && !empty ? (
         <section>
-          <h2 className="ui-heading ui-title font-semibold">Make this more accurate</h2>
+          <h2 className="ui-heading ui-title font-semibold">{t("budget.makeAccurate")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            A date or cost is missing, so this item isn’t fully in the forecast yet.
+            {t("budget.missingBody")}
           </p>
           <ul className="mt-3 grid gap-3">
             {forecast.missingData.map((item) => {
@@ -167,7 +182,7 @@ export function BudgetView({
                   <div className="mt-3 grid gap-3">
                     {item.missing.includes("installDate") ? (
                       <label className="grid gap-1.5">
-                        <span className="text-sm text-muted-foreground">When was this installed or last replaced?</span>
+                        <span className="text-sm text-muted-foreground">{t("budget.whenInstalled")}</span>
                         <Input
                           type="date"
                           className="h-12"
@@ -181,11 +196,11 @@ export function BudgetView({
                     ) : null}
                     {item.missing.includes("cost") ? (
                       <label className="grid gap-1.5">
-                        <span className="text-sm text-muted-foreground">What would it cost to replace?</span>
+                        <span className="text-sm text-muted-foreground">{t("budget.whatWouldCost")}</span>
                         <Input
                           type="number"
                           inputMode="decimal"
-                          placeholder="Replacement cost"
+                          placeholder={t("budget.whatWouldCost")}
                           className="h-12"
                           onBlur={(event) => {
                             const value = Number(event.target.value);

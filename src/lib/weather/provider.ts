@@ -1,4 +1,6 @@
 import triggerSeed from "@/lib/weather/triggers.json";
+import { tActive } from "@/i18n";
+import { tTriggerName } from "@/i18n/content";
 import { climateLabel, deriveClimate } from "@/lib/climate";
 import { addDays, toISODate } from "@/lib/dates";
 import { attributesMatch, dutyFromPlaybookTask, resolvePlaybookTarget, type Playbook, type PlaybookTaskDef } from "@/lib/playbooks";
@@ -149,11 +151,11 @@ export function evaluateTriggers(
   return { duties, fires };
 }
 
-export function weatherLine(forecast: WeatherForecast | null, fallback = "Add your ZIP for weather"): string {
+export function weatherLine(forecast: WeatherForecast | null, fallback?: string): string {
   const today = forecast?.days[0];
-  if (!today) return fallback;
-  const bits = [`${Math.round(today.tempMaxF)}° today`];
-  if (today.precipIn > 0.5) bits.push("rain");
+  if (!today) return fallback ?? tActive("weather.addZip");
+  const bits = [tActive("weather.tempToday", { n: Math.round(today.tempMaxF) })];
+  if (today.precipIn > 0.5) bits.push(tActive("weather.rain"));
   return bits.join(" · ");
 }
 
@@ -172,7 +174,7 @@ export function weatherCaption(
       needsZip: false,
     };
   }
-  return { text: "Add your ZIP for weather", needsZip: true };
+  return { text: tActive("weather.addZip"), needsZip: true };
 }
 
 export type WeatherWatchItem = {
@@ -190,7 +192,7 @@ export function weatherWatch(
   const applicable = WEATHER_TRIGGERS.filter(
     (trigger) => triggerAppliesInZone(trigger, zone) && attributesMatch(trigger.requires, household.attributes),
   );
-  const watching = applicable.map((trigger) => trigger.name);
+  const watching = applicable.map((trigger) => tTriggerName(trigger.id, trigger.name));
   const active: WeatherWatchItem[] = [];
   for (const trigger of applicable) {
     const hitDay = forecast ? conditionHits(trigger, forecast, now, zone) : null;

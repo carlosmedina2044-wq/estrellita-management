@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import { userRooms, WHOLE_HOME_ID } from "@/lib/home-model";
 import { applyDutySave } from "@/lib/household-update";
 import { applyCheckin, type CheckinLevel } from "@/lib/restock";
@@ -58,18 +59,38 @@ export function cadenceForInterval(intervalMonths: 1 | 3 | 6 | 12): {
   frequency: Duty["frequency"];
   lifespanValue: number;
   lifespanUnit: LifespanUnit;
-  dutyPrefix: "Restock" | "Replace";
+  dutyPrefix: string;
 } {
   if (intervalMonths === 1) {
-    return { frequency: "monthly", lifespanValue: 1, lifespanUnit: "months", dutyPrefix: "Restock" };
+    return {
+      frequency: "monthly",
+      lifespanValue: 1,
+      lifespanUnit: "months",
+      dutyPrefix: tActive("content.prefix.restock"),
+    };
   }
   if (intervalMonths === 3) {
-    return { frequency: "quarterly", lifespanValue: 3, lifespanUnit: "months", dutyPrefix: "Restock" };
+    return {
+      frequency: "quarterly",
+      lifespanValue: 3,
+      lifespanUnit: "months",
+      dutyPrefix: tActive("content.prefix.restock"),
+    };
   }
   if (intervalMonths === 6) {
-    return { frequency: "monthly", lifespanValue: 6, lifespanUnit: "months", dutyPrefix: "Replace" };
+    return {
+      frequency: "monthly",
+      lifespanValue: 6,
+      lifespanUnit: "months",
+      dutyPrefix: tActive("content.prefix.replace"),
+    };
   }
-  return { frequency: "yearly", lifespanValue: 12, lifespanUnit: "months", dutyPrefix: "Replace" };
+  return {
+    frequency: "yearly",
+    lifespanValue: 12,
+    lifespanUnit: "months",
+    dutyPrefix: tActive("content.prefix.replace"),
+  };
 }
 
 export const RESTOCK_WALK_GROUPS: { id: RestockWalkGroup; label: string }[] = [

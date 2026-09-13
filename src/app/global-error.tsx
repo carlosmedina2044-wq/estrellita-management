@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { detectDeviceLocale, translate } from "@/i18n";
 
 export default function GlobalError({
   error,
@@ -9,12 +10,15 @@ export default function GlobalError({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  const locale = detectDeviceLocale();
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+
   useEffect(() => {
     console.error(error);
   }, [error]);
 
   return (
-    <html lang="en">
+    <html lang={locale === "pt-BR" ? "pt-BR" : locale === "es" ? "es" : "en"}>
       <body
         style={{
           margin: 0,
@@ -38,10 +42,9 @@ export default function GlobalError({
             height={32}
             style={{ height: 32, width: "auto" }}
           />
-          <h1 style={{ fontSize: 28, margin: "20px 0 0" }}>Something went wrong</h1>
+          <h1 style={{ fontSize: 28, margin: "20px 0 0" }}>{t("error.somethingWrong")}</h1>
           <p style={{ color: "#86868b", marginTop: 8, fontSize: 14 }}>
-            Cuidala failed to start. Try again. Household data on this device was not
-            overwritten.
+            {t("error.globalBody")}
           </p>
           <button
             type="button"
@@ -58,7 +61,7 @@ export default function GlobalError({
               fontWeight: 600,
             }}
           >
-            Try again
+            {t("error.tryAgain")}
           </button>
         </main>
       </body>

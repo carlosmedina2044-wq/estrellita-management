@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,7 @@ export function RetailerPickerSheet({
   onOpened?: (retailer?: string) => void;
   onAlreadyOrdered?: () => void;
 }) {
+  const { t } = useLocale();
   const href = retailerUrlFor(item);
   const size = (item.sku || item.sizeSpec || "").trim();
   const chips = orderedRetailerChips(household, item);
@@ -57,7 +59,7 @@ export function RetailerPickerSheet({
     if (saveUrl && isProductPageUrl(saveUrl)) onSaveLink?.(saveUrl);
     const opened = await openExternalUrl(openUrl);
     if (!opened) {
-      toast.error("Couldn’t open the retailer. Check your browser pop-up setting.");
+      toast.error(t("restock.retailerOpenError"));
       return;
     }
     onOpenChange(false);
@@ -100,19 +102,19 @@ export function RetailerPickerSheet({
                 No size saved · Add
               </button>
             ) : (
-              "No size saved"
+              t("restock.noSizeSaved")
             )}
           </div>
           {href ? (
             <div className="grid gap-1">
               <Button type="button" className="h-12 w-full" onClick={() => void shop(href, item.preferredRetailer, href)}>
-                Open saved link
+                {t("retailer.openSaved")}
               </Button>
               <p className="text-center ui-caption text-muted-foreground">{savedRetailerLabel(href)}</p>
             </div>
           ) : null}
           <div className="grid gap-2">
-            <p className="ui-caption font-medium">Stores</p>
+            <p className="ui-caption font-medium">{t("retailer.stores")}</p>
             <div className="flex flex-wrap gap-1.5">
               {chips.map((chip) => (
                 <span key={chip.id} className="grid justify-items-center gap-0.5">
@@ -126,7 +128,7 @@ export function RetailerPickerSheet({
                     {chip.label}
                   </Button>
                   {chip.lastTime ? (
-                    <span className="ui-caption text-muted-foreground">Last time</span>
+                    <span className="ui-caption text-muted-foreground">{t("retailer.lastTime")}</span>
                   ) : null}
                 </span>
               ))}
@@ -154,7 +156,7 @@ export function RetailerPickerSheet({
             onSearch={(saveUrl, openUrl) => void shop(openUrl, hostOf(saveUrl), saveUrl)}
           />
           <p className="ui-caption text-muted-foreground">
-            You check out on the store’s site. Cuidala never sees your payment.
+            {t("retailer.privacy")}
           </p>
         </div>
       </SheetContent>
@@ -162,7 +164,7 @@ export function RetailerPickerSheet({
   );
 }
 
-export function CustomStoreSearch({
+function CustomStoreSearch({
   itemName,
   sizeSpec,
   onSearch,
@@ -171,6 +173,7 @@ export function CustomStoreSearch({
   sizeSpec?: string;
   onSearch: (saveUrl: string, openUrl: string) => void;
 }) {
+  const { t } = useLocale();
   const [draft, setDraft] = useState("");
 
   function go() {
@@ -190,7 +193,7 @@ export function CustomStoreSearch({
         <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="ebay.com or paste a link"
+          placeholder={t("restock.customUrlPlaceholder")}
           className="h-10 min-w-0 flex-1"
           inputMode="url"
           autoCapitalize="none"

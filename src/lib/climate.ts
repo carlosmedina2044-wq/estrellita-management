@@ -1,4 +1,5 @@
 import type { ClimateZone, HomeLocation } from "@/lib/types";
+import { tClimateZoneLabel } from "@/i18n/content";
 
 /**
  * Climate zone is derived from US ZIP-3 (IECC-like), then ZIP-2, then rounded
@@ -749,16 +750,5 @@ export function roundCoord(value: number): number {
 }
 
 export function climateLabel(zone: ClimateZone): string {
-  switch (zone) {
-    case "hot-arid":
-      return "Desert";
-    case "cold":
-      return "Cold";
-    case "humid-subtropical":
-      return "Humid";
-    case "marine":
-      return "Marine";
-    default:
-      return "Mixed";
-  }
+  return tClimateZoneLabel(zone);
 }

@@ -137,6 +137,7 @@
     font: -apple-system-body;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, "Segoe UI", sans-serif;
     height: 100%;
+    background-color: var(--background);
     font-variant-caps: normal;
     font-variant-ligatures: none;
     font-feature-settings: "liga" 0, "clig" 0, "dlig" 0, "calt" 0;
@@ -288,6 +289,8 @@
 
 .app-tab-bar {
   z-index: 40;
+  background-color: var(--background);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 html.keyboard-open .app-shell-main {

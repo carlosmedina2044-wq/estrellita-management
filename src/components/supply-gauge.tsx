@@ -1,12 +1,14 @@
 "use client";
 
+import { tActive } from "@/i18n";
+
 function captionFor(fraction: number, runwayDays: number | null): string {
   const pct = Math.round(fraction * 100);
-  if (runwayDays === 0) return "Out or nearly out";
-  if (runwayDays != null && runwayDays <= 7) return `~${pct}% · runs out this week`;
-  if (fraction >= 0.95 && runwayDays != null) return `Full · about ${runwayDays} days`;
-  if (runwayDays != null) return `~${pct}% · about ${runwayDays} days`;
-  return `~${pct}%`;
+  if (runwayDays === 0) return tActive("supply.outNearly");
+  if (runwayDays != null && runwayDays <= 7) return tActive("supply.runsOutWeek", { pct });
+  if (fraction >= 0.95 && runwayDays != null) return tActive("supply.fullDays", { days: runwayDays });
+  if (runwayDays != null) return tActive("supply.pctDays", { pct, days: runwayDays });
+  return tActive("supply.pctOnly", { pct });
 }
 
 export function SupplyGauge({

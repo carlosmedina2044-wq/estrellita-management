@@ -6,7 +6,6 @@ import { asRoomType, emptyHomeTree, ensureHomeTree, systemRooms } from "@/lib/ho
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import {
   DEFAULT_ATTRIBUTES,
-  DEFAULT_LOCK_SETTINGS,
   DEFAULT_TEACHING,
   DEFAULT_WEATHER_STATUS,
   withHouseholdDefaults,
@@ -483,7 +482,7 @@ function migrateAttributes(raw: unknown): HomeAttributes {
 }
 
 function migrateLockSettings(raw: unknown): LockSettings {
-  if (!isPlainObject(raw)) return { ...DEFAULT_LOCK_SETTINGS };
+  if (!isPlainObject(raw)) return { requireFaceId: true, lockAfter: "2min" };
   return {
     requireFaceId: raw.requireFaceId !== false,
     lockAfter: raw.lockAfter === "immediate" || raw.lockAfter === "15min" ? raw.lockAfter : "2min",

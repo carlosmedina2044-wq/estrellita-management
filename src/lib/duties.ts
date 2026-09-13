@@ -1,3 +1,5 @@
+import { tActive } from "@/i18n";
+import { tDutyTitle } from "@/i18n/content";
 import { frequencyLabelShort } from "@/lib/constants";
 import { roomName } from "@/lib/home-model";
 import {
@@ -167,16 +169,16 @@ export function dutySubtitle(
   const place = household ? roomName(household, duty.room) : duty.room;
   const parts = [place];
   if (late && next) {
-    parts.push(`Was due ${formatDueDate(toISODate(next))}`);
+    parts.push(tActive("duty.wasDue", { date: formatDueDate(toISODate(next)) }));
   } else {
     parts.push(frequencyLabelShort(duty.frequency));
     if (duty.frequency === "quarterly" || duty.frequency === "yearly") {
-      parts.push(`Due ${next ? formatDueDate(toISODate(next)) : "—"}`);
+      parts.push(tActive("duty.due", { date: next ? formatDueDate(toISODate(next)) : "—" }));
     } else if (duty.frequency === "once" && duty.dueDate) {
-      parts.push(`Due ${formatDueDate(duty.dueDate)}`);
+      parts.push(tActive("duty.due", { date: formatDueDate(duty.dueDate) }));
     }
   }
-  if (duty.audience === "cleaner") parts.push("Cleaner");
+  if (duty.audience === "cleaner") parts.push(tActive("duty.audienceCleaner"));
   return parts.join(" · ");
 }
 
@@ -372,15 +374,15 @@ export function groupByRoom(duties: Duty[], household: Pick<Household, "rooms">)
 }
 
 export function shareText(household: Household, duties: Duty[]): string {
-  const lines = [`${household.householdName}: today's work`, ""];
+  const lines = [tActive("share.listHeader", { name: household.householdName }), ""];
   for (const group of groupByRoom(duties, household)) {
     lines.push(group.label);
     for (const duty of group.duties) {
       const note = duty.notes.trim() ? ` (${duty.notes.trim()})` : "";
-      lines.push(`- [ ] ${duty.title}${note}`);
+      lines.push(`- [ ] ${tDutyTitle(duty.title)}${note}`);
     }
     lines.push("");
   }
-  if (duties.length === 0) lines.push("Nothing queued today.");
+  if (duties.length === 0) lines.push(tActive("duty.nothingQueued"));
   return lines.join("\n").trim();
 }

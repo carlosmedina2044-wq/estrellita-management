@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getActiveAppLocale, localeDateTag, tActive, type MessageKey } from "@/i18n";
+import { tDutyTitle, tPlaybookName, tPlaybookWhy, tTriggerName } from "@/i18n/content";
+import { useLocale } from "@/i18n/locale-provider";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -28,46 +31,57 @@ import type { Household } from "@/lib/types";
 const CHIP = "rounded-full px-2 py-0.5 ui-caption font-medium";
 
 const ATTRIBUTE_TOGGLES = [
-  ["hasPool", "Pool"],
-  ["hasIrrigation", "Irrigation"],
-  ["hasGutters", "Gutters"],
-  ["hasFireplace", "Fireplace"],
-  ["hasBasement", "Basement"],
-  ["hasEvaporativeCooler", "Swamp cooler"],
-] as const;
+  ["hasPool", "seasonal.feature.pool"],
+  ["hasIrrigation", "seasonal.feature.irrigation"],
+  ["hasGutters", "seasonal.feature.gutters"],
+  ["hasFireplace", "seasonal.feature.fireplace"],
+  ["hasBasement", "seasonal.feature.basement"],
+  ["hasEvaporativeCooler", "seasonal.feature.swamp"],
+] as const satisfies ReadonlyArray<
+  readonly [
+    "hasPool" | "hasIrrigation" | "hasGutters" | "hasFireplace" | "hasBasement" | "hasEvaporativeCooler",
+    MessageKey,
+  ]
+>;
 
 function joinWatching(names: string[]): string {
   const lower = names.map((name) => name.toLowerCase());
   if (lower.length === 0) return "";
   if (lower.length === 1) return lower[0];
-  if (lower.length === 2) return `${lower[0]} and ${lower[1]}`;
-  return `${lower.slice(0, -1).join(", ")}, and ${lower[lower.length - 1]}`;
+  if (lower.length === 2) return tActive("seasonal.listAnd", { a: lower[0], b: lower[1] });
+  return tActive("seasonal.listAndMany", {
+    list: lower.slice(0, -1).join(", "),
+    last: lower[lower.length - 1],
+  });
 }
 
 function hitMetricLine(item: WeatherWatchItem): string | null {
   if (!item.hitDay) return null;
   const metric = item.trigger.condition.metric;
   const n = Math.round(metricValue(item.hitDay, metric));
-  if (metric === "tempMinF") return `Low of ${n}°F`;
-  if (metric === "tempMaxF") return `High of ${n}°F`;
-  if (metric === "windMph") return `Winds to ${n} mph`;
-  if (metric === "precipIn") return `${n}" of rain`;
+  if (metric === "tempMinF") return tActive("seasonal.lowOf", { n });
+  if (metric === "tempMaxF") return tActive("seasonal.highOf", { n });
+  if (metric === "windMph") return tActive("seasonal.windsTo", { n });
+  if (metric === "precipIn") return tActive("seasonal.precip", { n });
   return null;
 }
 
 function watchCaption(item: WeatherWatchItem): string {
   if (item.hitDay) {
-    const weekday = new Date(parseISODate(item.hitDay.date)).toLocaleDateString("en-US", { weekday: "long" });
+    const weekday = new Date(parseISODate(item.hitDay.date)).toLocaleDateString(
+      localeDateTag(getActiveAppLocale()),
+      { weekday: "long" },
+    );
     const metric = hitMetricLine(item);
-    return metric ? `Expected ${weekday} · ${metric}` : `Expected ${weekday}`;
+    return metric ? tActive("seasonal.expectedMetric", { weekday, metric }) : tActive("seasonal.expected", { weekday });
   }
-  return "Fired this week. Tasks were added to Today.";
+  return tActive("seasonal.firedWeek");
 }
 
 function stateChip(state: WindowState) {
-  if (state === "get_ahead") return { label: "Get ahead", className: "bg-secondary text-muted-foreground" };
-  if (state === "ideal") return { label: "Ideal time", className: "bg-primary/10 text-primary" };
-  if (state === "late") return { label: "Running late", className: "bg-warning/15 text-warning" };
+  if (state === "get_ahead") return { label: tActive("seasonal.getAhead"), className: "bg-secondary text-muted-foreground" };
+  if (state === "ideal") return { label: tActive("seasonal.idealTime"), className: "bg-primary/10 text-primary" };
+  if (state === "late") return { label: tActive("seasonal.runningLate"), className: "bg-warning/15 text-warning" };
   return null;
 }
 
@@ -75,12 +89,15 @@ function timelineChip(
   state: TimelineEntryState,
   progress: { done: number; total: number },
 ): { label: string; className: string } | null {
-  if (state === "done") return { label: "Done", className: "bg-success/15 text-success" };
+  if (state === "done") return { label: tActive("common.done"), className: "bg-success/15 text-success" };
   if (state === "in_progress") {
-    return { label: `${progress.done} of ${progress.total}`, className: "bg-primary/10 text-primary" };
+    return {
+      label: tActive("seasonal.doneOf", { done: progress.done, total: progress.total }),
+      className: "bg-primary/10 text-primary",
+    };
   }
-  if (state === "planned") return { label: "Planned", className: "bg-secondary" };
-  if (state === "declined") return { label: "Skipped", className: "bg-secondary text-muted-foreground" };
+  if (state === "planned") return { label: tActive("seasonal.planned"), className: "bg-secondary" };
+  if (state === "declined") return { label: tActive("seasonal.skipped"), className: "bg-secondary text-muted-foreground" };
   return null;
 }
 
@@ -93,8 +110,8 @@ function attributeCaption(
     if (!playbook.requires || playbook.requires[key] !== true) return false;
     return playbook.climateZones === "all" || playbook.climateZones.includes(zone);
   }).length;
-  if (n === 0) return "No seasonal tasks in your climate";
-  return `${n} seasonal task${n === 1 ? "" : "s"}`;
+  if (n === 0) return tActive("seasonal.none");
+  return n === 1 ? tActive("seasonal.countOne") : tActive("seasonal.countMany", { count: n });
 }
 
 function scrollToPlaybook(id: string) {
@@ -134,6 +151,8 @@ export function SeasonalView({
   backLabel?: string;
   focusPlaybookId?: string;
 }) {
+  const { t } = useLocale();
+  const back = backLabel === "Back to Today" ? t("seasonal.backToday") : backLabel;
   const now = new Date();
   const suggested = matchingPlaybooks(household, now);
   const timeline = seasonalTimeline(household, now);
@@ -154,7 +173,7 @@ export function SeasonalView({
   return (
     <div className="flex flex-col gap-5 pb-8">
       <div>
-        <PageHeader title="Seasonal" subtitle={subtitle} onBack={onBack} backLabel={backLabel} />
+        <PageHeader title={t("seasonal.title")} subtitle={subtitle} onBack={onBack} backLabel={back} />
         {forecast ? (
           <AppleWeatherAttribution
             className="mt-1 ui-caption text-muted-foreground"
@@ -163,7 +182,7 @@ export function SeasonalView({
         ) : null}
         {showWeatherError ? (
           <p className="mt-2 ui-caption text-muted-foreground">
-            Couldn&apos;t refresh weather. Seasonal lists still work.
+            {t("seasonal.weatherRefreshFail")}
           </p>
         ) : null}
         {missingZip && onSavePostalCode ? (
@@ -172,10 +191,8 @@ export function SeasonalView({
             className="mt-3 w-full rounded-2xl bg-card px-4 py-4 text-left"
             onClick={() => setZipOpen(true)}
           >
-            <p className="font-medium text-primary">Add your ZIP</p>
-            <p className="mt-1 ui-body text-muted-foreground">
-              Same ZIP as Today — for weather and seasonal jobs.
-            </p>
+            <p className="font-medium text-primary">{t("zip.addTitle")}</p>
+            <p className="mt-1 ui-body text-muted-foreground">{t("seasonal.zipSame")}</p>
           </button>
         ) : null}
       </div>
@@ -184,19 +201,21 @@ export function SeasonalView({
         <ul className="grid gap-3">
           {watch.active.slice(0, 2).map((item) => (
             <li key={item.trigger.id} className="rounded-2xl bg-card px-4 py-4">
-              <p className="ui-card font-medium">{item.trigger.name}</p>
+              <p className="ui-card font-medium">{tTriggerName(item.trigger.id, item.trigger.name)}</p>
               <p className="mt-1 ui-caption text-muted-foreground">{watchCaption(item)}</p>
             </li>
           ))}
         </ul>
       ) : showWatchingLine ? (
-        <p className="ui-caption text-muted-foreground">Watching your forecast for {joinWatching(watch.watching)}.</p>
+        <p className="ui-caption text-muted-foreground">
+          {t("seasonal.watching", { list: joinWatching(watch.watching) })}
+        </p>
       ) : null}
 
       <section>
-        <h2 className="ui-heading ui-title font-semibold">Do now</h2>
+        <h2 className="ui-heading ui-title font-semibold">{t("seasonal.doNow")}</h2>
         {suggested.length === 0 ? (
-          <p className="mt-2 ui-caption text-muted-foreground">Nothing needs starting right now. Your year is below.</p>
+          <p className="mt-2 ui-caption text-muted-foreground">{t("seasonal.doNowEmpty")}</p>
         ) : (
           <ul className="mt-3 grid gap-3">
             {suggested.map((entry) => (
@@ -217,7 +236,7 @@ export function SeasonalView({
       </section>
 
       <section>
-        <h2 className="ui-heading ui-title font-semibold">Your year</h2>
+        <h2 className="ui-heading ui-title font-semibold">{t("seasonal.yourYear")}</h2>
         <ul className="mt-3 grid gap-3">
           {timeline
             .filter((row) => row.entries.length > 0)
@@ -243,14 +262,14 @@ export function SeasonalView({
                               onClick={() => scrollToPlaybook(entry.playbook.id)}
                             >
                               <span className={`ui-body ${isCurrent ? "font-medium" : ""}`}>
-                                {entry.playbook.name}
+                                {tPlaybookName(entry.playbook.id, entry.playbook.name)}
                               </span>
                               {chip ? <span className={`${CHIP} ${chip.className}`}>{chip.label}</span> : null}
                             </button>
                           ) : (
                             <div className="flex items-center justify-between gap-2">
                               <span className={`ui-body ${isCurrent ? "font-medium" : ""}`}>
-                                {entry.playbook.name}
+                                {tPlaybookName(entry.playbook.id, entry.playbook.name)}
                               </span>
                               {chip ? <span className={`${CHIP} ${chip.className}`}>{chip.label}</span> : null}
                             </div>
@@ -270,19 +289,19 @@ export function SeasonalView({
         className="text-left ui-caption font-medium text-primary"
         onClick={() => setAttrsOpen(true)}
       >
-        Not seeing something? Tell us about your home
+        {t("seasonal.notSeeing")}
       </button>
 
       <Sheet open={attrsOpen} onOpenChange={setAttrsOpen}>
         <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <SheetHeader>
-            <SheetTitle className="ui-title">Your home</SheetTitle>
+            <SheetTitle className="ui-title">{t("seasonal.yourHome")}</SheetTitle>
           </SheetHeader>
           <div className="ui-group mx-4 mb-4">
-            {ATTRIBUTE_TOGGLES.map(([key, label]) => (
+            {ATTRIBUTE_TOGGLES.map(([key, labelKey]) => (
               <div key={key} className="ui-group-row flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="ui-body font-medium">{label}</p>
+                  <p className="ui-body font-medium">{t(labelKey)}</p>
                   <p className="ui-caption text-muted-foreground">{attributeCaption(key, household)}</p>
                 </div>
                 <button
@@ -295,7 +314,7 @@ export function SeasonalView({
                       : "h-11 shrink-0 rounded-full bg-secondary px-3 ui-caption font-medium"
                   }
                 >
-                  {household.attributes[key] ? "On" : "Off"}
+                  {household.attributes[key] ? t("seasonal.on") : t("seasonal.off")}
                 </button>
               </div>
             ))}
@@ -334,6 +353,7 @@ function DoNowCard({
   onDecline: (playbookId: string) => void;
   onReconsider: (playbookId: string) => void;
 }) {
+  const { t } = useLocale();
   const chip = stateChip(state);
   const progress = playbookProgress(household, playbook.id, seasonYearFor(playbook, now));
   const fraction = progress.total > 0 ? progress.done / progress.total : 0;
@@ -341,17 +361,21 @@ function DoNowCard({
   return (
     <li id={`seasonal-playbook-${playbook.id}`} className="rounded-2xl bg-card px-4 py-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="ui-card font-medium">{playbook.name}</p>
+        <p className="ui-card font-medium">{tPlaybookName(playbook.id, playbook.name)}</p>
         {chip ? <span className={`${CHIP} shrink-0 ${chip.className}`}>{chip.label}</span> : null}
       </div>
       {playbook.why ? (
-        <p className="mt-1 line-clamp-2 ui-caption text-muted-foreground">{playbook.why}</p>
+        <p className="mt-1 line-clamp-2 ui-caption text-muted-foreground">
+          {tPlaybookWhy(playbook.id, playbook.why)}
+        </p>
       ) : null}
       {decided && progress.total > 0 ? (
         <div className="mt-3">
           <p className="ui-caption text-muted-foreground">
-            {progress.done} of {progress.total} done
-            {progress.nextTitle ? ` · next: ${progress.nextTitle}` : ""}
+            {t("seasonal.doneOfDone", { done: progress.done, total: progress.total })}
+            {progress.nextTitle
+              ? t("seasonal.nextTitle", { title: tDutyTitle(progress.nextTitle) })
+              : ""}
           </p>
           <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
             <div className="h-full bg-primary" style={{ width: `${Math.round(fraction * 100)}%` }} />
@@ -359,24 +383,24 @@ function DoNowCard({
         </div>
       ) : decided && progress.total === 0 ? (
         <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="ui-caption text-muted-foreground">Skipped this year.</p>
+          <p className="ui-caption text-muted-foreground">{t("seasonal.skippedYear")}</p>
           <button type="button" className="ui-caption font-medium text-primary" onClick={() => onReconsider(playbook.id)}>
-            Reconsider
+            {t("seasonal.reconsider")}
           </button>
         </div>
       ) : (
         <>
           <ul className="mt-2 grid gap-1 ui-body text-muted-foreground">
             {playbook.tasks.map((task) => (
-              <li key={task.title}>{task.title}</li>
+              <li key={task.title}>{tDutyTitle(task.title)}</li>
             ))}
           </ul>
           <div className="mt-3 flex gap-2">
             <Button className="h-11 flex-1" onClick={() => onAccept(playbook.id)}>
-              Add to my year
+              {t("seasonal.addToYear")}
             </Button>
             <Button variant="secondary" className="h-11 flex-1" onClick={() => onDecline(playbook.id)}>
-              Skip this year
+              {t("seasonal.skipYear")}
             </Button>
           </div>
         </>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { tActive } from "@/i18n";
+import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -36,6 +38,7 @@ export function BackupPanel({
   onImport: (raw: string, passphrase: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   replaceCounts?: { chores: number; items: number };
 }) {
+  const { t } = useLocale();
   const [passphrase, setPassphrase] = useState("");
   const [confirm, setConfirm] = useState("");
   const [restorePassphrase, setRestorePassphrase] = useState("");
@@ -48,11 +51,11 @@ export function BackupPanel({
     if (!onExport) return;
     const error = passphraseError(passphrase);
     if (error) {
-      toast.error(error.replace(/passphrase/gi, "backup password"));
+      toast.error(error.replace(/passphrase/gi, t("backup.passwordHint")));
       return;
     }
     if (passphrase !== confirm) {
-      toast.error("Backup passwords don’t match.");
+      toast.error(t("backup.passwordsMismatch"));
       return;
     }
     setBusy(true);
@@ -61,15 +64,15 @@ export function BackupPanel({
       const filename = `cuidala-home-${toISODate(new Date())}.json`;
       const offered = await offerBackupFile(json, filename);
       if (offered === "failed") {
-        toast.error("Couldn’t share the backup file.");
+        toast.error(t("backup.shareFailed"));
         return;
       }
       if (offered === "cancelled") return;
-      toast.success(offered === "downloaded" ? "Backup saved" : "Backup file ready. Save it somewhere only you can find.");
+      toast.success(offered === "downloaded" ? t("backup.saved") : t("backup.fileReady"));
       setPassphrase("");
       setConfirm("");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Couldn’t create a backup.");
+      toast.error(error instanceof Error ? error.message : t("backup.createFailed"));
     } finally {
       setBusy(false);
     }
@@ -77,12 +80,12 @@ export function BackupPanel({
 
   async function importFile(file: File, secret: string) {
     if (file.size > BACKUP_MAX_FILE_BYTES) {
-      toast.error("That file is too large to be a Cuidala backup.");
+      toast.error(t("backup.fileTooLarge"));
       return;
     }
     const error = openPassphraseError(secret);
     if (error) {
-      toast.error(error.replace(/passphrase/gi, "backup password"));
+      toast.error(error.replace(/passphrase/gi, t("backup.passwordHint")));
       return;
     }
     setBusy(true);
@@ -93,10 +96,10 @@ export function BackupPanel({
         toast.error(result.error);
         return;
       }
-      toast.success("Home restored");
+      toast.success(t("backup.homeRestored"));
       setRestorePassphrase("");
     } catch {
-      toast.error("Couldn’t read that file.");
+      toast.error(t("backup.readFailed"));
     } finally {
       setBusy(false);
     }
@@ -107,22 +110,22 @@ export function BackupPanel({
       <div className="flex items-start gap-3">
         <BrandMark size="sm" className="mt-0.5 shrink-0" />
         <div className="min-w-0">
-          <p className="font-medium">{mode === "import-only" ? "Restore from backup" : "Back up my home"}</p>
+          <p className="font-medium">{mode === "import-only" ? t("backup.restoreTitle") : t("backup.saveTitle")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {mode === "import-only"
-              ? "Use a Cuidala backup file and its backup password to bring this home back."
-              : "A backup file is how you move to a new iPhone. Cuidala cannot reset a forgotten backup password."}
+              ? t("backup.importHelp")
+              : t("backup.exportHelp")}
           </p>
         </div>
       </div>
       {mode === "full" && onExport ? (
         <div className="mt-3">
-          <p className="text-sm font-medium">Create a backup password</p>
+          <p className="text-sm font-medium">{t("backup.memorablePassword")}</p>
           <Input
             type="password"
             value={passphrase}
             onChange={(event) => setPassphrase(event.target.value)}
-            placeholder="Backup password"
+            placeholder={t("backup.password")}
             className="mt-2 h-12"
             autoComplete="new-password"
           />
@@ -130,21 +133,21 @@ export function BackupPanel({
             type="password"
             value={confirm}
             onChange={(event) => setConfirm(event.target.value)}
-            placeholder="Confirm backup password"
+            placeholder={t("backup.confirmPassword")}
             className="mt-2 h-12"
             autoComplete="new-password"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            Save this somewhere only you can find.
-            {hint ? ` ${hint.replace(/passphrase/gi, "backup password")}` : ""}
+            {t("backup.writeItDown")}
+            {hint ? ` ${hint.replace(/passphrase/gi, t("backup.passwordHint"))}` : ""}
           </p>
           <Button className="mt-3 h-12 w-full" disabled={busy} onClick={() => void exportFile()}>
-            Save backup file
+            {t("backup.saveFile")}
           </Button>
         </div>
       ) : null}
       <label className="mt-3 flex h-12 cursor-pointer items-center justify-center rounded-xl bg-secondary text-sm font-medium">
-        {mode === "import-only" ? "Choose backup file" : "Restore from a file"}
+        {mode === "import-only" ? t("backup.chooseFile") : t("backup.restoreFromFile")}
         <input
           type="file"
           accept="application/json,.json"
@@ -155,7 +158,7 @@ export function BackupPanel({
             event.target.value = "";
             if (!file) return;
             if (file.size > BACKUP_MAX_FILE_BYTES) {
-              toast.error("That file is too large to be a Cuidala backup.");
+              toast.error(t("backup.fileTooLarge"));
               return;
             }
             setRestorePassphrase("");
@@ -175,22 +178,22 @@ export function BackupPanel({
         <AlertDialogContent>
           <AlertDialogHeader>
             <BrandMark size="sm" className="mx-auto mb-2" />
-            <AlertDialogTitle>Restore this backup?</AlertDialogTitle>
+            <AlertDialogTitle>{t("backup.restoreConfirmTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {`This will replace your current home (${replaceCounts?.chores ?? 0} chores, ${replaceCounts?.items ?? 0} items).`}
+              {t("backup.replaceBody", { chores: replaceCounts?.chores ?? 0, items: replaceCounts?.items ?? 0 })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Input
             type="password"
             value={restorePassphrase}
             onChange={(event) => setRestorePassphrase(event.target.value)}
-            placeholder="Backup password"
+            placeholder={t("backup.password")}
             className="h-12"
             autoFocus
             autoComplete="current-password"
           />
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               disabled={restoreBlocked || busy}
               onClick={(event) => {
@@ -202,7 +205,7 @@ export function BackupPanel({
                 setPendingFile(null);
               }}
             >
-              Restore
+              {t("backup.restore")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -226,6 +229,6 @@ async function offerBackupFile(
     URL.revokeObjectURL(url);
     return "downloaded";
   } catch {
-    return shareText("Cuidala backup", json);
+    return shareText(tActive("share.backupTitle"), json);
   }
 }
