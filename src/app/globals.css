@@ -202,7 +202,7 @@
     @apply bg-background text-foreground;
     min-height: 100%;
     min-height: 100dvh;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: auto;
     -webkit-overflow-scrolling: touch;
     -webkit-tap-highlight-color: transparent;
   }
@@ -394,6 +394,7 @@ html.keyboard-open [data-slot="sheet-footer"] {
   position: relative;
   margin-inline: auto;
   display: flex;
+  height: 100dvh;
   min-height: 100dvh;
   width: 100%;
   max-width: 32rem;

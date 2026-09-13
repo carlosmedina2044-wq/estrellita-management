@@ -39,6 +39,7 @@ import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { hapticTab } from "@/lib/native/haptics";
 import { isNative } from "@/lib/native/platform";
+import { scrollBehavior } from "@/lib/motion";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
@@ -114,11 +115,18 @@ export function AppShell() {
   const popStack = useCallback(() => {
     setStack((current) => current.slice(0, -1));
   }, []);
+  const tabPaneRefs = useRef<Partial<Record<RootTab, HTMLDivElement | null>>>({});
   const selectRootTab = useCallback((next: RootTab) => {
     void hapticTab();
-    setRootTab(next);
+    setRootTab((current) => {
+      if (current === next && top === null) {
+        const pane = tabPaneRefs.current[next];
+        pane?.scrollTo({ top: 0, behavior: scrollBehavior() });
+      }
+      return next;
+    });
     setStack([]);
-  }, []);
+  }, [top]);
   const handleFocusHandled = useCallback(() => {
     setNav((current) =>
       current
@@ -497,7 +505,14 @@ export function AppShell() {
         </AlertDialogContent>
       </AlertDialog>
       <main className="app-shell-main relative min-w-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
-        <div hidden={!todayActive} inert={!todayActive} className="app-keep-alive">
+        <div
+          hidden={!todayActive}
+          inert={!todayActive}
+          className="app-keep-alive"
+          ref={(node) => {
+            tabPaneRefs.current.today = node;
+          }}
+        >
           <TodayView
             household={household}
             weatherAttribution={weatherAttribution}
@@ -521,7 +536,14 @@ export function AppShell() {
             onFocusHandled={handleFocusHandled}
           />
         </div>
-        <div hidden={!homeActive} inert={!homeActive} className="app-keep-alive">
+        <div
+          hidden={!homeActive}
+          inert={!homeActive}
+          className="app-keep-alive"
+          ref={(node) => {
+            tabPaneRefs.current.home = node;
+          }}
+        >
           <div className="flex flex-col gap-4 pb-8">
             <PageHeader
               title={household.householdName}
@@ -578,7 +600,14 @@ export function AppShell() {
             />
           </div>
         </div>
-        <div hidden={!restockActive} inert={!restockActive} className="app-keep-alive">
+        <div
+          hidden={!restockActive}
+          inert={!restockActive}
+          className="app-keep-alive"
+          ref={(node) => {
+            tabPaneRefs.current.restock = node;
+          }}
+        >
           <RestockView
             household={household}
             onSaveDuty={saveDuty}
