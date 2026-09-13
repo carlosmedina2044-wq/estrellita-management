@@ -109,6 +109,7 @@ export function HomeEditor({
       household.supplyAutomations.some((item) => item.room === deleteId);
     if (hasWork && !reassignTo) {
       toast.error(t("home.reassignJobs"));
+      return;
     }
     onChange(
       deleteRoomFromHousehold(
@@ -146,30 +147,60 @@ export function HomeEditor({
           />
           <div className="mt-3 grid gap-2">
             {roomsOnFloor(household, floor.id).map((room) => (
-              <div key={room.id} className="flex items-center gap-2">
-                <Input
-                  value={room.name}
-                  onChange={(event) =>
-                    onChange({
-                      ...household,
-                      rooms: household.rooms.map((item) =>
-                        item.id === room.id ? { ...item, name: event.target.value } : item,
-                      ),
-                    })
-                  }
-                  className="h-11"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-11 shrink-0"
-                  onClick={() => {
-                    setDeleteId(room.id);
-                    setReassignTo(userRooms(household).find((item) => item.id !== room.id)?.id ?? "");
-                  }}
-                >
-                  {t("home.delete")}
-                </Button>
+              <div key={room.id} className="grid gap-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={room.name}
+                    onChange={(event) =>
+                      onChange({
+                        ...household,
+                        rooms: household.rooms.map((item) =>
+                          item.id === room.id ? { ...item, name: event.target.value } : item,
+                        ),
+                      })
+                    }
+                    className="h-11"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-11 shrink-0"
+                    onClick={() => {
+                      setDeleteId(room.id);
+                      setReassignTo(userRooms(household).find((item) => item.id !== room.id)?.id ?? "");
+                    }}
+                  >
+                    {t("home.delete")}
+                  </Button>
+                </div>
+                {deleteId === room.id ? (
+                  <div className="rounded-2xl bg-accent p-4">
+                    <p className="font-medium">{t("home.deleteRoomTitle")}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{t("home.deleteRoomBody")}</p>
+                    <Select value={reassignTo} onValueChange={setReassignTo}>
+                      <SelectTrigger className="mt-3 h-11 w-full">
+                        <SelectValue placeholder={t("home.moveJobsTo")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {userRooms(household)
+                          .filter((item) => item.id !== deleteId)
+                          .map((item) => (
+                            <SelectItem key={item.id} value={item.id}>
+                              {item.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="mt-3 flex gap-2">
+                      <Button type="button" variant="secondary" className="h-11 flex-1" onClick={() => setDeleteId(null)}>
+                        {t("common.cancel")}
+                      </Button>
+                      <Button type="button" variant="destructive" className="h-11 flex-1" onClick={confirmDelete}>
+                        {t("home.confirm")}
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -410,37 +441,6 @@ export function HomeEditor({
               </section>
             );
           })}
-        </div>
-      ) : null}
-
-      {deleteId ? (
-        <div className="rounded-2xl bg-accent p-4">
-          <p className="font-medium">{t("home.deleteRoomTitle")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("home.deleteRoomBody")}
-          </p>
-          <Select value={reassignTo} onValueChange={setReassignTo}>
-            <SelectTrigger className="mt-3 h-11 w-full">
-              <SelectValue placeholder={t("home.moveJobsTo")} />
-            </SelectTrigger>
-            <SelectContent>
-              {userRooms(household)
-                .filter((room) => room.id !== deleteId)
-                .map((room) => (
-                  <SelectItem key={room.id} value={room.id}>
-                    {room.name}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          <div className="mt-3 flex gap-2">
-            <Button type="button" variant="secondary" className="h-11 flex-1" onClick={() => setDeleteId(null)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="button" variant="destructive" className="h-11 flex-1" onClick={confirmDelete}>
-              {t("home.confirm")}
-            </Button>
-          </div>
         </div>
       ) : null}
     </div>
