@@ -12,6 +12,7 @@
           "description": "Press the test button on every detector. Replace any that fail.",
           "nodeType": "assetType",
           "target": "smoke_detector",
+          "topic": "smoke-detectors",
           "estimatedMinutes": 15,
           "isDiy": true
         },
@@ -20,6 +21,7 @@
           "description": "Pull the dryer out and vacuum the vent hose and wall duct.",
           "nodeType": "assetType",
           "target": "dryer",
+          "topic": "dryer-vent",
           "estimatedMinutes": 30,
           "estimatedCost": 0,
           "isDiy": true
@@ -38,6 +40,7 @@
           "description": "Unplug and vacuum the condenser coils.",
           "nodeType": "assetType",
           "target": "refrigerator",
+          "topic": "fridge-coils",
           "estimatedMinutes": 20,
           "isDiy": true
         },
@@ -84,6 +87,7 @@
           "title": "Test every smoke and CO detector and note the battery types.",
           "nodeType": "assetType",
           "target": "smoke_detector",
+          "topic": "smoke-detectors",
           "estimatedMinutes": 15,
           "isDiy": true
         },
@@ -92,6 +96,7 @@
           "description": "Put the size in the item’s Size or spec field so the next order is the right one.",
           "nodeType": "assetType",
           "target": "hvac_system",
+          "topic": "hvac-filter",
           "estimatedMinutes": 10,
           "isDiy": true
         },

@@ -3,7 +3,8 @@ import { test } from "node:test";
 import { addDays, startOfDay } from "@/lib/dates";
 import { nextDueDate, todaysOpenDuties } from "@/lib/duties";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
-import { generateHomeFromAnswers, sampleHomeAnswers, sizeDefaults } from "@/lib/onboarding/generate";
+import { dutyTopic } from "@/lib/duty-topics";
+import { generateHomeFromAnswers, sampleHomeAnswers, seedDutiesForHome, sizeDefaults } from "@/lib/onboarding/generate";
 import { roomTemplateFor } from "@/lib/onboarding/rooms";
 import starterSeed from "@/lib/onboarding/starter-chores.json";
 import type { Household } from "@/lib/types";
@@ -181,4 +182,18 @@ test("starter seed day-one list is exact on Saturday", () => {
   const now = new Date(2026, 8, 12);
   assert.equal(now.getDay(), 6);
   assertStarterDayOne(now);
+});
+
+test("sample home has no duplicate topics or titles on day one", () => {
+  const now = new Date(2026, 8, 13);
+  const generated = generateHomeFromAnswers(sampleHomeAnswers(), now);
+  const duties = seedDutiesForHome(generated, now);
+  const titles = duties.map((duty) => duty.title);
+  assert.equal(new Set(titles).size, titles.length);
+  const topics = duties.map((duty) => dutyTopic(duty)).filter((topic): topic is string => Boolean(topic));
+  assert.equal(new Set(topics).size, topics.length);
+  assert.equal(duties.some((duty) => duty.title === "Test smoke and CO detectors"), false);
+  assert.equal(duties.some((duty) => duty.title === "Clean refrigerator coils"), false);
+  assert.ok(duties.some((duty) => duty.title === "Flush the water heater"));
+  assert.ok(duties.some((duty) => duty.title === "Test GFCI outlets"));
 });

@@ -22,6 +22,7 @@ export type PlaybookTaskDef = {
   description?: string;
   nodeType: "home" | "exterior" | "roomType" | "assetType";
   target?: string;
+  topic?: string;
   estimatedMinutes?: number;
   estimatedCost?: number;
   isDiy?: boolean;

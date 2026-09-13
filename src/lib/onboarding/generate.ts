@@ -4,8 +4,9 @@ import { addDays, toISODate } from "@/lib/dates";
 import { installDateFromAge } from "@/lib/forecast";
 import { defaultRoomName, systemRooms, WHOLE_HOME_ID } from "@/lib/home-model";
 import { tActive } from "@/i18n";
+import { dedupePlaybookTasks } from "@/lib/duty-topics";
 import starterSeed from "@/lib/onboarding/starter-chores.json";
-import { matchingPlaybooks } from "@/lib/playbooks";
+import { dutyFromPlaybookTask, matchingPlaybooks } from "@/lib/playbooks";
 import { sampleHomeRooms, type RoomChoice } from "@/lib/onboarding/rooms";
 import type { RestockPick } from "@/lib/onboarding/restock-walk";
 import { SAMPLE_RESTOCK_PICKS } from "@/lib/onboarding/restock-walk";
@@ -429,4 +430,20 @@ export function generateHomeFromAnswers(
       now,
     ),
   };
+}
+
+export function seedDutiesForHome(
+  generated: ReturnType<typeof generateHomeFromAnswers>,
+  now: Date,
+): Duty[] {
+  const seasonal = generated.seasonalSuggestions
+    .filter((item) => item.playbook.climateZones === "all")
+    .flatMap((item) =>
+      dedupePlaybookTasks(item.playbook.tasks, generated.duties).map((task) => ({
+        id: uid(),
+        createdAt: now.toISOString(),
+        ...dutyFromPlaybookTask(generated, item.playbook, task, toISODate(addDays(now, 14))),
+      })),
+    );
+  return [...generated.duties, ...seasonal];
 }

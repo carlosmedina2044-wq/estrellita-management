@@ -30,9 +30,10 @@ import { applyDutySave } from "@/lib/household-update";
 import type { DutyDraft, Household, Completion, Duty, RestockDigestSettings } from "@/lib/types";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
-import { generateHomeFromAnswers } from "@/lib/onboarding/generate";
+import { generateHomeFromAnswers, seedDutiesForHome } from "@/lib/onboarding/generate";
 import { applyRestockPicks, type RestockPick } from "@/lib/onboarding/restock-walk";
-import { dutyFromPlaybookTask, PLAYBOOKS, seasonYearFor, windowState } from "@/lib/playbooks";
+import { dutyFromPlaybookTask, PLAYBOOKS, seasonYearFor } from "@/lib/playbooks";
+import { dedupePlaybookTasks } from "@/lib/duty-topics";
 import { addDays, toISODate } from "@/lib/dates";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import { requestNotifyPermission } from "@/lib/notifications";
@@ -117,15 +118,7 @@ export function useHousehold() {
   const completeOnboarding = useCallback(
     (input: { answers: OnboardingAnswers; ownerName?: string }) => {
       const generated = generateHomeFromAnswers(input.answers);
-      const seasonalDuties = generated.seasonalSuggestions
-        .filter((item) => item.playbook.climateZones === "all")
-        .flatMap((item) =>
-          item.playbook.tasks.map((task) => ({
-            id: uid(),
-            createdAt: new Date().toISOString(),
-            ...dutyFromPlaybookTask(generated, item.playbook, task, toISODate(addDays(new Date(), 14))),
-          })),
-        );
+      const now = new Date();
       const seeded = applyRestockPicks(
         withHouseholdDefaults({
           version: 8,
@@ -144,7 +137,7 @@ export function useHousehold() {
           rooms: generated.rooms,
           assets: generated.assets,
           consumables: generated.consumables,
-          duties: [...generated.duties, ...seasonalDuties],
+          duties: seedDutiesForHome(generated, now),
           completions: [],
           visits: [],
           supplyAutomations: [],
@@ -558,17 +551,15 @@ export function useHousehold() {
         const now = new Date();
         const year = seasonYearFor(def, now);
         const titles = new Set(taskTitles ?? def.tasks.map((task) => task.title));
-        const dueDate =
-          windowState(def, now.getMonth() + 1) === "late"
-            ? toISODate(addDays(now, 14))
-            : toISODate(addDays(now, 14));
-        const duties = def.tasks
-          .filter((task) => titles.has(task.title))
-          .map((task) => ({
-            id: uid(),
-            createdAt: now.toISOString(),
-            ...dutyFromPlaybookTask(current, def, task, dueDate),
-          }));
+        const dueDate = toISODate(addDays(now, 14));
+        const duties = dedupePlaybookTasks(
+          def.tasks.filter((task) => titles.has(task.title)),
+          current.duties,
+        ).map((task) => ({
+          id: uid(),
+          createdAt: now.toISOString(),
+          ...dutyFromPlaybookTask(current, def, task, dueDate),
+        }));
         const declined = def.tasks.filter((task) => !titles.has(task.title)).map((task) => task.title);
         return {
           ...current,
