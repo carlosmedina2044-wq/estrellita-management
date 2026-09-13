@@ -1,4 +1,5 @@
 import { b64ToBytes, bytesToB64, generateRawKey, importRawKey } from "@/lib/crypto";
+import { deviceOwnerFallbackTitle } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
 
 /** Legacy bound Keychain account (pre-keyId envelopes). Treated as keyId `"v2"`. */
@@ -154,7 +155,11 @@ async function readId(id: string, reason: string): Promise<Uint8Array | null> {
   if (isNative()) {
     const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
     try {
-      const result = await CuidalaDeviceKey.get({ key: id, reason });
+      const result = await CuidalaDeviceKey.get({
+        key: id,
+        reason,
+        fallbackTitle: deviceOwnerFallbackTitle(),
+      });
       return result.value ? b64ToBytes(result.value) : null;
     } catch (error) {
       if (isMissingKeychainItemError(error)) return null;

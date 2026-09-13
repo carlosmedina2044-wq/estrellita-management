@@ -27,9 +27,10 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func get(_ call: CAPPluginCall) {
         let key = call.getString("key") ?? ""
         let reason = call.getString("reason") ?? "Unlock Cuidala"
+        let fallbackTitle = call.getString("fallbackTitle") ?? "Enter Passcode"
         work.async {
             do {
-                if let value = try Self.read(key: key, reason: reason) {
+                if let value = try Self.read(key: key, reason: reason, fallbackTitle: fallbackTitle) {
                     call.resolve(["value": value])
                 } else {
                     call.reject("Item with given key does not exist", "not_found")
@@ -136,14 +137,14 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
 
     // MARK: - Keychain
 
-    private static func read(key: String, reason: String) throws -> String? {
+    private static func read(key: String, reason: String, fallbackTitle: String) throws -> String? {
         let requested = key.isEmpty ? v2Account : key
 
         // Prefer bound v2 (authenticated read — system prompt via ACL).
-        if let value = try readBound(account: v2Account, reason: reason) {
+        if let value = try readBound(account: v2Account, reason: reason, fallbackTitle: fallbackTitle) {
             return value
         }
-        if requested != v2Account, let value = try readBound(account: requested, reason: reason) {
+        if requested != v2Account, let value = try readBound(account: requested, reason: reason, fallbackTitle: fallbackTitle) {
             return value
         }
 
@@ -157,10 +158,10 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
         return nil
     }
 
-    private static func readBound(account: String, reason: String) throws -> String? {
+    private static func readBound(account: String, reason: String, fallbackTitle: String) throws -> String? {
         let context = LAContext()
         context.localizedReason = reason
-        context.localizedFallbackTitle = "Enter Passcode"
+        context.localizedFallbackTitle = fallbackTitle
 
         var result: AnyObject?
         var query = baseQuery(service: currentService, account: account)
