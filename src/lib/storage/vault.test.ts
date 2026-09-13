@@ -12,7 +12,10 @@ import {
   installVaultIOForTests,
   isHouseholdSessionUnlocked,
   lockHouseholdSession,
+  canUndoLastRestore,
+  undoLastRestore,
   QUARANTINED_VAULT_KEY,
+  RESTORE_SNAPSHOT_KEY_PREFIX,
   resetVaultForTests,
   unlockHousehold,
   updateHousehold,
@@ -807,5 +810,51 @@ test("unavailable load does not mint on restore", async () => {
   await importHouseholdBackup(backup, "correct horse battery staple");
   assert.equal(minted, before);
   assert.equal(store.get(VAULT_STORAGE_KEY), sealed);
+  resetVaultForTests();
+});
+
+test("restore snapshots the prior vault and undo returns the previous home", async () => {
+  resetVaultForTests();
+  const store = new Map<string, string>();
+  const key = await importRawKey(generateRawKey());
+  installVaultIOForTests({
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  const first = await hydrateHousehold();
+  assert.equal(first.ok, true);
+  updateHousehold((current) => ({ ...current, householdName: "Before Restore", onboarded: true }));
+  await flushHousehold();
+  assert.equal(getHousehold().householdName, "Before Restore");
+  assert.equal(canUndoLastRestore(), false);
+
+  const file = await sealBackup(
+    JSON.stringify({ householdName: "After Restore", onboarded: true }),
+    "correct horse",
+  );
+  const restored = await importHouseholdBackup(file, "correct horse");
+  assert.equal(restored.ok, true);
+  assert.equal(getHousehold().householdName, "After Restore");
+  assert.equal(canUndoLastRestore(), true);
+  const snapshotKeys = [...store.keys()].filter((k) => k.startsWith(RESTORE_SNAPSHOT_KEY_PREFIX));
+  assert.equal(snapshotKeys.length, 1);
+
+  const undone = await undoLastRestore();
+  assert.equal(undone.ok, true);
+  assert.equal(getHousehold().householdName, "Before Restore");
+  assert.equal(canUndoLastRestore(), false);
+
+  const again = await undoLastRestore();
+  assert.equal(again.ok, false);
   resetVaultForTests();
 });

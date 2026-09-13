@@ -283,6 +283,8 @@
   "backup.createFailed": "Não deu para criar um backup.",
   "backup.fileTooLarge": "Esse arquivo é grande demais para ser um backup do Cuidala.",
   "backup.homeRestored": "Casa restaurada",
+  "backup.undoLastRestore": "Desfazer a última restauração",
+  "backup.undoRestoreDone": "Casa anterior restaurada",
   "backup.readFailed": "Não deu para ler esse arquivo.",
   "backup.restoreTitle": "Restaurar de um backup",
   "backup.backupTitle": "Fazer backup da minha casa",

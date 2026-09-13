@@ -84,6 +84,8 @@ export function AppShell() {
     eraseEverything,
     exportBackup,
     importBackup,
+    canUndoRestore,
+    undoRestore,
     applyRestockWalk,
     acceptPlaybook,
     declinePlaybook,
@@ -662,6 +664,8 @@ export function AppShell() {
               onErase={eraseEverything}
               onExportBackup={exportBackup}
               onImportBackup={importBackup}
+              canUndoRestore={canUndoRestore}
+              onUndoRestore={undoRestore}
               canLock={canLock === true}
               lockMethod={lockMethod ?? "none"}
               restockDigest={household.restockDigest}

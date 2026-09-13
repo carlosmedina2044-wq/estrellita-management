@@ -14,6 +14,8 @@ import {
   importHouseholdBackup,
   isHouseholdSessionUnlocked,
   lockHouseholdSession,
+  canUndoLastRestore,
+  undoLastRestore,
   subscribeHousehold,
   unlockHousehold,
   updateHousehold,
@@ -68,6 +70,7 @@ export function useHousehold() {
   const [pendingUnlock, setPendingUnlock] = useState(false);
   const [sessionMeta, setSessionMeta] = useState<VaultSessionMeta | null>(null);
   const [sessionUnlocked, setSessionUnlocked] = useState(true);
+  const [canUndoRestore, setCanUndoRestore] = useState(false);
 
   const syncFromStore = useCallback(() => {
     const unlocked = isHouseholdSessionUnlocked();
@@ -76,6 +79,7 @@ export function useHousehold() {
     setSessionMeta(getVaultSessionMeta());
     setSessionUnlocked(unlocked);
     setPendingUnlock(!unlocked && Boolean(load?.ok));
+    setCanUndoRestore(canUndoLastRestore());
   }, []);
 
   useEffect(() => {
@@ -709,6 +713,17 @@ export function useHousehold() {
     }
     return result;
   }, [syncFromStore]);
+
+  const undoRestore = useCallback(async () => {
+    const result = await undoLastRestore();
+    if (result.ok) {
+      setLoadError(null);
+      setLegacyLockedVault(false);
+      setPendingUnlock(false);
+      syncFromStore();
+    }
+    return result;
+  }, [syncFromStore]);
   const applyRestockWalk = useCallback(
     (picks: RestockPick[]) => {
       update((current) => applyRestockPicks(current, picks));
@@ -762,6 +777,8 @@ export function useHousehold() {
     eraseEverything,
     exportBackup,
     importBackup,
+    canUndoRestore,
+    undoRestore,
     applyRestockWalk,
   };
 }

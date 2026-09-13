@@ -72,6 +72,8 @@ export function HomeView({
   onErase,
   onExportBackup,
   onImportBackup,
+  canUndoRestore,
+  onUndoRestore,
   canLock,
   lockMethod,
   restockDigest,
@@ -91,6 +93,8 @@ export function HomeView({
   onErase: () => Promise<{ ok: boolean }>;
   onExportBackup?: (passphrase: string) => Promise<string>;
   onImportBackup?: (raw: string, passphrase: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  canUndoRestore?: boolean;
+  onUndoRestore?: () => Promise<{ ok: true } | { ok: false; error: string }>;
   canLock: boolean;
   lockMethod: LockMethod;
   restockDigest?: RestockDigestSettings;
@@ -506,6 +510,24 @@ export function HomeView({
             items: household.supplyAutomations.length,
           }}
         />
+      ) : null}
+
+      {canUndoRestore && onUndoRestore ? (
+        <Button
+          variant="secondary"
+          className="h-12"
+          onClick={() => {
+            void onUndoRestore().then((result) => {
+              if (result.ok) {
+                toast.success(t("backup.undoRestoreDone"));
+              } else {
+                toast.error(result.error);
+              }
+            });
+          }}
+        >
+          {t("backup.undoLastRestore")}
+        </Button>
       ) : null}
 
       <div className="rounded-2xl bg-card p-4">

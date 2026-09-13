@@ -12,6 +12,8 @@ export {
   installVaultIOForTests,
   isHouseholdSessionUnlocked,
   lockHouseholdSession,
+  canUndoLastRestore,
+  undoLastRestore,
   PERSIST_FAILED_EVENT,
   resetVaultForTests,
   subscribeHousehold,

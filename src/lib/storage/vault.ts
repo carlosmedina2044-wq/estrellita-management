@@ -38,6 +38,8 @@ export type UnlockHouseholdResult =
 export const PERSIST_FAILED_EVENT = "cuidala-persist-failed";
 /** Copy of a vault that could not be opened. Hydrate never reads this key. */
 export const QUARANTINED_VAULT_KEY = "cuidala-vault-v2-unreadable";
+/** Prefix for pre-restore envelope copies. Session undo reads the latest slot. */
+export const RESTORE_SNAPSHOT_KEY_PREFIX = "cuidala-vault-snapshot.";
 
 /** Thrown when a persist runs after the session has locked and no key was captured. */
 export class SessionLockedError extends Error {
@@ -96,6 +98,7 @@ export function resetVaultForTests() {
   sessionMeta = null;
   persistChain = Promise.resolve();
   persistOk = true;
+  lastRestoreSnapshotKey = null;
   if (notifyTimer) clearTimeout(notifyTimer);
   notifyTimer = null;
   io = defaultIO();
@@ -112,6 +115,8 @@ let sessionMeta: VaultSessionMeta | null = null;
 let persistChain: Promise<void> = Promise.resolve();
 let persistOk = true;
 let notifyTimer: ReturnType<typeof setTimeout> | null = null;
+/** Latest pre-restore snapshot key for this process; cleared after undo or erase. */
+let lastRestoreSnapshotKey: string | null = null;
 
 function cloneEmpty(): Household {
   return withHouseholdDefaults({
@@ -553,6 +558,7 @@ export async function eraseHousehold(): Promise<{ ok: boolean }> {
   }
   key = null;
   keyId = null;
+  lastRestoreSnapshotKey = null;
   memory = cloneEmpty();
   sessionUnlocked = true;
   sessionMeta = captureSessionMeta(memory);
@@ -600,6 +606,75 @@ function needsRestoreKey(): boolean {
   return lastLoad !== null && !lastLoad.ok && lastLoad.reason === "key-mismatch";
 }
 
+async function snapshotCurrentVaultBeforeRestore(): Promise<string | null> {
+  const current = (await io.kvGet(VAULT_STORAGE_KEY)) ?? (await io.kvGet(PREVIOUS_VAULT_KEY));
+  if (!current) return null;
+  const slot = `${RESTORE_SNAPSHOT_KEY_PREFIX}${Date.now()}`;
+  await io.kvSet(slot, current);
+  return slot;
+}
+
+/** True when this session has a pre-restore snapshot that has not been undone yet. */
+export function canUndoLastRestore(): boolean {
+  return lastRestoreSnapshotKey !== null;
+}
+
+/**
+ * Restores the household that was snapshotted immediately before the last successful
+ * `importHouseholdBackup` in this session. One-shot: clears the undo slot afterward.
+ */
+export async function undoLastRestore(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const slot = lastRestoreSnapshotKey;
+  if (!slot) {
+    return { ok: false, error: "Nothing to undo." };
+  }
+  await persistChain.catch(() => {});
+  try {
+    const raw = await io.kvGet(slot);
+    if (!raw) {
+      lastRestoreSnapshotKey = null;
+      return { ok: false, error: "The restore snapshot is gone." };
+    }
+    const envelope = parseEnvelopeJson(raw);
+    if (!envelope) {
+      lastRestoreSnapshotKey = null;
+      return { ok: false, error: "The restore snapshot is unreadable." };
+    }
+    const snapshotKeyId = envelope.keyId ?? "v2";
+    let snapshotKey = key;
+    if (!snapshotKey || snapshotKeyId !== (keyId ?? "v2")) {
+      snapshotKey = await io.loadDeviceKey({
+        reason: "Undo last restore",
+        keyId: snapshotKeyId,
+      });
+    }
+    if (!snapshotKey) {
+      return { ok: false, error: "Couldn’t unlock the previous home." };
+    }
+    const household = parseStored(await decryptJson(snapshotKey, envelope));
+    if (!key) {
+      key = snapshotKey;
+      keyId = snapshotKeyId;
+    }
+    memory = household;
+    didHydrate = true;
+    sessionUnlocked = true;
+    sessionMeta = captureSessionMeta(household);
+    notifyChange();
+    await persist(household, key);
+    lastRestoreSnapshotKey = null;
+    lastLoad = { ok: true, legacyLockedVault: false };
+    persistOk = true;
+    persistChain = Promise.resolve();
+    void syncScheduledNotifications(household).catch(() => {});
+    void io.kvRemove(slot).catch(() => {});
+    return { ok: true };
+  } catch {
+    persistOk = false;
+    return { ok: false, error: "Couldn’t undo that restore. Try again." };
+  }
+}
+
 export async function importHouseholdBackup(
   raw: string,
   passphrase: string,
@@ -615,6 +690,7 @@ export async function importHouseholdBackup(
     };
     await persistChain.catch(() => {});
     try {
+      const snapshotKey = await snapshotCurrentVaultBeforeRestore();
       if (needsRestoreKey()) {
         await quarantineUnreadableVault();
         key = await io.createDeviceKey();
@@ -626,6 +702,7 @@ export async function importHouseholdBackup(
       sessionMeta = captureSessionMeta(household);
       notifyChange();
       await persist(household, key);
+      lastRestoreSnapshotKey = snapshotKey;
     } catch {
       persistOk = false;
       return {

@@ -283,6 +283,8 @@
   "backup.createFailed": "Couldn’t create a backup.",
   "backup.fileTooLarge": "That file is too large to be a Cuidala backup.",
   "backup.homeRestored": "Home restored",
+  "backup.undoLastRestore": "Undo last restore",
+  "backup.undoRestoreDone": "Previous home restored",
   "backup.readFailed": "Couldn’t read that file.",
   "backup.restoreTitle": "Restore from backup",
   "backup.backupTitle": "Back up my home",
