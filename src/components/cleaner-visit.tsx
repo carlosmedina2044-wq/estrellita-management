@@ -88,7 +88,7 @@ export function CleanerVisit({
         <Lock className="size-4" />
         {ownerCheck
           ? t("cleaner.handBackWith", {
-              method: lockMethod === "passcode" ? t("cleaner.passcode") : lockMethodLabel(lockMethod).noun,
+              method: lockMethod === "passcode" ? t("cleaner.passcode") : lockMethodLabel(lockMethod, t).noun,
             })
           : t("cleaner.handBack")}
       </Button>

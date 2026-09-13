@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
+import { MoneyInput } from "@/components/money-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,9 +61,8 @@ export function LogPurchaseSheet({
         <div className="flex flex-col gap-4 px-4 pb-2">
           <div className="grid gap-1.5">
             <Label htmlFor="purchase-amount">{t("budget.whatDidYouPay")}</Label>
-            <Input
+            <MoneyInput
               id="purchase-amount"
-              inputMode="decimal"
               className="h-12"
               value={amount}
               onChange={(event) => setAmount(event.target.value)}

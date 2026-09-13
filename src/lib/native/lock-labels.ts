@@ -1,33 +1,38 @@
-import { tActive } from "@/i18n";
+import { tActive, type MessageKey } from "@/i18n";
 
 export type LockMethod = "faceId" | "touchId" | "passcode" | "none";
 
+type Translate = (key: MessageKey, params?: Record<string, string | number>) => string;
+
 /** Copy for the lock UI. Internal setting remains `requireFaceId`. */
-export function lockMethodLabel(method: LockMethod): { noun: string; toggle: string; prompt: string } {
+export function lockMethodLabel(
+  method: LockMethod,
+  t: Translate = tActive,
+): { noun: string; toggle: string; prompt: string } {
   switch (method) {
     case "touchId":
       return {
-        noun: tActive("lockLabels.touchId"),
-        toggle: tActive("lockLabels.requireTouchId"),
-        prompt: tActive("lockLabels.promptTouchId"),
+        noun: t("lockLabels.touchId"),
+        toggle: t("lockLabels.requireTouchId"),
+        prompt: t("lockLabels.promptTouchId"),
       };
     case "passcode":
       return {
-        noun: tActive("lockLabels.passcodeNoun"),
-        toggle: tActive("lockLabels.requirePasscode"),
-        prompt: tActive("lockLabels.promptPasscode"),
+        noun: t("lockLabels.passcodeNoun"),
+        toggle: t("lockLabels.requirePasscode"),
+        prompt: t("lockLabels.promptPasscode"),
       };
     case "none":
       return {
-        noun: tActive("lockLabels.faceId"),
-        toggle: tActive("lockLabels.requireFaceId"),
-        prompt: tActive("lockLabels.promptFaceId"),
+        noun: t("lockLabels.faceId"),
+        toggle: t("lockLabels.requireFaceId"),
+        prompt: t("lockLabels.promptFaceId"),
       };
     default:
       return {
-        noun: tActive("lockLabels.faceId"),
-        toggle: tActive("lockLabels.requireFaceId"),
-        prompt: tActive("lockLabels.promptFaceId"),
+        noun: t("lockLabels.faceId"),
+        toggle: t("lockLabels.requireFaceId"),
+        prompt: t("lockLabels.promptFaceId"),
       };
   }
 }

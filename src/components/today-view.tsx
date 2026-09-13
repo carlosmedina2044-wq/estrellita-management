@@ -457,7 +457,7 @@ export function TodayView({
       ) : null}
 
       {hasCleanerDuties ? (
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div className="app-h-scroll -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {(["all", "me", "cleaner"] as const).map((item) => (
           <button
             key={item}
@@ -499,68 +499,76 @@ export function TodayView({
           t={t}
         />
       ) : (
-        <div ref={listRef} className="flex flex-col gap-5">
-          {weatherListed.length > 0 ? (
-            <div>
-              <p className="mb-2 px-1 ui-caption font-medium text-muted-foreground">
-                {t("today.weatherAddedHeader")}
-              </p>
+        <>
+          <div ref={listRef} className="flex flex-col gap-5">
+            {weatherListed.length > 0 ? (
+              <div>
+                <p className="mb-2 px-1 ui-caption font-medium text-muted-foreground">
+                  {t("today.weatherAddedHeader")}
+                </p>
+                <div className="ui-group">
+                  {weatherListed.map((duty) => (
+                    <div key={duty.id} className="ui-group-row">
+                      {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {regularListed.length > 0 || doneOnDay.length > 0 || costPrompts.length > 0 ? (
               <div className="ui-group">
-                {weatherListed.map((duty) => (
+                {regularListed.map((duty) => (
                   <div key={duty.id} className="ui-group-row">
                     {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
                   </div>
                 ))}
-              </div>
-            </div>
-          ) : null}
-          {regularListed.length > 0 || doneOnDay.length > 0 || costPrompts.length > 0 ? (
-            <div className="ui-group">
-              {regularListed.map((duty) => (
-                <div key={duty.id} className="ui-group-row">
-                  {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
-                </div>
-              ))}
-              {doneOnDay.map((duty) => {
-                const prompt = costPrompts.find((item) => item.dutyId === duty.id);
-                return (
-                <div key={duty.id} className="ui-group-row">
-                  {dutyRow(duty, { done: true })}
-                  {prompt && onRecordCost ? (
-                    <div className="px-4 pb-3">
-                      <CostPrompt
-                        suggested={suggestedCostFor(duty, household)}
-                        onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
-                        onSkip={() => onRecordCost(prompt.id, { skip: true })}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-                );
-              })}
-              {costPrompts
-                .filter((item) => !doneOnDay.some((duty) => duty.id === item.dutyId) && !open.some((duty) => duty.id === item.dutyId))
-                .map((prompt) => {
-                  const duty = household.duties.find((item) => item.id === prompt.dutyId);
-                  if (!duty) return null;
+                {doneOnDay.map((duty) => {
+                  const prompt = costPrompts.find((item) => item.dutyId === duty.id);
                   return (
-                    <div key={prompt.id} className="ui-group-row">
-                      {dutyRow(duty, { done: true })}
-                      {onRecordCost ? (
-                        <div className="px-4 pb-3">
-                          <CostPrompt
-                            suggested={suggestedCostFor(duty, household)}
-                            onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
-                            onSkip={() => onRecordCost(prompt.id, { skip: true })}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
+                  <div key={duty.id} className="ui-group-row">
+                    {dutyRow(duty, { done: true })}
+                    {prompt && onRecordCost ? (
+                      <div className="px-4 pb-3">
+                        <CostPrompt
+                          suggested={suggestedCostFor(duty, household)}
+                          onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
+                          onSkip={() => onRecordCost(prompt.id, { skip: true })}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
                   );
                 })}
-            </div>
-          ) : null}
-        </div>
+                {costPrompts
+                  .filter((item) => !doneOnDay.some((duty) => duty.id === item.dutyId) && !open.some((duty) => duty.id === item.dutyId))
+                  .map((prompt) => {
+                    const duty = household.duties.find((item) => item.id === prompt.dutyId);
+                    if (!duty) return null;
+                    return (
+                      <div key={prompt.id} className="ui-group-row">
+                        {dutyRow(duty, { done: true })}
+                        {onRecordCost ? (
+                          <div className="px-4 pb-3">
+                            <CostPrompt
+                              suggested={suggestedCostFor(duty, household)}
+                              onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
+                              onSkip={() => onRecordCost(prompt.id, { skip: true })}
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : null}
+          </div>
+          <Button
+            className="h-12 rounded-full"
+            onClick={() => createGuard.tryOpen(() => setCreating(true))}
+          >
+            {t("today.addChore")}
+          </Button>
+        </>
       )}
 
       {scope === "daily" && !viewingCalendar ? (
@@ -704,6 +712,7 @@ export function TodayView({
         duty={editing}
         household={household}
         defaultRoom={household.rooms.find((room) => !room.system)?.id ?? "kitchen"}
+        defaultsForToday={creating}
         supplyAutomation={
           editing
             ? household.supplyAutomations.find(
@@ -832,7 +841,7 @@ function AttentionTiles({
   }
 
   return (
-    <div className="-mx-1 flex gap-2 overflow-x-auto px-1">
+    <div className="app-h-scroll -mx-1 flex gap-2 overflow-x-auto px-1">
       {tiles.map((tile) => (
         <button
           key={tile.key}

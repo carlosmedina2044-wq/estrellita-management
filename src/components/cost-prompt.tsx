@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { MoneyInput } from "@/components/money-input";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useLocale } from "@/i18n/locale-provider";
 import { parseCostInput } from "@/lib/costs";
 
@@ -22,8 +22,7 @@ export function CostPrompt({
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">
       <span className="ui-caption text-muted-foreground">{t("cost.optional")}</span>
-      <Input
-        inputMode="decimal"
+      <MoneyInput
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="0.00"

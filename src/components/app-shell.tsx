@@ -622,7 +622,7 @@ export function AppShell() {
     onMarkTip: (tip: string) => updateTree((current) => markTipSeen(current, tip)),
   };
 
-  const lockMethodNoun = lockMethodLabel(lockMethod ?? "passcode").noun;
+  const lockMethodNoun = lockMethodLabel(lockMethod ?? "passcode", t).noun;
 
   const todayActive = top === null && rootTab === "today";
   const homeActive = top === null && rootTab === "home";
@@ -712,7 +712,7 @@ export function AppShell() {
             tabPaneRefs.current.home = node;
           }}
         >
-          <div className="flex flex-col gap-4 pb-8">
+          <div className="flex flex-col gap-4">
             <PageHeader
               title={household.householdName}
               subtitle={<HomeStatusLine summary={summary} />}
@@ -1021,17 +1021,19 @@ function NavButton({
       aria-label={ariaLabel}
       onClick={onClick}
       className={cn(
-        "relative mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 ui-caption font-medium transition-colors duration-75 active:scale-[0.98]",
+        "mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 ui-caption font-medium transition-colors duration-75 active:scale-[0.98]",
         active ? "text-primary" : "text-muted-foreground",
       )}
     >
-      {icon}
+      <span className="relative">
+        {icon}
+        {badge ? (
+          <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 ui-caption font-semibold num text-white">
+            {badge}
+          </span>
+        ) : null}
+      </span>
       {label}
-      {badge ? (
-        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 ui-caption font-semibold num text-white">
-          {badge}
-        </span>
-      ) : null}
     </button>
   );
 }

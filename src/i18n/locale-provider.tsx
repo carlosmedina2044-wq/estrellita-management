@@ -99,11 +99,14 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
   const locale = preference === "system" ? deviceLocale : preference;
 
+  // Keep tActive / date formatters in lockstep during this render. Updating them
+  // in useEffect leaves Settings copy (e.g. Require Face ID) on the previous language.
+  setActiveAppLocale(locale);
+  setActiveDateLocale(localeDateTag(locale));
+
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.documentElement.lang = htmlLang(locale);
-    setActiveDateLocale(localeDateTag(locale));
-    setActiveAppLocale(locale);
   }, [locale]);
 
   const value = useMemo<LocaleContextValue>(

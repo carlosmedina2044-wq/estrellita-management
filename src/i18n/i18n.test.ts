@@ -116,6 +116,19 @@ test("known leftover English chrome phrases are not hardcoded in key surfaces", 
   }
 });
 
+test("lock labels follow the active locale immediately", async () => {
+  const { setActiveAppLocale } = await import("@/i18n");
+  const { lockMethodLabel } = await import("@/lib/native/lock-labels");
+  setActiveAppLocale("pt-BR");
+  assert.equal(lockMethodLabel("faceId").toggle, "Exigir Face ID");
+  setActiveAppLocale("en");
+  assert.equal(lockMethodLabel("faceId").toggle, "Require Face ID");
+  setActiveAppLocale("es");
+  assert.equal(lockMethodLabel("faceId").toggle, "Pedir Face ID");
+  assert.equal(lockMethodLabel("faceId", (key) => translate("en", key)).toggle, "Require Face ID");
+  setActiveAppLocale("en");
+});
+
 /** Smoke: key chrome strings must not fall back to English for es / pt-BR. */
 test("es and pt-BR smoke keys do not fall back to English", () => {
   const smokeKeys = [
@@ -140,6 +153,7 @@ test("es and pt-BR smoke keys do not fall back to English", () => {
     "home.reassignJobs",
     "onboarding.sampleCta",
     "lock.unlock",
+    "lockLabels.requireFaceId",
     "backup.undoLastRestore",
   ] as const;
 

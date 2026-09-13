@@ -115,6 +115,7 @@ export function DutyForm({
   duty,
   household,
   defaultRoom,
+  defaultsForToday,
   supplyAutomation,
   defaultTrackSupply,
   onOpenChange,
@@ -126,6 +127,7 @@ export function DutyForm({
   duty: Duty | null;
   household: Household;
   defaultRoom?: Room;
+  defaultsForToday?: boolean;
   supplyAutomation?: SupplyAutomation | null;
   defaultTrackSupply?: boolean;
   onOpenChange: (open: boolean) => void;
@@ -142,7 +144,7 @@ export function DutyForm({
 
   // Reset the draft whenever the sheet opens for a different duty. Adjusting
   // state during render (instead of in an effect) avoids a flash of stale data.
-  const resetKey = `${open}:${duty?.id ?? ""}:${supplyAutomation?.id ?? ""}:${defaultRoom ?? ""}:${defaultTrackSupply ?? ""}`;
+  const resetKey = `${open}:${duty?.id ?? ""}:${supplyAutomation?.id ?? ""}:${defaultRoom ?? ""}:${defaultTrackSupply ?? ""}:${defaultsForToday ?? ""}`;
   const [prevResetKey, setPrevResetKey] = useState<string | null>(null);
   if (open && prevResetKey !== resetKey) {
     setPrevResetKey(resetKey);
@@ -160,6 +162,7 @@ export function DutyForm({
       setDraft({
         ...emptyDraft,
         room: defaultRoom ?? "kitchen",
+        frequency: defaultsForToday ? "once" : emptyDraft.frequency,
         dueDate: todayISO(),
         trackSupply: Boolean(defaultTrackSupply),
         kind: defaultTrackSupply ? "replacement" : "chore",

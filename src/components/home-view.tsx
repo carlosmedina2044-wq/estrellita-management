@@ -106,6 +106,7 @@ export function HomeView({
   backLabel?: string;
 }) {
   const { t, preference, setPreference, dateLocale } = useLocale();
+  const lockCopy = lockMethodLabel(lockMethod, t);
   const weekdayLabels = useMemo(() => {
     const formatter = new Intl.DateTimeFormat(dateLocale, { weekday: "short" });
     const sunday = new Date(2026, 8, 13);
@@ -385,7 +386,7 @@ export function HomeView({
               ) : null}
               {restockDigest.enabled && permission === "granted" ? (
                 <div className="mt-3 grid gap-3">
-                  <div className="-mx-1 flex flex-nowrap gap-1.5 overflow-x-auto px-1 pb-1">
+                  <div className="app-h-scroll -mx-1 flex flex-nowrap gap-1.5 overflow-x-auto px-1 pb-1">
                     {weekdayLabels.map((day, index) => (
                       <button
                         key={`${day}-${index}`}
@@ -446,7 +447,7 @@ export function HomeView({
         <div className="ui-group-row px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="ui-body font-medium">{lockMethodLabel(lockMethod).toggle}</p>
+              <p className="ui-body font-medium">{lockCopy.toggle}</p>
               <p className="mt-0.5 ui-caption text-muted-foreground">
                 {canLock
                   ? t("settings.lockHelpOn")
@@ -456,7 +457,7 @@ export function HomeView({
             <Switch
               checked={Boolean(household.lockSettings.requireFaceId && canLock)}
               disabled={!canLock}
-              aria-label={lockMethodLabel(lockMethod).toggle}
+              aria-label={lockCopy.toggle}
               onCheckedChange={(next) => {
                 void (async () => {
                   if (!next && canLock) {

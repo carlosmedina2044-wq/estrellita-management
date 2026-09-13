@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { tActive } from "@/i18n";
+import type { MessageKey } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { Ellipsis } from "lucide-react";
 import { toast } from "sonner";
+import { MoneyInput } from "@/components/money-input";
 import { RetailerPickerSheet } from "@/components/retailer-picker-sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -218,12 +219,18 @@ export function RestockOrderButton({
     />
   );
 
+  const actionClass =
+    className ??
+    (compact
+      ? "h-11 w-auto max-w-full shrink-0 self-start rounded-full px-4"
+      : "h-11 max-w-full");
+
   if (placement.nudgeArrive) {
     return (
-      <div className="grid gap-2">
+      <div className="grid min-w-0 gap-2">
         <p className="ui-caption text-muted-foreground">{t("restock.didItArrive")}</p>
         {onReceived ? (
-          <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setSheet("receive")}>
+          <Button type="button" className={actionClass} onClick={() => setSheet("receive")}>
             {t("restock.itArrived")}
           </Button>
         ) : null}
@@ -281,9 +288,9 @@ export function RestockOrderButton({
 
   if (arriving) {
     return (
-      <div className="grid gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <p className="ui-caption text-muted-foreground">{arrivalLine(item)}</p>
+      <div className="grid min-w-0 gap-2">
+        <div className="flex min-w-0 items-start gap-2">
+          <p className="min-w-0 flex-1 text-pretty ui-caption text-muted-foreground">{arrivalLine(item, t)}</p>
           {onChangeArrival || onNeverCame ? (
             <Button
               type="button"
@@ -298,7 +305,7 @@ export function RestockOrderButton({
           ) : null}
         </div>
         {onReceived ? (
-          <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setSheet("receive")}>
+          <Button type="button" className={actionClass} onClick={() => setSheet("receive")}>
             {t("restock.itArrived")}
           </Button>
         ) : null}
@@ -359,7 +366,7 @@ export function RestockOrderButton({
         <Button
           type="button"
           variant={early ? "ghost" : subdued ? "secondary" : "default"}
-          className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")}
+          className={actionClass}
           onClick={() => setSheet("picker")}
         >
           {early ? t("restock.orderEarly") : t("common.order")}
@@ -729,8 +736,7 @@ function ReceiveDialog({
         <div className="grid gap-3 px-4 pb-4">
           <Input type="number" min={1} value={qty} onChange={(event) => onQty(event.target.value)} className="h-11" />
           <p className="ui-caption text-muted-foreground">{t("cost.whatDidItCost")}</p>
-          <Input
-            inputMode="decimal"
+          <MoneyInput
             value={costDraft}
             onChange={(event) => setCostDraft(event.target.value)}
             placeholder="0.00"
@@ -757,10 +763,13 @@ function retailerCaption(value?: string): string {
   return RETAILER_CHIPS.find((chip) => chip.id === value)?.label ?? value;
 }
 
-function arrivalLine(item: SupplyAutomation): string {
-  if (!item.expectedArrivalDate) return tActive("restock.onTheWay");
+function arrivalLine(
+  item: SupplyAutomation,
+  t: (key: MessageKey, params?: Record<string, string | number>) => string,
+): string {
+  if (!item.expectedArrivalDate) return t("restock.onTheWay");
   const store = retailerCaption(typeof item.preferredRetailer === "string" ? item.preferredRetailer : undefined);
-  return tActive("restock.arrivingStore", {
+  return t("restock.arrivingStore", {
     date: formatWeekdayDate(item.expectedArrivalDate),
     store: store ? ` · ${store}` : "",
   });
@@ -776,7 +785,7 @@ export function OrderByLine({
   const { t } = useLocale();
   const placement = restockPlacement(item, household);
   if (placement.bucket === "ordered" && item.expectedArrivalDate) {
-    return <>{arrivalLine(item)}</>;
+    return <>{arrivalLine(item, t)}</>;
   }
   if (placement.bucket === "order_now" && item.onHand <= reorderAtFor(item)) {
     return (

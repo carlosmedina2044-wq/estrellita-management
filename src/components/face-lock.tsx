@@ -30,6 +30,7 @@ export function FaceLock({
   cleanerVisitActive?: boolean;
 }) {
   const { t } = useLocale();
+  const lockCopy = lockMethodLabel(method, t);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -67,8 +68,8 @@ export function FaceLock({
       <h1 className="ui-heading mt-10 ui-title font-semibold tracking-tight">{t("lock.title")}</h1>
       <p className="mt-2 max-w-xs text-sm text-muted-foreground">
         {cleanerVisitActive
-          ? t("lock.cleanerVisit", { method: lockMethodLabel(method).noun })
-          : lockMethodLabel(method).prompt}
+          ? t("lock.cleanerVisit", { method: lockCopy.noun })
+          : lockCopy.prompt}
       </p>
       <p className="mt-2 max-w-xs ui-caption text-muted-foreground">{t("lock.passcodeHint")}</p>
       {showTip ? (
