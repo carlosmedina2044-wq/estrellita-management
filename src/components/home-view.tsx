@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -218,8 +219,11 @@ export function HomeView({
       <section>
         <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.household")}</h2>
         <div className="ui-group">
-          <div className="ui-group-row grid gap-1.5 px-4 py-3">
-            <Label className="ui-caption font-medium text-muted-foreground">{t("settings.homeName")}</Label>
+          <Field
+            label={t("settings.homeName")}
+            className="ui-group-row px-4 py-3"
+            labelClassName="ui-caption font-medium text-muted-foreground"
+          >
             <Input
               value={home}
               onChange={(event) => {
@@ -231,9 +235,12 @@ export function HomeView({
               placeholder={t("settings.homeNamePlaceholder")}
               className="h-12"
             />
-          </div>
-          <div className="ui-group-row grid gap-1.5 px-4 py-3">
-            <Label className="ui-caption font-medium text-muted-foreground">{t("settings.yourName")}</Label>
+          </Field>
+          <Field
+            label={t("settings.yourName")}
+            className="ui-group-row px-4 py-3"
+            labelClassName="ui-caption font-medium text-muted-foreground"
+          >
             <Input
               value={owner}
               onChange={(event) => {
@@ -245,9 +252,12 @@ export function HomeView({
               placeholder={t("settings.yourNamePlaceholder")}
               className="h-12"
             />
-          </div>
-          <div className="ui-group-row grid gap-1.5 px-4 py-3">
-            <Label className="ui-caption font-medium text-muted-foreground">{t("settings.cleaner")}</Label>
+          </Field>
+          <Field
+            label={t("settings.cleaner")}
+            className="ui-group-row px-4 py-3"
+            labelClassName="ui-caption font-medium text-muted-foreground"
+          >
             <Input
               value={cleaner}
               onChange={(event) => {
@@ -259,7 +269,7 @@ export function HomeView({
               placeholder={t("settings.cleanerPlaceholder")}
               className="h-12"
             />
-          </div>
+          </Field>
         </div>
       </section>
       <section>

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { tActive } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -377,15 +377,6 @@ export function ConsumableForm({
         </SheetFooter>
       </SheetContent>
     </Sheet>
-  );
-}
-
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
-      {children}
-    </div>
   );
 }
 

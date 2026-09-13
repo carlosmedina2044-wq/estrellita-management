@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -208,22 +208,23 @@ export function HomeEditor({
       ))}
 
       <div className="grid gap-2">
-        <Label className="text-xs font-medium text-muted-foreground">{t("home.addFloor")}</Label>
-        <div className="flex gap-2">
-          <Input
-            value={floorName}
-            onChange={(event) => setFloorName(event.target.value)}
-            placeholder={t("home.basementPlaceholder")}
-            className="h-11"
-          />
-          <Button type="button" variant="secondary" className="h-11" onClick={addFloor}>
-            {t("home.add")}
-          </Button>
-        </div>
+        <Field label={t("home.addFloor")}>
+          <div className="flex gap-2">
+            <Input
+              value={floorName}
+              onChange={(event) => setFloorName(event.target.value)}
+              placeholder={t("home.basementPlaceholder")}
+              className="h-11"
+            />
+            <Button type="button" variant="secondary" className="h-11" onClick={addFloor}>
+              {t("home.add")}
+            </Button>
+          </div>
+        </Field>
       </div>
 
       <div className="grid gap-2">
-        <Label className="text-xs font-medium text-muted-foreground">{t("home.addARoom")}</Label>
+        <p className="text-xs font-medium text-muted-foreground">{t("home.addARoom")}</p>
         <Select value={roomFloor} onValueChange={setRoomFloor}>
           <SelectTrigger className="h-11 w-full">
             <SelectValue placeholder={t("home.floorPlaceholder")} />
@@ -248,12 +249,14 @@ export function HomeEditor({
             ))}
           </SelectContent>
         </Select>
-        <Input
-          value={roomName}
-          onChange={(event) => setRoomName(event.target.value)}
-          placeholder={t("home.optionalName")}
-          className="h-11"
-        />
+        <Field label={t("home.optionalName")}>
+          <Input
+            value={roomName}
+            onChange={(event) => setRoomName(event.target.value)}
+            placeholder={t("home.optionalName")}
+            className="h-11"
+          />
+        </Field>
         {roomHints.length > 0 ? (
           <p className="text-xs text-muted-foreground">
             {t("home.suggestedItems", { list: roomHints.map((item) => item.itemName).join(", ") })}
@@ -265,7 +268,7 @@ export function HomeEditor({
       </div>
 
       <div className="grid gap-2">
-        <Label className="text-xs font-medium text-muted-foreground">{t("home.addAnAsset")}</Label>
+        <p className="text-xs font-medium text-muted-foreground">{t("home.addAnAsset")}</p>
         <Select value={assetRoom} onValueChange={setAssetRoom}>
           <SelectTrigger className="h-11 w-full">
             <SelectValue placeholder={t("home.roomPlaceholder")} />
@@ -290,23 +293,23 @@ export function HomeEditor({
             ))}
           </SelectContent>
         </Select>
-        <Input
-          value={assetName}
-          onChange={(event) => setAssetName(event.target.value)}
-          placeholder={t("home.optionalName")}
-          className="h-11"
-        />
-        <div className="grid gap-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">{t("home.installDate")}</Label>
+        <Field label={t("home.optionalName")}>
+          <Input
+            value={assetName}
+            onChange={(event) => setAssetName(event.target.value)}
+            placeholder={t("home.optionalName")}
+            className="h-11"
+          />
+        </Field>
+        <Field label={t("home.installDate")}>
           <Input
             type="date"
             value={assetInstall}
             onChange={(event) => setAssetInstall(event.target.value)}
             className="h-11"
           />
-        </div>
-        <div className="grid gap-1.5">
-          <Label className="text-xs font-medium text-muted-foreground">{t("home.warrantyUntil")}</Label>
+        </Field>
+        <Field label={t("home.warrantyUntil")}>
           <Input
             type="date"
             value={assetWarranty}
@@ -327,7 +330,7 @@ export function HomeEditor({
               ))}
             </div>
           ) : null}
-        </div>
+        </Field>
         {assetHints.length > 0 ? (
           <p className="text-xs text-muted-foreground">
             {t("home.suggestedItems", { list: assetHints.map((item) => item.itemName).join(", ") })}
@@ -386,57 +389,59 @@ export function HomeEditor({
                   {badge ? ` · ${badge}` : ""}
                 </p>
                 <div className="mt-3 grid gap-2">
-                  <Label className="text-xs font-medium text-muted-foreground">{t("home.installDate")}</Label>
-                  <Input
-                    type="date"
-                    value={asset.installDate ?? ""}
-                    onChange={(event) =>
-                      onChange({
-                        ...household,
-                        assets: household.assets.map((item) =>
-                          item.id === asset.id ? { ...item, installDate: event.target.value || undefined } : item,
-                        ),
-                      })
-                    }
-                    className="h-11"
-                  />
-                  <Label className="text-xs font-medium text-muted-foreground">{t("home.warrantyUntil")}</Label>
-                  <Input
-                    type="date"
-                    value={asset.warrantyUntil ?? ""}
-                    onChange={(event) =>
-                      onChange({
-                        ...household,
-                        assets: household.assets.map((item) =>
-                          item.id === asset.id ? { ...item, warrantyUntil: event.target.value || undefined } : item,
-                        ),
-                      })
-                    }
-                    className="h-11"
-                  />
-                  {asset.installDate ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {([1, 2, 5, 10] as const).map((years) => (
-                        <button
-                          key={years}
-                          type="button"
-                          className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
-                          onClick={() =>
-                            onChange({
-                              ...household,
-                              assets: household.assets.map((item) =>
-                                item.id === asset.id
-                                  ? { ...item, warrantyUntil: warrantyFromInstall(asset.installDate!, years) }
-                                  : item,
-                              ),
-                            })
-                          }
-                        >
-                          {t("home.yearsShort", { n: years })}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
+                  <Field label={t("home.installDate")}>
+                    <Input
+                      type="date"
+                      value={asset.installDate ?? ""}
+                      onChange={(event) =>
+                        onChange({
+                          ...household,
+                          assets: household.assets.map((item) =>
+                            item.id === asset.id ? { ...item, installDate: event.target.value || undefined } : item,
+                          ),
+                        })
+                      }
+                      className="h-11"
+                    />
+                  </Field>
+                  <Field label={t("home.warrantyUntil")}>
+                    <Input
+                      type="date"
+                      value={asset.warrantyUntil ?? ""}
+                      onChange={(event) =>
+                        onChange({
+                          ...household,
+                          assets: household.assets.map((item) =>
+                            item.id === asset.id ? { ...item, warrantyUntil: event.target.value || undefined } : item,
+                          ),
+                        })
+                      }
+                      className="h-11"
+                    />
+                    {asset.installDate ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {([1, 2, 5, 10] as const).map((years) => (
+                          <button
+                            key={years}
+                            type="button"
+                            className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
+                            onClick={() =>
+                              onChange({
+                                ...household,
+                                assets: household.assets.map((item) =>
+                                  item.id === asset.id
+                                    ? { ...item, warrantyUntil: warrantyFromInstall(asset.installDate!, years) }
+                                    : item,
+                                ),
+                              })
+                            }
+                          >
+                            {t("home.yearsShort", { n: years })}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </Field>
                 </div>
               </section>
             );
