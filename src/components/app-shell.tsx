@@ -859,11 +859,11 @@ export function AppShell() {
         ) : null}
       </main>
 
-      <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40 bg-background" aria-label={t("common.mainNav")}>
+      <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40" aria-label={t("common.mainNav")}>
         <div
           role="tablist"
           aria-label={t("common.mainNav")}
-          className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background px-1 pt-1 pb-2"
+          className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 px-1 pt-1 pb-2"
         >
           <NavButton
             label={t("tabs.today")}
@@ -1021,14 +1021,14 @@ function NavButton({
       aria-label={ariaLabel}
       onClick={onClick}
       className={cn(
-        "relative mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl ui-caption font-medium transition-transform duration-75 active:scale-[0.98]",
-        active ? "bg-secondary text-primary" : "text-muted-foreground",
+        "relative mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 ui-caption font-medium transition-colors duration-75 active:scale-[0.98]",
+        active ? "text-primary" : "text-muted-foreground",
       )}
     >
       {icon}
       {label}
       {badge ? (
-        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 ui-caption font-semibold text-primary-foreground">
+        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 ui-caption font-semibold text-white">
           {badge}
         </span>
       ) : null}

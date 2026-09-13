@@ -435,7 +435,9 @@
 
 .app-tab-bar {
   z-index: 40;
-  background-color: var(--background);
+  background-color: color-mix(in oklab, var(--background) 86%, transparent);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
