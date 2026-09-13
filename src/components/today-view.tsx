@@ -36,7 +36,7 @@ import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { scrollBehavior } from "@/lib/motion";
+import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { useLocale } from "@/i18n/locale-provider";
 import { useNow } from "@/hooks/use-now";
@@ -109,6 +109,8 @@ export function TodayView({
   const [teachingHidden, setTeachingHidden] = useState(false);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
+  const [exitingId, setExitingId] = useState<string | null>(null);
+  const exitingIdRef = useRef<string | null>(null);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const [prevFocus, setPrevFocus] = useState(focus);
   if (focus !== prevFocus) {
@@ -170,22 +172,53 @@ export function TodayView({
 
   function toggle(duty: Duty, completed: boolean) {
     if (completed) {
+      if (exitingIdRef.current === duty.id) {
+        exitingIdRef.current = null;
+        setExitingId(null);
+        return;
+      }
       onUndo(duty.id);
       void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
       toast(t("today.undoToast"));
       return;
     }
-    onComplete(duty.id);
+    if (exitingIdRef.current) return;
+    if (prefersReducedMotion()) {
+      onComplete(duty.id);
+      void import("@/lib/native/haptics").then((m) => m.hapticComplete()).catch(() => {});
+      toast.success(tDutyTitle(duty.title), {
+        action: {
+          label: t("today.undoToast"),
+          onClick: () => {
+            onUndo(duty.id);
+            void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
+          },
+        },
+      });
+      return;
+    }
+    exitingIdRef.current = duty.id;
+    setExitingId(duty.id);
     void import("@/lib/native/haptics").then((m) => m.hapticComplete()).catch(() => {});
     toast.success(tDutyTitle(duty.title), {
       action: {
         label: t("today.undoToast"),
         onClick: () => {
-          onUndo(duty.id);
+          const wasExiting = exitingIdRef.current === duty.id;
+          exitingIdRef.current = null;
+          setExitingId(null);
+          if (!wasExiting) onUndo(duty.id);
           void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
         },
       },
     });
+  }
+
+  function finishExit(dutyId: string) {
+    if (exitingIdRef.current !== dutyId) return;
+    exitingIdRef.current = null;
+    setExitingId(null);
+    onComplete(dutyId);
   }
 
   async function share() {
@@ -209,6 +242,8 @@ export function TodayView({
         overdue={extra.overdue}
         hideOverdueChip={onlyOverdue}
         partChip={chip}
+        exiting={exitingId === duty.id}
+        onExitComplete={() => finishExit(duty.id)}
         onPartChip={
           chip?.kind === "order_first"
             ? () => {
@@ -220,7 +255,7 @@ export function TodayView({
             : undefined
         }
         missingPartHint={chip?.kind === "order_first"}
-        onToggle={() => toggle(duty, Boolean(extra.done))}
+        onToggle={() => toggle(duty, Boolean(extra.done) || exitingId === duty.id)}
         onOpen={() => setEditing(duty)}
       />
     );
