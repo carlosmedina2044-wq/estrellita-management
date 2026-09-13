@@ -34,6 +34,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | Face ID and location usage strings present in shipped Info.plist | App Store 5.1.1 | `ios/App/App/Info.plist` | File inspection | VERIFIED |
 | Export compliance | App Store | `ITSAppUsesNonExemptEncryption=false`. Encryption is WebCrypto (AES-GCM, PBKDF2) provided by Apple inside WebKit, plus iOS Keychain. No custom crypto library is shipped. | Info.plist + this row | VERIFIED (config) |
 | Input limits and control-char stripping | ASVS V5 | `sanitize.ts`, `migrateHousehold` | `storage.test.ts` | VERIFIED |
+| Backup file input bounds (iterations, size, collection caps) | Denial of service | `BACKUP_MAX_ITERATIONS` / `BACKUP_MAX_FILE_BYTES` in `backup.ts`; `COLLECTION_LIMITS` in `migrateHousehold` | `backup.test.ts` (2e9 iterations rejected; 13 MB spaces throw before parse); `storage.test.ts` (6_000 duties → 5_000; 10 KB `triggerId` truncated; `lat: 999` → undefined) | VERIFIED |
 | Dependency audit, secret scan, OSV, Semgrep | Supply chain | `.github/workflows/security.yml` | CI: `npm audit --omit=dev --audit-level=moderate`. OSV pinned to `osv-scanner-action@v2.5.1`. Known exception: `@capacitor/cli → xcode → uuid` (`GHSA-w5hq-g745-h8pq`) in `osv-scanner.toml`; not in the shipped bundle. | VERIFIED |
 | Forecast, playbooks, restock math, onboarding, backups | Product | `src/lib/**` | Unit tests including weather-fire idempotence, restock invariants, climate ZIP-3 table, WeatherKit provider mock | VERIFIED |
 | Typical costs labeled and reviewed | Q3 | `src/lib/costs/sources.json` ("national typical, 2026"); quote-only for gas/electrical/roof/structural/pest | Review this file annually | VERIFIED (file) |
@@ -43,7 +44,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 
 ## Not implemented (by design for v1)
 
-Accounts, cross-device sync, household invites, server-side anything, in-app purchase / StoreKit (v1 is free; Cuidala Pro is listed as coming soon in Settings, copy only), iPad, and a share extension. One home, one phone. See `docs/RESIDUAL_RISKS.md` for what that leaves open.
+Accounts, cross-device sync, household invites, server-side anything, in-app purchase / StoreKit (v1 is free; the Pro card is not shown in the shipped UI), iPad split view, and a share extension. One home, one phone. See `docs/RESIDUAL_RISKS.md` for what that leaves open.
 
 ## 1.1 follow-ups
 

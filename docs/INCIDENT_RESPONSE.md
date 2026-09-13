@@ -14,7 +14,7 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 ## Pre-release device checks (manual, every TestFlight build)
 
 - [ ] Fresh install: Onboarding → Set up my home → rooms → ZIP (optional) → Walk your house → Today in under a few minutes (home type + tenure on one screen; no climate payoff step).
-- [ ] Fresh install: Use a sample home → Today list immediately; Restock has starter consumables. First-three card on Today.
+- [ ] Fresh install: Use a sample home → every tab (Today / Home / Restock); Today list visible without scrolling; notifications prompt once; forecast within 10 s on Wi-Fi.
 - [ ] Geolocation: Allow location during onboarding. The system sheet must show **Cuidala**, not localhost.
 - [ ] App lock: Unlock UI visible first; biometrics prompt after a short delay or on Unlock tap; cancel → still locked. Passcode helper text present.
 - [ ] Lock timer is timestamp-based: background for the lock-after interval with the screen off (JS timers suspend in WKWebView). Return → locked.
@@ -27,25 +27,30 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
   - [ ] Cleaner visit: lock timer never fires; Hand phone back still requires owner verification.
 - [ ] App switcher shows a blur privacy screen, not the household.
 - [ ] Settings → Require Face ID / Touch ID / passcode → Off → Face ID / passcode sheet first; cancel leaves lock on.
-- [ ] Settings → Back up my home → share sheet / Files. Restore from that file → confirm “replace N chores, M items” → home returns.
+- [ ] Settings → Back up my home → share sheet / Files. Restore from that file → confirm “replace N chores, M items” with the passphrase in the dialog → home returns.
+- [ ] Create backup → AirDrop → delete the app → reinstall → LoadFailed is **not** shown → Restore → survives force-quit.
+- [ ] Simulate key-mismatch (or a phone without the Keychain item) → Restore from file → home persists after force-quit (1.1).
 - [ ] LoadFailed (unsigned build or missing key) → Erase and start over uses the same confirm dialog as Settings.
 - [ ] Hand phone to cleaner → lock timer does not fire during the visit → Hand phone back → owner verification required (label matches the device method).
 - [ ] Touch ID device (SE): Settings toggle reads "Require Touch ID"; lock screen and cleaner handback say Touch ID.
 - [ ] Passcode-only device (biometrics unenrolled): Settings toggle reads "Require passcode to open"; unlock is the system passcode sheet.
 - [ ] Add a consumable → Allow notifications → confirm a pending reminder exists. Weekly digest is repeating (`repeats: true`), not a single fire.
-- [ ] Restock → Order → SFSafariViewController opens (not the app WebView); return → one Confirm your order sheet (arrival + qty); second order at same retailer can skip confirm in-session. “I already ordered it” near top of store picker.
-- [ ] Settings → Erase all data → relaunch → onboarding; no residual data.
+- [ ] Restock: Order only when due; Coming up shows Order early; Stocked has no Order. Walk house is a full-screen cover with Cancel. Confirm is Yes, ordered / Cancel. SFSafariViewController opens (not the app WebView).
+- [ ] Settings → Erase everything → Face ID when available → onboarding on relaunch; no residual data.
 - [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
-- [ ] Tab bar shows Today / Home / Restock only; Budget and Seasonal open from their cards and Back returns to Home / Today respectively.
-- [ ] Tab bar is hidden on Budget, Seasonal, and Settings; push transition plays (none with Reduce Motion); Back returns to the parent tab.
+- [ ] Tab bar shows Today / Home / Restock and stays visible on Settings / Budget / Seasonal; source-aware Back from Settings opened on Today returns to Today; tabs keep their scroll.
+- [ ] Home room tile opens a room-detail sheet (no nested map); forecast card opens Budget.
 - [ ] Settings gear, sheet close, calendar days, restock chips, and primary CTAs are at least 44pt.
 - [ ] Today shows a dismissible ZIP banner when ZIP is missing (not four competing prompts); Seasonal ZIP card uses the same ZipSheet.
 - [ ] Today shows This season when a playbook is open; Apple Weather attribution once on Today when forecast is loaded.
 - [ ] Onboarding walk pre-selects recommended items; no sizes asked; Costco chip present.
-- [ ] Settings → How Cuidala works / Privacy / Terms open in-app sheets (shell stays); climate uses chips; digest Switch requests notification permission before enabling; lock delay chips only when lock is On; day chips ≥44pt wide.
+- [ ] Settings → How Cuidala works / Privacy / Terms open in-app sheets; climate is a select; digest hour More… opens a time sheet; names persist on blur; Hide item names on the lock screen switch works; digest Switch requests notification permission before enabling.
 - [ ] Palette: cream surfaces with darker brand `#9A5A35` for readable primary text/CTAs.
-- [ ] Bottom sheets show a grabber with swipe-down dismiss; push screens fade (not slide); Reduce Motion disables animation and smooth scroll.
-- [ ] Before App Store submission (human): Privacy + Support URLs live; `support@` / `privacy@` receive mail; archive with Xcode 26.2+; ASC checklist (Data Not Collected, Free US, 6.9" screenshots, export compliance, Reviewer Notes, age questionnaire → 4+).
+- [ ] Sheets: darker dim, header Close, body swipe-to-dismiss; Reduce Motion is Close only; keyboard still lifts form sheets.
+- [ ] System Dark Mode and large Dynamic Type; overdue on Today hides the teaching card.
+- [ ] `cuidala.app` /privacy and /terms load; `support@` and `privacy@` deliver.
+- [ ] Before App Store submission (human): Privacy + Support URLs live; archive a Release build; ASC checklist (Data Not Collected, exempt encryption, Free US, 3-tab 6.9" screenshots, Reviewer Notes, age questionnaire → 4+).
+- [ ] Release build: `CAPACITOR_DEBUG` empty; Safari Develop does not list the app.
 - [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type); portrait-only; WeatherKit entitlement present.
 - [ ] Confirm the binary is iPhone-only (no iPad destination). Always run a signed build — unsigned Keychain writes fail and show the load-failure screen.
 - [ ] PBKDF2 timing: create a backup with a 4-word passphrase; the device stays responsive (spinner, not a freeze).
@@ -61,6 +66,7 @@ Cuidala is a local-first iPhone app, not a website wrapper. The shipped binary i
 
 ## Changelog
 
+- 2026-09-12 — Pre-submission hardening: vault restore persist, backup bounds, pause/resume lock, erase verify, migrate caps, unique notification IDs, 12-char seal floor, private notification titles, UX keep-alive tabs.
 - 2026-09 — Lighter cream palette, Switch controls, sheet grabber / fade push, Restock walk in header.
 - 2026-08-24 — Product/security pass: WeatherKit, S1 key-read ordering, repeating digest, portrait-only, timestamp lock, privacy screen, Keychain migration copy.
 - 2026-08-24 — Simulator pre-TestFlight run: unsigned builds break Keychain (load-failure screen); iPad deferred (phone-column layout / 4.2 risk); floor raised to iOS 16.4 for `dvh`. iPhone-only; v1 free.

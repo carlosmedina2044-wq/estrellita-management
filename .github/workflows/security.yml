@@ -19,7 +19,7 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
-        run: npm run lint
+        run: npm run lint -- --max-warnings 0
       - name: Unit tests
         run: npm test
       - name: Static export (what ships in the iOS bundle)
