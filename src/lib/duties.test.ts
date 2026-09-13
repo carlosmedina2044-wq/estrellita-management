@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { dutySubtitle } from "@/lib/duties";
+import { dutySubtitle, isOverdue, nextDueDate } from "@/lib/duties";
 import { todayGreeting } from "@/lib/greeting";
 import { statusText } from "@/lib/node-status";
 import { climateLabel } from "@/lib/climate";
@@ -28,6 +28,38 @@ function duty(partial: Partial<Duty> & Pick<Duty, "title">): Duty {
   };
 }
 
+test("nextDueDate floors first monthly due on or after createdAt", () => {
+  const now = new Date(2026, 8, 13); // Sep 13
+  const d = duty({
+    title: "Change filter",
+    frequency: "monthly",
+    monthDay: 1,
+    createdAt: "2026-09-13T12:00:00.000Z",
+  });
+  const next = nextDueDate(d, [], now);
+  assert.ok(next);
+  assert.equal(next!.getFullYear(), 2026);
+  assert.equal(next!.getMonth(), 9); // Oct
+  assert.equal(next!.getDate(), 1);
+  assert.equal(isOverdue(d, [], now), false);
+});
+
+test("nextDueDate floors first weekly due on or after createdAt", () => {
+  const sunday = new Date(2026, 8, 13); // Sep 13 2026 is a Sunday
+  assert.equal(sunday.getDay(), 0);
+  const d = duty({
+    title: "Weekend tidy",
+    frequency: "weekly",
+    weekday: 6,
+    createdAt: sunday.toISOString(),
+  });
+  const next = nextDueDate(d, [], sunday);
+  assert.ok(next);
+  assert.equal(next!.getDay(), 6);
+  assert.equal(next!.getDate(), 19); // coming Saturday
+  assert.equal(isOverdue(d, [], sunday), false);
+});
+
 test("dutySubtitle is place and cadence without day-of-month or Me", () => {
   const text = dutySubtitle(duty({ title: "Wipe counters" }), [], new Date(2026, 7, 24), null, undefined, false);
   assert.equal(text, "kitchen · Monthly");
@@ -37,7 +69,7 @@ test("dutySubtitle is place and cadence without day-of-month or Me", () => {
 
 test("dutySubtitle overdue uses was due", () => {
   const text = dutySubtitle(
-    duty({ title: "Wipe counters", dueDate: "2026-08-01", frequency: "monthly" }),
+    duty({ title: "Wipe counters", dueDate: "2026-08-01", frequency: "once" }),
     [],
     new Date(2026, 7, 24),
     null,

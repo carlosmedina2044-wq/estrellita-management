@@ -34,6 +34,31 @@ function addCadence(anchor: Date, frequency: Extract<Frequency, "quarterly" | "y
   return frequency === "quarterly" ? addCalendarMonths(anchor, 3) : addCalendarYears(anchor, 1);
 }
 
+/** First calendar day that may schedule a never-completed duty: max(createdAt, today). */
+function firstDueFloor(duty: Duty, now: Date): Date {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (!duty.createdAt) return today;
+  const created = new Date(duty.createdAt);
+  if (!Number.isFinite(created.getTime())) return today;
+  const createdDay = new Date(created.getFullYear(), created.getMonth(), created.getDate());
+  return createdDay.getTime() > today.getTime() ? createdDay : today;
+}
+
+function firstWeeklyOnOrAfter(from: Date, weekday: number): Date {
+  const start = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const diff = (weekday - start.getDay() + 7) % 7;
+  start.setDate(start.getDate() + diff);
+  return start;
+}
+
+function firstMonthlyOnOrAfter(from: Date, monthDay: number): Date {
+  const dueDay = Math.min(monthDay, daysInMonth(from));
+  const candidate = new Date(from.getFullYear(), from.getMonth(), dueDay);
+  if (startOfDay(candidate) >= startOfDay(from)) return candidate;
+  const nextMonth = new Date(from.getFullYear(), from.getMonth() + 1, 1);
+  return new Date(nextMonth.getFullYear(), nextMonth.getMonth(), Math.min(monthDay, daysInMonth(nextMonth)));
+}
+
 export function nextDueDate(
   duty: Duty,
   completions: Completion[],
@@ -46,8 +71,14 @@ export function nextDueDate(
     case "daily":
       return new Date(startOfDay(now));
     case "weekly":
+      if (!lastCompletion(duty.id, completions)) {
+        return firstWeeklyOnOrAfter(firstDueFloor(duty, now), duty.weekday);
+      }
       return new Date(lastWeeklyStart(now, duty.weekday));
     case "monthly": {
+      if (!lastCompletion(duty.id, completions)) {
+        return firstMonthlyOnOrAfter(firstDueFloor(duty, now), duty.monthDay);
+      }
       const dueDay = Math.min(duty.monthDay, daysInMonth(now));
       return new Date(now.getFullYear(), now.getMonth(), dueDay);
     }
@@ -128,9 +159,18 @@ export function isOverdue(
       return Boolean(duty.dueDate) && parseISODate(duty.dueDate!) < startOfDay(now);
     case "daily":
       return false;
-    case "weekly":
+    case "weekly": {
+      if (!lastCompletion(duty.id, completions)) {
+        const next = nextDueDate(duty, completions, now, installedAt);
+        return Boolean(next) && startOfDay(now) > startOfDay(next!);
+      }
       return now.getDay() !== duty.weekday;
+    }
     case "monthly": {
+      if (!lastCompletion(duty.id, completions)) {
+        const next = nextDueDate(duty, completions, now, installedAt);
+        return Boolean(next) && startOfDay(now) > startOfDay(next!);
+      }
       const dueDay = Math.min(duty.monthDay, daysInMonth(now));
       return now.getDate() > dueDay;
     }
