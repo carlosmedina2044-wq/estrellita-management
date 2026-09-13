@@ -8,6 +8,7 @@ import {
   addCalendarYears,
   daysInMonth,
   formatDueDate,
+  formatTime,
   lastWeeklyStart,
   monthRange,
   parseISODate,
@@ -430,5 +431,134 @@ export function shareText(household: Household, duties: Duty[]): string {
     lines.push("");
   }
   if (duties.length === 0) lines.push(tActive("duty.nothingQueued"));
+  return lines.join("\n").trim();
+}
+
+export function completionsInRange(
+  completions: Completion[],
+  start: Date,
+  end: Date,
+): Completion[] {
+  const startMs = startOfDay(start);
+  const endMs = startOfDay(end);
+  return completions.filter((item) => {
+    const day = startOfDay(new Date(item.completedAt));
+    return day >= startMs && day <= endMs;
+  });
+}
+
+export type DoneEntry = {
+  duty: Duty;
+  completion: Completion;
+};
+
+export type DoneDayGroup = {
+  date: Date;
+  entries: DoneEntry[];
+};
+
+export function doneOnDay(
+  household: Household,
+  date: Date,
+  audience: Audience | "all" = "all",
+): DoneEntry[] {
+  const latest = new Map<string, Completion>();
+  for (const item of completionsInRange(household.completions, date, date)) {
+    const previous = latest.get(item.dutyId);
+    if (!previous || item.completedAt.localeCompare(previous.completedAt) > 0) {
+      latest.set(item.dutyId, item);
+    }
+  }
+  const entries: DoneEntry[] = [];
+  for (const completion of latest.values()) {
+    const duty = household.duties.find((item) => item.id === completion.dutyId);
+    if (!duty || !matchesAudience(duty, audience)) continue;
+    entries.push({ duty, completion });
+  }
+  return entries.sort((a, b) => b.completion.completedAt.localeCompare(a.completion.completedAt));
+}
+
+export function doneToday(
+  household: Household,
+  now = new Date(),
+  audience: Audience | "all" = "all",
+): DoneEntry[] {
+  return doneOnDay(household, now, audience);
+}
+
+export function doneThisWeek(
+  household: Household,
+  now = new Date(),
+  audience: Audience | "all" = "all",
+): DoneDayGroup[] {
+  const { start } = weekRange(now);
+  const groups: DoneDayGroup[] = [];
+  const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  while (startOfDay(cursor) >= startOfDay(start)) {
+    const entries = doneOnDay(household, cursor, audience);
+    if (entries.length > 0) {
+      groups.push({ date: new Date(cursor.getTime()), entries });
+    }
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return groups;
+}
+
+export function completionDays(
+  household: Household,
+  start?: Date,
+  end?: Date,
+): Set<string> {
+  const startMs = start ? startOfDay(start) : Number.NEGATIVE_INFINITY;
+  const endMs = end ? startOfDay(end) : Number.POSITIVE_INFINITY;
+  const days = new Set<string>();
+  for (const item of household.completions) {
+    const at = new Date(item.completedAt);
+    const day = startOfDay(at);
+    if (day >= startMs && day <= endMs) days.add(toISODate(at));
+  }
+  return days;
+}
+
+export function lastDoneInRoom(household: Household, roomId: string): Completion | null {
+  const dutyIds = new Set(
+    household.duties.filter((duty) => duty.room === roomId).map((duty) => duty.id),
+  );
+  let latest: Completion | null = null;
+  for (const item of household.completions) {
+    if (!dutyIds.has(item.dutyId)) continue;
+    if (!latest || item.completedAt.localeCompare(latest.completedAt) > 0) {
+      latest = item;
+    }
+  }
+  return latest;
+}
+
+export function relativeDayLabel(date: Date, now = new Date()): string {
+  const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+  if (days <= 0) return tActive("time.today");
+  if (days === 1) return tActive("time.yesterday");
+  return tActive("time.daysAgo", { count: days });
+}
+
+function doneActorName(household: Household, actor: Completion["actor"]): string {
+  if (actor === "cleaner") {
+    const name = household.cleanerName.trim();
+    return name || tActive("audience.cleaner");
+  }
+  return tActive("audience.me");
+}
+
+export function shareDoneText(household: Household, entries: DoneEntry[]): string {
+  const lines = [tActive("share.doneHeader", { name: household.householdName }), ""];
+  if (entries.length === 0) {
+    lines.push(tActive("share.doneNone"));
+    return lines.join("\n").trim();
+  }
+  for (const { duty, completion } of entries) {
+    const who = doneActorName(household, completion.actor);
+    const time = formatTime(new Date(completion.completedAt));
+    lines.push(`- [x] ${tDutyTitle(duty.title)} · ${who} · ${time}`);
+  }
   return lines.join("\n").trim();
 }

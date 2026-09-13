@@ -136,3 +136,10 @@ export function formatMonthTitle(date: Date): string {
     year: "numeric",
   }).format(date);
 }
+
+export function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat(activeDateLocale, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}

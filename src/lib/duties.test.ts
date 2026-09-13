@@ -1,12 +1,25 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { toISODate } from "@/lib/dates";
-import { dutySubtitle, isOverdue, nextDueDate } from "@/lib/duties";
+import { formatTime, setActiveDateLocale, toISODate } from "@/lib/dates";
+import {
+  completionDays,
+  completionsInRange,
+  doneOnDay,
+  doneThisWeek,
+  doneToday,
+  dutySubtitle,
+  isOverdue,
+  lastDoneInRoom,
+  nextDueDate,
+  relativeDayLabel,
+  shareDoneText,
+} from "@/lib/duties";
 import { todayGreeting } from "@/lib/greeting";
+import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { statusText } from "@/lib/node-status";
 import { climateLabel } from "@/lib/climate";
 import { weatherCaption } from "@/lib/weather/provider";
-import type { Completion, Duty } from "@/lib/types";
+import type { Completion, Duty, Household } from "@/lib/types";
 
 function duty(partial: Partial<Duty> & Pick<Duty, "title">): Duty {
   return {
@@ -27,6 +40,30 @@ function duty(partial: Partial<Duty> & Pick<Duty, "title">): Duty {
     archived: false,
     ...partial,
   };
+}
+
+function household(overrides: Partial<Household> = {}): Household {
+  return withHouseholdDefaults({
+    version: 8,
+    householdName: "Casa",
+    ownerName: "Me",
+    cleanerName: "Ana",
+    onboarded: true,
+    mode: "owner",
+    activeVisitId: null,
+    homeId: "home",
+    floors: [{ id: "main", name: "Main", sortOrder: 0 }],
+    rooms: [
+      { id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 0 },
+      { id: "living", floorId: "main", name: "Living", type: "living", sortOrder: 1 },
+    ],
+    assets: [],
+    duties: [],
+    completions: [],
+    visits: [],
+    supplyAutomations: [],
+    ...overrides,
+  });
 }
 
 test("nextDueDate floors first monthly due on or after createdAt", () => {
@@ -188,4 +225,169 @@ test("weatherCaption never includes ZIP", () => {
   assert.equal(zipOnly.text.includes("ZIP"), false);
   assert.equal(named.text, "Everett");
   assert.equal(zipOnly.text, "98201");
+});
+
+test("formatTime uses numeric hour and two-digit minute", () => {
+  setActiveDateLocale("en-US");
+  assert.equal(formatTime(new Date(2026, 8, 9, 8, 5, 0)), "8:05 AM");
+});
+
+test("completionsInRange keeps inclusive calendar days", () => {
+  const items = [
+    completion({ id: "before", completedAt: new Date(2026, 8, 5, 12, 0, 0).toISOString() }),
+    completion({ id: "start", completedAt: new Date(2026, 8, 6, 0, 30, 0).toISOString() }),
+    completion({ id: "end", completedAt: new Date(2026, 8, 9, 23, 0, 0).toISOString() }),
+    completion({ id: "after", completedAt: new Date(2026, 8, 10, 8, 0, 0).toISOString() }),
+  ];
+  const inRange = completionsInRange(items, new Date(2026, 8, 6), new Date(2026, 8, 9));
+  assert.deepEqual(inRange.map((item) => item.id), ["start", "end"]);
+});
+
+test("doneOnDay keeps latest completion per duty and sorts newest first", () => {
+  const wipe = duty({ id: "wipe", title: "Wipe counters" });
+  const trash = duty({ id: "trash", title: "Take out trash", room: "living", nodeId: "living" });
+  const home = household({
+    duties: [wipe, trash],
+    completions: [
+      completion({
+        id: "early",
+        dutyId: "wipe",
+        completedAt: new Date(2026, 8, 9, 8, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "late",
+        dutyId: "wipe",
+        completedAt: new Date(2026, 8, 9, 16, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "trash",
+        dutyId: "trash",
+        actor: "cleaner",
+        completedAt: new Date(2026, 8, 9, 10, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "yesterday",
+        dutyId: "wipe",
+        completedAt: new Date(2026, 8, 8, 12, 0, 0).toISOString(),
+      }),
+    ],
+  });
+  const done = doneOnDay(home, new Date(2026, 8, 9));
+  assert.deepEqual(
+    done.map((entry) => entry.completion.id),
+    ["late", "trash"],
+  );
+  assert.equal(doneToday(home, new Date(2026, 8, 9))[0]?.completion.id, "late");
+});
+
+test("doneThisWeek groups by day desc and clips to today", () => {
+  const wipe = duty({ id: "wipe", title: "Wipe counters" });
+  const trash = duty({ id: "trash", title: "Take out trash" });
+  const floors = duty({ id: "floors", title: "Vacuum floors" });
+  const now = new Date(2026, 8, 9, 15, 0, 0); // Wednesday
+  const home = household({
+    duties: [wipe, trash, floors],
+    completions: [
+      completion({
+        id: "wed",
+        dutyId: "wipe",
+        completedAt: new Date(2026, 8, 9, 8, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "sun",
+        dutyId: "trash",
+        completedAt: new Date(2026, 8, 6, 9, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "sat",
+        dutyId: "floors",
+        completedAt: new Date(2026, 8, 5, 9, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "thu",
+        dutyId: "floors",
+        completedAt: new Date(2026, 8, 10, 9, 0, 0).toISOString(),
+      }),
+    ],
+  });
+  const groups = doneThisWeek(home, now);
+  assert.deepEqual(
+    groups.map((group) => toISODate(group.date)),
+    ["2026-09-09", "2026-09-06"],
+  );
+  assert.equal(groups[0]?.entries[0]?.duty.id, "wipe");
+  assert.equal(groups[1]?.entries[0]?.duty.id, "trash");
+});
+
+test("completionDays returns ISO days in range", () => {
+  const home = household({
+    duties: [duty({ title: "Wipe counters" })],
+    completions: [
+      completion({ completedAt: new Date(2026, 8, 6, 9, 0, 0).toISOString() }),
+      completion({
+        id: "c2",
+        completedAt: new Date(2026, 8, 9, 9, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "c3",
+        completedAt: new Date(2026, 8, 12, 9, 0, 0).toISOString(),
+      }),
+    ],
+  });
+  const days = completionDays(home, new Date(2026, 8, 6), new Date(2026, 8, 9));
+  assert.deepEqual([...days].sort(), ["2026-09-06", "2026-09-09"]);
+});
+
+test("lastDoneInRoom returns the latest completion for that room", () => {
+  const kitchen = duty({ id: "wipe", title: "Wipe counters", room: "kitchen" });
+  const living = duty({ id: "tidy", title: "Tidy living", room: "living", nodeId: "living" });
+  const home = household({
+    duties: [kitchen, living],
+    completions: [
+      completion({
+        id: "old-kitchen",
+        dutyId: "wipe",
+        completedAt: new Date(2026, 8, 1, 9, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "new-kitchen",
+        dutyId: "wipe",
+        completedAt: new Date(2026, 8, 8, 9, 0, 0).toISOString(),
+      }),
+      completion({
+        id: "living",
+        dutyId: "tidy",
+        completedAt: new Date(2026, 8, 9, 9, 0, 0).toISOString(),
+      }),
+    ],
+  });
+  assert.equal(lastDoneInRoom(home, "kitchen")?.id, "new-kitchen");
+  assert.equal(lastDoneInRoom(home, "living")?.id, "living");
+  assert.equal(lastDoneInRoom(home, "bath"), null);
+});
+
+test("relativeDayLabel uses today yesterday and daysAgo", () => {
+  const now = new Date(2026, 8, 9, 15, 0, 0);
+  assert.equal(relativeDayLabel(new Date(2026, 8, 9, 8, 0, 0), now), "Today");
+  assert.equal(relativeDayLabel(new Date(2026, 8, 8, 8, 0, 0), now), "Yesterday");
+  assert.equal(relativeDayLabel(new Date(2026, 8, 6, 8, 0, 0), now), "3 days ago");
+});
+
+test("shareDoneText lists checked titles or the empty line", () => {
+  setActiveDateLocale("en-US");
+  const wipe = duty({ id: "wipe", title: "Wipe counters" });
+  const home = household({ duties: [wipe] });
+  assert.equal(shareDoneText(home, []), "Casa: what's done\n\nNothing completed yet");
+  const completedAt = new Date(2026, 8, 9, 8, 5, 0);
+  const text = shareDoneText(home, [
+    {
+      duty: wipe,
+      completion: completion({
+        dutyId: "wipe",
+        actor: "cleaner",
+        completedAt: completedAt.toISOString(),
+      }),
+    },
+  ]);
+  assert.equal(text, `Casa: what's done\n\n- [x] Wipe counters · Ana · ${formatTime(completedAt)}`);
 });
