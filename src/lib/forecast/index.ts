@@ -384,6 +384,33 @@ export function next90DaysSpend(household: Household, now = new Date()): number 
   return buildForecast(household, 3, now).totals.total;
 }
 
+export type ForecastCardSummary =
+  | { empty: true }
+  | {
+      empty: false;
+      next90: number;
+      nextBigTicket: { label: string; month: string; mid: number } | null;
+    };
+
+/** Summary for the Home ForecastCard — no UI logic lives in the card itself. */
+export function forecastCardSummary(household: Household, now = new Date()): ForecastCardSummary {
+  const hasDateOrCost = household.assets.some(
+    (asset) => Boolean(asset.installDate) || asset.replacementCostEstimate != null,
+  );
+  if (!hasDateOrCost) return { empty: true };
+
+  const threshold = household.bigTicketThreshold ?? BIG_TICKET_THRESHOLD;
+  const forecast = buildForecast(household, 36, now, { bigTicketThreshold: threshold });
+  const nextBig = forecast.bigTicket[0] ?? null;
+  return {
+    empty: false,
+    next90: next90DaysSpend(household, now),
+    nextBigTicket: nextBig
+      ? { label: nextBig.label, month: nextBig.month, mid: nextBig.cost.mid }
+      : null,
+  };
+}
+
 export function roomsWithNearReplacement(household: Household, months = 6, now = new Date()): Set<string> {
   const forecast = buildForecast(household, months, now);
   const rooms = new Set<string>();

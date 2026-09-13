@@ -31,7 +31,8 @@ import { digestPayload } from "@/lib/digest";
 import { OPEN_RESTOCK_EVENT, overdueChoreCount, showLocalNotification } from "@/lib/notifications";
 import { groupRestock } from "@/lib/restock";
 import { applyPostalCode } from "@/lib/climate";
-import { next90DaysSpend, roomsWithNearReplacement } from "@/lib/forecast";
+import { roomsWithNearReplacement } from "@/lib/forecast";
+import { ForecastCard } from "@/components/forecast-card";
 import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
@@ -271,7 +272,6 @@ export function AppShell() {
     () => (hydrated ? roomsWithNearReplacement(household) : new Set<string>()),
     [household, hydrated],
   );
-  const ninety = useMemo(() => (hydrated ? next90DaysSpend(household) : 0), [household, hydrated]);
   const restockGroups = useMemo(
     () => (hydrated ? groupRestock(household.supplyAutomations, household) : null),
     [household, hydrated],
@@ -393,16 +393,7 @@ export function AppShell() {
           <div className="flex flex-col gap-4 pb-8">
             <PageHeader
               title={household.householdName}
-              subtitle={
-                <div className="grid gap-1">
-                  <button type="button" className="text-left text-[13px] font-medium text-primary" onClick={() => setTab("budget")}>
-                    {ninety > 0
-                      ? `Next 90 days: ~$${Math.round(ninety).toLocaleString()}`
-                      : "Budget: add costs to see the next 90 days"}
-                  </button>
-                  <HomeStatusLine summary={summary} />
-                </div>
-              }
+              subtitle={<HomeStatusLine summary={summary} />}
               action={
                 <button
                   type="button"
@@ -413,6 +404,14 @@ export function AppShell() {
                   <Settings className="size-5" />
                 </button>
               }
+            />
+            <ForecastCard
+              household={household}
+              onNavigate={navigate}
+              onAddInstallDate={() => {
+                const first = household.assets[0];
+                setRoomOpen(first?.roomId ?? "whole-home");
+              }}
             />
             <HomeMapView
               household={household}

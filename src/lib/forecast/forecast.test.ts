@@ -4,6 +4,7 @@ import {
   buildForecast,
   conditionFactor,
   enteredPriceTotal,
+  forecastCardSummary,
   forecastSourceTag,
   installDateFromAge,
   roundUpTo,
@@ -324,4 +325,31 @@ test("stocked restock item is not charged this month; overdue empty stock is", (
   const overdueMonth = overdueForecast.monthly[0].items.filter((item) => item.label === "HVAC filter");
   assert.equal(overdueMonth.length, 1);
   assert.equal(overdueMonth[0]?.cost.mid, 18);
+});
+
+test("forecastCardSummary is empty when no asset has date or cost", () => {
+  const home = household({
+    assets: [asset({ id: "hvac", name: "HVAC", type: "hvac_system" })],
+  });
+  assert.deepEqual(forecastCardSummary(home, now), { empty: true });
+});
+
+test("forecastCardSummary returns next90 and next big-ticket when data exists", () => {
+  const home = household({
+    assets: [
+      asset({
+        id: "hvac",
+        name: "HVAC",
+        type: "hvac_system",
+        installDate: "2006-08-01",
+        replacementCostEstimate: 7500,
+      }),
+    ],
+  });
+  const summary = forecastCardSummary(home, now);
+  assert.equal(summary.empty, false);
+  if (summary.empty) return;
+  assert.ok(summary.next90 >= 0);
+  assert.ok(summary.nextBigTicket);
+  assert.equal(summary.nextBigTicket.mid, 7500);
 });
