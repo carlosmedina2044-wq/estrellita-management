@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { BACKUP_ITERATIONS, BACKUP_MAX_ITERATIONS, isBackupEnvelope, openBackup, sealBackup } from "@/lib/backup";
+import {
+  BACKUP_ITERATIONS,
+  BACKUP_MAX_ITERATIONS,
+  BACKUP_MIN_PASSPHRASE,
+  BACKUP_OPEN_MIN_PASSPHRASE,
+  isBackupEnvelope,
+  openBackup,
+  passphraseHint,
+  sealBackup,
+} from "@/lib/backup";
 import { isLegacyPinEnvelope } from "@/lib/crypto";
 import { parseStored } from "@/lib/storage";
 
@@ -21,14 +30,24 @@ test("wrong passphrase cannot open a backup", async () => {
 });
 
 test("rejects a short passphrase", async () => {
-  await assert.rejects(() => sealBackup("{}", "short"), /at least 8/);
+  await assert.rejects(() => sealBackup("{}", "short"), /at least 12/);
   await assert.rejects(() => openBackup("{}", "short"), /at least 8/);
+});
+
+test("8-char seal fails; 8-char open of a legacy envelope still passes", async () => {
+  assert.equal(BACKUP_MIN_PASSPHRASE, 12);
+  assert.equal(BACKUP_OPEN_MIN_PASSPHRASE, 8);
+  await assert.rejects(() => sealBackup("{}", "12345678"), /at least 12/);
+  const file = await sealBackup("legacy household", "12345678", BACKUP_ITERATIONS, BACKUP_OPEN_MIN_PASSPHRASE);
+  assert.equal(await openBackup(file, "12345678"), "legacy household");
+  assert.equal(passphraseHint("correcthorse"), "A few unrelated words are stronger than one word.");
+  assert.equal(passphraseHint("correct horse"), null);
 });
 
 test("NFC-normalized passphrases round-trip across keyboard layouts", async () => {
   const payload = JSON.stringify({ householdName: "Home" });
-  const composed = "caf\u00e9-home";
-  const decomposed = "cafe\u0301-home";
+  const composed = "caf\u00e9-home-key";
+  const decomposed = "cafe\u0301-home-key";
   const file = await sealBackup(payload, composed);
   assert.equal(await openBackup(file, decomposed), payload);
 });

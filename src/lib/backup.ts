@@ -9,7 +9,8 @@ import { isPlainObject, sanitizeText } from "@/lib/sanitize";
 export const BACKUP_KIND = "cuidala-backup";
 export const BACKUP_AAD = "cuidala-backup-v1";
 export const BACKUP_ITERATIONS = 600_000;
-export const BACKUP_MIN_PASSPHRASE = 8;
+export const BACKUP_MIN_PASSPHRASE = 12;
+export const BACKUP_OPEN_MIN_PASSPHRASE = 8;
 export const BACKUP_MAX_ITERATIONS = 5_000_000;
 export const BACKUP_MAX_FILE_BYTES = 12_000_000;
 
@@ -55,10 +56,28 @@ export function normalizePassphrase(value: string): string {
   return sanitizeText(value.normalize("NFC"), 128);
 }
 
-export function passphraseError(value: string): string | null {
+function passphraseTooShort(value: string, min: number): string | null {
   const passphrase = normalizePassphrase(value);
-  if (passphrase.length < BACKUP_MIN_PASSPHRASE) {
-    return `Passphrases are at least ${BACKUP_MIN_PASSPHRASE} characters.`;
+  if (passphrase.length < min) {
+    return `Passphrases are at least ${min} characters.`;
+  }
+  return null;
+}
+
+export function passphraseError(value: string): string | null {
+  return passphraseTooShort(value, BACKUP_MIN_PASSPHRASE);
+}
+
+export function openPassphraseError(value: string): string | null {
+  return passphraseTooShort(value, BACKUP_OPEN_MIN_PASSPHRASE);
+}
+
+/** Hint when the passphrase looks like a single dictionary word. */
+export function passphraseHint(value: string): string | null {
+  const passphrase = normalizePassphrase(value);
+  if (passphrase.length < BACKUP_MIN_PASSPHRASE) return null;
+  if (/^[A-Za-z]+$/.test(passphrase) && !/\s/.test(passphrase)) {
+    return "A few unrelated words are stronger than one word.";
   }
   return null;
 }
@@ -78,9 +97,10 @@ export async function sealBackup(
   plaintext: string,
   passphrase: string,
   iterations: number = BACKUP_ITERATIONS,
+  minPassphrase: number = BACKUP_MIN_PASSPHRASE,
 ): Promise<string> {
   const cleaned = normalizePassphrase(passphrase);
-  const error = passphraseError(cleaned);
+  const error = passphraseTooShort(cleaned, minPassphrase);
   if (error) throw new Error(error);
   const unbounded = Number.isFinite(iterations) && iterations >= 100_000 ? Math.trunc(iterations) : BACKUP_ITERATIONS;
   const rounds = Math.min(unbounded, BACKUP_MAX_ITERATIONS);
@@ -104,7 +124,7 @@ export async function sealBackup(
 export async function openBackup(raw: string, passphrase: string): Promise<string> {
   const cleaned = normalizePassphrase(passphrase);
   if (!cleaned) throw new Error("Enter the passphrase for this backup.");
-  const short = passphraseError(cleaned);
+  const short = openPassphraseError(cleaned);
   if (short) throw new Error(short);
   if (raw.length > BACKUP_MAX_FILE_BYTES) {
     throw new Error("That file is too large to be a Cuidala backup.");

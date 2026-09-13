@@ -14,7 +14,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { BACKUP_MAX_FILE_BYTES, passphraseError, normalizePassphrase } from "@/lib/backup";
+import {
+  BACKUP_MAX_FILE_BYTES,
+  normalizePassphrase,
+  openPassphraseError,
+  passphraseError,
+  passphraseHint,
+} from "@/lib/backup";
 import { toISODate } from "@/lib/dates";
 import { isNative } from "@/lib/native/platform";
 import { shareBackupFile, shareText } from "@/lib/native/share";
@@ -34,6 +40,7 @@ export function BackupPanel({
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const hint = mode === "full" ? passphraseHint(passphrase) : null;
 
   async function exportFile() {
     if (!onExport) return;
@@ -71,7 +78,7 @@ export function BackupPanel({
       toast.error("Enter the passphrase, then choose the file.");
       return;
     }
-    const error = passphraseError(passphrase);
+    const error = openPassphraseError(passphrase);
     if (error) {
       toast.error(error);
       return;
@@ -122,6 +129,12 @@ export function BackupPanel({
           className="mt-2 h-12"
           autoComplete="new-password"
         />
+      ) : null}
+      {mode === "full" ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Choose a phrase you don’t use anywhere else.
+          {hint ? ` ${hint}` : ""}
+        </p>
       ) : null}
       <div className="mt-3 grid gap-2">
         {mode === "full" && onExport ? (
