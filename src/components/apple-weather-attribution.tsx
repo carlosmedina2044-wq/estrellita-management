@@ -25,7 +25,7 @@ export function AppleWeatherAttribution({
     <p className={className ?? "flex items-center gap-2 text-[11px] text-muted-foreground"}>
       {mark ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={mark} alt={t("weather.appleWeatherAlt")} className="h-4 w-auto" height={16} />
+        <img src={mark} alt={t("weather.appleWeatherAlt")} className="h-5 w-auto" height={20} />
       ) : (
         <span>{t("weather.appleWeatherMark")}</span>
       )}
