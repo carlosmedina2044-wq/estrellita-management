@@ -40,12 +40,6 @@ const LOOKING_MS = 30 * 60 * 1000;
 const lookingUntil = new Map<string, number>();
 
 type OrderSheet = "closed" | "picker" | "confirm" | "receive" | "overflow" | "date";
-/** Retailers confirmed this session — skip the confirm sheet on the next order. */
-const trustedRetailers = new Set<string>();
-
-function retailerKey(value?: string): string {
-  return (value ?? "").trim().toLowerCase();
-}
 
 export function restockButtonProps(item: SupplyAutomation, handlers: RestockFlowHandlers) {
   return {
@@ -139,18 +133,7 @@ export function RestockOrderButton({
     setPendingRetailer(value);
   }
 
-  function defaultOrderDetails(retailer?: string): MarkOrderedDetails {
-    const offset = closestArrivalOffset(leadTimeDaysFor(item));
-    return {
-      expectedArrivalDate: toISODate(addDays(new Date(), offset)),
-      qty: Math.max(1, item.qtyPerOrder || 1),
-      retailer: retailer || item.preferredRetailer,
-    };
-  }
-
   function finishOrdered(details: MarkOrderedDetails) {
-    const key = retailerKey(details.retailer);
-    if (key) trustedRetailers.add(key);
     onOrdered?.(details);
     setSheet("closed");
     void hapticOrdered();
@@ -162,11 +145,6 @@ export function RestockOrderButton({
     const until = lookingUntil.get(item.id) ?? 0;
     if (until > Date.now()) return;
     rememberRetailer(retailer);
-    const key = retailerKey(retailer ?? item.preferredRetailer);
-    if (key && trustedRetailers.has(key)) {
-      finishOrdered(defaultOrderDetails(retailer ?? item.preferredRetailer));
-      return;
-    }
     confirmCommitted.current = false;
     setSheet("confirm");
   }
