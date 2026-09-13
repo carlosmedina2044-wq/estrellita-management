@@ -3,14 +3,14 @@
 import { useTheme } from "next-themes";
 import { APPLE_WEATHER_ATTRIBUTION } from "@/lib/weather/client";
 import { openExternalUrl } from "@/lib/native/open-url";
-import type { WeatherStatus } from "@/lib/types";
+import type { WeatherAttribution } from "@/lib/native/weatherkit";
 
 export function AppleWeatherAttribution({
   className,
   attribution,
 }: {
   className?: string;
-  attribution?: WeatherStatus["attribution"];
+  attribution?: WeatherAttribution | null;
 }) {
   const { resolvedTheme } = useTheme();
   const href = attribution?.legalPageURL || APPLE_WEATHER_ATTRIBUTION.href;

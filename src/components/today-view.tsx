@@ -32,6 +32,7 @@ import {
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
+import type { WeatherAttribution } from "@/lib/native/weatherkit";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
@@ -47,6 +48,7 @@ const SCOPES: { id: OutstandingScope; label: string }[] = [
 
 export function TodayView({
   household,
+  weatherAttribution,
   weatherLine,
   needsZip,
   onSavePostalCode,
@@ -69,6 +71,7 @@ export function TodayView({
   ...restockHandlers
 }: {
   household: Household;
+  weatherAttribution?: WeatherAttribution | null;
   weatherLine?: string;
   needsZip?: boolean;
   onSavePostalCode?: (zip: string) => Promise<{ ok: boolean; error?: string }>;
@@ -279,7 +282,7 @@ export function TodayView({
         </div>
       ) : null}
       {weatherLine && !needsZip ? (
-        <AppleWeatherAttribution attribution={household.weatherStatus.attribution} />
+        <AppleWeatherAttribution attribution={weatherAttribution} />
       ) : null}
 
       {showTeaching &&

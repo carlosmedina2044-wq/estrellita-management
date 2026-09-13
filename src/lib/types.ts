@@ -311,12 +311,6 @@ export type WeatherFire = {
 export type WeatherStatus = {
   lastSuccessAt: string | null;
   lastError: string | null;
-  attribution?: {
-    legalPageURL: string;
-    legalText: string;
-    markLight: string;
-    markDark: string;
-  };
 };
 
 export type Household = {

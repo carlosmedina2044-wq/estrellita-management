@@ -37,7 +37,7 @@ import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
 import { fetchForecastFor } from "@/lib/weather/client";
-import { fetchWeatherAttribution } from "@/lib/native/weatherkit";
+import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
 import { forCleanerSession, PERSIST_FAILED_EVENT } from "@/lib/storage";
 import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_REENGAGE, withTeaching } from "@/lib/teaching";
@@ -103,6 +103,7 @@ export function AppShell() {
   const canLock = lockMethod === null ? null : lockMethod !== "none";
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [weatherAttribution, setWeatherAttribution] = useState<WeatherAttribution | null>(null);
   const [roomOpen, setRoomOpen] = useState<string | null>(null);
   const [confirmErase, setConfirmErase] = useState(false);
 
@@ -199,9 +200,12 @@ export function AppShell() {
         setWeatherError(null);
         const attribution = await fetchWeatherAttribution();
         if (cancelled) return;
+        if (attribution) setWeatherAttribution(attribution);
         const needsCoords = (lat == null || lng == null) && zip;
+        let addedDuties = 0;
         updateTree((current) => {
           const { duties, fires } = evaluateTriggers(current, payload);
+          addedDuties = duties.length;
           return {
             ...current,
             duties:
@@ -215,7 +219,6 @@ export function AppShell() {
             weatherStatus: {
               lastSuccessAt: payload.fetchedAt,
               lastError: null,
-              attribution: attribution ?? current.weatherStatus.attribution,
             },
             location: needsCoords
               ? applyPostalCode(current.location, zip, {
@@ -226,6 +229,13 @@ export function AppShell() {
               : current.location,
           };
         });
+        if (addedDuties > 0) {
+          toast.message(
+            addedDuties === 1
+              ? "A weather chore was added to Today"
+              : `${addedDuties} weather chores were added to Today`,
+          );
+        }
       } catch {
         if (cancelled) return;
         setWeatherError("Could not refresh weather");
@@ -383,6 +393,7 @@ export function AppShell() {
         {tab === "today" ? (
           <TodayView
             household={household}
+            weatherAttribution={weatherAttribution}
             weatherLine={weather.text}
             needsZip={weather.needsZip}
             onSavePostalCode={savePostalCode}
@@ -482,6 +493,7 @@ export function AppShell() {
         {tab === "seasonal" ? (
           <SeasonalView
             household={household}
+            weatherAttribution={weatherAttribution}
             forecast={forecast}
             weatherLine={weather.text}
             needsZip={weather.needsZip}

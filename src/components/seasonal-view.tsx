@@ -22,6 +22,7 @@ import {
   type WindowState,
 } from "@/lib/playbooks";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
+import type { WeatherAttribution } from "@/lib/native/weatherkit";
 import type { Household } from "@/lib/types";
 
 const CHIP = "rounded-full px-2 py-0.5 text-[11px] font-medium";
@@ -102,6 +103,7 @@ function scrollToPlaybook(id: string) {
 
 export function SeasonalView({
   household,
+  weatherAttribution,
   forecast,
   weatherLine,
   needsZip,
@@ -114,6 +116,7 @@ export function SeasonalView({
   onBack,
 }: {
   household: Household;
+  weatherAttribution?: WeatherAttribution | null;
   forecast: WeatherForecast | null;
   weatherLine: string;
   needsZip?: boolean;
@@ -146,7 +149,7 @@ export function SeasonalView({
         {forecast ? (
           <AppleWeatherAttribution
             className="mt-1 text-[11px] text-muted-foreground"
-            attribution={household.weatherStatus.attribution}
+            attribution={weatherAttribution}
           />
         ) : null}
         {showWeatherError ? (
