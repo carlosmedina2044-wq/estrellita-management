@@ -268,3 +268,34 @@ test("renames leftover HVAC/Utility system rooms and leaves custom names", () =>
   assert.equal(household.rooms.find((room) => room.system === "whole-home")?.name, "Home systems");
   assert.equal(household.rooms.find((room) => room.system === "exterior")?.name, "Garage & utility");
 });
+
+test("6_000 duties migrate down to 5_000", () => {
+  const duties = Array.from({ length: 6_000 }, (_, index) => ({
+    id: `duty-${String(index).padStart(4, "0")}`,
+    title: "Chore",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  }));
+  const household = parseStored(JSON.stringify({ onboarded: true, duties }));
+  assert.equal(household.duties.length, 5_000);
+});
+
+test("10 KB triggerId is truncated", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      weatherFires: [{ triggerId: "t".repeat(10_000), firedAt: "2026-01-01T00:00:00.000Z" }],
+    }),
+  );
+  assert.equal(household.weatherFires[0]?.triggerId.length, 64);
+});
+
+test("lat: 999 migrates to undefined", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      location: { lat: 999, lng: 12 },
+    }),
+  );
+  assert.equal(household.location.lat, undefined);
+  assert.equal(household.location.lng, 12);
+});

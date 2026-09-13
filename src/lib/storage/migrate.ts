@@ -12,7 +12,7 @@ import {
   withHouseholdDefaults,
 } from "@/lib/household-defaults";
 import { asArray, asId, isPlainObject, sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
-import { rememberRetailerLink, normalizeSavedRetailerUrl } from "@/lib/retailer";
+import { MAX_SAVED_RETAILER_LINKS, rememberRetailerLink, normalizeSavedRetailerUrl } from "@/lib/retailer";
 import { deriveOrderByDate } from "@/lib/supply";
 import {
   RETAILER_IDS,
@@ -58,6 +58,27 @@ export const EMPTY_HOUSEHOLD: Household = withHouseholdDefaults({
   visits: [],
   supplyAutomations: [],
 });
+
+export const COLLECTION_LIMITS = {
+  duties: 5_000,
+  completions: 20_000,
+  purchases: 10_000,
+  visits: 2_000,
+  supplyAutomations: 2_000,
+  floors: 20,
+  rooms: 300,
+  assets: 2_000,
+  consumables: 2_000,
+  playbookDecisions: 500,
+  weatherFires: 2_000,
+  savedRetailerLinks: MAX_SAVED_RETAILER_LINKS,
+  linkedDutyIds: 50,
+  declinedTaskKeys: 200,
+} as const;
+
+function take(value: unknown, limit: number): unknown[] {
+  return asArray(value).slice(0, limit);
+}
 
 const FREQUENCIES: Frequency[] = ["once", "daily", "weekly", "monthly", "quarterly", "yearly"];
 const LIFESPAN_UNITS: LifespanUnit[] = ["days", "months", "years"];
@@ -116,16 +137,16 @@ function migrateDuty(raw: unknown): Duty | null {
     priority: asEnum(raw.priority, PRIORITIES, "medium"),
     createdAt: asIsoDateTime(raw.createdAt, new Date().toISOString()),
     archived: raw.archived === true,
-    estimatedCost: typeof raw.estimatedCost === "number" ? raw.estimatedCost : undefined,
+    estimatedCost: asActualCost(raw.estimatedCost),
     isDiy: typeof raw.isDiy === "boolean" ? raw.isDiy : undefined,
-    laborCostEstimate: typeof raw.laborCostEstimate === "number" ? raw.laborCostEstimate : undefined,
-    estimatedMinutes: typeof raw.estimatedMinutes === "number" ? raw.estimatedMinutes : undefined,
+    laborCostEstimate: asActualCost(raw.laborCostEstimate),
+    estimatedMinutes: raw.estimatedMinutes !== undefined ? asInt(raw.estimatedMinutes, 0, 0, 24 * 60) : undefined,
     origin:
       raw.origin === "starter" || raw.origin === "playbook" || raw.origin === "weather" || raw.origin === "user"
         ? raw.origin
         : undefined,
-    playbookId: typeof raw.playbookId === "string" ? raw.playbookId : undefined,
-    weatherTriggerId: typeof raw.weatherTriggerId === "string" ? raw.weatherTriggerId : undefined,
+    playbookId: sanitizeText(raw.playbookId, TEXT_LIMITS.id) || undefined,
+    weatherTriggerId: sanitizeText(raw.weatherTriggerId, TEXT_LIMITS.id) || undefined,
     buyLocally: raw.buyLocally === true ? true : undefined,
     caution: asCaution(raw.caution),
     rolledCompletions:
@@ -240,8 +261,12 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
   const orderByDate = asIsoDate(raw.orderByDate, asIsoDate(raw.nextOrderDate, derived)) ?? derived;
   const linkedDutyIds = [
     dutyId,
-    ...asArray(raw.linkedDutyIds).filter((item): item is string => typeof item === "string" && Boolean(asId(item))),
-  ].filter((item, index, all) => all.indexOf(item) === index);
+    ...take(raw.linkedDutyIds, COLLECTION_LIMITS.linkedDutyIds).filter(
+      (item): item is string => typeof item === "string" && Boolean(asId(item)),
+    ),
+  ]
+    .filter((item, index, all) => all.indexOf(item) === index)
+    .slice(0, COLLECTION_LIMITS.linkedDutyIds);
   const retailerUrl =
     sanitizeText(raw.retailerUrl, TEXT_LIMITS.url) || sanitizeText(raw.amazonProductUrl, TEXT_LIMITS.url);
   const quantity = asInt(raw.qtyPerOrder ?? raw.quantity, 1, 1, 99);
@@ -271,8 +296,8 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     state: ordered ? "ordered" : "stocked",
     expectedArrivalDate: asIsoDate(raw.expectedArrivalDate),
     createdAt: asIsoDateTime(raw.createdAt, new Date().toISOString()),
-    unitCost: typeof raw.unitCost === "number" ? raw.unitCost : undefined,
-    lastPaidPrice: typeof raw.lastPaidPrice === "number" ? raw.lastPaidPrice : undefined,
+    unitCost: asActualCost(raw.unitCost),
+    lastPaidPrice: asActualCost(raw.lastPaidPrice),
     lastPaidAt: asIsoDate(raw.lastPaidAt) ?? undefined,
     preferredRetailer: asPreferredRetailer(raw.preferredRetailer),
     orderedAt: asIsoDate(raw.orderedAt) ?? undefined,
@@ -354,10 +379,10 @@ function migrateHomeRoom(raw: unknown, index: number): HomeRoom | null {
     type: asRoomType(typeof raw.type === "string" ? raw.type : "other"),
     sortOrder: asInt(raw.sortOrder, index, 0, 999),
     system,
-    tileW: typeof raw.tileW === "number" ? raw.tileW : undefined,
-    tileH: typeof raw.tileH === "number" ? raw.tileH : undefined,
-    tileX: typeof raw.tileX === "number" ? raw.tileX : undefined,
-    tileY: typeof raw.tileY === "number" ? raw.tileY : undefined,
+    tileW: raw.tileW !== undefined ? asInt(raw.tileW, 1, 1, 24) : undefined,
+    tileH: raw.tileH !== undefined ? asInt(raw.tileH, 1, 1, 24) : undefined,
+    tileX: raw.tileX !== undefined ? asInt(raw.tileX, 0, 0, 48) : undefined,
+    tileY: raw.tileY !== undefined ? asInt(raw.tileY, 0, 0, 48) : undefined,
   };
 }
 
@@ -377,10 +402,9 @@ function migrateAsset(raw: unknown): HomeAsset | null {
     type,
     installDate: asIsoDate(raw.installDate) ?? undefined,
     warrantyUntil: asIsoDate(raw.warrantyUntil) ?? undefined,
-    purchasePrice: typeof raw.purchasePrice === "number" ? raw.purchasePrice : undefined,
-    expectedLifeYears: typeof raw.expectedLifeYears === "number" ? raw.expectedLifeYears : undefined,
-    replacementCostEstimate:
-      typeof raw.replacementCostEstimate === "number" ? raw.replacementCostEstimate : undefined,
+    purchasePrice: asActualCost(raw.purchasePrice),
+    expectedLifeYears: raw.expectedLifeYears !== undefined ? asInt(raw.expectedLifeYears, 10, 1, 80) : undefined,
+    replacementCostEstimate: asActualCost(raw.replacementCostEstimate),
     condition,
     notes: sanitizeText(raw.notes, TEXT_LIMITS.notes) || undefined,
     deferredUntil: asIsoDate(raw.deferredUntil) ?? undefined,
@@ -392,17 +416,18 @@ function migrateConsumable(raw: unknown): Consumable | null {
   if (!isPlainObject(raw)) return null;
   const id = asId(raw.id);
   const name = sanitizeText(raw.name, TEXT_LIMITS.title);
-  const nodeId = typeof raw.nodeId === "string" ? raw.nodeId : "";
+  const nodeId = sanitizeText(raw.nodeId, TEXT_LIMITS.id);
   if (!id || !name || !nodeId) return null;
+  const assetId = sanitizeText(raw.assetId, TEXT_LIMITS.id) || undefined;
   return {
     id,
-    assetId: typeof raw.assetId === "string" ? raw.assetId : undefined,
+    assetId,
     nodeId,
     nodeType: asEnum(raw.nodeType, ["home", "floor", "room", "asset"] as const, "asset"),
     name,
     intervalDays: asInt(raw.intervalDays, 90, 1, 3650),
-    unitCost: typeof raw.unitCost === "number" ? raw.unitCost : undefined,
-    lastPaidPrice: typeof raw.lastPaidPrice === "number" ? raw.lastPaidPrice : undefined,
+    unitCost: asActualCost(raw.unitCost),
+    lastPaidPrice: asActualCost(raw.lastPaidPrice),
     lastReplacedAt: asIsoDate(raw.lastReplacedAt) ?? undefined,
     sizeSpec: sanitizeText(raw.sizeSpec, TEXT_LIMITS.sizeSpec) || undefined,
   };
@@ -419,8 +444,8 @@ function migrateLocation(raw: unknown): HomeLocation {
       ? raw.climateZone
       : undefined;
   return {
-    lat: typeof raw.lat === "number" ? raw.lat : undefined,
-    lng: typeof raw.lng === "number" ? raw.lng : undefined,
+    lat: typeof raw.lat === "number" && Number.isFinite(raw.lat) && Math.abs(raw.lat) <= 90 ? raw.lat : undefined,
+    lng: typeof raw.lng === "number" && Number.isFinite(raw.lng) && Math.abs(raw.lng) <= 180 ? raw.lng : undefined,
     postalCode: typeof raw.postalCode === "string" ? sanitizeText(raw.postalCode, 16) : undefined,
     placeName: typeof raw.placeName === "string" ? sanitizeText(raw.placeName, TEXT_LIMITS.name) || undefined : undefined,
     climateZone,
@@ -467,19 +492,24 @@ function migrateLockSettings(raw: unknown): LockSettings {
 
 function migratePlaybookDecision(raw: unknown): PlaybookDecision | null {
   if (!isPlainObject(raw)) return null;
-  if (typeof raw.playbookId !== "string") return null;
+  const playbookId = sanitizeText(raw.playbookId, TEXT_LIMITS.id);
+  if (!playbookId) return null;
   return {
-    playbookId: raw.playbookId,
+    playbookId,
     year: asInt(raw.year, new Date().getFullYear(), 2020, 2100),
-    declinedTaskKeys: asArray(raw.declinedTaskKeys).filter((item): item is string => typeof item === "string"),
+    declinedTaskKeys: take(raw.declinedTaskKeys, COLLECTION_LIMITS.declinedTaskKeys)
+      .map((item) => sanitizeText(item, TEXT_LIMITS.id))
+      .filter((item) => item.length > 0),
     disabled: raw.disabled === true,
   };
 }
 
 function migrateWeatherFire(raw: unknown): WeatherFire | null {
   if (!isPlainObject(raw)) return null;
-  if (typeof raw.triggerId !== "string" || typeof raw.firedAt !== "string") return null;
-  return { triggerId: raw.triggerId, firedAt: raw.firedAt };
+  const triggerId = sanitizeText(raw.triggerId, TEXT_LIMITS.id);
+  const firedAt = sanitizeText(raw.firedAt, 40);
+  if (!triggerId || !firedAt) return null;
+  return { triggerId, firedAt };
 }
 
 function migrateSavedRetailerLink(raw: unknown): SavedRetailerLink | null {
@@ -536,25 +566,25 @@ function rollOldCompletions(
 }
 
 export function migrateHousehold(raw: Record<string, unknown>): Household {
-  const duties = asArray(raw.duties)
+  const duties = take(raw.duties, COLLECTION_LIMITS.duties)
     .map(migrateDuty)
     .filter((item): item is Duty => Boolean(item));
 
-  const rawCompletions = asArray(raw.completions)
+  const rawCompletions = take(raw.completions, COLLECTION_LIMITS.completions)
     .map(migrateCompletion)
     .filter((item): item is Completion => Boolean(item));
 
-  const purchases = asArray(raw.purchases)
+  const purchases = take(raw.purchases, COLLECTION_LIMITS.purchases)
     .map(migratePurchase)
     .filter((item): item is Purchase => Boolean(item));
 
-  const visits = asArray(raw.visits)
+  const visits = take(raw.visits, COLLECTION_LIMITS.visits)
     .map(migrateVisit)
     .filter((item): item is Visit => Boolean(item));
 
   const { completions, duties: dutiesWithRollup } = rollOldCompletions(duties, rawCompletions);
 
-  const supplyAutomations = asArray(raw.supplyAutomations ?? raw.reorderRules)
+  const supplyAutomations = take(raw.supplyAutomations ?? raw.reorderRules, COLLECTION_LIMITS.supplyAutomations)
     .map((item) => migrateAutomation(item, dutiesWithRollup))
     .filter((item): item is SupplyAutomation => Boolean(item))
     .filter((item) => dutiesWithRollup.some((duty) => duty.id === item.dutyId));
@@ -567,13 +597,13 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
 
   const people = asArray(raw.people);
   const firstPerson = isPlainObject(people[0]) ? sanitizeText(people[0].name, TEXT_LIMITS.name) : "";
-  const floors = asArray(raw.floors)
+  const floors = take(raw.floors, COLLECTION_LIMITS.floors)
     .map(migrateFloor)
     .filter((item): item is HomeFloor => Boolean(item));
-  const rooms = asArray(raw.rooms)
+  const rooms = take(raw.rooms, COLLECTION_LIMITS.rooms)
     .map(migrateHomeRoom)
     .filter((item): item is HomeRoom => Boolean(item));
-  const assets = asArray(raw.assets)
+  const assets = take(raw.assets, COLLECTION_LIMITS.assets)
     .map(migrateAsset)
     .filter((item): item is HomeAsset => Boolean(item));
 
@@ -587,16 +617,16 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       }
     : emptyHomeTree();
 
-  const consumables = asArray(raw.consumables)
+  const consumables = take(raw.consumables, COLLECTION_LIMITS.consumables)
     .map(migrateConsumable)
     .filter((item): item is Consumable => Boolean(item));
-  const playbookDecisions = asArray(raw.playbookDecisions)
+  const playbookDecisions = take(raw.playbookDecisions, COLLECTION_LIMITS.playbookDecisions)
     .map(migratePlaybookDecision)
     .filter((item): item is PlaybookDecision => Boolean(item));
-  const weatherFires = asArray(raw.weatherFires)
+  const weatherFires = take(raw.weatherFires, COLLECTION_LIMITS.weatherFires)
     .map(migrateWeatherFire)
     .filter((item): item is WeatherFire => Boolean(item));
-  const savedFromField = asArray(raw.savedRetailerLinks)
+  const savedFromField = take(raw.savedRetailerLinks, COLLECTION_LIMITS.savedRetailerLinks)
     .map(migrateSavedRetailerLink)
     .filter((item): item is SavedRetailerLink => Boolean(item));
   const savedRetailerLinks =
@@ -656,8 +686,8 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     weatherFires,
     weatherStatus: isPlainObject(raw.weatherStatus)
       ? {
-          lastSuccessAt: typeof raw.weatherStatus.lastSuccessAt === "string" ? raw.weatherStatus.lastSuccessAt : null,
-          lastError: typeof raw.weatherStatus.lastError === "string" ? raw.weatherStatus.lastError : null,
+          lastSuccessAt: sanitizeText(raw.weatherStatus.lastSuccessAt, 40) || null,
+          lastError: sanitizeText(raw.weatherStatus.lastError, TEXT_LIMITS.notes) || null,
         }
       : { ...DEFAULT_WEATHER_STATUS },
     lockSettings: migrateLockSettings(raw.lockSettings),
