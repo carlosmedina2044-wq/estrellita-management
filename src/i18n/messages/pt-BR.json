@@ -1087,6 +1087,7 @@
   "map.dueSoonCount": "{count} em breve",
   "map.reorderCount": "{count} para repor",
   "map.toDoCount": "{count} a fazer",
+  "map.lastDone": "Última vez {when}",
   "restock.chooseStore": "Escolha uma loja para pedir {name}.",
   "restock.alreadyOrdered": "Já pedi",
   "error.loadFailedBody": "A tela não carregou. A lista da sua casa neste dispositivo não mudou.",

@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { tActive } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { RoomTypeIcon } from "@/components/room-type-icon";
+import { lastDoneInRoom, relativeDayLabel } from "@/lib/duties";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { nodeStatus, statusText, type NodeStatus } from "@/lib/node-status";
-import type { HomeRoom, Household } from "@/lib/types";
+import type { Completion, HomeRoom, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function HomeMapView({
@@ -80,7 +81,12 @@ export function HomeMapView({
   );
 }
 
-function roomCaption(status: NodeStatus, nearReplacement: boolean) {
+function roomCaption(
+  status: NodeStatus,
+  nearReplacement: boolean,
+  lastDone: Completion | null,
+  now: Date,
+) {
   if (status.overdue > 0) {
     return { text: tActive("map.overdueCount", { count: status.overdue }), className: "text-overdue" };
   }
@@ -95,6 +101,12 @@ function roomCaption(status: NodeStatus, nearReplacement: boolean) {
   }
   if (status.total > 0) {
     return { text: tActive("map.toDoCount", { count: status.total }), className: "text-muted-foreground" };
+  }
+  if (lastDone) {
+    return {
+      text: tActive("map.lastDone", { when: relativeDayLabel(new Date(lastDone.completedAt), now) }),
+      className: "text-done",
+    };
   }
   return { text: tActive("home.allCaughtUp"), className: "text-done" };
 }
@@ -131,7 +143,7 @@ function TileGrid({
       {rooms.map((room) => {
         const status = nodeStatus(household, room.id, "room", now);
         const nearReplacement = Boolean(replacementRooms?.has(room.id));
-        const caption = roomCaption(status, nearReplacement);
+        const caption = roomCaption(status, nearReplacement, lastDoneInRoom(household, room.id), now);
         return (
           <button
             key={room.id}

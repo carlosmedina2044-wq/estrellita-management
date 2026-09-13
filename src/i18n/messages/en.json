@@ -1087,6 +1087,7 @@
   "map.dueSoonCount": "{count} due soon",
   "map.reorderCount": "{count} to reorder",
   "map.toDoCount": "{count} to do",
+  "map.lastDone": "Last done {when}",
   "restock.chooseStore": "Choose a store to order {name}.",
   "restock.alreadyOrdered": "I already ordered it",
   "error.loadFailedBody": "The screen failed to load. Your household list on this device was not changed.",
