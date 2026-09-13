@@ -55,10 +55,19 @@ export async function requestNotifyPermission(): Promise<NotifyPermission> {
   }
 }
 
-function stableId(value: string): number {
+function hashId(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) | 0;
   return ITEM_ID_BASE + (Math.abs(hash) % 1_000_000);
+}
+
+function allocateId(used: Set<number>, seed: string): number {
+  let id = hashId(seed);
+  while (used.has(id)) {
+    id = ITEM_ID_BASE + ((id - ITEM_ID_BASE + 1) % 1_000_000);
+  }
+  used.add(id);
+  return id;
 }
 
 /** Capacitor/iOS weekday is 1 = Sunday … 7 = Saturday. JS getDay is 0–6. */
@@ -85,13 +94,18 @@ function scheduleAt(at: Date): NotificationSchedule {
   return { at };
 }
 
-function arrivalNotice(item: SupplyAutomation, household: Household, now: Date): PlannedNotification | null {
+function arrivalNotice(
+  item: SupplyAutomation,
+  household: Household,
+  now: Date,
+  used: Set<number>,
+): PlannedNotification | null {
   const placement = restockPlacement(item, household, now);
   if (placement.bucket !== "ordered" || !item.expectedArrivalDate) return null;
   const at = arrivalCheckAt(item.expectedArrivalDate);
   if (at.getTime() <= now.getTime()) return null;
   return {
-    id: stableId(`arrive:${item.id}`),
+    id: allocateId(used, `arrive:${item.id}`),
     title: `Did the ${item.itemName} arrive?`,
     body: hasLinkedDuty(item, household)
       ? "Tap to mark it received. The install chore is waiting on it."
@@ -116,6 +130,7 @@ export function orderFollowUpAt(orderByDate: string, now = new Date()): Date | n
 
 export function plannedNotifications(household: Household, now = new Date()): PlannedNotification[] {
   const notifications: PlannedNotification[] = [];
+  const used = new Set<number>([DIGEST_ID]);
 
   if (household.restockDigest.enabled) {
     const items = digestCandidates(household.supplyAutomations, household, now);
@@ -140,7 +155,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   }
 
   const arrivals = household.supplyAutomations
-    .map((item) => arrivalNotice(item, household, now))
+    .map((item) => arrivalNotice(item, household, now, used))
     .filter((notice): notice is PlannedNotification => Boolean(notice))
     .sort((a, b) => {
       const aAt = "at" in a.schedule ? a.schedule.at.getTime() : 0;
@@ -165,7 +180,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
 
   for (const { item, due } of reminders) {
     notifications.push({
-      id: stableId(item.id),
+      id: allocateId(used, item.id),
       title: `Order ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
       body: "Order today so it arrives before you run out.",
       schedule: scheduleAt(due),
@@ -187,7 +202,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
 
   for (const { item, at } of followUps) {
     notifications.push({
-      id: stableId(`followup:${item.id}`),
+      id: allocateId(used, `followup:${item.id}`),
       title: `Still to order: ${itemNameWithSize(item.itemName, item.sizeSpec)}`,
       body: "No rush. Tap when you want to order.",
       schedule: scheduleAt(at),
@@ -198,7 +213,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   const remaining = Math.max(0, MAX_PENDING - notifications.length);
   for (const notice of warrantyNotificationsFor(household.assets, now).slice(0, remaining)) {
     notifications.push({
-      id: stableId(notice.id),
+      id: allocateId(used, notice.id),
       title: notice.title,
       body: notice.body,
       schedule: scheduleAt(notice.at),

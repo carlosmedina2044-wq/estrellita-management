@@ -233,3 +233,36 @@ test("unanswered order reminder gets a still-to-order follow-up", () => {
     assert.equal(follow.schedule.at.getDate(), 28);
   }
 });
+
+test("two colliding hashes produce distinct IDs and keep both notifications", () => {
+  const first = item({
+    id: "item-aan",
+    itemName: "Alpha filters",
+    onHand: 3,
+    orderByDate: "2026-10-01",
+    nextOrderDate: "2026-10-01",
+    dutyId: "d1",
+    linkedDutyIds: ["d1"],
+  });
+  const second = item({
+    id: "item-ac0",
+    itemName: "Bravo filters",
+    onHand: 3,
+    orderByDate: "2026-10-02",
+    nextOrderDate: "2026-10-02",
+    dutyId: "d2",
+    linkedDutyIds: ["d2"],
+  });
+  const notices = plannedNotifications(
+    household({
+      duties: [duty({ id: "d1", title: "Alpha" }), duty({ id: "d2", title: "Bravo" })],
+      supplyAutomations: [first, second],
+    }),
+    now,
+  );
+  const reminders = notices.filter((notice) => notice.title.startsWith("Order "));
+  assert.equal(reminders.length, 2);
+  assert.notEqual(reminders[0]?.id, reminders[1]?.id);
+  const ids = notices.map((notice) => notice.id);
+  assert.equal(new Set(ids).size, ids.length);
+});
