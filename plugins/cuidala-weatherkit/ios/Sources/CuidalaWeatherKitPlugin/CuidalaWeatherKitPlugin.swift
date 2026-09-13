@@ -72,9 +72,12 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func geocodeZip(_ call: CAPPluginCall) {
-        guard let postalCode = call.getString("postalCode"), !postalCode.isEmpty else {
+        guard var postalCode = call.getString("postalCode"), !postalCode.isEmpty else {
             call.reject("postalCode is required")
             return
+        }
+        if postalCode.count > 10 {
+            postalCode = String(postalCode.prefix(10))
         }
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString("\(postalCode), United States") { placemarks, error in
@@ -131,10 +134,10 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             do {
                 let attribution = try await WeatherService.shared.attribution
-                async let lightData = URLSession.shared.data(from: attribution.combinedMarkLightURL)
-                async let darkData = URLSession.shared.data(from: attribution.combinedMarkDarkURL)
-                let (light, _) = try await lightData
-                let (dark, _) = try await darkData
+                async let lightData = Self.fetchAttributionImage(from: attribution.combinedMarkLightURL)
+                async let darkData = Self.fetchAttributionImage(from: attribution.combinedMarkDarkURL)
+                let light = try await lightData
+                let dark = try await darkData
                 let legalText: String
                 if #available(iOS 16.4, *) {
                     legalText = attribution.legalAttributionText
@@ -157,6 +160,19 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+    }
+
+    private static let maxAttributionImageBytes = 512 * 1024
+
+    private static func fetchAttributionImage(from url: URL) async throws -> Data {
+        let (data, response) = try await URLSession.shared.data(from: url)
+        if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+        guard data.count <= maxAttributionImageBytes else {
+            throw URLError(.dataLengthExceedsMaximum)
+        }
+        return data
     }
 
     private static func isoDate(_ date: Date) -> String {

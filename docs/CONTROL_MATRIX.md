@@ -24,7 +24,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | No accounts, no first-party server, no remote code | App Store 2.5.2 / 4.2 | `next.config.ts` `output: "export"`; `capacitor.config.ts` no `server.url` | CI greps `out/` for remote origins | VERIFIED |
 | No third-party weather network from WKWebView | MASVS-NETWORK-1 | WeatherKit native plugin; CSP `connect-src 'self'`; Open-Meteo hosts removed | CSP in `layout.tsx`; `Info.plist` has no Open-Meteo domains | VERIFIED |
 | Location rounded to two decimals before storage | Data minimisation | `roundCoord` in `climate.ts` | `climate.test.ts` | VERIFIED |
-| External links restricted to known retailers over HTTPS when arriving from outside the app | Open-redirect / phishing | `retailer.ts` `isKnownRetailerUrl`, `extractSharedUrl` | `retailer.test.ts` (lookalike hosts, http, unknown host) | VERIFIED |
+| External links restricted to known retailers over HTTPS when arriving from outside the app | Open-redirect / phishing | `retailer.ts` `isKnownRetailerUrl`, `extractSharedUrl`; `openExternalUrl` upgrades `http:` → `https:` | `retailer.test.ts` (lookalike hosts, http, unknown host) | VERIFIED |
 | Retailer pages open in SFSafariViewController, not the app WebView | MASVS-PLATFORM-2 | `native/open-url.ts` via `@capacitor/browser` | Manual | NOT VERIFIED (manual) |
 | Local notifications only; no push, no token | Privacy | `@capacitor/local-notifications`; no APNs entitlement | Config inspection | VERIFIED |
 | Weekly digest is repeating | Product | `schedule.on` + `repeats: true` | `notifications.test.ts` | VERIFIED |
