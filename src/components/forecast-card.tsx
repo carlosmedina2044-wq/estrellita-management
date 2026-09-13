@@ -23,7 +23,7 @@ export function ForecastCard({
           Add an install date to any appliance to see what&apos;s coming
         </p>
         {onAddInstallDate ? (
-          <button type="button" className="mt-3 text-[13px] font-medium text-primary" onClick={onAddInstallDate}>
+          <button type="button" className="mt-3 inline-flex min-h-11 items-center text-[13px] font-medium text-primary" onClick={onAddInstallDate}>
             Open appliances
           </button>
         ) : null}
@@ -48,7 +48,7 @@ export function ForecastCard({
       {nextLine ? <p className="mt-1 text-[13px] text-muted-foreground">{nextLine}</p> : null}
       <button
         type="button"
-        className="mt-3 text-[13px] font-medium text-primary"
+        className="mt-3 inline-flex min-h-11 items-center text-[13px] font-medium text-primary"
         onClick={() => onNavigate?.({ tab: "budget" })}
       >
         Open forecast

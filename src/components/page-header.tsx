@@ -8,12 +8,14 @@ export function PageHeader({
   subtitle,
   action,
   onBack,
+  backLabel = "Back",
 }: {
   title: string;
   eyebrow?: ReactNode;
   subtitle?: ReactNode;
   action?: ReactNode;
   onBack?: () => void;
+  backLabel?: string;
 }) {
   return (
     <header className="flex items-start justify-between gap-3">
@@ -21,7 +23,7 @@ export function PageHeader({
         {onBack ? (
           <button
             type="button"
-            aria-label="Back"
+            aria-label={backLabel}
             onClick={onBack}
             className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-foreground"
           >

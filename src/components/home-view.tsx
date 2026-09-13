@@ -65,6 +65,7 @@ export function HomeView({
   onUpdateDigest,
   focusAssetId,
   onFocusHandled,
+  onBack,
 }: {
   household: Household;
   onUpdate: (
@@ -82,6 +83,7 @@ export function HomeView({
   onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
   focusAssetId?: string;
   onFocusHandled?: () => void;
+  onBack?: () => void;
 }) {
   const [home, setHome] = useState(household.householdName);
   const [owner, setOwner] = useState(household.ownerName);
@@ -111,7 +113,12 @@ export function HomeView({
 
   return (
     <div className="flex flex-col gap-5 pb-8">
-      <PageHeader title="Settings" subtitle="Everything stays on this iPhone." />
+      <PageHeader
+        title="Settings"
+        subtitle="Everything stays on this iPhone."
+        onBack={onBack}
+        backLabel="Back to Home"
+      />
       <section>
         <h2 className="ui-heading mb-2 text-[20px] font-semibold">Household</h2>
         <div className="ui-group">

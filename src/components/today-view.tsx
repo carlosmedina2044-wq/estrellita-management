@@ -35,7 +35,6 @@ import { shareText as nativeShare } from "@/lib/native/share";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
-import type { WeatherForecast } from "@/lib/weather/provider";
 import { cn } from "@/lib/utils";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 
@@ -49,7 +48,6 @@ export function TodayView({
   household,
   weatherLine,
   needsZip,
-  forecast,
   onSavePostalCode,
   onComplete,
   onRecordCost,
@@ -73,7 +71,6 @@ export function TodayView({
   household: Household;
   weatherLine?: string;
   needsZip?: boolean;
-  forecast?: WeatherForecast | null;
   onSavePostalCode?: (zip: string) => Promise<{ ok: boolean; error?: string }>;
   onComplete: (dutyId: string) => void;
   onRecordCost?: (completionId: string, input: { actualCost: number } | { skip: true }) => void;
@@ -269,7 +266,7 @@ export function TodayView({
               type="button"
               aria-label="Settings"
               onClick={onOpenSettings}
-              className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+              className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
             >
               <Settings className="size-5" />
             </button>
@@ -328,14 +325,16 @@ export function TodayView({
       />
 
       <div className="flex items-center gap-2">
-        <div className="flex min-w-0 flex-1 rounded-full bg-secondary p-1">
+        <div role="tablist" aria-label="List scope" className="flex min-w-0 flex-1 rounded-full bg-secondary p-1">
           {SCOPES.map((item) => (
             <button
               key={item.id}
               type="button"
+              role="tab"
+              aria-selected={scope === item.id && !viewingCalendar}
               onClick={() => selectScope(item.id)}
               className={cn(
-                "h-8 flex-1 rounded-full text-[13px] font-medium",
+                "h-11 flex-1 rounded-full text-[13px] font-medium",
                 scope === item.id && !viewingCalendar
                   ? "bg-white text-foreground shadow-sm"
                   : "text-secondary-foreground",
@@ -349,7 +348,7 @@ export function TodayView({
           type="button"
           onClick={() => setCalendarOpen((current) => !current)}
           className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-full",
+            "flex size-11 shrink-0 items-center justify-center rounded-full",
             calendarOpen || viewingCalendar ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
           )}
           aria-label="Pick a day"
@@ -360,7 +359,7 @@ export function TodayView({
       </div>
 
       {scope === "daily" && !viewingCalendar ? (
-        <SeasonSection household={household} now={now} onNavigate={onNavigate} forecast={forecast} />
+        <SeasonSection household={household} now={now} onNavigate={onNavigate} />
       ) : null}
 
       {calendarOpen ? (
@@ -379,11 +378,12 @@ export function TodayView({
           <button
             key={item}
             type="button"
+            aria-pressed={filter === item}
             onClick={() => setFilter(item)}
             className={
               filter === item
-                ? "h-8 shrink-0 rounded-full bg-primary px-3.5 text-[13px] font-medium text-primary-foreground"
-                : "h-8 shrink-0 rounded-full bg-secondary px-3.5 text-[13px] font-medium text-secondary-foreground"
+                ? "h-11 shrink-0 rounded-full bg-primary px-3.5 text-[13px] font-medium text-primary-foreground"
+                : "h-11 shrink-0 rounded-full bg-secondary px-3.5 text-[13px] font-medium text-secondary-foreground"
             }
           >
             {item === "all" ? "All" : item === "me" ? "Mine" : "Cleaner's"}

@@ -212,6 +212,10 @@
   overflow-x: hidden;
 }
 
+.app-shell-main--no-tab-bar {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
 .app-tab-bar {
   z-index: 40;
 }

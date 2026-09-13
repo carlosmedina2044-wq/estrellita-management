@@ -95,6 +95,7 @@ export function BudgetView({
         title="Budget"
         subtitle={updated}
         onBack={onBack}
+        backLabel="Back to Home"
         action={
           <button
             type="button"

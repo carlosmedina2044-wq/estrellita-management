@@ -29,7 +29,7 @@ export function AppleWeatherAttribution({
       )}
       <button
         type="button"
-        className="underline underline-offset-2"
+        className="inline-flex min-h-11 items-center underline underline-offset-2"
         onClick={() => void openExternalUrl(href)}
       >
         Other data sources

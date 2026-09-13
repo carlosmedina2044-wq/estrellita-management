@@ -30,7 +30,9 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Settings → Erase all data → relaunch → onboarding; no residual data.
 - [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
 - [ ] Tab bar shows Today / Home / Restock only; Budget and Seasonal open from their cards and Back returns to Home / Today respectively.
-- [ ] Today shows This season when a playbook is open; Apple Weather attribution (mark + Other data sources) is present when a forecast is loaded. No poor-air or dust-advisory in Watching for.
+- [ ] Tab bar is hidden on Budget, Seasonal, and Settings; Back returns to the parent tab (Home / Today / Home).
+- [ ] Settings gear on Today and Home is at least 44pt; primary chips and CTAs meet 44pt tap targets.
+- [ ] Today shows This season when a playbook is open; Apple Weather attribution (mark + Other data sources) is present when a forecast is loaded — once on Today (header only, not duplicated under This season). No poor-air or dust-advisory in Watching for.
 - [ ] Onboarding walk does not ask for sizes; first Order can capture Size or model; Costco appears as a retailer chip.
 - [ ] How Cuidala works, Additional terms, Privacy policy, Report a problem, and Cuidala Pro coming soon open from Settings.
 - [ ] Before App Store submission (human): Privacy + Support URLs live; `support@` / `privacy@` receive mail; archive with Xcode 26.2+; ASC checklist (Data Not Collected, Free US, 6.9" screenshots, export compliance, Reviewer Notes, age questionnaire → 4+).

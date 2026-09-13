@@ -141,7 +141,7 @@ export function SeasonalView({
   return (
     <div className="flex flex-col gap-5 pb-8">
       <div>
-        <PageHeader title="Seasonal" subtitle={subtitle} onBack={onBack} />
+        <PageHeader title="Seasonal" subtitle={subtitle} onBack={onBack} backLabel="Back to Today" />
         {forecast ? (
           <AppleWeatherAttribution
             className="mt-1 text-[11px] text-muted-foreground"
@@ -274,6 +274,7 @@ export function SeasonalView({
                 </div>
                 <button
                   type="button"
+                  aria-pressed={household.attributes[key]}
                   onClick={() => onToggleAttribute(key)}
                   className={
                     household.attributes[key]
@@ -281,7 +282,7 @@ export function SeasonalView({
                       : "h-10 shrink-0 rounded-full bg-secondary px-3 text-[13px] font-medium"
                   }
                 >
-                  {label}
+                  {household.attributes[key] ? "On" : "Off"}
                 </button>
               </div>
             ))}

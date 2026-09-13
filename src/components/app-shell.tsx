@@ -341,6 +341,7 @@ export function AppShell() {
   }
 
   const weather = weatherCaption(forecast, household.location);
+  const showTabBar = tab === "today" || tab === "home" || tab === "restock";
   const restockHandlers = {
     onMarkOrdered: markSupplyOrdered,
     onMarkReceived: markSupplyReceived,
@@ -356,13 +357,17 @@ export function AppShell() {
 
   return (
     <div className="app-frame">
-      <main className="app-shell-main min-w-0 flex-1 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <main
+        className={cn(
+          "app-shell-main min-w-0 flex-1 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]",
+          !showTabBar && "app-shell-main--no-tab-bar",
+        )}
+      >
         {tab === "today" ? (
           <TodayView
             household={household}
             weatherLine={weather.text}
             needsZip={weather.needsZip}
-            forecast={forecast}
             onSavePostalCode={savePostalCode}
             onComplete={completeDuty}
             onRecordCost={recordCompletionCost}
@@ -407,7 +412,7 @@ export function AppShell() {
                   type="button"
                   aria-label="Settings"
                   onClick={() => setTab("settings")}
-                  className="flex size-9 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+                  className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
                 >
                   <Settings className="size-5" />
                 </button>
@@ -495,23 +500,30 @@ export function AppShell() {
             onUpdateDigest={updateRestockDigest}
             focusAssetId={tab === "settings" ? nav?.assetId : undefined}
             onFocusHandled={handleFocusHandled}
+            onBack={() => setTab("home")}
           />
         ) : null}
       </main>
 
-      <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40">
-        <div className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
-          <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
-          <NavButton label="Home" icon={<Home className="size-5" />} active={tab === "home"} onClick={() => setTab("home")} />
-          <NavButton
-            label="Restock"
-            icon={<Package className="size-5" />}
-            active={tab === "restock"}
-            badge={restockGroups?.order_now.length ?? 0}
-            onClick={() => setTab("restock")}
-          />
-        </div>
-      </nav>
+      {showTabBar ? (
+        <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40" aria-label="Main">
+          <div
+            role="tablist"
+            aria-label="Main"
+            className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl"
+          >
+            <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
+            <NavButton label="Home" icon={<Home className="size-5" />} active={tab === "home"} onClick={() => setTab("home")} />
+            <NavButton
+              label="Restock"
+              icon={<Package className="size-5" />}
+              active={tab === "restock"}
+              badge={restockGroups?.order_now.length ?? 0}
+              onClick={() => setTab("restock")}
+            />
+          </div>
+        </nav>
+      ) : null}
     </div>
   );
 }
@@ -609,9 +621,13 @@ function NavButton({
   badge?: number;
   onClick: () => void;
 }) {
+  const ariaLabel = badge ? `${label}, ${badge}` : label;
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
+      aria-label={ariaLabel}
       onClick={onClick}
       className={cn(
         "relative flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",

@@ -466,7 +466,8 @@ function OrderConfirmSheet({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="h-10 w-10"
+                    className="size-11"
+                    aria-label="Decrease quantity"
                     onClick={() => setQty((current) => Math.max(1, current - 1))}
                   >
                     −
@@ -475,7 +476,8 @@ function OrderConfirmSheet({
                   <Button
                     type="button"
                     variant="secondary"
-                    className="h-10 w-10"
+                    className="size-11"
+                    aria-label="Increase quantity"
                     onClick={() => setQty((current) => Math.min(99, current + 1))}
                   >
                     +
