@@ -1,0 +1,16 @@
+{
+  "name": "cuidala-widget",
+  "version": "1.0.0",
+  "description": "Writes a plaintext lock-screen widget snapshot to the App Group. Never the vault key.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": ["src", "ios", "Package.swift"],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

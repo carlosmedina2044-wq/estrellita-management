@@ -1,0 +1,51 @@
+import Foundation
+import Capacitor
+import WidgetKit
+
+/// Writes the lock-screen glance to App Group UserDefaults.
+/// The vault key stays in Keychain ThisDeviceOnly + biometry ACL and is never copied here.
+@objc(CuidalaWidgetPlugin)
+public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "CuidalaWidgetPlugin"
+    public let jsName = "CuidalaWidget"
+    public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "updateSnapshot", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearSnapshot", returnType: CAPPluginReturnPromise)
+    ]
+
+    private static let suiteName = "group.com.cuidala.app"
+    private static let dueCountKey = "dueCount"
+    private static let doneCountKey = "doneCount"
+    private static let updatedAtKey = "updatedAt"
+    private static let titlesKey = "titles"
+
+    @objc func updateSnapshot(_ call: CAPPluginCall) {
+        guard let defaults = UserDefaults(suiteName: Self.suiteName) else {
+            call.reject("App Group UserDefaults unavailable")
+            return
+        }
+        let dueCount = call.getInt("dueCount") ?? 0
+        let doneCount = call.getInt("doneCount") ?? 0
+        let updatedAt = call.getString("updatedAt") ?? ""
+        let titles = (call.getArray("titles") ?? []).compactMap { $0 as? String }
+        defaults.set(dueCount, forKey: Self.dueCountKey)
+        defaults.set(doneCount, forKey: Self.doneCountKey)
+        defaults.set(updatedAt, forKey: Self.updatedAtKey)
+        defaults.set(titles, forKey: Self.titlesKey)
+        WidgetCenter.shared.reloadAllTimelines()
+        call.resolve()
+    }
+
+    @objc func clearSnapshot(_ call: CAPPluginCall) {
+        guard let defaults = UserDefaults(suiteName: Self.suiteName) else {
+            call.reject("App Group UserDefaults unavailable")
+            return
+        }
+        defaults.removeObject(forKey: Self.dueCountKey)
+        defaults.removeObject(forKey: Self.doneCountKey)
+        defaults.removeObject(forKey: Self.updatedAtKey)
+        defaults.removeObject(forKey: Self.titlesKey)
+        WidgetCenter.shared.reloadAllTimelines()
+        call.resolve()
+    }
+}
