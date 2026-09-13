@@ -14,7 +14,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | Turning app lock off requires `verifyDeviceOwner` | S5 | Settings toggle | Manual | NOT VERIFIED (manual) |
 | Restore from file confirms replacement counts | S5 | `BackupPanel` AlertDialog | Manual | NOT VERIFIED (manual) |
 | Persist failure surfaces a toast once | S6 | `PERSIST_FAILED_EVENT` in `vault.ts` | Code path | NOT VERIFIED (manual) |
-| New-phone restore without Keychain key is distinguishable | Data integrity | Envelope parses, decrypt fails or key missing → `key-mismatch` | Code path; LoadFailed offers backup import | NOT VERIFIED (manual) |
+| New-phone restore without Keychain key is distinguishable | Data integrity | Envelope parses, decrypt fails or key missing → `key-mismatch`. Restore copies the unreadable vault to `QUARANTINED_VAULT_KEY`, removes the originals, mints a device key, and `await persist`s the imported household | `vault.test.ts` S1b, S1c, `import resets cleaner visit state` | VERIFIED |
 | Encrypted portable backup (PBKDF2-HMAC-SHA256 600k + AES-GCM, NFC passphrase) | MASVS-CRYPTO-2 | `src/lib/backup.ts`; native share writes a temp file via `@capacitor/filesystem` | `src/lib/backup.test.ts` round-trip, 210k legacy, NFC, wrong passphrase | VERIFIED |
 | Legacy pre-release data migrated, PIN/account fields dropped | — | `parseStored`/`migrateHousehold` | `src/lib/storage.test.ts` | VERIFIED |
 | Completion history capped at 24 months | Q8 | `rollOldCompletions` in `migrateHousehold` | Code path | VERIFIED (code) |

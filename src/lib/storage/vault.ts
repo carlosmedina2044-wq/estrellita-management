@@ -28,6 +28,8 @@ export type HouseholdLoad =
   | { ok: false; reason: "corrupt" | "unavailable" | "key-mismatch" };
 
 export const PERSIST_FAILED_EVENT = "cuidala-persist-failed";
+/** Copy of a vault that could not be opened. Hydrate never reads this key. */
+export const QUARANTINED_VAULT_KEY = "cuidala-vault-v2-unreadable";
 
 type VaultIO = {
   kvGet: typeof kvGet;
@@ -192,6 +194,7 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
     return lastLoad;
   }
   try {
+    // Never read QUARANTINED_VAULT_KEY — that copy is only for forensics after a failed open.
     let raw = await io.kvGet(VAULT_STORAGE_KEY);
     let fromPreviousKey = false;
     if (!raw) {
@@ -263,6 +266,7 @@ export async function eraseHousehold(): Promise<void> {
   try {
     await io.kvRemove(VAULT_STORAGE_KEY);
     await io.kvRemove(PREVIOUS_VAULT_KEY);
+    await io.kvRemove(QUARANTINED_VAULT_KEY);
     await io.deleteDeviceKey();
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(LEGACY_PLAINTEXT_KEY);
@@ -299,6 +303,23 @@ export async function exportHouseholdBackup(passphrase: string): Promise<string>
   return sealBackup(JSON.stringify(memory ?? cloneEmpty()), passphrase);
 }
 
+async function quarantineUnreadableVault() {
+  const current = (await io.kvGet(VAULT_STORAGE_KEY)) ?? (await io.kvGet(PREVIOUS_VAULT_KEY));
+  if (!current) return;
+  await io.kvSet(QUARANTINED_VAULT_KEY, current);
+  await io.kvRemove(VAULT_STORAGE_KEY);
+  await io.kvRemove(PREVIOUS_VAULT_KEY);
+}
+
+function needsRestoreKey(): boolean {
+  return (
+    key === null ||
+    (lastLoad !== null &&
+      !lastLoad.ok &&
+      (lastLoad.reason === "key-mismatch" || lastLoad.reason === "corrupt"))
+  );
+}
+
 export async function importHouseholdBackup(
   raw: string,
   passphrase: string,
@@ -306,9 +327,33 @@ export async function importHouseholdBackup(
   try {
     const { openBackup } = await import("@/lib/backup");
     const plaintext = await openBackup(raw, passphrase);
-    const household = parseStored(plaintext);
-    write({ ...household, onboarded: true });
+    const household = {
+      ...parseStored(plaintext),
+      mode: "owner" as const,
+      activeVisitId: null,
+      onboarded: true,
+    };
+    await persistChain.catch(() => {});
+    try {
+      if (needsRestoreKey()) {
+        await quarantineUnreadableVault();
+        key = await io.createDeviceKey();
+      }
+      memory = household;
+      didHydrate = true;
+      notifyChange();
+      await persist(household);
+    } catch {
+      persistOk = false;
+      return {
+        ok: false,
+        error: "Restored, but it couldn’t be saved to this iPhone. Try again.",
+      };
+    }
     lastLoad = { ok: true, legacyLockedVault: false };
+    persistOk = true;
+    persistChain = Promise.resolve();
+    void syncScheduledNotifications(household).catch(() => {});
     return { ok: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Couldn’t open that backup.";
