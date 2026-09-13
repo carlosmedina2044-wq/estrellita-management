@@ -21,7 +21,8 @@ let package = Package(
             ],
             path: "ios/Sources/CuidalaDeviceKeyPlugin",
             linkerSettings: [
-                .linkedFramework("Security")
+                .linkedFramework("Security"),
+                .linkedFramework("LocalAuthentication"),
             ]
         )
     ]

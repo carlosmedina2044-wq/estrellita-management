@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import {
+  DEVICE_OWNER_FALLBACK_TITLE,
+  isUnimplementedPluginError,
+} from "@/lib/native/biometrics";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 
 const expected: Record<LockMethod, { noun: string; toggle: string; prompt: string }> = {
@@ -30,3 +34,17 @@ for (const method of Object.keys(expected) as LockMethod[]) {
     assert.deepEqual(lockMethodLabel(method), expected[method]);
   });
 }
+
+test("device-owner fallback title is a visible Enter Passcode label", () => {
+  assert.equal(DEVICE_OWNER_FALLBACK_TITLE, "Enter Passcode");
+  assert.notEqual(DEVICE_OWNER_FALLBACK_TITLE, "");
+});
+
+test("unimplemented plugin errors are the only ones that fall through", () => {
+  assert.equal(isUnimplementedPluginError({ code: "UNIMPLEMENTED" }), true);
+  assert.equal(isUnimplementedPluginError(new Error("UNIMPLEMENTED")), true);
+  assert.equal(isUnimplementedPluginError(new Error("Method is not implemented on ios")), true);
+  assert.equal(isUnimplementedPluginError({ code: "16" }), false);
+  assert.equal(isUnimplementedPluginError(new Error("User canceled")), false);
+  assert.equal(isUnimplementedPluginError(null), false);
+});

@@ -1,5 +1,6 @@
 import Capacitor
 import Foundation
+import LocalAuthentication
 import Security
 
 /// Device AES key in the data-protection keychain.
@@ -13,6 +14,7 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "get", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "set", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "remove", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "verifyOwner", returnType: CAPPluginReturnPromise),
     ]
 
     private static let currentService = "com.cuidala.app.device-key"
@@ -55,6 +57,30 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
                 call.resolve()
             } catch {
                 call.reject(error.localizedDescription)
+            }
+        }
+    }
+
+    /// Face ID / Touch ID with Apple’s system passcode fallback.
+    /// Never sets `localizedFallbackTitle` to "" — that hides Enter Passcode.
+    @objc func verifyOwner(_ call: CAPPluginCall) {
+        let reason = call.getString("reason") ?? "Unlock Cuidala"
+        let fallbackTitle = call.getString("fallbackTitle") ?? "Enter Passcode"
+        DispatchQueue.main.async {
+            let context = LAContext()
+            context.localizedFallbackTitle = fallbackTitle
+            var error: NSError?
+            let policy = LAPolicy.deviceOwnerAuthentication
+            guard context.canEvaluatePolicy(policy, error: &error) else {
+                call.reject(error?.localizedDescription ?? "Authentication not available")
+                return
+            }
+            context.evaluatePolicy(policy, localizedReason: reason) { success, evaluateError in
+                if success {
+                    call.resolve()
+                    return
+                }
+                call.reject(evaluateError?.localizedDescription ?? "Authentication failed")
             }
         }
     }
