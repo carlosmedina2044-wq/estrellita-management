@@ -664,7 +664,12 @@ export function useHousehold() {
       syncFromStore();
       return result;
     }
-    if (result.reason === "key-mismatch" || result.reason === "corrupt" || result.reason === "unavailable") {
+    if (
+      result.reason === "key-mismatch" ||
+      result.reason === "corrupt" ||
+      result.reason === "unavailable" ||
+      result.reason === "passcode_required"
+    ) {
       setLoadError({ ok: false, reason: result.reason });
       setPendingUnlock(false);
     }

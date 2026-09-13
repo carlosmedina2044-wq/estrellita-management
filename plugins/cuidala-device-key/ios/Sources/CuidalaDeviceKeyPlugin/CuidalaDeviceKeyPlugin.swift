@@ -198,6 +198,12 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
             throw DeviceKeyStoreError.osStatus(errSecParam)
         }
 
+        let context = LAContext()
+        var authError: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &authError) else {
+            throw DeviceKeyStoreError.passcodeRequired
+        }
+
         var error: Unmanaged<CFError>?
         guard let access = SecAccessControlCreateWithFlags(
             nil,
@@ -208,15 +214,42 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
             throw DeviceKeyStoreError.accessControlFailed(error?.takeRetainedValue())
         }
 
-        // Delete existing account variants first so ACL attributes are applied cleanly.
+        // Add-then-delete: write under a temporary account first so a failed write
+        // never leaves the device without the previous key.
+        let pendingAccount = account + ".pending"
+        for accountValue in accounts(for: pendingAccount) {
+            _ = SecItemDelete(baseQuery(service: currentService, account: accountValue) as CFDictionary)
+        }
+
+        var pendingAdd = baseQuery(service: currentService, account: pendingAccount)
+        pendingAdd[kSecValueData as String] = data
+        pendingAdd[kSecAttrAccessControl as String] = access
+        let pendingStatus = SecItemAdd(pendingAdd as CFDictionary, nil)
+        switch pendingStatus {
+        case errSecSuccess:
+            break
+        case errSecNotAvailable:
+            throw DeviceKeyStoreError.passcodeRequired
+        case errSecInteractionNotAllowed:
+            throw DeviceKeyStoreError.interactionNotAllowed
+        case errSecAuthFailed:
+            throw DeviceKeyStoreError.authFailed
+        case errSecUserCanceled:
+            throw DeviceKeyStoreError.userCanceled
+        default:
+            throw DeviceKeyStoreError.osStatus(pendingStatus)
+        }
+
         for accountValue in accounts(for: account) {
             let deleteStatus = SecItemDelete(baseQuery(service: currentService, account: accountValue) as CFDictionary)
             switch deleteStatus {
             case errSecSuccess, errSecItemNotFound:
                 break
             case errSecInteractionNotAllowed:
+                _ = SecItemDelete(baseQuery(service: currentService, account: pendingAccount) as CFDictionary)
                 throw DeviceKeyStoreError.interactionNotAllowed
             default:
+                _ = SecItemDelete(baseQuery(service: currentService, account: pendingAccount) as CFDictionary)
                 throw DeviceKeyStoreError.osStatus(deleteStatus)
             }
         }
@@ -224,19 +257,19 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
         var add = baseQuery(service: currentService, account: account)
         add[kSecValueData as String] = data
         add[kSecAttrAccessControl as String] = access
-        // Do not set kSecAttrAccessible — it conflicts with kSecAttrAccessControl.
-
         let added = SecItemAdd(add as CFDictionary, nil)
+        _ = SecItemDelete(baseQuery(service: currentService, account: pendingAccount) as CFDictionary)
         switch added {
         case errSecSuccess:
             return
         case errSecDuplicateItem:
-            // Rare race: update value only (ACL stays from original add).
             let updated = SecItemUpdate(
                 baseQuery(service: currentService, account: account) as CFDictionary,
                 [kSecValueData as String: data] as CFDictionary
             )
             guard updated == errSecSuccess else { throw DeviceKeyStoreError.osStatus(updated) }
+        case errSecNotAvailable:
+            throw DeviceKeyStoreError.passcodeRequired
         case errSecInteractionNotAllowed:
             throw DeviceKeyStoreError.interactionNotAllowed
         case errSecAuthFailed:
@@ -346,6 +379,7 @@ private enum DeviceKeyStoreError: LocalizedError {
     case interactionNotAllowed
     case userCanceled
     case authFailed
+    case passcodeRequired
     case accessControlFailed(CFError?)
     case osStatus(OSStatus)
 
@@ -354,6 +388,7 @@ private enum DeviceKeyStoreError: LocalizedError {
         case .interactionNotAllowed: return "interaction_not_allowed"
         case .userCanceled: return "user_canceled"
         case .authFailed: return "auth_failed"
+        case .passcodeRequired: return "passcode_required"
         case .accessControlFailed: return "access_control_failed"
         case .osStatus: return "keychain_error"
         }
@@ -367,6 +402,8 @@ private enum DeviceKeyStoreError: LocalizedError {
             return "User canceled authentication"
         case .authFailed:
             return "Authentication failed"
+        case .passcodeRequired:
+            return "Device passcode required"
         case .accessControlFailed(let error):
             return error?.localizedDescription ?? "Could not create access control"
         case .osStatus(let status):

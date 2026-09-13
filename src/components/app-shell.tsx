@@ -734,7 +734,7 @@ function LoadFailed({
   onConfirmEraseChange,
   onErase,
 }: {
-  reason: "corrupt" | "unavailable" | "key-mismatch";
+  reason: "corrupt" | "unavailable" | "key-mismatch" | "passcode_required";
   onRetry: () => void;
   onStartFresh: () => void;
   onImport: (raw: string, passphrase: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -744,6 +744,37 @@ function LoadFailed({
 }) {
   const { t } = useLocale();
   const keyMismatch = reason === "key-mismatch";
+  const passcodeRequired = reason === "passcode_required";
+
+  async function openIosSettings() {
+    try {
+      const { Browser } = await import("@capacitor/browser");
+      await Browser.open({ url: "app-settings:" });
+    } catch {
+      // Web / missing plugin — ignore.
+    }
+  }
+
+  if (passcodeRequired) {
+    return (
+      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
+        <BrandMark size="sm" />
+        <h1 className="ui-heading mt-5 ui-display font-semibold tracking-tight">
+          {t("recovery.passcodeTitle")}
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">{t("recovery.passcodeBody")}</p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Button className="h-12" onClick={() => void openIosSettings()}>
+            {t("recovery.openSettings")}
+          </Button>
+          <Button variant="secondary" className="h-12" onClick={onRetry}>
+            {t("recovery.tryAgain")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
       <BrandMark size="sm" />

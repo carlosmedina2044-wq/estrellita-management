@@ -16,6 +16,7 @@ import {
   DeviceKeyError,
   deviceKeyRequiresInteractiveUnlock,
   getLastMintedKeyId,
+  isPasscodeRequiredKeyError,
   isUserCanceledKeyError,
   loadDeviceKey,
   loadOrCreateDeviceKey,
@@ -28,11 +29,11 @@ import type { Household, LockAfter } from "@/lib/types";
 
 export type HouseholdLoad =
   | { ok: true; legacyLockedVault: boolean; pendingUnlock?: boolean }
-  | { ok: false; reason: "corrupt" | "unavailable" | "key-mismatch" };
+  | { ok: false; reason: "corrupt" | "unavailable" | "key-mismatch" | "passcode_required" };
 
 export type UnlockHouseholdResult =
   | { ok: true }
-  | { ok: false; reason: "canceled" | "auth_failed" | "key-mismatch" | "corrupt" | "unavailable" };
+  | { ok: false; reason: "canceled" | "auth_failed" | "key-mismatch" | "corrupt" | "unavailable" | "passcode_required" };
 
 export const PERSIST_FAILED_EVENT = "cuidala-persist-failed";
 /** Copy of a vault that could not be opened. Hydrate never reads this key. */
@@ -320,6 +321,10 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
       if (error instanceof DeviceKeyError && error.code === "auth_failed") {
         return { ok: false, reason: "auth_failed" };
       }
+      if (isPasscodeRequiredKeyError(error)) {
+        lastLoad = { ok: false, reason: "passcode_required" };
+        return { ok: false, reason: "passcode_required" };
+      }
       lastLoad = { ok: false, reason: "unavailable" };
       return { ok: false, reason: "unavailable" };
     }
@@ -357,6 +362,10 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
     return { ok: true };
   } catch (error) {
     if (isUserCanceledKeyError(error)) return { ok: false, reason: "canceled" };
+    if (isPasscodeRequiredKeyError(error)) {
+      lastLoad = { ok: false, reason: "passcode_required" };
+      return { ok: false, reason: "passcode_required" };
+    }
     lastLoad = {
       ok: false,
       reason: error instanceof DOMException || error instanceof DeviceKeyError ? "unavailable" : "corrupt",
@@ -406,6 +415,10 @@ async function decryptVaultRaw(
     if (isUserCanceledKeyError(error)) {
       sessionUnlocked = false;
       lastLoad = { ok: true, legacyLockedVault: false, pendingUnlock: true };
+      return lastLoad;
+    }
+    if (isPasscodeRequiredKeyError(error)) {
+      lastLoad = { ok: false, reason: "passcode_required" };
       return lastLoad;
     }
     lastLoad = { ok: false, reason: "unavailable" };
@@ -503,6 +516,10 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
     lastLoad = { ok: true, legacyLockedVault: legacyLockedVaultPresent() };
     return lastLoad;
   } catch (error) {
+    if (isPasscodeRequiredKeyError(error)) {
+      lastLoad = { ok: false, reason: "passcode_required" };
+      return lastLoad;
+    }
     lastLoad = {
       ok: false,
       reason: error instanceof DOMException || error instanceof DeviceKeyError ? "unavailable" : "corrupt",

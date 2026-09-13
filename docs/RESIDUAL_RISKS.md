@@ -4,6 +4,7 @@
 |---|---|---|
 | Unlocked, stolen iPhone with the app already open | Any local app shares this risk | Lock-after timer (immediate / 2 min / 15 min) re-locks on background using timestamps on `pause`/`resume`, suppressed while an owner prompt is in flight; Face ID / ACL prompt on relaunch; privacy blur in the app switcher; lock clears in-memory `CryptoKey` and household plaintext. |
 | Device passcode holder can unlock the vault | iOS trust model: passcode is root; ACL is `biometryCurrentSet` **OR** `devicePasscode` | Documented in-app; no weaker fallback exists. Passcode holder can still open the home. |
+| Removing the device passcode deletes the Keychain item | `WhenPasscodeSetThisDeviceOnly` by design | App shows a passcode-required screen (`passcode_required`) with Open Settings; restore from backup after setting a passcode again. |
 | Biometric enrollment change invalidates the Keychain item | `.biometryCurrentSet` by design | Maps to key-mismatch + Restore from backup / Erase. Backup password is the portability path. |
 | Data lost with the device / new iPhone | Vault key is `WhenPasscodeSetThisDeviceOnly` and does **not** migrate via Quick Start or encrypted backups | In-app encrypted export/import (“Back up my home”) is the cross-device path. Teach once after upgrade. |
 | Forgotten backup password | Password is never stored; Cuidala cannot reset it | File is useless without it; honest copy in Settings and Additional terms. |
