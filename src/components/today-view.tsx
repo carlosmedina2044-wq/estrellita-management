@@ -12,10 +12,11 @@ import { RestockOrderButton, restockButtonProps } from "@/components/restock-ord
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-menu";
+import { WeekRing } from "@/components/week-ring";
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
-import { addDays, formatLongDate, formatTime, formatWeekdayDate, isFirstOfMonth, sameDay, startOfMonth, startOfWeek, toISODate } from "@/lib/dates";
+import { addDays, formatLongDate, formatTime, formatWeekdayDate, isFirstOfMonth, sameDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
 import {
   completionDays,
   doneOnDay,
@@ -34,7 +35,7 @@ import {
   type DoneEntry,
   type OutstandingScope,
 } from "@/lib/duties";
-import { closedDayRun, todayEffort } from "@/lib/momentum";
+import { closedDayRun, dismissWeekWrapped, roomsTouchedInRange, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
 import { tDutyTitle } from "@/i18n/content";
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
@@ -68,6 +69,7 @@ export function TodayView({
   onOpenDigest,
   onOpenRestock,
   onNavigate,
+  onChangeTree,
   focus,
   onFocusHandled,
   ...restockHandlers
@@ -148,6 +150,12 @@ export function TodayView({
     return completionDays(household, start, addDays(start, 41));
   }, [household, calendarMonth]);
   const run = useMemo(() => closedDayRun(household, now), [household, now]);
+  const week = useMemo(() => weekProgress(household, now), [household, now]);
+  const weekRooms = useMemo(() => {
+    const range = weekRange(now);
+    return roomsTouchedInRange(household, range.start, now);
+  }, [household, now]);
+  const showWeekWrapped = shouldShowWeekWrapped(household, now);
   const viewingCalendar = calendarDay !== null;
   const viewDate = calendarDay ?? now;
   const calendarIsToday = viewingCalendar && sameDay(viewDate, now);
@@ -469,6 +477,12 @@ export function TodayView({
         orderNow={summary.orderNow}
         orderNowCost={orderNowCostCaption(restock.order_now)}
         arriving={summary.arriving}
+        weekRing={{
+          done: week.done,
+          planned: week.planned,
+          label: t("today.weekRing", { done: week.done, planned: week.planned }),
+          onClick: () => selectScope("weekly"),
+        }}
         labels={{
           overdue: t("today.overdue"),
           dueToday: t("today.dueToday"),
@@ -697,6 +711,33 @@ export function TodayView({
         </button>
       ) : null}
 
+      {showWeekWrapped ? (
+        <div className="rounded-2xl bg-card px-4 py-3">
+          <div className="flex items-start gap-3">
+            <BrandMark size="sm" className="mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="ui-body font-medium">{t("today.weekWrappedTitle")}</p>
+              <p className="mt-0.5 ui-caption text-muted-foreground">
+                {t("today.weekWrappedBody", {
+                  done: week.done,
+                  minutes: week.minutes,
+                  rooms: weekRooms,
+                })}
+              </p>
+              <div className="mt-2 flex gap-2">
+                <Button
+                  variant="ghost"
+                  className="h-11 px-2"
+                  onClick={() => onChangeTree?.(dismissWeekWrapped(household, now))}
+                >
+                  {t("common.gotIt")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showTeachingCard ? (
         <div className="rounded-2xl bg-card px-4 py-3">
           <div className="flex items-start gap-3">
@@ -856,6 +897,7 @@ function AttentionTiles({
   orderNow,
   orderNowCost,
   arriving,
+  weekRing,
   labels,
   onOverdue,
   onDueToday,
@@ -868,6 +910,7 @@ function AttentionTiles({
   orderNow: number;
   orderNowCost: string | null;
   arriving: number;
+  weekRing?: { done: number; planned: number; label: string; onClick: () => void };
   labels: {
     overdue: string;
     dueToday: string;
@@ -925,7 +968,19 @@ function AttentionTiles({
       : null,
   ].filter((tile): tile is NonNullable<typeof tile> => Boolean(tile));
 
-  if (tiles.length === 0) {
+  const ring = weekRing ? (
+    <button
+      type="button"
+      onClick={weekRing.onClick}
+      aria-label={weekRing.label}
+      className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 ring-1 ring-border transition-transform duration-75 active:scale-[0.98]"
+    >
+      <WeekRing done={weekRing.done} planned={weekRing.planned} />
+      <span className="ui-caption text-muted-foreground">{weekRing.label}</span>
+    </button>
+  ) : null;
+
+  if (tiles.length === 0 && !ring) {
     return (
       <button
         type="button"
@@ -936,6 +991,23 @@ function AttentionTiles({
         <span className="ui-body font-medium text-success">{labels.allClear}</span>
         <span className="ml-2 ui-caption text-muted-foreground">{labels.allClearHint}</span>
       </button>
+    );
+  }
+
+  if (tiles.length === 0) {
+    return (
+      <div className="app-h-scroll -mx-1 flex gap-2 overflow-x-auto px-1">
+        <button
+          type="button"
+          onClick={onAllClear}
+          className="flex min-h-11 min-w-0 flex-1 items-center rounded-full bg-success/10 px-4 text-left transition-transform duration-75 active:scale-[0.98]"
+          aria-label={labels.allClearAria}
+        >
+          <span className="ui-body font-medium text-success">{labels.allClear}</span>
+          <span className="ml-2 ui-caption text-muted-foreground">{labels.allClearHint}</span>
+        </button>
+        {ring}
+      </div>
     );
   }
 
@@ -959,6 +1031,7 @@ function AttentionTiles({
           </span>
         </button>
       ))}
+      {ring}
     </div>
   );
 }

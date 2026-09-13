@@ -189,3 +189,31 @@ export function roomsTouchedInRange(household: Household, start: Date, end: Date
   }
   return rooms.size;
 }
+
+export const WEEK_WRAPPED_PREFIX = "week-wrapped-";
+
+/** ISO week id (YYYY-Www) so the wrap card occupies one seenTips slot. */
+export function isoWeekKey(date: Date): string {
+  const tmp = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const weekday = tmp.getDay() || 7;
+  tmp.setDate(tmp.getDate() + 4 - weekday);
+  const yearStart = new Date(tmp.getFullYear(), 0, 1);
+  const week = Math.ceil(((tmp.getTime() - yearStart.getTime()) / DAY_MS + 1) / 7);
+  return `${tmp.getFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+export function weekWrappedTipKey(now: Date): string {
+  return `${WEEK_WRAPPED_PREFIX}${isoWeekKey(now)}`;
+}
+
+export function shouldShowWeekWrapped(household: Household, now = new Date()): boolean {
+  if (startOfDay(now) < startOfDay(weekRange(now).end)) return false;
+  if (weekProgress(household, now).done <= 0) return false;
+  return !household.seenTips.includes(weekWrappedTipKey(now));
+}
+
+export function dismissWeekWrapped(household: Household, now = new Date()): Household {
+  const key = weekWrappedTipKey(now);
+  const kept = household.seenTips.filter((tip) => !tip.startsWith(WEEK_WRAPPED_PREFIX));
+  return { ...household, seenTips: [...kept, key] };
+}

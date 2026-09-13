@@ -2,7 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { addDays } from "@/lib/dates";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
-import { closedDayRun, dayOutcome, monthRecap, todayEffort, weekProgress } from "@/lib/momentum";
+import {
+  closedDayRun,
+  dayOutcome,
+  dismissWeekWrapped,
+  monthRecap,
+  shouldShowWeekWrapped,
+  todayEffort,
+  weekProgress,
+  weekWrappedTipKey,
+} from "@/lib/momentum";
 import type { Completion, Duty, Household } from "@/lib/types";
 
 function duty(partial: Partial<Duty> & Pick<Duty, "title">): Duty {
@@ -194,4 +203,27 @@ test("monthRecap sums completions and rooms", () => {
   assert.equal(recap.minutes, 20);
   assert.equal(recap.roomsTouched, 2);
   assert.ok(recap.longestRun >= 1);
+});
+
+test("week wrapped waits for week end and reuses one seenTips slot", () => {
+  const saturday = new Date(2026, 8, 12);
+  const sunday = new Date(2026, 8, 13);
+  const weekly = duty({
+    id: "trash",
+    title: "Trash",
+    frequency: "weekly",
+    weekday: 6,
+  });
+  const home = household({
+    duties: [weekly],
+    completions: [completion({ dutyId: "trash", completedAt: atNoon(saturday) })],
+    seenTips: ["arrival-prompt", "week-wrapped-2026-W01"],
+  });
+  assert.equal(shouldShowWeekWrapped(home, sunday), false);
+  assert.equal(shouldShowWeekWrapped(home, saturday), true);
+  const dismissed = dismissWeekWrapped(home, saturday);
+  assert.equal(dismissed.seenTips.includes("arrival-prompt"), true);
+  assert.equal(dismissed.seenTips.includes("week-wrapped-2026-W01"), false);
+  assert.equal(dismissed.seenTips.includes(weekWrappedTipKey(saturday)), true);
+  assert.equal(shouldShowWeekWrapped(dismissed, saturday), false);
 });

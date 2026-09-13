@@ -702,6 +702,7 @@ export function AppShell() {
             onNavigate={navigate}
             focus={todayActive ? nav : null}
             onFocusHandled={handleFocusHandled}
+            onChangeTree={(next) => updateTree(() => next)}
           />
         </div>
         <div
