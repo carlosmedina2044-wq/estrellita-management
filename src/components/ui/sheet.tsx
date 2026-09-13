@@ -42,7 +42,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-black/40 duration-300 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-50 bg-black/40 duration-400 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 motion-reduce:duration-150",
         className
       )}
       {...props}
@@ -133,6 +133,15 @@ function SheetContent({
     setTranslateY(0, true)
   }
 
+  const travelClass =
+    side === "bottom"
+      ? reduceMotion
+        ? "duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+        : "duration-400 [animation-timing-function:cubic-bezier(0.32,0.72,0,1)] data-open:animate-in data-open:slide-in-from-bottom data-closed:animate-out data-closed:slide-out-to-bottom"
+      : reduceMotion
+        ? "duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+        : "duration-400 [animation-timing-function:cubic-bezier(0.32,0.72,0,1)] data-open:animate-in data-open:fade-in-0 data-[side=left]:data-open:slide-in-from-left data-[side=right]:data-open:slide-in-from-right data-[side=top]:data-open:slide-in-from-top data-closed:animate-out data-closed:fade-out-0 data-[side=left]:data-closed:slide-out-to-left data-[side=right]:data-closed:slide-out-to-right data-[side=top]:data-closed:slide-out-to-top"
+
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -141,7 +150,8 @@ function SheetContent({
         data-side={side}
         data-sheet-size={size}
         className={cn(
-          "fixed z-50 flex flex-col gap-4 overflow-hidden bg-popover bg-clip-padding ui-body text-popover-foreground shadow-lg transition duration-300 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:rounded-t-3xl data-[side=bottom]:data-[sheet-size=form]:bottom-[var(--keyboard-inset,0px)] data-[side=bottom]:data-[sheet-size=default]:h-auto data-[side=bottom]:data-[sheet-size=form]:h-[min(92dvh,var(--visual-viewport-height,100dvh))] data-[side=bottom]:border-t data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-[side=bottom]:data-open:slide-in-from-bottom-10 data-[side=left]:data-open:slide-in-from-left-10 data-[side=right]:data-open:slide-in-from-right-10 data-[side=top]:data-open:slide-in-from-top-10 data-closed:animate-out data-closed:fade-out-0 data-[side=bottom]:data-closed:slide-out-to-bottom-10 data-[side=left]:data-closed:slide-out-to-left-10 data-[side=right]:data-closed:slide-out-to-right-10 data-[side=top]:data-closed:slide-out-to-top-10",
+          "fixed z-50 flex flex-col gap-4 overflow-hidden bg-popover bg-clip-padding ui-body text-popover-foreground shadow-lg transition [transition-timing-function:cubic-bezier(0.32,0.72,0,1)] data-[side=bottom]:inset-x-0 data-[side=bottom]:bottom-0 data-[side=bottom]:rounded-t-3xl data-[side=bottom]:data-[sheet-size=form]:bottom-[var(--keyboard-inset,0px)] data-[side=bottom]:data-[sheet-size=default]:h-auto data-[side=bottom]:data-[sheet-size=form]:h-[min(92dvh,var(--visual-viewport-height,100dvh))] data-[side=bottom]:border-t data-[side=left]:inset-y-0 data-[side=left]:left-0 data-[side=left]:h-full data-[side=left]:w-3/4 data-[side=left]:border-r data-[side=right]:inset-y-0 data-[side=right]:right-0 data-[side=right]:h-full data-[side=right]:w-3/4 data-[side=right]:border-l data-[side=top]:inset-x-0 data-[side=top]:top-0 data-[side=top]:h-auto data-[side=top]:border-b data-[side=left]:sm:max-w-sm data-[side=right]:sm:max-w-sm",
+          travelClass,
           className
         )}
         {...props}

@@ -39,7 +39,7 @@ import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { hapticTab } from "@/lib/native/haptics";
 import { isNative } from "@/lib/native/platform";
-import { scrollBehavior } from "@/lib/motion";
+import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
@@ -101,34 +101,85 @@ export function AppShell() {
   const [nav, setNav] = useState<AppNavigateTarget | null>(null);
   const top = stack[stack.length - 1] ?? null;
   const backLabel = rootTab === "today" ? t("tabs.today") : rootTab === "restock" ? t("tabs.restock") : t("tabs.home");
+  const reduceMotion = prefersReducedMotion();
+  const [leavingPush, setLeavingPush] = useState<AppNavigateTarget | null>(null);
+  const leaveTimerRef = useRef<number | null>(null);
+
+  const beginPushExit = useCallback((screen: AppNavigateTarget) => {
+    if (leaveTimerRef.current != null) window.clearTimeout(leaveTimerRef.current);
+    setLeavingPush(screen);
+    leaveTimerRef.current = window.setTimeout(() => {
+      setLeavingPush(null);
+      leaveTimerRef.current = null;
+    }, prefersReducedMotion() ? 150 : 350);
+  }, []);
+
+  const cancelPushExit = useCallback(() => {
+    if (leaveTimerRef.current != null) {
+      window.clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+    setLeavingPush(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (leaveTimerRef.current != null) window.clearTimeout(leaveTimerRef.current);
+    };
+  }, []);
+
   const navigate = useCallback((target: AppNavigateTarget) => {
     setNav(target);
     if (isRootTab(target.tab)) {
       setRootTab(target.tab);
-      setStack([]);
+      setStack((current) => {
+        const leaving = current[current.length - 1];
+        if (leaving) window.setTimeout(() => beginPushExit(leaving), 0);
+        return [];
+      });
       return;
     }
+    cancelPushExit();
     setStack((current) => {
       const last = current[current.length - 1];
       if (last?.tab === target.tab) return [...current.slice(0, -1), target];
       return [...current, target];
     });
-  }, []);
+  }, [beginPushExit, cancelPushExit]);
+
+  const clearPushStack = useCallback(() => {
+    setStack((current) => {
+      const leaving = current[current.length - 1];
+      if (leaving) window.setTimeout(() => beginPushExit(leaving), 0);
+      return [];
+    });
+  }, [beginPushExit]);
+
   const popStack = useCallback(() => {
-    setStack((current) => current.slice(0, -1));
-  }, []);
+    setStack((current) => {
+      if (current.length === 0) return current;
+      if (current.length === 1) {
+        const leaving = current[0]!;
+        window.setTimeout(() => beginPushExit(leaving), 0);
+      }
+      return current.slice(0, -1);
+    });
+  }, [beginPushExit]);
+
+  const pushScreen = top ?? leavingPush;
+  const pushLeaving = Boolean(leavingPush) && !top;
   const tabPaneRefs = useRef<Partial<Record<RootTab, HTMLDivElement | null>>>({});
   const selectRootTab = useCallback((next: RootTab) => {
     void hapticTab();
     setRootTab((current) => {
-      if (current === next && top === null) {
+      if (current === next && top === null && !leavingPush) {
         const pane = tabPaneRefs.current[next];
         pane?.scrollTo({ top: 0, behavior: scrollBehavior() });
       }
       return next;
     });
-    setStack([]);
-  }, [top]);
+    clearPushStack();
+  }, [clearPushStack, top, leavingPush]);
   const handleFocusHandled = useCallback(() => {
     setNav((current) =>
       current
@@ -506,7 +557,13 @@ export function AppShell() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <main className="app-shell-main relative min-w-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <main className="app-shell-main relative min-w-0">
+        <div
+          className="app-shell-roots px-4 pt-[max(0.75rem,env(safe-area-inset-top))]"
+          data-pushed={top ? "true" : "false"}
+          data-reduce-motion={reduceMotion ? "true" : "false"}
+          inert={Boolean(top)}
+        >
         <div
           hidden={!todayActive}
           inert={!todayActive}
@@ -620,61 +677,65 @@ export function AppShell() {
             onFocusHandled={handleFocusHandled}
           />
         </div>
-        {top?.tab === "budget" ? (
-          <div className="app-keep-alive app-shell-main--push">
-            <BudgetView
-              household={household}
-              onChange={(updater) => updateTree(updater)}
-              onNavigate={navigate}
-              onBack={popStack}
-              backLabel={pushBackLabel}
-            />
-          </div>
-        ) : null}
-        {top?.tab === "seasonal" ? (
-          <div className="app-keep-alive app-shell-main--push">
-            <SeasonalView
-              household={household}
-              weatherAttribution={weatherAttribution}
-              forecast={forecast}
-              weatherLine={weather.text}
-              needsZip={weather.needsZip}
-              weatherError={weatherError ?? household.weatherStatus.lastError}
-              onSavePostalCode={savePostalCode}
-              onAccept={acceptPlaybook}
-              onDecline={declinePlaybook}
-              onReconsider={reconsiderPlaybook}
-              onToggleAttribute={(key) =>
-                updateHome({ attributes: { ...household.attributes, [key]: !household.attributes[key] } })
-              }
-              onBack={popStack}
-              backLabel={pushBackLabel}
-              focusPlaybookId={top.playbookId}
-            />
-          </div>
-        ) : null}
-        {top?.tab === "settings" ? (
-          <div className="app-keep-alive app-shell-main--push">
-            <HomeView
-              household={household}
-              onUpdate={updateHome}
-              onSavePostalCode={savePostalCode}
-              onStartCleanerVisit={startCleanerVisit}
-              onChangeTree={(next) => updateTree(() => next)}
-              onErase={eraseEverything}
-              onExportBackup={exportBackup}
-              onImportBackup={importBackup}
-              canUndoRestore={canUndoRestore}
-              onUndoRestore={undoRestore}
-              canLock={canLock === true}
-              lockMethod={lockMethod ?? "none"}
-              restockDigest={household.restockDigest}
-              onUpdateDigest={updateRestockDigest}
-              focusAssetId={nav?.assetId}
-              onFocusHandled={handleFocusHandled}
-              onBack={popStack}
-              backLabel={pushBackLabel}
-            />
+        </div>
+        {pushScreen ? (
+          <div
+            className="app-shell-push"
+            data-leaving={pushLeaving ? "true" : "false"}
+            data-reduce-motion={reduceMotion ? "true" : "false"}
+            inert={pushLeaving}
+          >
+            {pushScreen.tab === "budget" ? (
+              <BudgetView
+                household={household}
+                onChange={(updater) => updateTree(updater)}
+                onNavigate={navigate}
+                onBack={popStack}
+                backLabel={pushBackLabel}
+              />
+            ) : null}
+            {pushScreen.tab === "seasonal" ? (
+              <SeasonalView
+                household={household}
+                weatherAttribution={weatherAttribution}
+                forecast={forecast}
+                weatherLine={weather.text}
+                needsZip={weather.needsZip}
+                weatherError={weatherError ?? household.weatherStatus.lastError}
+                onSavePostalCode={savePostalCode}
+                onAccept={acceptPlaybook}
+                onDecline={declinePlaybook}
+                onReconsider={reconsiderPlaybook}
+                onToggleAttribute={(key) =>
+                  updateHome({ attributes: { ...household.attributes, [key]: !household.attributes[key] } })
+                }
+                onBack={popStack}
+                backLabel={pushBackLabel}
+                focusPlaybookId={pushScreen.playbookId}
+              />
+            ) : null}
+            {pushScreen.tab === "settings" ? (
+              <HomeView
+                household={household}
+                onUpdate={updateHome}
+                onSavePostalCode={savePostalCode}
+                onStartCleanerVisit={startCleanerVisit}
+                onChangeTree={(next) => updateTree(() => next)}
+                onErase={eraseEverything}
+                onExportBackup={exportBackup}
+                onImportBackup={importBackup}
+                canUndoRestore={canUndoRestore}
+                onUndoRestore={undoRestore}
+                canLock={canLock === true}
+                lockMethod={lockMethod ?? "none"}
+                restockDigest={household.restockDigest}
+                onUpdateDigest={updateRestockDigest}
+                focusAssetId={nav?.assetId}
+                onFocusHandled={handleFocusHandled}
+                onBack={popStack}
+                backLabel={pushBackLabel}
+              />
+            ) : null}
           </div>
         ) : null}
       </main>
