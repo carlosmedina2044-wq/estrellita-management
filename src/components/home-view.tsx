@@ -558,7 +558,7 @@ export function HomeView({
         </div>
         <a
           className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-secondary text-sm font-medium"
-          href="mailto:privacy@cuidala.app?subject=Cuidala%20help"
+          href="mailto:support@cuidala.app?subject=Cuidala%20help"
         >
           {t("settings.helpContact")}
         </a>
@@ -611,12 +611,12 @@ export function HomeView({
                   const result = await onErase();
                   if (result.ok) {
                     void hapticDestructive();
-                    toast.success(t("settings.eraseAll"));
+                    toast.success(t("settings.eraseSuccess"));
                   } else toast.error(t("shell.eraseFailed"));
                 })();
               }}
             >
-              {t("common.delete")}
+              {t("settings.eraseConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
