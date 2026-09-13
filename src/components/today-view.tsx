@@ -417,10 +417,10 @@ export function TodayView({
     <div className="flex flex-col gap-5">
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[17px] font-semibold leading-snug text-foreground">{greeting}</p>
+          <p className="ui-card font-semibold leading-snug text-foreground">{greeting}</p>
           <h1
             className={cn(
-              "mt-1 origin-left text-[34px] font-bold leading-[1.15] tracking-tight text-foreground transition-transform duration-[400ms] ease-out",
+              "ui-hero mt-1 origin-left text-foreground transition-transform duration-[400ms] ease-out",
               closedPulse ? "scale-[1.03]" : "scale-100",
             )}
           >

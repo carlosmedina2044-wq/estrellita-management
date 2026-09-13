@@ -182,6 +182,7 @@
 
   .font-heading,
   .ui-heading,
+  .ui-hero,
   .ui-display,
   .ui-title {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, "Segoe UI", sans-serif;
@@ -191,6 +192,13 @@
     font-feature-settings: "liga" 0, "clig" 0, "dlig" 0, "calt" 0;
     font-synthesis: none;
     -webkit-font-smoothing: antialiased;
+  }
+
+  .ui-hero {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.022em;
+    line-height: 1.15;
   }
 
   .ui-display {
