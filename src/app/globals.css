@@ -240,8 +240,33 @@
 }
 
 .app-shell-main {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
   padding-bottom: calc(7.25rem + env(safe-area-inset-bottom));
+}
+
+.app-keep-alive {
+  min-height: 0;
+  flex: 1 1 auto;
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-keep-alive[hidden] {
+  display: block !important;
+  visibility: hidden;
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 0;
+  flex: none;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .app-shell-main--no-tab-bar {
@@ -367,7 +392,7 @@ html.keyboard-open [data-slot="sheet-footer"] {
   width: 100%;
   max-width: 32rem;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow: hidden;
   background: var(--background);
 }
 

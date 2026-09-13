@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -114,6 +114,8 @@ export function SeasonalView({
   onReconsider,
   onToggleAttribute,
   onBack,
+  backLabel = "Back to Today",
+  focusPlaybookId,
 }: {
   household: Household;
   weatherAttribution?: WeatherAttribution | null;
@@ -129,6 +131,8 @@ export function SeasonalView({
   onToggleAttribute: (
     key: "hasPool" | "hasIrrigation" | "hasGutters" | "hasFireplace" | "hasBasement" | "hasEvaporativeCooler",
   ) => void;
+  backLabel?: string;
+  focusPlaybookId?: string;
 }) {
   const now = new Date();
   const suggested = matchingPlaybooks(household, now);
@@ -142,10 +146,15 @@ export function SeasonalView({
   const showWeatherError = Boolean(weatherError) && !forecast;
   const showWatchingLine = watch.active.length === 0 && watch.watching.length > 0 && Boolean(forecast);
 
+  useEffect(() => {
+    if (!focusPlaybookId) return;
+    scrollToPlaybook(focusPlaybookId);
+  }, [focusPlaybookId]);
+
   return (
     <div className="flex flex-col gap-5 pb-8">
       <div>
-        <PageHeader title="Seasonal" subtitle={subtitle} onBack={onBack} backLabel="Back to Today" />
+        <PageHeader title="Seasonal" subtitle={subtitle} onBack={onBack} backLabel={backLabel} />
         {forecast ? (
           <AppleWeatherAttribution
             className="mt-1 text-[11px] text-muted-foreground"

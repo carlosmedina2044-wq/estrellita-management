@@ -42,11 +42,13 @@ export function BudgetView({
   onChange,
   onNavigate,
   onBack,
+  backLabel = "Back to Home",
 }: {
   household: Household;
   onChange: (updater: (current: Household) => Household) => void;
   onNavigate?: (target: AppNavigateTarget) => void;
   onBack?: () => void;
+  backLabel?: string;
 }) {
   const [horizon, setHorizon] = useState<12 | 24 | 36>(12);
   const [fundOpen, setFundOpen] = useState(false);
@@ -95,7 +97,7 @@ export function BudgetView({
         title="Budget"
         subtitle={updated}
         onBack={onBack}
-        backLabel="Back to Home"
+        backLabel={backLabel}
         action={
           <button
             type="button"

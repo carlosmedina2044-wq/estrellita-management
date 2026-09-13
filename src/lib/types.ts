@@ -364,7 +364,13 @@ export type DutyDraft = Omit<Duty, "id" | "createdAt" | "archived"> & {
   supplyAutomation?: SupplyAutomationInput | null;
 };
 
-export type Tab = "today" | "home" | "restock" | "budget" | "seasonal" | "settings";
+export type RootTab = "today" | "home" | "restock";
+export type PushTab = "budget" | "seasonal" | "settings";
+export type Tab = RootTab | PushTab;
+
+export function isRootTab(tab: Tab): tab is RootTab {
+  return tab === "today" || tab === "home" || tab === "restock";
+}
 
 export type AppNavigateTarget = {
   tab: Tab;
@@ -373,4 +379,5 @@ export type AppNavigateTarget = {
   action?: "receive";
   assetId?: string;
   dutyId?: string;
+  playbookId?: string;
 };

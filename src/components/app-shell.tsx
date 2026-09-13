@@ -35,13 +35,14 @@ import { roomsWithNearReplacement } from "@/lib/forecast";
 import { ForecastCard } from "@/components/forecast-card";
 import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
+import { hapticTab } from "@/lib/native/haptics";
 import { isNative } from "@/lib/native/platform";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
 import { forCleanerSession, PERSIST_FAILED_EVENT } from "@/lib/storage";
 import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_REENGAGE, withTeaching } from "@/lib/teaching";
-import type { AppNavigateTarget, Tab } from "@/lib/types";
+import { isRootTab, type AppNavigateTarget, type RootTab } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -83,16 +84,36 @@ export function AppShell() {
     declinePlaybook,
     reconsiderPlaybook,
   } = useHousehold();
-  const [tab, setTab] = useState<Tab>(() => initialTab());
+  const [rootTab, setRootTab] = useState<RootTab>(() => initialTab());
+  const [stack, setStack] = useState<AppNavigateTarget[]>([]);
   const [nav, setNav] = useState<AppNavigateTarget | null>(null);
+  const top = stack[stack.length - 1] ?? null;
+  const backLabel = rootTab === "today" ? "Today" : rootTab === "restock" ? "Restock" : "Home";
   const navigate = useCallback((target: AppNavigateTarget) => {
-    setTab(target.tab);
     setNav(target);
+    if (isRootTab(target.tab)) {
+      setRootTab(target.tab);
+      setStack([]);
+      return;
+    }
+    setStack((current) => {
+      const last = current[current.length - 1];
+      if (last?.tab === target.tab) return [...current.slice(0, -1), target];
+      return [...current, target];
+    });
+  }, []);
+  const popStack = useCallback(() => {
+    setStack((current) => current.slice(0, -1));
+  }, []);
+  const selectRootTab = useCallback((next: RootTab) => {
+    void hapticTab();
+    setRootTab(next);
+    setStack([]);
   }, []);
   const handleFocusHandled = useCallback(() => {
     setNav((current) =>
       current
-        ? { tab: current.tab, section: current.section, itemId: current.itemId }
+        ? { tab: current.tab, section: current.section, itemId: current.itemId, playbookId: current.playbookId }
         : null,
     );
   }, []);
@@ -182,9 +203,9 @@ export function AppShell() {
   }, []);
 
   useEffect(() => {
-    if (tab !== "restock" || household.teaching.openedRestock) return;
+    if (rootTab !== "restock" || household.teaching.openedRestock) return;
     updateTree((current) => withTeaching(current, { openedRestock: true }));
-  }, [tab, household.teaching.openedRestock, updateTree]);
+  }, [rootTab, household.teaching.openedRestock, updateTree]);
 
   useEffect(() => {
     if (!household.onboarded) return;
@@ -367,7 +388,6 @@ export function AppShell() {
   }
 
   const weather = weatherCaption(forecast, household.location);
-  const showTabBar = tab === "today" || tab === "home" || tab === "restock";
   const restockHandlers = {
     onMarkOrdered: markSupplyOrdered,
     onMarkReceived: markSupplyReceived,
@@ -381,16 +401,15 @@ export function AppShell() {
     onMarkTip: (tip: string) => updateTree((current) => markTipSeen(current, tip)),
   };
 
+  const todayActive = top === null && rootTab === "today";
+  const homeActive = top === null && rootTab === "home";
+  const restockActive = top === null && rootTab === "restock";
+  const pushBackLabel = `Back to ${backLabel}`;
+
   return (
     <div className="app-frame">
-      <main
-        className={cn(
-          "app-shell-main min-w-0 flex-1 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]",
-          !showTabBar && "app-shell-main--no-tab-bar app-shell-main--push",
-        )}
-        key={!showTabBar ? tab : "root"}
-      >
-        {tab === "today" ? (
+      <main className="app-shell-main relative min-w-0 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div hidden={!todayActive} inert={!todayActive} className="app-keep-alive">
           <TodayView
             household={household}
             weatherAttribution={weatherAttribution}
@@ -403,29 +422,18 @@ export function AppShell() {
             onSaveDuty={saveDuty}
             onDeleteDuty={deleteDuty}
             onStartCleanerVisit={startCleanerVisit}
-            onOpenHome={() => setTab("home")}
-            onOpenSettings={() => setTab("settings")}
+            onOpenHome={() => selectRootTab("home")}
+            onOpenSettings={() => navigate({ tab: "settings" })}
             showTeaching={teachingCardVisible(household)}
-            onOpenDigest={() => setTab("settings")}
+            onOpenDigest={() => navigate({ tab: "settings" })}
             {...restockHandlers}
             onOpenRestock={() => navigate({ tab: "restock" })}
             onNavigate={navigate}
-            focus={tab === "today" ? nav : null}
+            focus={todayActive ? nav : null}
             onFocusHandled={handleFocusHandled}
           />
-        ) : null}
-        {tab === "restock" ? (
-          <RestockView
-            household={household}
-            onSaveDuty={saveDuty}
-            onDeleteDuty={deleteDuty}
-            {...restockHandlers}
-            onWalkHouse={applyRestockWalk}
-            focus={tab === "restock" ? nav : null}
-            onFocusHandled={handleFocusHandled}
-          />
-        ) : null}
-        {tab === "home" ? (
+        </div>
+        <div hidden={!homeActive} inert={!homeActive} className="app-keep-alive">
           <div className="flex flex-col gap-4 pb-8">
             <PageHeader
               title={household.householdName}
@@ -434,7 +442,7 @@ export function AppShell() {
                 <button
                   type="button"
                   aria-label="Settings"
-                  onClick={() => setTab("settings")}
+                  onClick={() => navigate({ tab: "settings" })}
                   className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
                 >
                   <Settings className="size-5" />
@@ -481,73 +489,102 @@ export function AppShell() {
               {...restockHandlers}
             />
           </div>
-        ) : null}
-        {tab === "budget" ? (
-          <BudgetView
+        </div>
+        <div hidden={!restockActive} inert={!restockActive} className="app-keep-alive">
+          <RestockView
             household={household}
-            onChange={(updater) => updateTree(updater)}
-            onNavigate={navigate}
-            onBack={() => setTab("home")}
-          />
-        ) : null}
-        {tab === "seasonal" ? (
-          <SeasonalView
-            household={household}
-            weatherAttribution={weatherAttribution}
-            forecast={forecast}
-            weatherLine={weather.text}
-            needsZip={weather.needsZip}
-            weatherError={weatherError ?? household.weatherStatus.lastError}
-            onSavePostalCode={savePostalCode}
-            onAccept={acceptPlaybook}
-            onDecline={declinePlaybook}
-            onReconsider={reconsiderPlaybook}
-            onToggleAttribute={(key) =>
-              updateHome({ attributes: { ...household.attributes, [key]: !household.attributes[key] } })
-            }
-            onBack={() => setTab("today")}
-          />
-        ) : null}
-        {tab === "settings" ? (
-          <HomeView
-            household={household}
-            onUpdate={updateHome}
-            onSavePostalCode={savePostalCode}
-            onStartCleanerVisit={startCleanerVisit}
-            onChangeTree={(next) => updateTree(() => next)}
-            onErase={eraseEverything}
-            onExportBackup={exportBackup}
-            onImportBackup={importBackup}
-            canLock={canLock === true}
-            lockMethod={lockMethod ?? "none"}
-            restockDigest={household.restockDigest}
-            onUpdateDigest={updateRestockDigest}
-            focusAssetId={tab === "settings" ? nav?.assetId : undefined}
+            onSaveDuty={saveDuty}
+            onDeleteDuty={deleteDuty}
+            {...restockHandlers}
+            onWalkHouse={applyRestockWalk}
+            focus={restockActive ? nav : null}
             onFocusHandled={handleFocusHandled}
-            onBack={() => setTab("home")}
           />
+        </div>
+        {top?.tab === "budget" ? (
+          <div className="app-keep-alive app-shell-main--push">
+            <BudgetView
+              household={household}
+              onChange={(updater) => updateTree(updater)}
+              onNavigate={navigate}
+              onBack={popStack}
+              backLabel={pushBackLabel}
+            />
+          </div>
+        ) : null}
+        {top?.tab === "seasonal" ? (
+          <div className="app-keep-alive app-shell-main--push">
+            <SeasonalView
+              household={household}
+              weatherAttribution={weatherAttribution}
+              forecast={forecast}
+              weatherLine={weather.text}
+              needsZip={weather.needsZip}
+              weatherError={weatherError ?? household.weatherStatus.lastError}
+              onSavePostalCode={savePostalCode}
+              onAccept={acceptPlaybook}
+              onDecline={declinePlaybook}
+              onReconsider={reconsiderPlaybook}
+              onToggleAttribute={(key) =>
+                updateHome({ attributes: { ...household.attributes, [key]: !household.attributes[key] } })
+              }
+              onBack={popStack}
+              backLabel={pushBackLabel}
+              focusPlaybookId={top.playbookId}
+            />
+          </div>
+        ) : null}
+        {top?.tab === "settings" ? (
+          <div className="app-keep-alive app-shell-main--push">
+            <HomeView
+              household={household}
+              onUpdate={updateHome}
+              onSavePostalCode={savePostalCode}
+              onStartCleanerVisit={startCleanerVisit}
+              onChangeTree={(next) => updateTree(() => next)}
+              onErase={eraseEverything}
+              onExportBackup={exportBackup}
+              onImportBackup={importBackup}
+              canLock={canLock === true}
+              lockMethod={lockMethod ?? "none"}
+              restockDigest={household.restockDigest}
+              onUpdateDigest={updateRestockDigest}
+              focusAssetId={nav?.assetId}
+              onFocusHandled={handleFocusHandled}
+              onBack={popStack}
+              backLabel={pushBackLabel}
+            />
+          </div>
         ) : null}
       </main>
 
-      {showTabBar ? (
-        <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40" aria-label="Main">
-          <div
-            role="tablist"
-            aria-label="Main"
-            className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl"
-          >
-            <NavButton label="Today" icon={<Sun className="size-5" />} active={tab === "today"} onClick={() => setTab("today")} />
-            <NavButton label="Home" icon={<Home className="size-5" />} active={tab === "home"} onClick={() => setTab("home")} />
-            <NavButton
-              label="Restock"
-              icon={<Package className="size-5" />}
-              active={tab === "restock"}
-              badge={restockGroups?.order_now.length ?? 0}
-              onClick={() => setTab("restock")}
-            />
-          </div>
-        </nav>
-      ) : null}
+      <nav className="app-tab-bar pointer-events-none fixed inset-x-0 bottom-0 z-40" aria-label="Main">
+        <div
+          role="tablist"
+          aria-label="Main"
+          className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl"
+        >
+          <NavButton
+            label="Today"
+            icon={<Sun className={cn("size-5", rootTab === "today" && "fill-current")} />}
+            active={rootTab === "today"}
+            onClick={() => selectRootTab("today")}
+          />
+          <NavButton
+            label="Home"
+            icon={<Home className={cn("size-5", rootTab === "home" && "fill-current")} />}
+            active={rootTab === "home"}
+            onClick={() => selectRootTab("home")}
+          />
+          <NavButton
+            label="Restock"
+            icon={<Package className={cn("size-5", rootTab === "restock" && "fill-current")} />}
+            active={rootTab === "restock"}
+            badge={restockGroups?.order_now.length ?? 0}
+            onClick={() => selectRootTab("restock")}
+          />
+        </div>
+      </nav>
     </div>
   );
 }
@@ -565,7 +602,7 @@ function OpeningScreen() {
   );
 }
 
-function initialTab(): Tab {
+function initialTab(): RootTab {
   if (typeof window === "undefined") return "today";
   const params = new URLSearchParams(window.location.search);
   return params.get("tab") === "restock" ? "restock" : "today";
@@ -645,7 +682,7 @@ function NavButton({
   badge?: number;
   onClick: () => void;
 }) {
-  const ariaLabel = badge ? `${label}, ${badge}` : label;
+  const ariaLabel = badge ? `${label}, ${badge} to order` : label;
   return (
     <button
       type="button"
@@ -654,14 +691,14 @@ function NavButton({
       aria-label={ariaLabel}
       onClick={onClick}
       className={cn(
-        "relative flex min-h-12 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
-        active ? "text-primary" : "text-muted-foreground",
+        "relative mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl ui-caption font-medium",
+        active ? "bg-secondary text-primary" : "text-muted-foreground",
       )}
     >
       {icon}
       {label}
       {badge ? (
-        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
+        <span className="absolute top-0.5 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 ui-caption font-semibold text-primary-foreground">
           {badge}
         </span>
       ) : null}

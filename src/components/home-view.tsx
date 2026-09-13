@@ -68,6 +68,7 @@ export function HomeView({
   focusAssetId,
   onFocusHandled,
   onBack,
+  backLabel = "Back to Home",
 }: {
   household: Household;
   onUpdate: (
@@ -86,6 +87,7 @@ export function HomeView({
   focusAssetId?: string;
   onFocusHandled?: () => void;
   onBack?: () => void;
+  backLabel?: string;
 }) {
   const [home, setHome] = useState(household.householdName);
   const [owner, setOwner] = useState(household.ownerName);
@@ -127,7 +129,7 @@ export function HomeView({
         title="Settings"
         subtitle="Everything stays on this iPhone."
         onBack={onBack}
-        backLabel="Back to Home"
+        backLabel={backLabel}
       />
       <section>
         <h2 className="ui-heading mb-2 text-[20px] font-semibold">Household</h2>
