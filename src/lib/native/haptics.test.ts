@@ -4,12 +4,20 @@ import {
   hapticComplete,
   hapticDestructive,
   hapticOrdered,
+  hapticSuccess,
   hapticTab,
   hapticUndo,
 } from "@/lib/native/haptics";
 
 test("haptics are a no-op off native", async () => {
   await assert.doesNotReject(() =>
-    Promise.all([hapticComplete(), hapticUndo(), hapticOrdered(), hapticTab(), hapticDestructive()]),
+    Promise.all([
+      hapticComplete(),
+      hapticSuccess(),
+      hapticUndo(),
+      hapticOrdered(),
+      hapticTab(),
+      hapticDestructive(),
+    ]),
   );
 });

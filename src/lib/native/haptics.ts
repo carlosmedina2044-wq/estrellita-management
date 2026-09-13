@@ -1,6 +1,6 @@
 import { isNative } from "@/lib/native/platform";
 
-export type HapticKind = "complete" | "undo" | "ordered" | "tab" | "destructive";
+export type HapticKind = "complete" | "success" | "undo" | "ordered" | "tab" | "destructive";
 
 async function play(kind: HapticKind): Promise<void> {
   if (!isNative()) return;
@@ -8,6 +8,7 @@ async function play(kind: HapticKind): Promise<void> {
     const { Haptics, ImpactStyle, NotificationType } = await import("@capacitor/haptics");
     switch (kind) {
       case "complete":
+      case "success":
         await Haptics.notification({ type: NotificationType.Success });
         return;
       case "undo":
@@ -30,6 +31,10 @@ async function play(kind: HapticKind): Promise<void> {
 
 export function hapticComplete(): Promise<void> {
   return play("complete");
+}
+
+export function hapticSuccess(): Promise<void> {
+  return play("success");
 }
 
 export function hapticUndo(): Promise<void> {

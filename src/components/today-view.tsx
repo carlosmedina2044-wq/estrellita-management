@@ -34,6 +34,7 @@ import {
   type DoneEntry,
   type OutstandingScope,
 } from "@/lib/duties";
+import { closedDayRun, todayEffort } from "@/lib/momentum";
 import { tDutyTitle } from "@/i18n/content";
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
@@ -119,6 +120,7 @@ export function TodayView({
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
   const [exitingId, setExitingId] = useState<string | null>(null);
   const exitingIdRef = useRef<string | null>(null);
+  const [closedPulse, setClosedPulse] = useState(false);
   const [dutyMenu, setDutyMenu] = useState<{ duty: Duty; x: number; y: number } | null>(null);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const [prevFocus, setPrevFocus] = useState(focus);
@@ -145,6 +147,7 @@ export function TodayView({
     const start = startOfWeek(startOfMonth(calendarMonth));
     return completionDays(household, start, addDays(start, 41));
   }, [household, calendarMonth]);
+  const run = useMemo(() => closedDayRun(household, now), [household, now]);
   const viewingCalendar = calendarDay !== null;
   const viewDate = calendarDay ?? now;
   const calendarIsToday = viewingCalendar && sameDay(viewDate, now);
@@ -202,6 +205,10 @@ export function TodayView({
     if (prefersReducedMotion()) {
       onComplete(duty.id);
       void import("@/lib/native/haptics").then((m) => m.hapticComplete()).catch(() => {});
+      const remaining = open.filter((item) => item.id !== duty.id);
+      if (remaining.length === 0 && !viewingCalendar && scope === "daily") {
+        void import("@/lib/native/haptics").then((m) => m.hapticSuccess()).catch(() => {});
+      }
       toast.success(tDutyTitle(duty.title), {
         action: {
           label: t("today.undoToast"),
@@ -234,6 +241,14 @@ export function TodayView({
     if (exitingIdRef.current !== dutyId) return;
     exitingIdRef.current = null;
     setExitingId(null);
+    const remaining = open.filter((duty) => duty.id !== dutyId);
+    if (remaining.length === 0 && !viewingCalendar && scope === "daily") {
+      void import("@/lib/native/haptics").then((m) => m.hapticSuccess()).catch(() => {});
+      if (!prefersReducedMotion()) {
+        setClosedPulse(true);
+        window.setTimeout(() => setClosedPulse(false), 400);
+      }
+    }
     onComplete(dutyId);
   }
 
@@ -346,15 +361,27 @@ export function TodayView({
       }
     }
   }
-  const displayHeadline =
-    needCount === 0 && doneEntries.length > 0
+  const dayClosed = !viewingCalendar && scope === "daily" && needCount === 0 && doneTodayEntries.length > 0;
+  const displayHeadline = dayClosed
+    ? t("today.headlineClosed", { count: doneTodayEntries.length })
+    : needCount === 0 && doneEntries.length > 0
       ? t("today.headlineDone", { count: doneEntries.length })
       : needCount === 0
         ? t("today.headlineClear", { day: nextUpDay ?? "" })
         : needCount === 1
           ? t("today.headlineOne")
           : t("today.headlineMany", { count: needCount });
-  const secondaryLine = [headingDate, !needsZip ? weatherLine : null].filter(Boolean).join(" · ");
+  const effortMinutes = !viewingCalendar && scope === "daily" && open.length > 0 ? todayEffort(open) : 0;
+  const secondaryLine = [
+    headingDate,
+    !needsZip ? weatherLine : null,
+    effortMinutes > 0 ? t("today.effort", { minutes: effortMinutes }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const showRunPill =
+    run.current >= 2 &&
+    (household as Household & { momentum?: { enabled?: boolean } }).momentum?.enabled !== false;
   const doneIds = new Set(doneEntries.map((entry) => entry.duty.id));
   const leftoverCostPrompts = costPrompts.filter(
     (item) => !doneIds.has(item.dutyId) && !open.some((duty) => duty.id === item.dutyId),
@@ -385,9 +412,19 @@ export function TodayView({
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-[17px] font-semibold leading-snug text-foreground">{greeting}</p>
-          <h1 className="mt-1 text-[34px] font-bold leading-[1.15] tracking-tight text-foreground">
+          <h1
+            className={cn(
+              "mt-1 origin-left text-[34px] font-bold leading-[1.15] tracking-tight text-foreground transition-transform duration-[400ms] ease-out",
+              closedPulse ? "scale-[1.03]" : "scale-100",
+            )}
+          >
             {displayHeadline}
           </h1>
+          {showRunPill ? (
+            <p className="mt-2 inline-flex rounded-full bg-success/10 px-2.5 py-1 ui-caption text-success">
+              {t("today.runPill", { count: run.current })}
+            </p>
+          ) : null}
           <p className="mt-1.5 ui-caption num text-muted-foreground">{secondaryLine}</p>
         </div>
         {onOpenSettings ? (
