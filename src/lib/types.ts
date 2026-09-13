@@ -168,6 +168,8 @@ export type Duty = {
   buyLocally?: boolean;
   caution?: DutyCaution;
   rolledCompletions?: number;
+  /** ISO date; hide from Today until this day (inclusive end = day after). */
+  snoozedUntil?: string;
 };
 
 export type DutyCaution = "gas" | "electrical" | "roof" | "ladder" | "structural" | "pest";

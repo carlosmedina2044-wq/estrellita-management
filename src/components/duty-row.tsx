@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { tDutyTitle } from "@/i18n/content";
 import { Check, Circle } from "lucide-react";
@@ -25,6 +25,7 @@ export function DutyRow({
   hideOverdueChip,
   exiting,
   onExitComplete,
+  onLongPress,
   onToggle,
   onOpen,
 }: {
@@ -40,6 +41,7 @@ export function DutyRow({
   hideOverdueChip?: boolean;
   exiting?: boolean;
   onExitComplete?: () => void;
+  onLongPress?: (point: { x: number; y: number }) => void;
   onToggle: () => void;
   onOpen?: () => void;
 }) {
@@ -48,6 +50,8 @@ export function DutyRow({
   const shellRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const onExitCompleteRef = useRef(onExitComplete);
+  const longPressTimer = useRef<number | null>(null);
+  const longPressOrigin = useRef<{ x: number; y: number } | null>(null);
   const showDone = Boolean(done || exiting);
   const title = tDutyTitle(duty.title);
   let subtitle = missingPartHint
@@ -122,8 +126,47 @@ export function DutyRow({
     };
   }, [exiting, reduceMotion]);
 
+  function clearLongPress() {
+    if (longPressTimer.current != null) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    longPressOrigin.current = null;
+  }
+
+  function onRowPointerDown(event: ReactPointerEvent) {
+    if (!onLongPress || done || exiting || event.button !== 0) return;
+    longPressOrigin.current = { x: event.clientX, y: event.clientY };
+    longPressTimer.current = window.setTimeout(() => {
+      const origin = longPressOrigin.current;
+      longPressTimer.current = null;
+      if (!origin) return;
+      onLongPress(origin);
+    }, 480);
+  }
+
+  function onRowPointerMove(event: ReactPointerEvent) {
+    const origin = longPressOrigin.current;
+    if (!origin || longPressTimer.current == null) return;
+    if (Math.hypot(event.clientX - origin.x, event.clientY - origin.y) > 12) {
+      clearLongPress();
+    }
+  }
+
   return (
-    <div ref={shellRef} className="overflow-hidden">
+    <div
+      ref={shellRef}
+      className="overflow-hidden"
+      onPointerDown={onRowPointerDown}
+      onPointerMove={onRowPointerMove}
+      onPointerUp={clearLongPress}
+      onPointerCancel={clearLongPress}
+      onContextMenu={(event) => {
+        if (!onLongPress || done || exiting) return;
+        event.preventDefault();
+        onLongPress({ x: event.clientX, y: event.clientY });
+      }}
+    >
       <div className={cn("flex items-stretch bg-transparent px-2 py-1", showDone && "opacity-60")}>
         <button
           type="button"

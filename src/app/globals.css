@@ -339,6 +339,32 @@
   animation: app-shell-fade-out 150ms ease-out both;
 }
 
+.forecast-shimmer > * {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--foreground) 6%, transparent) 0%,
+    color-mix(in oklab, var(--foreground) 12%, transparent) 50%,
+    color-mix(in oklab, var(--foreground) 6%, transparent) 100%
+  );
+  background-size: 200% 100%;
+  animation: forecast-shimmer 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forecast-shimmer > * {
+    animation: none;
+  }
+}
+
+@keyframes forecast-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
 @keyframes app-shell-fade {
   from {
     opacity: 0;

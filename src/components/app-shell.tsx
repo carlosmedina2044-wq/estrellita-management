@@ -601,6 +601,14 @@ export function AppShell() {
   }
 
   const weather = weatherCaption(forecast, household.location);
+  const weatherLoading = Boolean(
+    household.onboarded &&
+      (household.location?.lat != null ||
+        household.location?.lng != null ||
+        household.location?.postalCode) &&
+      !forecast &&
+      !weatherError,
+  );
   const restockHandlers = {
     onMarkOrdered: markSupplyOrdered,
     onMarkReceived: markSupplyReceived,
@@ -677,6 +685,7 @@ export function AppShell() {
             weatherAttribution={weatherAttribution}
             weatherLine={weather.text}
             needsZip={weather.needsZip}
+            weatherLoading={weatherLoading}
             onSavePostalCode={savePostalCode}
             onComplete={completeDuty}
             onRecordCost={recordCompletionCost}

@@ -49,10 +49,10 @@ export function ForecastCard({
       onClick={() => onNavigate?.({ tab: "budget" })}
     >
       <p className="ui-caption font-medium text-muted-foreground">{t("budget.moneyForRepairs")}</p>
-      <p className="ui-heading mt-1 ui-title font-semibold">
+      <p className="ui-heading mt-1 ui-title font-semibold tabular-nums">
         {t("forecast.next90", { amount: formatMoney(Math.round(summary.next90)) })}
       </p>
-      {nextLine ? <p className="mt-1 ui-caption text-muted-foreground">{nextLine}</p> : null}
+      {nextLine ? <p className="mt-1 ui-caption tabular-nums text-muted-foreground">{nextLine}</p> : null}
       <span className="mt-3 inline-flex min-h-11 items-center ui-caption font-medium text-primary">
         {t("forecast.open")}
       </span>

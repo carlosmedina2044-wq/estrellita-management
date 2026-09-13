@@ -119,13 +119,18 @@ export function isDoneThisPeriod(
   }
 }
 
+export function isSnoozed(duty: Duty, now = new Date()): boolean {
+  if (!duty.snoozedUntil) return false;
+  return parseISODate(duty.snoozedUntil) > startOfDay(now);
+}
+
 export function isDueToday(
   duty: Duty,
   completions: Completion[],
   now = new Date(),
   installedAt?: string | null,
 ): boolean {
-  if (duty.archived || isDoneThisPeriod(duty, completions, now, installedAt)) return false;
+  if (duty.archived || isSnoozed(duty, now) || isDoneThisPeriod(duty, completions, now, installedAt)) return false;
 
   switch (duty.frequency) {
     case "once":
@@ -152,7 +157,7 @@ export function isOverdue(
   now = new Date(),
   installedAt?: string | null,
 ): boolean {
-  if (duty.archived || isDoneThisPeriod(duty, completions, now, installedAt)) return false;
+  if (duty.archived || isSnoozed(duty, now) || isDoneThisPeriod(duty, completions, now, installedAt)) return false;
 
   switch (duty.frequency) {
     case "once":
@@ -297,7 +302,7 @@ export function isScheduledOn(
   completions: Completion[] = [],
   installedAt?: string | null,
 ): boolean {
-  if (duty.archived) return false;
+  if (duty.archived || isSnoozed(duty, date)) return false;
   switch (duty.frequency) {
     case "once":
       return Boolean(duty.dueDate) && parseISODate(duty.dueDate!) === startOfDay(date);

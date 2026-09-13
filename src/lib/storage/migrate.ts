@@ -152,6 +152,7 @@ function migrateDuty(raw: unknown): Duty | null {
       typeof raw.rolledCompletions === "number" && Number.isFinite(raw.rolledCompletions) && raw.rolledCompletions > 0
         ? Math.min(10_000, Math.round(raw.rolledCompletions))
         : undefined,
+    snoozedUntil: asIsoDate(raw.snoozedUntil) ?? undefined,
   };
 }
 

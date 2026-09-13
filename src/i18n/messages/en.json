@@ -1111,5 +1111,9 @@
   "brand.name": "Cuidala",
   "legal.privacy.email": "privacy@cuidala.app",
   "legal.terms.email": "support@cuidala.app",
-  "today.reminders": "Reminders"
+  "today.reminders": "Reminders",
+  "chore.complete": "Complete",
+  "chore.snoozeWeek": "Snooze a week",
+  "chore.snoozedToast": "Snoozed for a week",
+  "chore.menuAria": "Chore actions for {title}"
 }

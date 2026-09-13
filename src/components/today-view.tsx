@@ -12,10 +12,11 @@ import { ConsumableForm } from "@/components/consumable-form";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
+import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-menu";
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
-import { formatLongDate, isFirstOfMonth, sameDay } from "@/lib/dates";
+import { formatLongDate, isFirstOfMonth, sameDay, addDays, toISODate } from "@/lib/dates";
 import {
   dutiesDueOnDate,
   isDoneThisPeriod,
@@ -46,6 +47,7 @@ export function TodayView({
   weatherAttribution,
   weatherLine,
   needsZip,
+  weatherLoading,
   onSavePostalCode,
   onComplete,
   onRecordCost,
@@ -67,6 +69,7 @@ export function TodayView({
   weatherAttribution?: WeatherAttribution | null;
   weatherLine?: string;
   needsZip?: boolean;
+  weatherLoading?: boolean;
   onSavePostalCode?: (zip: string) => Promise<{ ok: boolean; error?: string }>;
   onComplete: (dutyId: string) => void;
   onRecordCost?: (completionId: string, input: { actualCost: number } | { skip: true }) => void;
@@ -111,6 +114,7 @@ export function TodayView({
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
   const [exitingId, setExitingId] = useState<string | null>(null);
   const exitingIdRef = useRef<string | null>(null);
+  const [dutyMenu, setDutyMenu] = useState<{ duty: Duty; x: number; y: number } | null>(null);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const [prevFocus, setPrevFocus] = useState(focus);
   if (focus !== prevFocus) {
@@ -221,6 +225,28 @@ export function TodayView({
     onComplete(dutyId);
   }
 
+  function handleDutyMenu(action: DutyMenuAction) {
+    const target = dutyMenu?.duty;
+    if (!target) return;
+    if (action === "complete") {
+      toggle(target, false);
+      return;
+    }
+    if (action === "edit") {
+      setEditing(target);
+      return;
+    }
+    if (action === "delete") {
+      onDeleteDuty(target.id);
+      return;
+    }
+    if (action === "snooze") {
+      const until = toISODate(addDays(now, 7));
+      onSaveDuty({ ...target, snoozedUntil: until });
+      toast(t("chore.snoozedToast"));
+    }
+  }
+
   async function share() {
     const text = shareText(household, cleanerOpen.length ? cleanerOpen : open);
     const result = await nativeShare(t("share.todayTitle", { name: household.householdName }), text);
@@ -244,6 +270,11 @@ export function TodayView({
         partChip={chip}
         exiting={exitingId === duty.id}
         onExitComplete={() => finishExit(duty.id)}
+        onLongPress={
+          extra.done
+            ? undefined
+            : (point) => setDutyMenu({ duty, x: point.x, y: point.y })
+        }
         onPartChip={
           chip?.kind === "order_first"
             ? () => {
@@ -331,6 +362,14 @@ export function TodayView({
               {t("common.notNow")}
             </Button>
           </div>
+        </div>
+      ) : null}
+
+      {weatherLoading && !needsZip ? (
+        <div className="forecast-shimmer rounded-2xl bg-card px-4 py-4" aria-hidden>
+          <div className="h-3 w-24 rounded-full bg-foreground/8" />
+          <div className="mt-3 h-5 w-48 rounded-full bg-foreground/8" />
+          <div className="mt-2 h-3 w-36 rounded-full bg-foreground/8" />
         </div>
       ) : null}
 
@@ -626,6 +665,15 @@ export function TodayView({
       {weatherLine && !needsZip ? (
         <AppleWeatherAttribution attribution={weatherAttribution} />
       ) : null}
+
+      <DutyContextMenu
+        open={Boolean(dutyMenu)}
+        x={dutyMenu?.x ?? 0}
+        y={dutyMenu?.y ?? 0}
+        title={dutyMenu ? tDutyTitle(dutyMenu.duty.title) : ""}
+        onAction={handleDutyMenu}
+        onClose={() => setDutyMenu(null)}
+      />
 
       {orderItem ? (
         <RestockOrderButton

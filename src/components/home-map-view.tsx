@@ -187,7 +187,7 @@ function TileGrid({
                 <Package className="size-4 text-warning" aria-hidden />
               ) : null}
               {status.total > 0 ? (
-                <span className="flex size-6 items-center justify-center rounded-full bg-secondary ui-caption font-semibold text-foreground">
+                <span className="flex size-6 items-center justify-center rounded-full bg-secondary ui-caption font-semibold tabular-nums text-foreground">
                   {status.total}
                 </span>
               ) : null}

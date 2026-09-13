@@ -48,7 +48,7 @@ export function FundHero({
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
       <p className="text-sm text-muted-foreground">{t("budget.fundTitle")}</p>
-      <p className="ui-display mt-1">{t("budget.savedAmount", { amount: formatMoney(health.saved) })}</p>
+      <p className="ui-display mt-1 tabular-nums">{t("budget.savedAmount", { amount: formatMoney(health.saved) })}</p>
       <p className="ui-title mt-1 font-medium text-muted-foreground">
         {t("budget.needed12", { amount: formatMoney(health.needed12) })}
       </p>
