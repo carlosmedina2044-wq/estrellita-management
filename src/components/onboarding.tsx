@@ -264,9 +264,7 @@ export function Onboarding({
           <div className="h-full bg-brand transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
         </div>
         <div className="mt-8">
-          <div className={step === 0 ? "brand-enter" : undefined}>
-            <BrandLockup size={step === 0 ? "md" : "sm"} />
-          </div>
+          <BrandLockup size={step === 0 ? "md" : "sm"} />
         </div>
 
         {step === 0 ? (

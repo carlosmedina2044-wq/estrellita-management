@@ -472,10 +472,6 @@ html.keyboard-open [data-slot="sheet-footer"] {
   border-top: 1px solid var(--border);
 }
 
-.brand-enter {
-  animation: brand-enter 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
 .app-frame {
   position: relative;
   margin-inline: auto;
@@ -508,17 +504,6 @@ html.keyboard-open [data-slot="sheet-footer"] {
   }
 }
 
-@keyframes brand-enter {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -527,9 +512,6 @@ html.keyboard-open [data-slot="sheet-footer"] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-  .brand-enter {
-    animation: none;
   }
   .app-shell-main--push {
     animation: none;

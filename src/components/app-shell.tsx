@@ -38,6 +38,7 @@ import { ForecastCard } from "@/components/forecast-card";
 import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
+import { hideLaunchSplash } from "@/lib/native/splash";
 import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
@@ -300,6 +301,11 @@ export function AppShell() {
   useEffect(() => {
     tRef.current = t;
   }, [t]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    void hideLaunchSplash();
+  }, [hydrated]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production" || isNative()) return;
@@ -881,9 +887,7 @@ function OpeningScreen() {
       suppressHydrationWarning
       className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-8"
     >
-      <div className="brand-enter">
-        <BrandMark size="md" />
-      </div>
+      <BrandMark size="md" />
     </div>
   );
 }

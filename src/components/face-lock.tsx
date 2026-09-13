@@ -63,9 +63,7 @@ export function FaceLock({
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-8 text-center">
-      <div className="brand-enter">
-        <BrandMark size="md" />
-      </div>
+      <BrandMark size="md" />
       <h1 className="ui-heading mt-10 ui-title font-semibold tracking-tight">{t("lock.title")}</h1>
       <p className="mt-2 max-w-xs text-sm text-muted-foreground">
         {cleanerVisitActive

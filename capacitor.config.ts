@@ -26,6 +26,11 @@ const config: CapacitorConfig = {
     LocalNotifications: {
       iconColor: "#9A5A35",
     },
+    SplashScreen: {
+      launchAutoHide: false,
+      backgroundColor: "#faf6ef",
+      showSpinner: false,
+    },
     CapacitorHttp: { enabled: false },
   },
 };

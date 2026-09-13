@@ -19,7 +19,7 @@
                                 <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                             </imageView>
                         </subviews>
-                        <color key="backgroundColor" red="0.96862745098039216" green="0.95294117647058818" blue="0.92549019607843141" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="snD-IY-ifK" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="a1"/>
                             <constraint firstItem="snD-IY-ifK" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="a2"/>
