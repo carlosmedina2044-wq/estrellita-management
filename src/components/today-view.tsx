@@ -424,6 +424,8 @@ export function TodayView({
         <div className="min-w-0 flex-1">
           <p className="ui-card font-semibold leading-snug text-foreground">{greeting}</p>
           <h1
+            aria-live="polite"
+            aria-atomic="true"
             className={cn(
               "ui-hero mt-1 origin-left text-foreground transition-transform duration-[400ms] ease-out",
               closedPulse ? "scale-[1.03]" : "scale-100",

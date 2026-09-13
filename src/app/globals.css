@@ -260,6 +260,15 @@
     touch-action: manipulation;
   }
 
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  :is(a, button, input, textarea, select, [role="button"], [role="menuitem"], [role="tab"], [role="switch"], [tabindex]):focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
   input,
   textarea,
   select {
