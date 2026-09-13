@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   BACKUP_MAX_FILE_BYTES,
-  normalizePassphrase,
   openPassphraseError,
   passphraseError,
   passphraseHint,
@@ -38,9 +37,11 @@ export function BackupPanel({
 }) {
   const [passphrase, setPassphrase] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [restorePassphrase, setRestorePassphrase] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const hint = mode === "full" ? passphraseHint(passphrase) : null;
+  const restoreBlocked = openPassphraseError(restorePassphrase) !== null;
 
   async function exportFile() {
     if (!onExport) return;
@@ -73,31 +74,26 @@ export function BackupPanel({
     }
   }
 
-  async function importFile(file: File) {
-    if (!normalizePassphrase(passphrase)) {
-      toast.error("Enter the passphrase, then choose the file.");
-      return;
-    }
-    const error = openPassphraseError(passphrase);
-    if (error) {
-      toast.error(error);
-      return;
-    }
+  async function importFile(file: File, secret: string) {
     if (file.size > BACKUP_MAX_FILE_BYTES) {
       toast.error("That file is too large to be a Cuidala backup.");
+      return;
+    }
+    const error = openPassphraseError(secret);
+    if (error) {
+      toast.error(error);
       return;
     }
     setBusy(true);
     try {
       const raw = await file.text();
-      const result = await onImport(raw, passphrase);
+      const result = await onImport(raw, secret);
       if (!result.ok) {
         toast.error(result.error);
         return;
       }
       toast.success("Home restored");
-      setPassphrase("");
-      setConfirm("");
+      setRestorePassphrase("");
     } catch {
       toast.error("Couldn’t read that file.");
     } finally {
@@ -112,64 +108,89 @@ export function BackupPanel({
         Your home moves to your next iPhone with your normal iCloud backup. The passphrase file is extra
         protection if that restore is not available. Cuidala cannot recover a forgotten passphrase.
       </p>
-      <Input
-        type="password"
-        value={passphrase}
-        onChange={(event) => setPassphrase(event.target.value)}
-        placeholder="Passphrase"
-        className="mt-3 h-12"
-        autoComplete="new-password"
-      />
-      {mode === "full" ? (
-        <Input
-          type="password"
-          value={confirm}
-          onChange={(event) => setConfirm(event.target.value)}
-          placeholder="Confirm passphrase"
-          className="mt-2 h-12"
-          autoComplete="new-password"
-        />
-      ) : null}
-      {mode === "full" ? (
-        <p className="mt-2 text-xs text-muted-foreground">
-          Choose a phrase you don’t use anywhere else.
-          {hint ? ` ${hint}` : ""}
-        </p>
-      ) : null}
-      <div className="mt-3 grid gap-2">
-        {mode === "full" && onExport ? (
-          <Button className="h-12" disabled={busy} onClick={() => void exportFile()}>
+      {mode === "full" && onExport ? (
+        <div className="mt-3">
+          <p className="text-sm font-medium">Create a backup</p>
+          <Input
+            type="password"
+            value={passphrase}
+            onChange={(event) => setPassphrase(event.target.value)}
+            placeholder="Passphrase for this backup"
+            className="mt-2 h-12"
+            autoComplete="new-password"
+          />
+          <Input
+            type="password"
+            value={confirm}
+            onChange={(event) => setConfirm(event.target.value)}
+            placeholder="Confirm passphrase"
+            className="mt-2 h-12"
+            autoComplete="new-password"
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            Choose a phrase you don’t use anywhere else.
+            {hint ? ` ${hint}` : ""}
+          </p>
+          <Button className="mt-3 h-12 w-full" disabled={busy} onClick={() => void exportFile()}>
             Create encrypted backup
           </Button>
-        ) : null}
-        <label className="flex h-12 cursor-pointer items-center justify-center rounded-xl bg-secondary text-sm font-medium">
-          {mode === "import-only" ? "Choose backup file" : "Restore from a file"}
-          <input
-            type="file"
-            accept="application/json,.json"
-            className="sr-only"
-            disabled={busy}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (file) setPendingFile(file);
-            }}
-          />
-        </label>
-      </div>
-      <AlertDialog open={Boolean(pendingFile)} onOpenChange={(open) => { if (!open) setPendingFile(null); }}>
+        </div>
+      ) : null}
+      <label className="mt-3 flex h-12 cursor-pointer items-center justify-center rounded-xl bg-secondary text-sm font-medium">
+        {mode === "import-only" ? "Choose backup file" : "Restore from a file"}
+        <input
+          type="file"
+          accept="application/json,.json"
+          className="sr-only"
+          disabled={busy}
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (!file) return;
+            if (file.size > BACKUP_MAX_FILE_BYTES) {
+              toast.error("That file is too large to be a Cuidala backup.");
+              return;
+            }
+            setRestorePassphrase("");
+            setPendingFile(file);
+          }}
+        />
+      </label>
+      <AlertDialog
+        open={Boolean(pendingFile)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingFile(null);
+            setRestorePassphrase("");
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Replace this home?</AlertDialogTitle>
+            <AlertDialogTitle>Restore this backup?</AlertDialogTitle>
             <AlertDialogDescription>
-              {`This will replace your current home (${replaceCounts?.chores ?? 0} chores, ${replaceCounts?.items ?? 0} items). Continue?`}
+              {`This will replace your current home (${replaceCounts?.chores ?? 0} chores, ${replaceCounts?.items ?? 0} items).`}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <Input
+            type="password"
+            value={restorePassphrase}
+            onChange={(event) => setRestorePassphrase(event.target.value)}
+            placeholder="Passphrase"
+            className="h-12"
+            autoFocus
+            autoComplete="current-password"
+          />
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (pendingFile) void importFile(pendingFile);
+              disabled={restoreBlocked || busy}
+              onClick={(event) => {
+                if (restoreBlocked || !pendingFile) {
+                  event.preventDefault();
+                  return;
+                }
+                void importFile(pendingFile, restorePassphrase);
                 setPendingFile(null);
               }}
             >
