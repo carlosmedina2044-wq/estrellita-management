@@ -14,8 +14,9 @@ export function PrivacyContent() {
       <p>
         Everything you enter (home name, rooms, chores, notes, appliance details, consumables, completion history,
         your ZIP code, and the settings you choose) is stored only on your iPhone. It is encrypted at rest with a
-        key held in the iOS Keychain. That key migrates with encrypted iCloud and Finder backups. Cuidala has no
-        user accounts and no servers that receive this data.
+        key held in the iOS Keychain, unlocked with Face ID or your device passcode. That key stays on this iPhone
+        and does not travel with iCloud backup. Use the backup password file in Settings to move your home to a new
+        phone. Cuidala has no user accounts and no servers that receive this data.
       </p>
 
       <h2 className="mt-2 font-semibold">Data that leaves your device</h2>
@@ -47,7 +48,7 @@ export function PrivacyContent() {
         </li>
         <li>
           <strong>Notifications (optional).</strong> Local reminders scheduled on your device for restock dates
-          and a weekly digest. Item names can appear on the lock screen.
+          and a weekly digest. You can hide item names on the lock screen in Settings.
         </li>
         <li>
           <strong>Face ID / Touch ID (optional).</strong> Used to lock the app. Biometric data never leaves the

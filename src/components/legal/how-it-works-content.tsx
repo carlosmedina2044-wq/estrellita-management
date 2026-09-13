@@ -42,11 +42,11 @@ export function HowItWorksContent() {
       </section>
 
       <section>
-        <h2 className="font-semibold">The key travels with iCloud</h2>
+        <h2 className="font-semibold">Moving to a new iPhone</h2>
         <p className="mt-1 text-muted-foreground">
-          Your home moves to your next iPhone with your normal iCloud backup. The passphrase file in Settings is
-          extra protection if that restore is not available. Deleting the app removes your home from this iPhone.
-          Erase everything also removes the Keychain key.
+          Your home stays on this iPhone. Face ID or your device passcode unlocks it. To move to a new phone, create
+          a backup password file in Settings and restore it there. Cuidala cannot recover a forgotten backup password.
+          Deleting the app removes your home from this iPhone. Erase everything also removes the device key.
         </p>
       </section>
     </div>

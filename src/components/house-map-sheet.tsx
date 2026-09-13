@@ -264,7 +264,7 @@ export function HouseMapSheet({
                   onClick={() => createGuard.tryOpen(() => setCreating(true))}
                 >
                   <Plus className="size-4" />
-                  Add a duty in {selectedRoom.name}
+                  Add a chore in {selectedRoom.name}
                 </Button>
               </div>
             ) : (

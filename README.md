@@ -50,7 +50,7 @@ In Xcode:
 - **Listing copy:** lead with “No account. No cloud. Yours.” State one home, one phone.
 - **Reviewer notes:** This is a Capacitor/WKWebView app with native iOS capabilities, not a thin website wrapper:
   - Face ID / Touch ID / device passcode lock (LocalAuthentication via native plugin); cancel stays locked.
-  - Keychain-held AES-256-GCM vault; the key migrates with encrypted iCloud backup. Encrypted portable backup in Settings is extra.
+  - Keychain-held AES-256-GCM vault; the device key is bound to this iPhone (Face ID / passcode). Encrypted portable backup in Settings moves the home to a new phone.
   - Local notifications (no push, no APNs), including a repeating weekly digest.
   - Retailer pages open in SFSafariViewController, not the app WebView. Paste a product link in Restock. There is no iOS Share Extension.
   - Apple WeatherKit (native) for forecasts, with required Apple Weather attribution.

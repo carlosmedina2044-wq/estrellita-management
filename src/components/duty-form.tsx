@@ -170,8 +170,8 @@ export function DutyForm({
   function submit() {
     const title = draft.title.trim();
     if (!title) {
-      setFormError("Give this duty a name.");
-      toast.error("Give this duty a name.");
+      setFormError("Give this chore a name.");
+      toast.error("Give this chore a name.");
       return;
     }
     if (draft.trackSupply && !draft.itemName.trim()) {
@@ -227,10 +227,10 @@ export function DutyForm({
         className="gap-0 rounded-t-3xl pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
         <SheetHeader className="shrink-0 pb-2">
-          <SheetTitle>{duty ? "Edit duty" : "New duty"}</SheetTitle>
+          <SheetTitle>{duty ? "Edit chore" : "New chore"}</SheetTitle>
         </SheetHeader>
         <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-3">
-          <Field label="Duty">
+          <Field label="Chore">
             <Input
               value={draft.title}
               onChange={(event) =>
@@ -543,7 +543,7 @@ export function DutyForm({
             </Button>
           ) : null}
           <Button type="button" className="h-11 min-w-0 flex-1" onClick={submit}>
-            {duty ? "Save changes" : "Add duty"}
+            {duty ? "Save changes" : "Add chore"}
           </Button>
         </SheetFooter>
       </SheetContent>

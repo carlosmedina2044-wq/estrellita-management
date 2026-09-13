@@ -711,7 +711,7 @@ function EmptyToday({ onAdd, calendar }: { onAdd: () => void; calendar?: boolean
           : "Nothing is due today. Daily chores show on their weekday. Seasonal jobs show in their window. Restock items show when it is time to order."}
       </p>
       <Button className="mt-5 h-11" onClick={onAdd}>
-        Add a duty
+        Add a chore
       </Button>
     </div>
   );

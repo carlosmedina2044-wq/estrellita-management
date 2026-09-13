@@ -19,9 +19,8 @@ export function TermsContent() {
         not a party to those transactions and receives no commission or data from them.
       </p>
       <p>
-        Your data lives on your device. Your home moves to your next iPhone with your normal iCloud backup. The
-        passphrase file in Settings is extra protection. Cuidala cannot recover data from a lost device or a
-        forgotten backup passphrase.
+        Your data lives on your device. To move your home to a new iPhone, use the backup password file in Settings.
+        Cuidala cannot recover data from a lost device or a forgotten backup password.
       </p>
       <p>
         The app is provided “as is” without warranty of any kind. To the extent permitted by law, Cuidala is not
