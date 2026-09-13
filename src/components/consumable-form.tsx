@@ -364,11 +364,11 @@ export function ConsumableForm({
               variant="destructive"
               className="h-12"
               onClick={() => {
-                onDelete(duty.id);
                 closeAfterClick();
+                onDelete(duty.id);
               }}
             >
-              Delete
+              {t("common.delete")}
             </Button>
           ) : null}
           <Button type="button" className="h-12" onClick={submit}>

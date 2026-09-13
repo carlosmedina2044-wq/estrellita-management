@@ -25,7 +25,7 @@ import { applyCompletionCost, applyReceivedPrice } from "@/lib/costs";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { applyDutySave } from "@/lib/household-update";
-import type { DutyDraft, Household } from "@/lib/types";
+import type { DutyDraft, Household, Completion, Duty, RestockDigestSettings } from "@/lib/types";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { generateHomeFromAnswers } from "@/lib/onboarding/generate";
@@ -51,7 +51,10 @@ import {
   type CheckinLevel,
   type MarkOrderedDetails,
 } from "@/lib/restock";
-import type { RestockDigestSettings } from "@/lib/types";
+import { tActive } from "@/i18n";
+import { tDutyTitle } from "@/i18n/content";
+import { hapticDestructive, hapticUndo } from "@/lib/native/haptics";
+import { toast } from "sonner";
 
 function uid() {
   return crypto.randomUUID();
@@ -354,20 +357,54 @@ export function useHousehold() {
     [update],
   );
 
-  const deleteDuty = useCallback(
-    (id: string) => {
-      update((current) => ({
-        ...current,
-        duties: current.duties.filter((duty) => duty.id !== id),
-        completions: current.completions.filter((item) => item.dutyId !== id),
-        supplyAutomations: current.supplyAutomations.map((item) => ({
-          ...item,
-          linkedDutyIds: linkedDutyIdsFor(item).filter((dutyId) => dutyId !== id),
-          dutyId: item.dutyId === id ? linkedDutyIdsFor(item).find((dutyId) => dutyId !== id) ?? "" : item.dutyId,
-        })),
-      }));
+  const restoreDuty = useCallback(
+    (duty: Duty, completions: Completion[]) => {
+      update((current) => {
+        if (current.duties.some((item) => item.id === duty.id)) return current;
+        return {
+          ...current,
+          duties: [...current.duties, duty],
+          completions: [
+            ...current.completions,
+            ...completions.filter((item) => !current.completions.some((existing) => existing.id === item.id)),
+          ],
+        };
+      });
+      void hapticUndo();
     },
     [update],
+  );
+
+  const deleteDuty = useCallback(
+    (id: string) => {
+      let removed: Duty | undefined;
+      let removedCompletions: Completion[] = [];
+      update((current) => {
+        removed = current.duties.find((duty) => duty.id === id);
+        removedCompletions = current.completions.filter((item) => item.dutyId === id);
+        return {
+          ...current,
+          duties: current.duties.filter((duty) => duty.id !== id),
+          completions: current.completions.filter((item) => item.dutyId !== id),
+          supplyAutomations: current.supplyAutomations.map((item) => ({
+            ...item,
+            linkedDutyIds: linkedDutyIdsFor(item).filter((dutyId) => dutyId !== id),
+            dutyId: item.dutyId === id ? linkedDutyIdsFor(item).find((dutyId) => dutyId !== id) ?? "" : item.dutyId,
+          })),
+        };
+      });
+      if (!removed) return;
+      const snapshot = { duty: removed, completions: removedCompletions };
+      void hapticDestructive();
+      toast.message(tActive("common.deletedName", { name: tDutyTitle(snapshot.duty.title) }), {
+        duration: 6000,
+        action: {
+          label: tActive("common.undo"),
+          onClick: () => restoreDuty(snapshot.duty, snapshot.completions),
+        },
+      });
+    },
+    [restoreDuty, update],
   );
 
   const completeDuty = useCallback(

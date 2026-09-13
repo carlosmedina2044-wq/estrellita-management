@@ -544,8 +544,8 @@ export function DutyForm({
               variant="destructive"
               className="h-11 min-w-24"
               onClick={() => {
-                onDelete(duty.id);
                 closeAfterClick();
+                onDelete(duty.id);
               }}
             >
               {t("common.delete")}

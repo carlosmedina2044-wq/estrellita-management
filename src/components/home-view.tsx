@@ -26,6 +26,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Switch } from "@/components/ui/switch";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 import { verifyDeviceOwner } from "@/lib/native/biometrics";
+import { hapticDestructive } from "@/lib/native/haptics";
 import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
 import { notifyPermission, plannedNotifications, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
 import type { Household, RestockDigestSettings } from "@/lib/types";
@@ -565,8 +566,10 @@ export function HomeView({
                     }
                   }
                   const result = await onErase();
-                  if (result.ok) toast.success(t("settings.eraseAll"));
-                  else toast.error(t("shell.eraseFailed"));
+                  if (result.ok) {
+                    void hapticDestructive();
+                    toast.success(t("settings.eraseAll"));
+                  } else toast.error(t("shell.eraseFailed"));
                 })();
               }}
             >

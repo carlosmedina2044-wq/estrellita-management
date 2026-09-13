@@ -69,6 +69,8 @@
   "settings.hourMore": "Mais…",
   "common.cancel": "Cancelar",
   "common.delete": "Excluir",
+  "common.undo": "Desfazer",
+  "common.deletedName": "Excluído {name}",
   "common.save": "Salvar",
   "common.gotIt": "Entendi",
   "common.settings": "Ajustes",
