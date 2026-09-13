@@ -1,14 +1,16 @@
 import { b64ToBytes, bytesToB64, generateRawKey, importRawKey } from "@/lib/crypto";
 import { isNative } from "@/lib/native/platform";
 
-/** Bound Keychain account (SecAccessControl biometryCurrentSet OR devicePasscode). */
+/** Legacy bound Keychain account (pre-keyId envelopes). Treated as keyId `"v2"`. */
 export const KEY_ID = "cuidala-device-key-v2";
-/** Unbound v1 + pre-release leftovers — migrated once into v2 then deleted. */
+/** Unbound v1 + pre-release leftovers — migrated once into a keyId account then deleted. */
 export const LEGACY_KEY_IDS = ["cuidala-device-key-v1", "estrellita-device-key-v1"] as const;
+
+export const KEY_ACCOUNT_PREFIX = "cuidala-device-key-";
 
 /**
  * iOS: stored in the Keychain by CuidalaDeviceKeyPlugin.
- * v2 uses SecAccessControl (WhenPasscodeSetThisDeviceOnly + biometryCurrentSet OR devicePasscode).
+ * Accounts are `cuidala-device-key-<keyId>` (legacy `…-v2` ≡ keyId `"v2"`).
  * Authenticated `get` prompts Face ID / passcode; the key does not migrate via Quick Start.
  * Portable backup password is the cross-device path. See docs/RESIDUAL_RISKS.md.
  *
@@ -64,6 +66,13 @@ export function isInteractionNotAllowedKeyError(error: unknown): boolean {
   return /interaction is not allowed|errSecInteractionNotAllowed|-25308/i.test(pluginMessage(error));
 }
 
+export function isPasscodeRequiredKeyError(error: unknown): boolean {
+  if (error instanceof DeviceKeyError && error.code === "passcode_required") return true;
+  const code = pluginCode(error);
+  if (code === "passcode_required") return true;
+  return /passcode.?required|errSecNotAvailable|-25291/i.test(pluginMessage(error));
+}
+
 /** True when Keychain reads require an interactive ACL prompt (native iOS). */
 export function deviceKeyRequiresInteractiveUnlock(): boolean {
   return isNative();
@@ -72,19 +81,41 @@ export function deviceKeyRequiresInteractiveUnlock(): boolean {
 export type LoadDeviceKeyOptions = {
   /** Localized reason shown on the system Face ID / passcode sheet. */
   reason?: string;
+  /** Envelope keyId; omit/`"v2"` reads the legacy `cuidala-device-key-v2` account. */
+  keyId?: string;
 };
+
+export function accountForKeyId(keyId?: string | null): string {
+  if (!keyId || keyId === "v2") return KEY_ID;
+  return `${KEY_ACCOUNT_PREFIX}${keyId}`;
+}
+
+/** Short random id for a newly minted Keychain account. */
+export function mintKeyId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+let lastMintedKeyId: string | null = null;
+
+/** KeyId written by the most recent `createDeviceKey` (tests / vault wiring). */
+export function getLastMintedKeyId(): string | null {
+  return lastMintedKeyId;
+}
 
 /** Read the existing AES key. Null only when the item is absent. Other errors throw. */
 export async function loadDeviceKey(options?: LoadDeviceKeyOptions): Promise<CryptoKey | null> {
-  const existing = await readRaw(options?.reason ?? "Unlock Cuidala");
+  const existing = await readRaw(options?.reason ?? "Unlock Cuidala", options?.keyId);
   if (existing) return importRawKey(existing);
   return null;
 }
 
-/** Generate and persist a new AES key. Call only when no vault exists. */
+/** Generate and persist a new AES key under a fresh keyId account. Never overwrites another account. */
 export async function createDeviceKey(): Promise<CryptoKey> {
+  const keyId = mintKeyId();
+  lastMintedKeyId = keyId;
   const raw = generateRawKey();
-  await writeRaw(raw);
+  await writeRaw(raw, keyId);
   return importRawKey(raw);
 }
 
@@ -99,19 +130,20 @@ export async function loadOrCreateDeviceKey(options?: LoadDeviceKeyOptions): Pro
 }
 
 export async function deleteDeviceKey(): Promise<void> {
-  for (const id of [KEY_ID, ...LEGACY_KEY_IDS]) {
-    await removeRaw(id);
-  }
+  await removeAllDeviceKeys();
+  lastMintedKeyId = null;
 }
 
-async function readRaw(reason: string): Promise<Uint8Array | null> {
-  const current = await readId(KEY_ID, reason);
+async function readRaw(reason: string, keyId?: string): Promise<Uint8Array | null> {
+  const account = accountForKeyId(keyId);
+  const current = await readId(account, reason);
   if (current) return current;
+  if (keyId && keyId !== "v2") return null;
   // Web / tests: migrate unbound legacy ids into v2 storage.
   for (const id of LEGACY_KEY_IDS) {
     const legacy = await readId(id, reason);
     if (!legacy) continue;
-    await writeRaw(legacy);
+    await writeRaw(legacy, "v2");
     await removeRaw(id);
     return legacy;
   }
@@ -138,6 +170,9 @@ async function readId(id: string, reason: string): Promise<Uint8Array | null> {
           code: "interaction_not_allowed",
         });
       }
+      if (isPasscodeRequiredKeyError(error)) {
+        throw new DeviceKeyError("Device passcode required", { cause: error, code: "passcode_required" });
+      }
       throw new DeviceKeyError("Could not read the device key", { cause: error });
     }
   }
@@ -146,18 +181,22 @@ async function readId(id: string, reason: string): Promise<Uint8Array | null> {
   return raw ? b64ToBytes(raw) : null;
 }
 
-async function writeRaw(raw: Uint8Array): Promise<void> {
+async function writeRaw(raw: Uint8Array, keyId: string): Promise<void> {
   const encoded = bytesToB64(raw);
+  const account = accountForKeyId(keyId);
   if (isNative()) {
     const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
     try {
-      await CuidalaDeviceKey.set({ key: KEY_ID, value: encoded });
+      await CuidalaDeviceKey.set({ key: account, value: encoded });
     } catch (error) {
+      if (isPasscodeRequiredKeyError(error)) {
+        throw new DeviceKeyError("Device passcode required", { cause: error, code: "passcode_required" });
+      }
       throw new DeviceKeyError("Could not write the device key", { cause: error });
     }
     return;
   }
-  window.localStorage.setItem(KEY_ID, encoded);
+  window.localStorage.setItem(account, encoded);
 }
 
 async function removeRaw(id: string): Promise<void> {
@@ -172,4 +211,30 @@ async function removeRaw(id: string): Promise<void> {
   }
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(id);
+}
+
+async function removeAllDeviceKeys(): Promise<void> {
+  if (isNative()) {
+    const { CuidalaDeviceKey } = await import("@/lib/native/cuidala-device-key");
+    try {
+      // Empty key → native deletes every cuidala-device-key-* account.
+      await CuidalaDeviceKey.remove({ key: "" });
+    } catch {
+      // best effort
+    }
+    for (const id of LEGACY_KEY_IDS) {
+      await removeRaw(id);
+    }
+    return;
+  }
+  if (typeof window === "undefined") return;
+  const doomed: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const name = window.localStorage.key(i);
+    if (!name) continue;
+    if (name.startsWith(KEY_ACCOUNT_PREFIX) || (LEGACY_KEY_IDS as readonly string[]).includes(name)) {
+      doomed.push(name);
+    }
+  }
+  for (const name of doomed) window.localStorage.removeItem(name);
 }

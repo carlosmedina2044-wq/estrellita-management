@@ -267,9 +267,11 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     private static func delete(key: String) throws {
-        let targets = key.isEmpty
-            ? [v2Account, v1Account, "estrellita-device-key-v1"]
-            : [key, v2Account, v1Account, "estrellita-device-key-v1"]
+        if key.isEmpty {
+            try deleteAllCuidalaDeviceKeys()
+            return
+        }
+        let targets = [key, v2Account, v1Account, "estrellita-device-key-v1"]
         for service in [currentService, legacyService] {
             for target in targets {
                 for account in accounts(for: target) {
@@ -285,6 +287,46 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+    }
+
+    /// Erase-all: delete every `cuidala-device-key-*` account (and known legacy ids).
+    private static func deleteAllCuidalaDeviceKeys() throws {
+        var query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: currentService,
+            kSecMatchLimit as String: kSecMatchLimitAll,
+            kSecReturnAttributes as String: true,
+        ]
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecSuccess, let items = result as? [[String: Any]] {
+            for item in items {
+                guard let account = item[kSecAttrAccount as String] else { continue }
+                let accountString: String
+                if let text = account as? String {
+                    accountString = text
+                } else if let data = account as? Data, let text = String(data: data, encoding: .utf8) {
+                    accountString = text
+                } else {
+                    continue
+                }
+                guard accountString.hasPrefix("cuidala-device-key-") || accountString == "estrellita-device-key-v1" else {
+                    continue
+                }
+                let deleteStatus = SecItemDelete(baseQuery(service: currentService, account: account) as CFDictionary)
+                switch deleteStatus {
+                case errSecSuccess, errSecItemNotFound:
+                    continue
+                case errSecInteractionNotAllowed:
+                    throw DeviceKeyStoreError.interactionNotAllowed
+                default:
+                    throw DeviceKeyStoreError.osStatus(deleteStatus)
+                }
+            }
+        } else if status != errSecItemNotFound {
+            throw DeviceKeyStoreError.osStatus(status)
+        }
+        try deleteUnboundLegacyKeys()
     }
 
     private static func accounts(for key: String) -> [Any] {

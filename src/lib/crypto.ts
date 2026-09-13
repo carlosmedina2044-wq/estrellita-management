@@ -21,17 +21,23 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 export type VaultEnvelope = {
-  v: 2;
+  v: 2 | 3;
   alg: "A256GCM";
   iv: string;
   ciphertext: string;
   updatedAt: string;
+  /** Present on v3 envelopes; legacy v2 maps to Keychain account `cuidala-device-key-v2`. */
+  keyId?: string;
 };
 
 export function isVaultEnvelope(value: unknown): value is VaultEnvelope {
   if (!isPlainObject(value)) return false;
+  const versionOk = value.v === 2 || value.v === 3;
+  const keyIdOk =
+    value.v !== 3 || (typeof value.keyId === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value.keyId));
   return (
-    value.v === 2 &&
+    versionOk &&
+    keyIdOk &&
     value.alg === "A256GCM" &&
     typeof value.iv === "string" &&
     typeof value.ciphertext === "string" &&
@@ -77,6 +83,7 @@ export async function encryptJson(
   key: CryptoKey,
   plaintext: string,
   aad: string = VAULT_AAD,
+  keyId?: string,
 ): Promise<VaultEnvelope> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const sealed = await crypto.subtle.encrypt(
@@ -84,6 +91,17 @@ export async function encryptJson(
     key,
     encoder.encode(plaintext),
   );
+  const id = keyId && keyId.length > 0 ? keyId : undefined;
+  if (id) {
+    return {
+      v: 3,
+      alg: "A256GCM",
+      iv: bytesToB64(iv),
+      ciphertext: bytesToB64(new Uint8Array(sealed)),
+      updatedAt: new Date().toISOString(),
+      keyId: id,
+    };
+  }
   return {
     v: 2,
     alg: "A256GCM",

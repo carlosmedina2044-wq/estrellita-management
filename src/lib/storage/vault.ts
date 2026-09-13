@@ -15,6 +15,7 @@ import {
   deleteDeviceKey,
   DeviceKeyError,
   deviceKeyRequiresInteractiveUnlock,
+  getLastMintedKeyId,
   isUserCanceledKeyError,
   loadDeviceKey,
   loadOrCreateDeviceKey,
@@ -89,6 +90,7 @@ export function resetVaultForTests() {
   didHydrate = false;
   lastLoad = null;
   key = null;
+  keyId = null;
   sessionUnlocked = true;
   sessionMeta = null;
   persistChain = Promise.resolve();
@@ -102,6 +104,8 @@ let memory: Household | null = null;
 let didHydrate = false;
 let lastLoad: HouseholdLoad | null = null;
 let key: CryptoKey | null = null;
+/** Keychain account keyId for the active session (`"v2"` for legacy envelopes). */
+let keyId: string | null = null;
 let sessionUnlocked = true;
 let sessionMeta: VaultSessionMeta | null = null;
 let persistChain: Promise<void> = Promise.resolve();
@@ -149,7 +153,7 @@ async function persist(next: Household, capturedKey: CryptoKey | null) {
     deviceKey = await resolveDeviceKeyForPersist();
     key = deviceKey;
   }
-  const envelope = await encryptJson(deviceKey, JSON.stringify(next));
+  const envelope = await encryptJson(deviceKey, JSON.stringify(next), VAULT_STORAGE_KEY, keyId ?? undefined);
   await io.kvSet(VAULT_STORAGE_KEY, JSON.stringify(envelope));
   scheduleNotificationSync(next);
 }
@@ -159,12 +163,20 @@ async function resolveDeviceKeyForPersist(): Promise<CryptoKey> {
   if (!existingVault) {
     // Uninstall often leaves the Keychain item. Reuse it when there is
     // nothing to decrypt; mint only when the item is genuinely absent.
-    return io.loadOrCreateDeviceKey({ reason: "Save your home on this iPhone" });
+    const minted = await io.loadOrCreateDeviceKey({ reason: "Save your home on this iPhone", keyId: keyId ?? undefined });
+    keyId = getLastMintedKeyId() ?? keyId ?? "v2";
+    return minted;
   }
+
+  const envelope = parseEnvelopeJson(existingVault);
+  const envelopeKeyId = envelope?.keyId ?? "v2";
 
   let existingKey: CryptoKey | null = null;
   try {
-    existingKey = await io.loadDeviceKey({ reason: "Save your home on this iPhone" });
+    existingKey = await io.loadDeviceKey({
+      reason: "Save your home on this iPhone",
+      keyId: envelopeKeyId,
+    });
   } catch (error) {
     if (isUserCanceledKeyError(error)) {
       throw new DeviceKeyError("User canceled authentication", { cause: error, code: "user_canceled" });
@@ -173,13 +185,20 @@ async function resolveDeviceKeyForPersist(): Promise<CryptoKey> {
   }
 
   if (existingKey && (await canDecryptVault(existingKey, existingVault))) {
+    keyId = envelopeKeyId;
     return existingKey;
   }
 
   // Stale or unreadable leftover (empty Keychain, or a key that cannot open it).
-  // Quarantine first — never overwrite with a newly minted key.
+  // Quarantine first — never overwrite with a newly minted key on the same account.
   await quarantineUnreadableVault();
-  return io.createDeviceKey();
+  const fresh = await io.createDeviceKey();
+  keyId = getLastMintedKeyId() ?? mintFallbackKeyId();
+  return fresh;
+}
+
+function mintFallbackKeyId(): string {
+  return `k${Date.now().toString(36)}`;
 }
 
 async function canDecryptVault(deviceKey: CryptoKey, raw: string): Promise<boolean> {
@@ -256,6 +275,7 @@ export function getVaultSessionMeta(): VaultSessionMeta | null {
 export async function lockHouseholdSession(): Promise<void> {
   await flushHousehold().catch(() => {});
   key = null;
+  keyId = null;
   memory = null;
   sessionUnlocked = false;
   if (lastLoad?.ok) {
@@ -281,6 +301,7 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
       // No ciphertext — treat as empty unlocked session.
       memory = cloneEmpty();
       key = null;
+      keyId = null;
       sessionUnlocked = true;
       sessionMeta = captureSessionMeta(memory);
       lastLoad = { ok: true, legacyLockedVault: legacyLockedVaultPresent() };
@@ -288,9 +309,12 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
       return { ok: true };
     }
 
+    const envelope = parseEnvelopeJson(raw);
+    const envelopeKeyId = envelope?.keyId ?? "v2";
+
     let deviceKey: CryptoKey | null = null;
     try {
-      deviceKey = await io.loadDeviceKey({ reason });
+      deviceKey = await io.loadDeviceKey({ reason, keyId: envelopeKeyId });
     } catch (error) {
       if (isUserCanceledKeyError(error)) return { ok: false, reason: "canceled" };
       if (error instanceof DeviceKeyError && error.code === "auth_failed") {
@@ -303,8 +327,6 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
       lastLoad = { ok: false, reason: "key-mismatch" };
       return { ok: false, reason: "key-mismatch" };
     }
-
-    const envelope = parseEnvelopeJson(raw);
     if (!envelope) {
       lastLoad = { ok: false, reason: "corrupt" };
       return { ok: false, reason: "corrupt" };
@@ -314,6 +336,7 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
       memory = parseStored(await decryptJson(deviceKey, envelope));
     } catch {
       key = null;
+      keyId = null;
       memory = null;
       sessionUnlocked = false;
       lastLoad = { ok: false, reason: "key-mismatch" };
@@ -321,6 +344,7 @@ export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<Unlock
     }
 
     key = deviceKey;
+    keyId = envelopeKeyId;
     sessionUnlocked = true;
     sessionMeta = captureSessionMeta(memory);
     if (fromPreviousKey) {
@@ -374,8 +398,10 @@ async function decryptVaultRaw(
   fromPreviousKey: boolean,
   reason: string,
 ): Promise<HouseholdLoad> {
+  const envelope = parseEnvelopeJson(raw);
+  const envelopeKeyId = envelope?.keyId ?? "v2";
   try {
-    key = await io.loadDeviceKey({ reason });
+    key = await io.loadDeviceKey({ reason, keyId: envelopeKeyId });
   } catch (error) {
     if (isUserCanceledKeyError(error)) {
       sessionUnlocked = false;
@@ -389,7 +415,6 @@ async function decryptVaultRaw(
     lastLoad = { ok: false, reason: "key-mismatch" };
     return lastLoad;
   }
-  const envelope = parseEnvelopeJson(raw);
   if (!envelope) {
     lastLoad = { ok: false, reason: "corrupt" };
     return lastLoad;
@@ -398,9 +423,11 @@ async function decryptVaultRaw(
     memory = parseStored(await decryptJson(key, envelope));
   } catch {
     key = null;
+    keyId = null;
     lastLoad = { ok: false, reason: "key-mismatch" };
     return lastLoad;
   }
+  keyId = envelopeKeyId;
   if (fromPreviousKey) {
     await persist(memory, key);
     await io.kvRemove(PREVIOUS_VAULT_KEY);
@@ -447,6 +474,7 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
       if (io.requiresInteractiveUnlock()) {
         // Detect ciphertext only — do not touch the ACL-bound key yet.
         key = null;
+        keyId = null;
         memory = null;
         sessionUnlocked = false;
         sessionMeta = null;
@@ -507,6 +535,7 @@ export async function eraseHousehold(): Promise<{ ok: boolean }> {
     window.localStorage.removeItem("estrellita-audit-v1");
   }
   key = null;
+  keyId = null;
   memory = cloneEmpty();
   sessionUnlocked = true;
   sessionMeta = captureSessionMeta(memory);
@@ -539,18 +568,19 @@ export async function exportHouseholdBackup(passphrase: string): Promise<string>
 async function quarantineUnreadableVault() {
   const current = (await io.kvGet(VAULT_STORAGE_KEY)) ?? (await io.kvGet(PREVIOUS_VAULT_KEY));
   if (!current) return;
+  const slot = `${QUARANTINED_VAULT_KEY}.${Date.now()}`;
+  await io.kvSet(slot, current);
+  // Keep the legacy single slot as the most recent unreadable copy for older restore paths.
   await io.kvSet(QUARANTINED_VAULT_KEY, current);
   await io.kvRemove(VAULT_STORAGE_KEY);
   await io.kvRemove(PREVIOUS_VAULT_KEY);
+  // Never delete Keychain items here — quarantine must leave every key account intact.
 }
 
 function needsRestoreKey(): boolean {
-  return (
-    key === null ||
-    (lastLoad !== null &&
-      !lastLoad.ok &&
-      (lastLoad.reason === "key-mismatch" || lastLoad.reason === "corrupt"))
-  );
+  // Mint only when the Keychain item is missing or cannot decrypt (key-mismatch).
+  // Transient unavailable / interaction_not_allowed must keep the existing key.
+  return lastLoad !== null && !lastLoad.ok && lastLoad.reason === "key-mismatch";
 }
 
 export async function importHouseholdBackup(
@@ -571,6 +601,7 @@ export async function importHouseholdBackup(
       if (needsRestoreKey()) {
         await quarantineUnreadableVault();
         key = await io.createDeviceKey();
+        keyId = getLastMintedKeyId() ?? mintFallbackKeyId();
       }
       memory = household;
       didHydrate = true;

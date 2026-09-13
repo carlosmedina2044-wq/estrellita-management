@@ -708,3 +708,104 @@ test("cancel during unlock is not missing and does not quarantine", async () => 
   assert.equal(isHouseholdSessionUnlocked(), false);
   resetVaultForTests();
 });
+
+test("two quarantines produce two timestamped slots without deleting keys", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Keep", onboarded: true })),
+  );
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, sealed]]);
+  let deletedKeys = 0;
+  let minted = 0;
+  const io = {
+    requiresInteractiveUnlock: () => false as const,
+    loadDeviceKey: async () => null as CryptoKey | null,
+    createDeviceKey: async () => {
+      minted += 1;
+      return key;
+    },
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {
+      deletedKeys += 1;
+    },
+    kvGet: async (name: string) => store.get(name) ?? null,
+    kvSet: async (name: string, value: string) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name: string) => {
+      store.delete(name);
+    },
+  };
+  installVaultIOForTests(io);
+
+  await hydrateHousehold();
+  assert.equal((await unlockHousehold()).ok, false);
+
+  const backupA = await sealBackup(
+    JSON.stringify({ householdName: "Restored A", onboarded: true }),
+    "correct horse battery staple",
+  );
+  assert.equal((await importHouseholdBackup(backupA, "correct horse battery staple")).ok, true);
+
+  store.set(VAULT_STORAGE_KEY, sealed);
+  await hydrateHousehold();
+  assert.equal((await unlockHousehold()).ok, false);
+  const backupB = await sealBackup(
+    JSON.stringify({ householdName: "Restored B", onboarded: true }),
+    "correct horse battery staple",
+  );
+  assert.equal((await importHouseholdBackup(backupB, "correct horse battery staple")).ok, true);
+
+  const slots = [...store.keys()].filter((k) => k.startsWith(`${QUARANTINED_VAULT_KEY}.`));
+  assert.ok(slots.length >= 2, `expected >=2 timestamped slots, got ${slots.join(",")}`);
+  assert.equal(deletedKeys, 0);
+  assert.ok(minted >= 1);
+  resetVaultForTests();
+});
+
+test("unavailable load does not mint on restore", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Transient", onboarded: true })),
+  );
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, sealed]]);
+  let minted = 0;
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => true,
+    loadDeviceKey: async () => {
+      throw new DeviceKeyError("User interaction is not allowed", { code: "interaction_not_allowed" });
+    },
+    createDeviceKey: async () => {
+      minted += 1;
+      return key;
+    },
+    loadOrCreateDeviceKey: async () => {
+      minted += 1;
+      return key;
+    },
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  await hydrateHousehold();
+  const unlocked = await unlockHousehold();
+  assert.equal(unlocked.ok, false);
+  if (!unlocked.ok) assert.equal(unlocked.reason, "unavailable");
+  const before = minted;
+  const backup = await sealBackup(
+    JSON.stringify({ householdName: "Should Keep Key", onboarded: true }),
+    "correct horse battery staple",
+  );
+  await importHouseholdBackup(backup, "correct horse battery staple");
+  assert.equal(minted, before);
+  assert.equal(store.get(VAULT_STORAGE_KEY), sealed);
+  resetVaultForTests();
+});
