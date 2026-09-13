@@ -250,7 +250,8 @@ export function Onboarding({
             <p className="mt-auto pt-8 text-sm leading-5 text-muted-foreground">
               Cuidala keeps your home data on this iPhone, encrypted. No account, no server copy.
               Your home moves to your next iPhone with your normal iCloud backup. A passphrase file in
-              Settings is extra protection. See Settings for the privacy policy.
+              Settings is extra protection. Deleting the app removes your home from this iPhone.
+              See Settings for the privacy policy.
             </p>
           </Screen>
         ) : null}

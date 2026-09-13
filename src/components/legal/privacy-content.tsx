@@ -57,9 +57,9 @@ export function PrivacyContent() {
 
       <h2 className="mt-2 font-semibold">Deleting your data</h2>
       <p>
-        Use Settings, then Erase all data on this iPhone, or delete the app. Both remove everything, including
-        the encryption key and any scheduled reminders. Because nothing is stored elsewhere, there is nothing else
-        to delete.
+        Deleting the app removes your home from this iPhone. The Keychain key is removed by Erase everything in
+        Settings, not by deleting the app. Scheduled reminders go away with the app. Because nothing is stored
+        elsewhere, there is nothing else to delete.
       </p>
 
       <h2 className="mt-2 font-semibold">Children</h2>

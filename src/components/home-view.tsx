@@ -441,7 +441,8 @@ export function HomeView({
         <p className="mt-1 text-xs text-muted-foreground">
           Everything about your home is stored on this iPhone, encrypted with a key kept in the device
           Keychain. Your home moves to your next iPhone with your normal iCloud backup. The passphrase
-          file is extra protection. There is no account and no server copy. Deleting the app deletes the data.
+          file is extra protection. There is no account and no server copy. Deleting the app removes your home
+          from this iPhone. Erase everything also removes the Keychain key.
         </p>
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-primary">
           <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("how-it-works")}>

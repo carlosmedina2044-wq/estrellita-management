@@ -45,7 +45,8 @@ export function HowItWorksContent() {
         <h2 className="font-semibold">The key travels with iCloud</h2>
         <p className="mt-1 text-muted-foreground">
           Your home moves to your next iPhone with your normal iCloud backup. The passphrase file in Settings is
-          extra protection if that restore is not available.
+          extra protection if that restore is not available. Deleting the app removes your home from this iPhone.
+          Erase everything also removes the Keychain key.
         </p>
       </section>
     </div>
