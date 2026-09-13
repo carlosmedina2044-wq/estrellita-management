@@ -1,5 +1,5 @@
 {
-  "contentVersion": "2026.08.24",
+  "contentVersion": "2026.09.12",
   "playbooks": [
     {
       "id": "all-safety",
@@ -325,6 +325,164 @@
       ]
     },
     {
+      "id": "mixed-ac-service",
+      "name": "Spring AC tune-up",
+      "season": "spring",
+      "climateZones": ["mixed"],
+      "triggerMonth": 4,
+      "earlyMonth": 3,
+      "lateMonth": 6,
+      "why": "First 90° week arrives fast. A spring tune-up and fresh filter beat a mid-June service wait.",
+      "tasks": [
+        {
+          "title": "Schedule AC tune-up and replace the filter",
+          "description": "Book service before the first 90°F week; swap the filter now.",
+          "nodeType": "assetType",
+          "target": "hvac_system",
+          "estimatedMinutes": 60,
+          "estimatedCost": 120,
+          "isDiy": false,
+          "consumables": ["HVAC filter"]
+        }
+      ]
+    },
+    {
+      "id": "mixed-furnace",
+      "name": "Fall heat inspection",
+      "season": "fall",
+      "climateZones": ["mixed"],
+      "triggerMonth": 10,
+      "earlyMonth": 9,
+      "lateMonth": 11,
+      "why": "First freeze is when heat fails. An inspection and filter change in fall is cheaper than an emergency call.",
+      "tasks": [
+        {
+          "title": "Inspect furnace or heat and replace the filter",
+          "description": "Have heat checked before the first freeze; swap the filter.",
+          "nodeType": "assetType",
+          "target": "hvac_system",
+          "estimatedMinutes": 60,
+          "estimatedCost": 120,
+          "isDiy": false,
+          "consumables": ["HVAC filter"]
+        }
+      ]
+    },
+    {
+      "id": "mixed-gutters",
+      "name": "Fall gutter clearing",
+      "season": "fall",
+      "climateZones": ["mixed"],
+      "triggerMonth": 11,
+      "earlyMonth": 10,
+      "lateMonth": 12,
+      "why": "Leaf-clogged gutters overflow into the foundation and freeze into ice dams.",
+      "requires": { "hasGutters": true },
+      "tasks": [
+        {
+          "title": "Clear gutters and downspouts after leaf drop",
+          "nodeType": "exterior",
+          "estimatedMinutes": 60,
+          "isDiy": true,
+          "caution": "ladder"
+        }
+      ]
+    },
+    {
+      "id": "mixed-hose-bibs",
+      "name": "Disconnect hoses",
+      "season": "fall",
+      "climateZones": ["mixed"],
+      "triggerMonth": 11,
+      "earlyMonth": 10,
+      "lateMonth": 12,
+      "why": "A connected hose can freeze and crack the spigot or the pipe inside the wall.",
+      "requires": { "hasYard": true },
+      "tasks": [
+        {
+          "title": "Disconnect hoses, drain and cover exterior spigots",
+          "nodeType": "exterior",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "mixed-humidity",
+      "name": "Summer humidity check",
+      "season": "summer",
+      "climateZones": ["mixed"],
+      "triggerMonth": 6,
+      "earlyMonth": 5,
+      "lateMonth": 8,
+      "why": "Basement humidity above 50% grows mold and rusts ductwork.",
+      "tasks": [
+        {
+          "title": "Check basement or crawlspace humidity; run dehumidifier under 50%",
+          "nodeType": "home",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "mixed-sump",
+      "name": "Spring sump test",
+      "season": "spring",
+      "climateZones": ["mixed"],
+      "triggerMonth": 3,
+      "earlyMonth": 2,
+      "lateMonth": 5,
+      "why": "Spring rains find dead sump pumps. A bucket test is ten minutes.",
+      "requires": { "hasBasement": true },
+      "tasks": [
+        {
+          "title": "Test sump pump by pouring a bucket in the pit",
+          "nodeType": "home",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "mixed-termite",
+      "name": "Spring termite walk",
+      "season": "spring",
+      "climateZones": ["mixed"],
+      "triggerMonth": 4,
+      "earlyMonth": 3,
+      "lateMonth": 6,
+      "why": "Mud tubes and wood-to-soil contact are early signs. Catching them in spring is cheaper than structural repair.",
+      "tasks": [
+        {
+          "title": "Walk the foundation for mud tubes; note any wood-to-soil contact",
+          "nodeType": "exterior",
+          "estimatedMinutes": 20,
+          "isDiy": true,
+          "caution": "pest"
+        }
+      ]
+    },
+    {
+      "id": "mixed-storm",
+      "name": "Storm limb check",
+      "season": "summer",
+      "climateZones": ["mixed"],
+      "triggerMonth": 5,
+      "earlyMonth": 4,
+      "lateMonth": 7,
+      "why": "Limbs over the roof and lines come down in summer storms. Trim before peak season.",
+      "tasks": [
+        {
+          "title": "Check tree limbs over roof and lines; trim or call an arborist",
+          "nodeType": "exterior",
+          "estimatedMinutes": 30,
+          "isDiy": true,
+          "caution": "ladder"
+        }
+      ]
+    },
+    {
       "id": "cold-furnace",
       "name": "Furnace service",
       "season": "fall",
@@ -472,6 +630,118 @@
           "nodeType": "assetType",
           "target": "sump_pump",
           "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "cold-hose-bibs",
+      "name": "Drain exterior spigots",
+      "season": "fall",
+      "climateZones": ["cold"],
+      "triggerMonth": 10,
+      "earlyMonth": 9,
+      "lateMonth": 11,
+      "why": "A hose left on a bib can freeze and crack the valve inside the wall.",
+      "requires": { "hasYard": true },
+      "tasks": [
+        {
+          "title": "Drain and shut off exterior spigots; store hoses",
+          "nodeType": "exterior",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "cold-attic",
+      "name": "Attic insulation check",
+      "season": "fall",
+      "climateZones": ["cold"],
+      "triggerMonth": 10,
+      "earlyMonth": 9,
+      "lateMonth": 11,
+      "why": "Thin attic insulation and poor ventilation are the usual ice-dam setup before snow.",
+      "requires": { "hasAttic": true },
+      "tasks": [
+        {
+          "title": "Check attic insulation depth and ventilation before snow",
+          "nodeType": "home",
+          "estimatedMinutes": 30,
+          "isDiy": true,
+          "caution": "ladder"
+        }
+      ]
+    },
+    {
+      "id": "cold-humidifier",
+      "name": "Humidifier pad cleaning",
+      "season": "fall",
+      "climateZones": ["cold"],
+      "triggerMonth": 11,
+      "earlyMonth": 10,
+      "lateMonth": 12,
+      "why": "Dirty humidifier pads grow mold and push it through the ducts all winter.",
+      "tasks": [
+        {
+          "title": "Clean whole-house or portable humidifier pads; set for winter",
+          "nodeType": "home",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "cold-spring-thaw",
+      "name": "Spring thaw walk",
+      "season": "spring",
+      "climateZones": ["cold"],
+      "triggerMonth": 4,
+      "earlyMonth": 3,
+      "lateMonth": 5,
+      "why": "Thaw reveals grading problems and foundation cracks that freeze hid all winter.",
+      "tasks": [
+        {
+          "title": "Walk the exterior after thaw: grading, downspout extensions, foundation cracks",
+          "nodeType": "exterior",
+          "estimatedMinutes": 30,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "cold-ac-startup",
+      "name": "AC condenser startup",
+      "season": "spring",
+      "climateZones": ["cold"],
+      "triggerMonth": 5,
+      "earlyMonth": 4,
+      "lateMonth": 6,
+      "why": "Debris in the condenser and a first-run failure are common after a long off season.",
+      "tasks": [
+        {
+          "title": "Clear debris from the AC condenser; run it once before the first hot day",
+          "nodeType": "assetType",
+          "target": "hvac_system",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "cold-window-seal",
+      "name": "Window weatherstrip check",
+      "season": "fall",
+      "climateZones": ["cold"],
+      "triggerMonth": 10,
+      "earlyMonth": 9,
+      "lateMonth": 11,
+      "why": "Leaky windows and doors waste heat and create ice on the glass.",
+      "tasks": [
+        {
+          "title": "Check weatherstripping and caulk on windows and doors",
+          "nodeType": "home",
+          "estimatedMinutes": 40,
           "isDiy": true
         }
       ]

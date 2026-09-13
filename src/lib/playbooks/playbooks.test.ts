@@ -456,6 +456,28 @@ test("weatherWatch excludes hard-freeze for cold zones", () => {
   assert.ok(watch.watching.includes("Deep freeze"));
 });
 
+test("each climate zone has a floor of climate-specific playbook tasks", () => {
+  const floors: Record<string, number> = {
+    "hot-arid": 8,
+    cold: 12,
+    "humid-subtropical": 4,
+    marine: 3,
+    mixed: 6,
+  };
+  for (const [zone, floor] of Object.entries(floors)) {
+    let tasks = 0;
+    for (const playbook of PLAYBOOKS) {
+      if (playbook.climateZones === "all") continue;
+      if (!playbook.climateZones.includes(zone)) continue;
+      tasks += playbook.tasks.length;
+    }
+    assert.ok(tasks >= floor, `${zone} has ${tasks} tasks, need >= ${floor}`);
+  }
+  assert.ok(PLAYBOOKS.some((item) => item.id === "hot-arid-uv"));
+  assert.ok(PLAYBOOKS.some((item) => item.id === "hot-arid-dust-hvac"));
+  assert.equal(PLAYBOOK_CONTENT_VERSION.startsWith("2026.09"), true);
+});
+
 test("seasonSectionModel hides when open and fires are empty", () => {
   const now = new Date(2026, 6, 15);
   const year = 2026;
