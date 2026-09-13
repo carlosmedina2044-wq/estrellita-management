@@ -372,9 +372,9 @@ test("weatherWatch lists a freeze hit and drops requires-gated triggers", () => 
 });
 
 test("seasonSectionModel hides when open and fires are empty", () => {
-  // July: climate-specific hot-arid windows are closed; decline year-round playbooks.
+  // Mixed has no climate-specific playbooks yet; decline year-round ones.
   const household = home({
-    location: { lat: 32.22, lng: -110.97, postalCode: "85701", climateZone: "hot-arid" },
+    location: { postalCode: "37201", climateZone: "mixed" },
     attributes: { ...DEFAULT_ATTRIBUTES },
     weatherFires: [],
     playbookDecisions: [
