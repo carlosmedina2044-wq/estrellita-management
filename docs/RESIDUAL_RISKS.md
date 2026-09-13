@@ -2,7 +2,7 @@
 
 | Risk | Why it is accepted | Compensating control |
 |---|---|---|
-| Unlocked, stolen iPhone with the app already open | Any local app shares this risk | Lock-after timer (immediate / 2 min / 15 min) re-locks on background using timestamps on `appStateChange`; Face ID prompt on relaunch; privacy blur in the app switcher. |
+| Unlocked, stolen iPhone with the app already open | Any local app shares this risk | Lock-after timer (immediate / 2 min / 15 min) re-locks on background using timestamps on `pause`/`resume`, suppressed while an owner prompt is in flight; Face ID prompt on relaunch; privacy blur in the app switcher. |
 | Device passcode holder can disable Face ID and open the app | iOS trust model: passcode is root | Documented in-app copy; no weaker fallback exists. |
 | **App lock is presentation-layer, not cryptographic.** Face ID / Touch ID / passcode must succeed before the household UI is shown (`FaceLock` flips React state). The Keychain item that holds the AES key is *not* wrapped in `kSecAccessControlBiometryCurrentSet`, so the app process can read the key without user presence. Jailbreak / WebView inspection of a running app can therefore reach the vault. | Plugin and iOS version constraints for v1; stock iOS still requires device unlock | Fail-closed UI gate; lock-after timer; residual documented here and in Settings. Roadmap: biometric Keychain access control so decryption itself requires Face ID. |
 | Data lost with the device | No server copy by design. The Keychain item uses AfterFirstUnlock and migrates through encrypted iCloud/Finder backups and Quick Start. | In-app encrypted export/import (“Back up my home”) is extra protection. Roadmap: CloudKit sync. |

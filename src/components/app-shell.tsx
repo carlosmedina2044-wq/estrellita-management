@@ -34,7 +34,7 @@ import { applyPostalCode } from "@/lib/climate";
 import { roomsWithNearReplacement } from "@/lib/forecast";
 import { ForecastCard } from "@/components/forecast-card";
 import { homeSummary } from "@/lib/node-status";
-import { detectLockMethod, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
+import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution } from "@/lib/native/weatherkit";
@@ -45,7 +45,8 @@ import type { AppNavigateTarget, Tab } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const LOCK_MS = { immediate: 0, "2min": 120_000, "15min": 900_000 } as const;
+const IMMEDIATE_GRACE_MS = 750;
+const LOCK_MS = { immediate: IMMEDIATE_GRACE_MS, "2min": 120_000, "15min": 900_000 } as const;
 
 export function AppShell() {
   const {
@@ -127,37 +128,47 @@ export function AppShell() {
     if (!household.onboarded || !household.lockSettings?.requireFaceId || !canLock) return;
     if (household.mode === "cleaner") return;
     const ms = LOCK_MS[household.lockSettings.lockAfter];
-    let hiddenAt: number | null = null;
+    let backgroundedAt: number | null = null;
 
-    const onInactive = () => {
-      hiddenAt = Date.now();
+    const onBackground = () => {
+      if (isOwnerPromptInFlight()) return;
+      backgroundedAt = Date.now();
       if (household.lockSettings.lockAfter === "immediate") setLocked(true);
     };
-    const onActive = () => {
-      if (hiddenAt == null) return;
-      if (Date.now() - hiddenAt >= ms) setLocked(true);
-      hiddenAt = null;
+    const onForeground = () => {
+      if (isOwnerPromptInFlight()) return;
+      if (backgroundedAt == null) return;
+      if (Date.now() - backgroundedAt >= ms) setLocked(true);
+      backgroundedAt = null;
     };
 
     const onVis = () => {
-      if (document.hidden) onInactive();
-      else onActive();
+      if (document.hidden) onBackground();
+      else onForeground();
     };
-    document.addEventListener("visibilitychange", onVis);
 
+    let cancelled = false;
     let removeNative: (() => void) | undefined;
     if (isNative()) {
-      void import("@capacitor/app").then(({ App }) =>
-        App.addListener("appStateChange", ({ isActive }) => {
-          if (isActive) onActive();
-          else onInactive();
-        }).then((handle) => {
-          removeNative = () => void handle.remove();
-        }),
-      );
+      void import("@capacitor/app").then(async ({ App }) => {
+        const pause = await App.addListener("pause", onBackground);
+        const resume = await App.addListener("resume", onForeground);
+        if (cancelled) {
+          void pause.remove();
+          void resume.remove();
+          return;
+        }
+        removeNative = () => {
+          void pause.remove();
+          void resume.remove();
+        };
+      });
+    } else {
+      document.addEventListener("visibilitychange", onVis);
     }
 
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", onVis);
       removeNative?.();
     };

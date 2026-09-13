@@ -32,6 +32,12 @@ export async function biometricsAvailable(): Promise<boolean> {
   return (await detectLockMethod()) !== "none";
 }
 
+let promptInFlight = 0;
+
+export function isOwnerPromptInFlight() {
+  return promptInFlight > 0;
+}
+
 /**
  * Prompts Face ID / Touch ID (falling back to the device passcode).
  * Resolves true only when the system confirms the user; any error or
@@ -41,13 +47,18 @@ export async function verifyDeviceOwner(reason = "Unlock Cuidala"): Promise<bool
   if (!isNative()) return false;
   try {
     const { NativeBiometric } = await import("@capgo/capacitor-native-biometric");
-    await NativeBiometric.verifyIdentity({
-      reason,
-      title: "Cuidala",
-      subtitle: reason,
-      useFallback: true,
-    });
-    return true;
+    promptInFlight += 1;
+    try {
+      await NativeBiometric.verifyIdentity({
+        reason,
+        title: "Cuidala",
+        subtitle: reason,
+        useFallback: true,
+      });
+      return true;
+    } finally {
+      promptInFlight -= 1;
+    }
   } catch {
     return false;
   }

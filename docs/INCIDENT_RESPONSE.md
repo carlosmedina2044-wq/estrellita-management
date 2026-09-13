@@ -18,6 +18,13 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Geolocation: Allow location during onboarding. The system sheet must show **Cuidala**, not localhost.
 - [ ] App lock: Unlock UI visible first; biometrics prompt after a short delay or on Unlock tap; cancel → still locked. Passcode helper text present.
 - [ ] Lock timer is timestamp-based: background for the lock-after interval with the screen off (JS timers suspend in WKWebView). Return → locked.
+- [ ] Immediate lock (1.3), Face ID / Touch ID / passcode hardware:
+  - [ ] Unlock stays unlocked: after a successful unlock, a Face ID / notification / location sheet does not re-lock.
+  - [ ] Settings → Require Face ID → Off: the owner prompt does not re-lock when it resigns active.
+  - [ ] Restock notification or location permission alert: returning from the system sheet stays unlocked.
+  - [ ] Swipe Home with lock-after Immediate: returning to the app shows FaceLock.
+  - [ ] Lock after 2 min: background under 2 min stays unlocked; at/after 2 min with the screen off returns locked.
+  - [ ] Cleaner visit: lock timer never fires; Hand phone back still requires owner verification.
 - [ ] App switcher shows a blur privacy screen, not the household.
 - [ ] Settings → Require Face ID / Touch ID / passcode → Off → Face ID / passcode sheet first; cancel leaves lock on.
 - [ ] Settings → Back up my home → share sheet / Files. Restore from that file → confirm “replace N chores, M items” → home returns.
