@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+.claude/launch.json
 
 # debug
 npm-debug.log*
