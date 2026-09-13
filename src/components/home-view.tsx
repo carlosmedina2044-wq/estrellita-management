@@ -30,7 +30,7 @@ import { verifyDeviceOwner } from "@/lib/native/biometrics";
 import { hapticDestructive } from "@/lib/native/haptics";
 import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
 import { notifyPermission, plannedNotifications, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
-import type { Household, MomentumSettings, RestockDigestSettings } from "@/lib/types";
+import type { Household, MomentumSettings, MorningBriefSettings, RestockDigestSettings } from "@/lib/types";
 import { relativeDayLabel } from "@/lib/duties";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -80,6 +80,8 @@ export function HomeView({
   lockMethod,
   restockDigest,
   onUpdateDigest,
+  morningBrief,
+  onUpdateMorningBrief,
   onUpdateMomentum,
   focusAssetId,
   onFocusHandled,
@@ -102,6 +104,8 @@ export function HomeView({
   lockMethod: LockMethod;
   restockDigest?: RestockDigestSettings;
   onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
+  morningBrief?: MorningBriefSettings;
+  onUpdateMorningBrief?: (patch: Partial<MorningBriefSettings>) => void;
   onUpdateMomentum?: (patch: Partial<MomentumSettings>) => void;
   focusAssetId?: string;
   onFocusHandled?: () => void;
@@ -127,6 +131,7 @@ export function HomeView({
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
   const [permission, setPermission] = useState<NotifyPermission>("prompt");
   const [hourSheet, setHourSheet] = useState(false);
+  const [hourSheetTarget, setHourSheetTarget] = useState<"digest" | "brief">("digest");
   const persistTimer = useRef<number | null>(null);
 
   const HOUR_PRESETS = [
@@ -134,6 +139,45 @@ export function HomeView({
     { id: "afternoon", label: t("settings.afternoon"), hour: 14 },
     { id: "evening", label: t("settings.evening"), hour: 19 },
   ] as const;
+
+  function openHourSheet(target: "digest" | "brief") {
+    setHourSheetTarget(target);
+    setHourSheet(true);
+  }
+
+  function hourPresets(hour: number, onHour: (next: number) => void, target: "digest" | "brief") {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {HOUR_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className={cn(
+              "h-11 rounded-full px-3.5 ui-caption font-medium",
+              hour === preset.hour ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
+            )}
+            onClick={() => onHour(preset.hour)}
+          >
+            {preset.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          className={cn(
+            "h-11 rounded-full px-3.5 ui-caption font-medium",
+            !HOUR_PRESETS.some((preset) => preset.hour === hour)
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-secondary-foreground",
+          )}
+          onClick={() => openHourSheet(target)}
+        >
+          {HOUR_PRESETS.some((preset) => preset.hour === hour)
+            ? t("settings.hourMore")
+            : `${String(hour).padStart(2, "0")}:00`}
+        </button>
+      </div>
+    );
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -338,7 +382,56 @@ export function HomeView({
           <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.notifications")}</h2>
           <div className="ui-group">
             <div className="ui-group-row px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
+              {morningBrief && onUpdateMorningBrief ? (
+                <>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p id="brief-switch-label" className="ui-body font-medium">
+                        {t("settings.briefTitle")}
+                      </p>
+                      <p className="mt-0.5 ui-caption text-muted-foreground">
+                        {t("settings.briefHelp")}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={morningBrief.enabled && permission === "granted"}
+                      aria-labelledby="brief-switch-label"
+                      onCheckedChange={(enabled) => {
+                        void (async () => {
+                          if (!enabled) {
+                            onUpdateMorningBrief({ enabled: false });
+                            return;
+                          }
+                          const next = await requestNotifyPermission();
+                          setPermission(next);
+                          onUpdateMorningBrief({ enabled: next === "granted" });
+                        })();
+                      }}
+                    />
+                  </div>
+                  {morningBrief.enabled && permission === "granted" ? (
+                    <div className="mt-3 grid gap-3">
+                      {hourPresets(morningBrief.hour, (hour) => onUpdateMorningBrief({ hour }), "brief")}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p id="brief-weekdays-label" className="ui-body font-medium">
+                            {t("settings.briefWeekdays")}
+                          </p>
+                          <p className="mt-0.5 ui-caption text-muted-foreground">
+                            {t("settings.briefWeekdaysHelp")}
+                          </p>
+                        </div>
+                        <Switch
+                          checked={morningBrief.weekdaysOnly}
+                          aria-labelledby="brief-weekdays-label"
+                          onCheckedChange={(weekdaysOnly) => onUpdateMorningBrief({ weekdaysOnly })}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+              <div className={cn("flex items-start justify-between gap-3", morningBrief && onUpdateMorningBrief && "mt-3")}>
                 <div className="min-w-0">
                   <p id="digest-switch-label" className="ui-body font-medium">
                     {t("settings.digestTitle")}
@@ -382,7 +475,7 @@ export function HomeView({
                 <p className="mt-3 ui-caption text-destructive">
                   {t("settings.notifDenied")}
                 </p>
-              ) : permission === "prompt" && !restockDigest.enabled ? (
+              ) : permission === "prompt" && !restockDigest.enabled && !morningBrief?.enabled ? (
                 <p className="mt-3 ui-caption text-muted-foreground">
                   {t("settings.notifPrompt")}
                 </p>
@@ -406,39 +499,7 @@ export function HomeView({
                       </button>
                     ))}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {HOUR_PRESETS.map((preset) => (
-                      <button
-                        key={preset.id}
-                        type="button"
-                        className={cn(
-                          "h-11 rounded-full px-3.5 ui-caption font-medium",
-                          restockDigest.hour === preset.hour
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground",
-                        )}
-                        onClick={() => {
-                          onUpdateDigest({ hour: preset.hour });
-                        }}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      className={cn(
-                        "h-11 rounded-full px-3.5 ui-caption font-medium",
-                        !HOUR_PRESETS.some((p) => p.hour === restockDigest.hour)
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground",
-                      )}
-                      onClick={() => setHourSheet(true)}
-                    >
-                      {HOUR_PRESETS.some((p) => p.hour === restockDigest.hour)
-                        ? t("settings.hourMore")
-                        : `${String(restockDigest.hour).padStart(2, "0")}:00`}
-                    </button>
-                  </div>
+                  {hourPresets(restockDigest.hour, (hour) => onUpdateDigest({ hour }), "digest")}
                 </div>
               ) : null}
             </div>
@@ -695,20 +756,25 @@ export function HomeView({
       <Sheet open={hourSheet} onOpenChange={setHourSheet}>
         <SheetContent side="bottom" size="form" className="gap-0">
           <SheetHeader>
-            <SheetTitle>{t("settings.digestTime")}</SheetTitle>
+            <SheetTitle>
+              {hourSheetTarget === "brief" ? t("settings.briefTime") : t("settings.digestTime")}
+            </SheetTitle>
           </SheetHeader>
           <div className="grid gap-3 px-4 pb-4">
-            <Label htmlFor="digest-hour" className="ui-caption text-muted-foreground">
-              {t("settings.digestHour")}
+            <Label htmlFor="notify-hour" className="ui-caption text-muted-foreground">
+              {hourSheetTarget === "brief" ? t("settings.briefHour") : t("settings.digestHour")}
             </Label>
             <Input
-              id="digest-hour"
+              id="notify-hour"
               type="time"
-              value={`${String(restockDigest?.hour ?? 8).padStart(2, "0")}:00`}
+              value={`${String(
+                (hourSheetTarget === "brief" ? morningBrief?.hour : restockDigest?.hour) ?? 8,
+              ).padStart(2, "0")}:00`}
               onChange={(event) => {
                 const hour = Number(event.target.value.split(":")[0]);
                 if (!Number.isFinite(hour) || hour < 0 || hour > 23) return;
-                onUpdateDigest?.({ hour });
+                if (hourSheetTarget === "brief") onUpdateMorningBrief?.({ hour });
+                else onUpdateDigest?.({ hour });
               }}
               className="h-12"
             />

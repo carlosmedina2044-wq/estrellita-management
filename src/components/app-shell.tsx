@@ -70,6 +70,7 @@ export function AppShell() {
     changeSupplyArrival,
     applySupplyLeadTime,
     updateRestockDigest,
+    updateMorningBrief,
     updateMomentum,
     deleteDuty,
     completeDuty,
@@ -851,6 +852,8 @@ export function AppShell() {
                 lockMethod={lockMethod ?? "none"}
                 restockDigest={household.restockDigest}
                 onUpdateDigest={updateRestockDigest}
+                morningBrief={household.morningBrief}
+                onUpdateMorningBrief={updateMorningBrief}
                 onUpdateMomentum={updateMomentum}
                 focusAssetId={nav?.assetId}
                 onFocusHandled={handleFocusHandled}
