@@ -1,4 +1,5 @@
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
+import { DEFAULT_MORNING_BRIEF } from "@/lib/morning-brief";
 import type {
   HomeAttributes,
   HomeLocation,
@@ -7,6 +8,7 @@ import type {
   LockSettings,
   Milestone,
   MomentumSettings,
+  MorningBriefSettings,
   RestockDigestSettings,
   RetailerId,
   SavedRetailerLink,
@@ -72,6 +74,7 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
   | "lockSettings"
   | "householdRole"
   | "restockDigest"
+  | "morningBrief"
   | "savedRetailerLinks"
   | "preferredRetailers"
   | "teaching"
@@ -95,6 +98,7 @@ export function withHouseholdDefaults<T extends Partial<Household>>(partial: T):
     savedRetailerLinks: (partial.savedRetailerLinks ?? []) as SavedRetailerLink[],
     preferredRetailers: (partial.preferredRetailers ?? []) as RetailerId[],
     restockDigest: { ...DEFAULT_RESTOCK_DIGEST, ...partial.restockDigest } satisfies RestockDigestSettings,
+    morningBrief: { ...DEFAULT_MORNING_BRIEF, ...partial.morningBrief } satisfies MorningBriefSettings,
     teaching: { ...DEFAULT_TEACHING, ...partial.teaching } satisfies TeachingProgress,
     seenTips: partial.seenTips ?? [],
     milestones: (partial.milestones ?? []) as Milestone[],

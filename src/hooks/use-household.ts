@@ -27,7 +27,15 @@ import { applyCompletionCost, applyReceivedPrice } from "@/lib/costs";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { applyDutySave } from "@/lib/household-update";
-import type { DutyDraft, Household, Completion, Duty, MomentumSettings, RestockDigestSettings } from "@/lib/types";
+import type {
+  DutyDraft,
+  Household,
+  Completion,
+  Duty,
+  MomentumSettings,
+  MorningBriefSettings,
+  RestockDigestSettings,
+} from "@/lib/types";
 import { applyMomentumOnComplete, newlyEarned } from "@/lib/momentum";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
@@ -37,6 +45,7 @@ import { dutyFromPlaybookTask, PLAYBOOKS, seasonYearFor } from "@/lib/playbooks"
 import { dedupePlaybookTasks } from "@/lib/duty-topics";
 import { addDays, toISODate } from "@/lib/dates";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
+import { DEFAULT_MORNING_BRIEF } from "@/lib/morning-brief";
 import { requestNotifyPermission } from "@/lib/notifications";
 import { rememberRetailerLink } from "@/lib/retailer";
 import {
@@ -150,6 +159,7 @@ export function useHousehold() {
               declinedTaskKeys: [],
             })),
           restockDigest: { ...DEFAULT_RESTOCK_DIGEST },
+          morningBrief: { ...DEFAULT_MORNING_BRIEF },
           preferredRetailers: input.answers.preferredRetailers ?? [],
           teaching: {
             startedAt: toISODate(new Date()),
@@ -350,6 +360,16 @@ export function useHousehold() {
           patch.enabled === true || patch.permissionAsked === true
             ? { ...current.teaching, setDigestOrZip: true }
             : current.teaching,
+      }));
+    },
+    [update],
+  );
+
+  const updateMorningBrief = useCallback(
+    (patch: Partial<MorningBriefSettings>) => {
+      update((current) => ({
+        ...current,
+        morningBrief: { ...current.morningBrief, ...patch },
       }));
     },
     [update],
@@ -769,6 +789,7 @@ export function useHousehold() {
     applySupplyLeadTime,
     attachSharedLink,
     updateRestockDigest,
+    updateMorningBrief,
     updateMomentum,
     deleteDuty,
     completeDuty,

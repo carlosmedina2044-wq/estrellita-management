@@ -185,6 +185,12 @@ export type RestockDigestSettings = {
   privateNotifications?: boolean;
 };
 
+export type MorningBriefSettings = {
+  enabled: boolean;
+  hour: number;
+  weekdaysOnly: boolean;
+};
+
 export type SavedRetailerLink = {
   url: string;
   lastUsedAt: string;
@@ -368,6 +374,7 @@ export type Household = {
   lockSettings: LockSettings;
   householdRole: HouseholdMemberRole;
   restockDigest: RestockDigestSettings;
+  morningBrief: MorningBriefSettings;
   /** Days of slack added to lead time before an item surfaces in Order now. Default 7. */
   restockSafetyBufferDays?: number;
   teaching: TeachingProgress;

@@ -336,3 +336,30 @@ test("momentum bestRun truncates and enabled false is kept", () => {
   assert.equal(household.momentum.enabled, false);
   assert.equal(household.momentum.bestRun, 1);
 });
+
+test("missing morning brief migrates to defaults", () => {
+  const household = parseStored(JSON.stringify({ onboarded: true, householdName: "Home" }));
+  assert.deepEqual(household.morningBrief, { enabled: true, hour: 8, weekdaysOnly: false });
+});
+
+test("morning brief hour 99 coerces to 8 and enabled no becomes true", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      morningBrief: { enabled: "no", hour: 99, weekdaysOnly: "yes" },
+    }),
+  );
+  assert.equal(household.morningBrief.enabled, true);
+  assert.equal(household.morningBrief.hour, 8);
+  assert.equal(household.morningBrief.weekdaysOnly, false);
+});
+
+test("morning brief keeps disabled hour and weekdaysOnly", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      morningBrief: { enabled: false, hour: 7, weekdaysOnly: true },
+    }),
+  );
+  assert.deepEqual(household.morningBrief, { enabled: false, hour: 7, weekdaysOnly: true });
+});

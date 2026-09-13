@@ -4,6 +4,7 @@ import { todayISO } from "@/lib/dates";
 import { migrateRoom } from "@/lib/house";
 import { asRoomType, emptyHomeTree, ensureHomeTree, systemRooms } from "@/lib/home-model";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
+import { DEFAULT_MORNING_BRIEF } from "@/lib/morning-brief";
 import {
   DEFAULT_ATTRIBUTES,
   DEFAULT_MOMENTUM,
@@ -99,6 +100,13 @@ function asInt(value: unknown, fallback: number, min: number, max: number): numb
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, Math.trunc(n)));
+}
+
+function asHourInDay(value: unknown, fallback: number): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  const hour = Math.trunc(n);
+  return hour >= 0 && hour <= 23 ? hour : fallback;
 }
 
 function asIsoDate(value: unknown, fallback: string | null = null): string | null {
@@ -711,6 +719,13 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
           privateNotifications: raw.restockDigest.privateNotifications === true,
         }
       : { ...DEFAULT_RESTOCK_DIGEST },
+    morningBrief: isPlainObject(raw.morningBrief)
+      ? {
+          enabled: raw.morningBrief.enabled !== false,
+          hour: asHourInDay(raw.morningBrief.hour, 8),
+          weekdaysOnly: raw.morningBrief.weekdaysOnly === true,
+        }
+      : { ...DEFAULT_MORNING_BRIEF },
     teaching: isPlainObject(raw.teaching)
       ? {
           startedAt:
