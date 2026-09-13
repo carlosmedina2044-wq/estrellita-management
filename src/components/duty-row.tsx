@@ -18,6 +18,7 @@ export function DutyRow({
   partChip,
   onPartChip,
   missingPartHint,
+  hideOverdueChip,
   onToggle,
   onOpen,
 }: {
@@ -30,6 +31,7 @@ export function DutyRow({
   partChip?: { kind: string; label: string } | null;
   onPartChip?: () => void;
   missingPartHint?: boolean;
+  hideOverdueChip?: boolean;
   onToggle: () => void;
   onOpen?: () => void;
 }) {
@@ -45,7 +47,7 @@ export function DutyRow({
     subtitle = `Supplies on hand · ${subtitle}`;
   }
 
-  const statusChip = overdue
+  const statusChip = overdue && !hideOverdueChip
     ? { label: "Overdue", className: "", destructive: true }
     : partChip && partChip.kind === "arriving"
       ? { label: partChip.label, className: "bg-secondary text-muted-foreground" }
@@ -68,7 +70,7 @@ export function DutyRow({
             <Check className="size-3.5" />
           </span>
         ) : (
-          <Circle className="size-6 stroke-[1.6] text-foreground/20" />
+          <Circle className="size-6 stroke-[2.2] text-foreground/55" />
         )}
       </button>
       <button
@@ -105,9 +107,6 @@ export function DutyRow({
             ) : null}
           </span>
           <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{subtitle}</span>
-          {duty.notes.trim() ? (
-            <span className="mt-1 block text-[13px] text-foreground/75">{duty.notes}</span>
-          ) : null}
         </span>
       </button>
       {partChip && !done && partChip.kind === "order_first" ? (

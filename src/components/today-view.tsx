@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Map, Package, Settings, Share2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
@@ -13,7 +13,6 @@ import { ItemName } from "@/components/item-name";
 import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
-import { HouseMapSheet } from "@/components/house-map-sheet";
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
@@ -62,8 +61,6 @@ export function TodayView({
   onOpenSettings,
   showTeaching,
   onOpenDigest,
-  onReorderRooms,
-  onChangeTree,
   onOpenRestock,
   onNavigate,
   focus,
@@ -92,17 +89,15 @@ export function TodayView({
   focus?: AppNavigateTarget | null;
   onFocusHandled?: () => void;
 } & RestockFlowHandlers) {
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
   const [filter, setFilter] = useState<Audience | "all">("all");
   const [scope, setScope] = useState<OutstandingScope>("daily");
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarDay, setCalendarDay] = useState<Date | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
-  const [houseOpen, setHouseOpen] = useState(false);
   const [editing, setEditing] = useState<Duty | null>(null);
   const [creating, setCreating] = useState(false);
   const [creatingRule, setCreatingRule] = useState(false);
-  const [weekExpanded, setWeekExpanded] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
   const [zipBannerDismissed, setZipBannerDismissed] = useState(false);
   const [teachingHidden, setTeachingHidden] = useState(false);
@@ -118,7 +113,10 @@ export function TodayView({
   }
   const listRef = useRef<HTMLDivElement>(null);
   const createGuard = useSheetOpenGuard();
-  const restockGroups = groupRestock(household.supplyAutomations, household, now);
+  const restock = useMemo(
+    () => groupRestock(household.supplyAutomations, household, now),
+    [household, now],
+  );
 
   useEffect(() => {
     if (!focus?.dutyId) return;
@@ -190,6 +188,7 @@ export function TodayView({
         now={viewDate}
         done={extra.done}
         overdue={extra.overdue}
+        hideOverdueChip={onlyOverdue}
         partChip={chip}
         onPartChip={
           chip?.kind === "order_first"
@@ -208,8 +207,6 @@ export function TodayView({
     );
   }
 
-  const weekOpen = openDutiesInScope(household, "weekly", now, filter);
-  const restock = groupRestock(household.supplyAutomations, household, now);
   const restockItems = [...restock.ordered, ...restock.order_now].slice(0, 3);
   const restockHeader = restock.order_now.length > 0 ? "Order now" : "On the way";
   const showRestock = restock.order_now.length + restock.ordered.length > 0;
@@ -226,6 +223,8 @@ export function TodayView({
     : [];
   const greeting = todayGreeting(household.ownerName);
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
+  const zipBannerVisible = Boolean(needsZip && onSavePostalCode && !zipBannerDismissed);
+  const showTeachingCard = Boolean(showTeaching && !teachingHidden && !zipBannerVisible && summary.overdue === 0);
   const listSummary = viewingCalendar
     ? calendarIsToday
       ? open.length === 0
@@ -265,13 +264,13 @@ export function TodayView({
           ) : undefined
         }
       />
-      {needsZip && onSavePostalCode && !zipBannerDismissed ? (
-        <div className="rounded-2xl bg-card px-4 py-4">
-          <p className="text-[17px] font-medium">Add your ZIP</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+      {zipBannerVisible ? (
+        <div className="rounded-2xl bg-card px-4 py-3">
+          <p className="text-[15px] font-medium">Add your ZIP</p>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             {weatherLine ?? "Used for Apple Weather and which seasonal jobs apply here."}
           </p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-2 flex gap-2">
             <Button className="h-11 flex-1" onClick={() => setZipOpen(true)}>
               Add ZIP
             </Button>
@@ -281,60 +280,12 @@ export function TodayView({
           </div>
         </div>
       ) : null}
-      {weatherLine && !needsZip ? (
-        <AppleWeatherAttribution attribution={weatherAttribution} />
-      ) : null}
-
-      {showTeaching &&
-      !teachingHidden &&
-      !(needsZip && onSavePostalCode && !zipBannerDismissed) ? (
-        <div className="rounded-2xl bg-card px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[15px] font-medium">Next up</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
-                {!household.teaching.checkedChore
-                  ? "Check off one chore on Today"
-                  : !household.teaching.openedRestock
-                    ? "Open Restock and see what is running low"
-                    : !household.teaching.setDigestOrZip
-                      ? "Turn on the weekly digest, or add a ZIP"
-                      : "You’re set"}
-              </p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              {!household.teaching.openedRestock ? (
-                <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
-                  Restock
-                </Button>
-              ) : !household.teaching.setDigestOrZip ? (
-                <Button className="h-11 px-3" onClick={() => onOpenDigest?.()}>
-                  Digest
-                </Button>
-              ) : (
-                <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
-                  Restock
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                className="h-11 px-2"
-                onClick={() => {
-                  setTeachingHidden(true);
-                }}
-              >
-                Hide
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       <AttentionTiles
         overdue={summary.overdue}
         dueToday={summary.dueToday}
         orderNow={summary.orderNow}
-        orderNowCost={orderNowCostCaption(restockGroups.order_now)}
+        orderNowCost={orderNowCostCaption(restock.order_now)}
         arriving={summary.arriving}
         onOverdue={() => {
           setOnlyOverdue(true);
@@ -352,7 +303,7 @@ export function TodayView({
         }}
         onOrder={() => onNavigate?.({ tab: "restock", section: "order_now" })}
         onArriving={() => onNavigate?.({ tab: "restock", section: "ordered" })}
-        onAllClear={() => setHouseOpen(true)}
+        onAllClear={() => onOpenHome?.()}
       />
 
       <div className="flex items-center gap-2">
@@ -390,10 +341,6 @@ export function TodayView({
           <CalendarDays className="size-4" />
         </button>
       </div>
-
-      {scope === "daily" && !viewingCalendar ? (
-        <SeasonSection household={household} now={now} onNavigate={onNavigate} />
-      ) : null}
 
       {calendarOpen ? (
         <DayCalendar
@@ -435,6 +382,59 @@ export function TodayView({
               : `${monthPlan.length} to complete this month.`}
           </p>
         </section>
+      ) : null}
+
+      {listed.length === 0 && doneOnDay.length === 0 && costPrompts.length === 0 ? (
+        <EmptyToday onAdd={() => createGuard.tryOpen(() => setCreating(true))} calendar={viewingCalendar} />
+      ) : (
+        <div ref={listRef} className="ui-group">
+          {listed.map((duty) => (
+            <div key={duty.id} className="ui-group-row">
+              {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
+            </div>
+          ))}
+          {doneOnDay.map((duty) => {
+            const prompt = costPrompts.find((item) => item.dutyId === duty.id);
+            return (
+            <div key={duty.id} className="ui-group-row">
+              {dutyRow(duty, { done: true })}
+              {prompt && onRecordCost ? (
+                <div className="px-4 pb-3">
+                  <CostPrompt
+                    suggested={suggestedCostFor(duty, household)}
+                    onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
+                    onSkip={() => onRecordCost(prompt.id, { skip: true })}
+                  />
+                </div>
+              ) : null}
+            </div>
+            );
+          })}
+          {costPrompts
+            .filter((item) => !doneOnDay.some((duty) => duty.id === item.dutyId) && !open.some((duty) => duty.id === item.dutyId))
+            .map((prompt) => {
+              const duty = household.duties.find((item) => item.id === prompt.dutyId);
+              if (!duty) return null;
+              return (
+                <div key={prompt.id} className="ui-group-row">
+                  {dutyRow(duty, { done: true })}
+                  {onRecordCost ? (
+                    <div className="px-4 pb-3">
+                      <CostPrompt
+                        suggested={suggestedCostFor(duty, household)}
+                        onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
+                        onSkip={() => onRecordCost(prompt.id, { skip: true })}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+        </div>
+      )}
+
+      {scope === "daily" && !viewingCalendar ? (
+        <SeasonSection household={household} now={now} onNavigate={onNavigate} />
       ) : null}
 
       {household.supplyAutomations.length === 0 ? (
@@ -490,75 +490,51 @@ export function TodayView({
         </section>
       ) : null}
 
-      {listed.length === 0 && doneOnDay.length === 0 && costPrompts.length === 0 ? (
-        <EmptyToday onAdd={() => createGuard.tryOpen(() => setCreating(true))} calendar={viewingCalendar} />
-      ) : (
-        <div ref={listRef} className="ui-group">
-          {listed.map((duty) => (
-            <div key={duty.id} className="ui-group-row">
-              {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
+      {showTeachingCard ? (
+        <div className="rounded-2xl bg-card px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[15px] font-medium">Next up</p>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                {!household.teaching.checkedChore
+                  ? "Check off one chore on Today"
+                  : !household.teaching.openedRestock
+                    ? "Open Restock and see what is running low"
+                    : !household.teaching.setDigestOrZip
+                      ? "Turn on the weekly digest, or add a ZIP"
+                      : "You’re set"}
+              </p>
             </div>
-          ))}
-          {doneOnDay.map((duty) => {
-            const prompt = costPrompts.find((item) => item.dutyId === duty.id);
-            return (
-            <div key={duty.id} className="ui-group-row">
-              {dutyRow(duty, { done: true })}
-              {prompt && onRecordCost ? (
-                <div className="px-4 pb-3">
-                  <CostPrompt
-                    suggested={suggestedCostFor(duty, household)}
-                    onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
-                    onSkip={() => onRecordCost(prompt.id, { skip: true })}
-                  />
-                </div>
-              ) : null}
+            <div className="flex shrink-0 gap-2">
+              {!household.teaching.openedRestock ? (
+                <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
+                  Restock
+                </Button>
+              ) : !household.teaching.setDigestOrZip ? (
+                <Button className="h-11 px-3" onClick={() => onOpenDigest?.()}>
+                  Digest
+                </Button>
+              ) : (
+                <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
+                  Restock
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                className="h-11 px-2"
+                onClick={() => {
+                  setTeachingHidden(true);
+                }}
+              >
+                Hide
+              </Button>
             </div>
-            );
-          })}
-          {costPrompts
-            .filter((item) => !doneOnDay.some((duty) => duty.id === item.dutyId) && !open.some((duty) => duty.id === item.dutyId))
-            .map((prompt) => {
-              const duty = household.duties.find((item) => item.id === prompt.dutyId);
-              if (!duty) return null;
-              return (
-                <div key={prompt.id} className="ui-group-row">
-                  {dutyRow(duty, { done: true })}
-                  {onRecordCost ? (
-                    <div className="px-4 pb-3">
-                      <CostPrompt
-                        suggested={suggestedCostFor(duty, household)}
-                        onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
-                        onSkip={() => onRecordCost(prompt.id, { skip: true })}
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={() => setWeekExpanded((current) => !current)}
-        className="rounded-2xl bg-card px-4 py-3 text-left"
-      >
-        <p className="font-medium">This week</p>
-        <p className="text-sm text-muted-foreground">{weekOpen.length} remaining · {weekExpanded ? "Hide" : "Show"}</p>
-      </button>
-      {weekExpanded ? (
-        <div className="ui-group">
-          {weekOpen.map((duty) => (
-            <div key={duty.id} className="ui-group-row">
-              {dutyRow(duty)}
-            </div>
-          ))}
+          </div>
         </div>
       ) : null}
 
       <div className="grid grid-cols-2 gap-2">
-        <Button variant="secondary" className="h-12 rounded-full" onClick={() => (onOpenHome ? onOpenHome() : setHouseOpen(true))}>
+        <Button variant="secondary" className="h-12 rounded-full" onClick={() => onOpenHome?.()}>
           <Map className="size-4" />
           House
         </Button>
@@ -574,6 +550,10 @@ export function TodayView({
         </Button>
       ) : null}
 
+      {weatherLine && !needsZip ? (
+        <AppleWeatherAttribution attribution={weatherAttribution} />
+      ) : null}
+
       {orderItem ? (
         <RestockOrderButton
           item={orderItem}
@@ -586,20 +566,6 @@ export function TodayView({
           {...restockButtonProps(orderItem, restockHandlers)}
         />
       ) : null}
-
-      <HouseMapSheet
-        open={houseOpen}
-        household={household}
-        now={now}
-        filter={filter}
-        onOpenChange={setHouseOpen}
-        onToggle={toggle}
-        onSaveDuty={onSaveDuty}
-        onDeleteDuty={onDeleteDuty}
-        onReorderRooms={onReorderRooms}
-        onChangeTree={onChangeTree}
-        {...restockHandlers}
-      />
 
       {onSavePostalCode ? (
         <ZipSheet
@@ -684,7 +650,7 @@ function AttentionTiles({
           label: "overdue",
           onClick: onOverdue,
           countClass: "text-destructive",
-          className: "border-l-[3px] border-l-destructive border-border bg-card",
+          className: "ring-destructive/40",
         }
       : null,
     dueToday > 0
@@ -723,19 +689,17 @@ function AttentionTiles({
       <button
         type="button"
         onClick={onAllClear}
-        className="rounded-2xl border border-success/30 bg-success/8 px-4 py-4 text-left"
+        className="flex min-h-11 w-full items-center rounded-full bg-success/10 px-4 text-left"
         aria-label="All clear. Nothing due, nothing to order"
       >
-        <p className="ui-heading text-[20px] font-semibold leading-none">All clear</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Nothing due and nothing to order. Tap to open your house map.
-        </p>
+        <span className="text-[15px] font-medium text-success">All clear</span>
+        <span className="ml-2 text-[13px] text-muted-foreground">Nothing due or to order</span>
       </button>
     );
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2">
+    <div className="-mx-1 flex gap-2 overflow-x-auto px-1">
       {tiles.map((tile) => (
         <button
           key={tile.key}
@@ -743,17 +707,15 @@ function AttentionTiles({
           onClick={tile.onClick}
           aria-label={`${tile.count} ${tile.label}`}
           className={cn(
-            "rounded-2xl border border-border bg-card px-4 py-3 text-left",
+            "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 ring-1 ring-border",
             "className" in tile ? tile.className : null,
           )}
         >
-          <p className={cn("ui-heading flex items-center gap-1.5 text-[20px] font-semibold leading-none", tile.countClass)}>
-            {"icon" in tile && tile.icon ? <Package className="size-5 shrink-0" aria-hidden /> : null}
-            {tile.count}
-          </p>
-          <p className="mt-1 text-[13px] text-muted-foreground">
+          {"icon" in tile && tile.icon ? <Package className="size-4 shrink-0" aria-hidden /> : null}
+          <span className={cn("text-[15px] font-semibold tabular-nums", tile.countClass)}>{tile.count}</span>
+          <span className="text-[13px] text-muted-foreground">
             {"costLine" in tile && tile.costLine ? `${tile.label} · ${tile.costLine}` : tile.label}
-          </p>
+          </span>
         </button>
       ))}
     </div>

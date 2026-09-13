@@ -29,16 +29,28 @@ export function SeasonSection({
       </div>
       <ul className="mt-3 grid gap-2">
         {model.fires.map((fire) => (
-          <li key={`${fire.name}-${fire.firedAt}`} className="text-[15px]">
-            {fire.name} — {fire.taskCount} task{fire.taskCount === 1 ? "" : "s"} added to Today
+          <li key={`${fire.name}-${fire.firedAt}`}>
+            <button
+              type="button"
+              className="flex min-h-11 w-full items-center text-left text-[15px]"
+              onClick={() => onNavigate?.({ tab: "seasonal" })}
+            >
+              {fire.name} — {fire.taskCount} task{fire.taskCount === 1 ? "" : "s"} added to Today
+            </button>
           </li>
         ))}
         {model.open.map((entry) => (
-          <li key={entry.playbook.id} className="flex items-baseline justify-between gap-3 text-[15px]">
-            <span className="min-w-0 truncate font-medium">{entry.playbook.name}</span>
-            <span className="shrink-0 text-[13px] text-muted-foreground">
-              {entry.done} of {entry.total} done
-            </span>
+          <li key={entry.playbook.id}>
+            <button
+              type="button"
+              className="flex min-h-11 w-full items-baseline justify-between gap-3 text-left text-[15px]"
+              onClick={() => onNavigate?.({ tab: "seasonal", playbookId: entry.playbook.id })}
+            >
+              <span className="min-w-0 truncate font-medium">{entry.playbook.name}</span>
+              <span className="shrink-0 text-[13px] text-muted-foreground">
+                {entry.done} of {entry.total} done
+              </span>
+            </button>
           </li>
         ))}
       </ul>
