@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HomeEditor } from "@/components/home-editor";
 import {
   AlertDialog,
@@ -100,7 +100,16 @@ export function HomeView({
   onBack?: () => void;
   backLabel?: string;
 }) {
-  const { t, preference, setPreference } = useLocale();
+  const { t, preference, setPreference, dateLocale } = useLocale();
+  const weekdayLabels = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(dateLocale, { weekday: "short" });
+    const sunday = new Date(2026, 8, 13);
+    return Array.from({ length: 7 }, (_, index) => {
+      const day = new Date(sunday);
+      day.setDate(sunday.getDate() + index);
+      return formatter.format(day);
+    });
+  }, [dateLocale]);
   const [home, setHome] = useState(household.householdName);
   const [owner, setOwner] = useState(household.ownerName);
   const [cleaner, setCleaner] = useState(household.cleanerName);
@@ -363,9 +372,9 @@ export function HomeView({
               {restockDigest.enabled && permission === "granted" ? (
                 <div className="mt-3 grid gap-3">
                   <div className="-mx-1 flex flex-nowrap gap-1.5 overflow-x-auto px-1 pb-1">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, index) => (
+                    {weekdayLabels.map((day, index) => (
                       <button
-                        key={day}
+                        key={`${day}-${index}`}
                         type="button"
                         className={cn(
                           "h-11 min-w-11 shrink-0 rounded-full px-2.5 ui-caption font-medium",
@@ -539,7 +548,9 @@ export function HomeView({
           >
             {t("settings.eraseAll")}
           </Button>
-          <p className="mt-3 ui-caption text-muted-foreground">Cuidala {APP_VERSION}</p>
+          <p className="mt-3 ui-caption text-muted-foreground">
+            {t("brand.name")} {APP_VERSION}
+          </p>
         </details>
       </div>
 
@@ -630,7 +641,7 @@ export function HomeView({
       <LegalDocSheet doc={legalDoc} onOpenChange={(open) => !open && setLegalDoc(null)} />
       <div className="mt-6 flex flex-col items-center gap-1 pb-2">
         <BrandMark size="sm" />
-        <p className="ui-caption text-muted-foreground">Cuidala</p>
+        <p className="ui-caption text-muted-foreground">{t("brand.name")}</p>
       </div>
     </div>
   );

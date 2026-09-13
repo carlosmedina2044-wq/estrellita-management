@@ -77,7 +77,7 @@ export function SavedRetailerField({
         </div>
       ) : (
         <p className="ui-caption text-muted-foreground">
-          Type a store (ebay.com) or paste a listing. We’ll suggest it next time. You can always add another.
+          {t("savedRetailer.hint")}
         </p>
       )}
       {error ? (

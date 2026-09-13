@@ -16,7 +16,7 @@ export function TermsContent() {
       <p>
         {t("legal.terms.p7")}{" "}
         <a className="text-primary" href="mailto:support@cuidala.app">
-          support@cuidala.app
+          {t("legal.terms.email")}
         </a>
         .
       </p>

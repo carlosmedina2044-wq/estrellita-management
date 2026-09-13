@@ -1,12 +1,11 @@
 "use client";
 
+import { useMemo } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { addDays, formatMonthTitle, sameDay, startOfMonth, startOfWeek, toISODate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-
-const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] as const;
 
 export function DayCalendar({
   month,
@@ -21,7 +20,13 @@ export function DayCalendar({
   onSelect: (date: Date) => void;
   onMonthChange: (date: Date) => void;
 }) {
-  const { t } = useLocale();
+  const { t, dateLocale } = useLocale();
+  const weekdays = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(dateLocale, { weekday: "short" });
+    // 2026-09-13 is a Sunday — walk one week for locale-aware abbreviations.
+    const sunday = new Date(2026, 8, 13);
+    return Array.from({ length: 7 }, (_, index) => formatter.format(addDays(sunday, index)));
+  }, [dateLocale]);
   const start = startOfWeek(startOfMonth(month));
   const days = Array.from({ length: 42 }, (_, index) => addDays(start, index));
 
@@ -47,7 +52,7 @@ export function DayCalendar({
         </button>
       </div>
       <div className="grid grid-cols-7 gap-y-1">
-        {WEEKDAYS.map((day, index) => (
+        {weekdays.map((day, index) => (
           <p
             key={`${day}-${index}`}
             className="py-1 text-center ui-caption font-medium text-muted-foreground"

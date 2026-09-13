@@ -51,7 +51,7 @@ export function PrivacyContent() {
       <p>
         {t("legal.privacy.contactBody")}{" "}
         <a className="text-primary" href="mailto:privacy@cuidala.app">
-          privacy@cuidala.app
+          {t("legal.privacy.email")}
         </a>
         .
       </p>

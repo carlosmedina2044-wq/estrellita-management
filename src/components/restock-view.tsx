@@ -304,7 +304,7 @@ export function RestockView({
         setAddGroup("whole-home");
         setQuickAdd(true);
       })}>
-        Quick add
+        {t("restock.quickAdd")}
       </Button>
       </div>
 
@@ -348,7 +348,7 @@ export function RestockView({
                 setWalking(false);
               }}
             >
-              Add to Restock
+              {t("restock.addToRestock")}
             </Button>
           </div>
         </div>

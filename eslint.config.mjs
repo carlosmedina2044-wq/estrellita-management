@@ -16,6 +16,43 @@ const eslintConfig = defineConfig([
     "ios/App/App/public/**",
     "ios/DerivedData/**",
   ]),
+  {
+    files: ["src/components/**/*.{tsx,jsx}", "src/app/**/*.{tsx,jsx}"],
+    rules: {
+      "react/jsx-no-literals": [
+        "error",
+        {
+          noStrings: true,
+          ignoreProps: true,
+          allowedStrings: [
+            "·",
+            "•",
+            "—",
+            "–",
+            "-",
+            "/",
+            ":",
+            ",",
+            ".",
+            "…",
+            "(",
+            ")",
+            "%",
+            "+",
+            "#",
+            "×",
+            "°",
+            "−",
+            "% ·",
+            " ",
+            "\u00a0",
+            "· ",
+            " · ",
+          ],
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -135,7 +135,7 @@ export function HouseMapSheet({
                 </div>
                 {roomOpen.length === 0 && roomDone.length === 0 && roomUpcoming.length === 0 ? (
                   <p className="px-1 py-6 text-center text-sm text-muted-foreground">
-                    No jobs in this room yet.
+                    {t("map.noJobsInRoom")}
                   </p>
                 ) : (
                   <div className="ui-group">
@@ -250,7 +250,7 @@ export function HouseMapSheet({
                           className="h-11"
                         />
                         <Button type="button" variant="secondary" className="h-11 shrink-0" onClick={addAsset}>
-                          Add
+                          {t("common.add")}
                         </Button>
                       </div>
                     </div>
@@ -258,7 +258,9 @@ export function HouseMapSheet({
                 </section>
                 {hints.length > 0 ? (
                   <p className="text-xs text-muted-foreground">
-                    Suggested reorder: {hints.map((item) => item.itemName).join(", ")}
+                    {t("map.suggestedReorder", {
+                      names: hints.map((item) => item.itemName).join(", "),
+                    })}
                   </p>
                 ) : null}
                 <Button
@@ -272,7 +274,7 @@ export function HouseMapSheet({
               </div>
             ) : (
               <p className="px-1 py-6 text-center text-sm text-muted-foreground">
-                That room is no longer in this home.
+                {t("map.roomGone")}
               </p>
             )}
           </div>

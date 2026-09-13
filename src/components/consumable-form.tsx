@@ -321,7 +321,7 @@ export function ConsumableForm({
                   onChange={(retailerUrl) => setDraft((current) => ({ ...current, retailerUrl }))}
                 />
                 <p className="ui-caption text-muted-foreground">
-                  Optional. You can also pick a store the first time you order.
+                  {t("restock.optionalStoreHelp")}
                 </p>
               </Field>
               <Field label={t("restock.field.orderAtOrBelow")}>
@@ -334,7 +334,7 @@ export function ConsumableForm({
                   className="h-12"
                 />
                 <p className="ui-caption text-muted-foreground">
-                  Optional. Also flag for ordering at this count, on top of the automatic timing.
+                  {t("restock.optionalReorderHelp")}
                 </p>
               </Field>
               <Field label={t("restock.field.leadTime")}>
@@ -346,7 +346,7 @@ export function ConsumableForm({
                   className="h-12"
                 />
                 <p className="ui-caption text-muted-foreground">
-                  Learned from your deliveries automatically. Set only to override.
+                  {t("restock.leadTimeHelp")}
                 </p>
               </Field>
             </>

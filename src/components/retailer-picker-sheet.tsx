@@ -71,7 +71,7 @@ export function RetailerPickerSheet({
       <SheetContent side="bottom" className="gap-0">
         <SheetHeader>
           <SheetTitle>{item.itemName}</SheetTitle>
-          <SheetDescription className="sr-only">Choose a store to order {item.itemName}.</SheetDescription>
+          <SheetDescription className="sr-only">{t("restock.chooseStore", { name: item.itemName })}</SheetDescription>
         </SheetHeader>
         <div className="grid gap-4 px-4 pb-4">
           {onAlreadyOrdered ? (
@@ -84,7 +84,7 @@ export function RetailerPickerSheet({
                 onOpenChange(false);
               }}
             >
-              I already ordered it
+              {t("restock.alreadyOrdered")}
             </Button>
           ) : null}
           <div className="ui-caption text-muted-foreground">
@@ -99,7 +99,7 @@ export function RetailerPickerSheet({
                   onAddSize();
                 }}
               >
-                No size saved · Add
+                {t("restock.noSizeAdd")}
               </button>
             ) : (
               t("restock.noSizeSaved")
@@ -188,7 +188,7 @@ function CustomStoreSearch({
 
   return (
     <div className="grid gap-1.5">
-      <p className="ui-caption text-muted-foreground">Any other store</p>
+      <p className="ui-caption text-muted-foreground">{t("restock.anyOtherStore")}</p>
       <div className="flex gap-2">
         <Input
           value={draft}
@@ -207,7 +207,7 @@ function CustomStoreSearch({
           }}
         />
         <Button type="button" variant="secondary" className="h-10 shrink-0 px-3" onClick={go}>
-          Search
+          {t("common.search")}
         </Button>
       </div>
     </div>

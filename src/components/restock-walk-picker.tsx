@@ -188,7 +188,7 @@ export function RestockWalkPicker({
                       className="mt-2 pl-8 ui-caption font-medium text-brand"
                       onClick={() => onEditCustom(pick)}
                     >
-                      Edit
+                      {t("common.edit")}
                     </button>
                   ) : null}
                 </div>
@@ -199,7 +199,7 @@ export function RestockWalkPicker({
                   className="rounded-2xl border border-dashed border-border px-3 py-3 text-left ui-body font-medium text-brand"
                   onClick={() => onAddCustom(group.id)}
                 >
-                  {t("restock.addSomething")} you buy for the {group.label.toLowerCase()}
+                  {t("restock.addSomethingBuyFor", { group: tWalkGroupLabel(group.id) })}
                 </button>
               ) : null}
             </div>

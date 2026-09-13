@@ -6,6 +6,7 @@ import { Dialog as SheetPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
 import { prefersReducedMotion } from "@/lib/motion"
 import { Button } from "@/components/ui/button"
+import { useLocale } from "@/i18n/locale-provider"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -57,6 +58,7 @@ function SheetContent({
   showCloseButton?: boolean
   size?: "default" | "form"
 }) {
+  const { t } = useLocale()
   const dragStartY = React.useRef<number | null>(null)
   const closeRef = React.useRef<HTMLButtonElement>(null)
   const reduceMotion = prefersReducedMotion()
@@ -117,7 +119,7 @@ function SheetContent({
               variant="ghost"
               className="absolute top-2 right-2 h-11 min-w-11 px-3"
             >
-              Close
+              {t("common.close")}
             </Button>
           </SheetPrimitive.Close>
         )}

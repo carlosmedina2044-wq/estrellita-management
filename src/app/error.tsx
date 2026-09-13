@@ -25,7 +25,7 @@ export default function Error({
         {t("error.somethingWrong")}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        The screen failed to load. Your household list on this device was not changed.
+        {t("error.loadFailedBody")}
       </p>
       <Button className="mt-6 h-12" onClick={() => retry()}>
         {t("error.tryAgain")}

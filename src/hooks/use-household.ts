@@ -327,7 +327,7 @@ export function useHousehold() {
               room: current.rooms.find((room) => !room.system)?.id ?? "kitchen",
               nodeId: current.rooms.find((room) => !room.system)?.id ?? "kitchen",
               nodeType: "room" as const,
-              itemName: "New item",
+              itemName: tActive("supply.newItem"),
               retailerUrl: url,
               createdAt: new Date().toISOString(),
             },
@@ -491,7 +491,7 @@ export function useHousehold() {
         cleanerName:
           patch.cleanerName === undefined
             ? current.cleanerName
-            : sanitizeText(patch.cleanerName, TEXT_LIMITS.name) || "Cleaner",
+            : sanitizeText(patch.cleanerName, TEXT_LIMITS.name) || tActive("settings.cleanerFallback"),
         location: patch.location
           ? patch.location.postalCode !== undefined
             ? applyPostalCode(
@@ -515,7 +515,7 @@ export function useHousehold() {
     async (zip: string) => {
       const postalCode = normalizeUsZip(zip);
       if (!isValidUsZip(postalCode)) {
-        return { ok: false as const, error: "Enter a 5-digit US ZIP" };
+        return { ok: false as const, error: tActive("settings.zipInvalid") };
       }
       let coords: { lat: number; lng: number; placeName?: string } | undefined;
       try {
@@ -618,7 +618,7 @@ export function useHousehold() {
     update((current) => {
       const visit = {
         id: uid(),
-        cleanerName: current.cleanerName || "Cleaner",
+        cleanerName: current.cleanerName || tActive("settings.cleanerFallback"),
         startedAt: new Date().toISOString(),
         endedAt: null,
       };

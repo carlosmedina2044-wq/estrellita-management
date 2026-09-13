@@ -519,7 +519,7 @@ export function TodayView({
                   </Button>
                 ) : !household.teaching.setDigestOrZip ? (
                   <Button className="h-11 px-3" onClick={() => onOpenDigest?.()}>
-                    Reminders
+                    {t("today.reminders")}
                   </Button>
                 ) : null}
                 <Button

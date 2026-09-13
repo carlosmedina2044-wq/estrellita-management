@@ -129,7 +129,7 @@ export function BudgetView({
         <>
           {!hasSeenTip(household, TIP_BUDGET_PRICES) ? (
             <TeachingTip onDismiss={() => onChange((current) => markTipSeen(current, TIP_BUDGET_PRICES))}>
-              Add a date or a replacement cost on a big item and this tab becomes a forecast.
+              {t("budget.forecastTip")}
             </TeachingTip>
           ) : null}
           <EmptyGuide

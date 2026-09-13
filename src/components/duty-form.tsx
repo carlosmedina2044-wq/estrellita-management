@@ -34,7 +34,7 @@ import { RestockOrderButton, restockButtonProps } from "@/components/restock-ord
 import { parseOptionalRetailerUrl, SavedRetailerField } from "@/components/saved-retailer-field";
 import { sizePlaceholder } from "@/lib/item-label";
 import { DEFAULT_LEAD_TIME_DAYS } from "@/lib/supply";
-import { isQuoteOnlyDuty, quoteOnlyLabel } from "@/lib/costs/quotes";
+import { isQuoteOnlyDuty } from "@/lib/costs/quotes";
 import type { RestockFlowHandlers } from "@/lib/restock";
 import type {
   Audience,
@@ -369,8 +369,8 @@ export function DutyForm({
 
           {duty?.caution ? (
             <p className="rounded-2xl bg-secondary px-4 py-3 text-sm text-muted-foreground">
-              Not professional advice. Hire a licensed pro for {duty.caution} work.
-              {isQuoteOnlyDuty(duty) ? ` ${quoteOnlyLabel()}.` : ""}
+              {t("duty.cautionDisclaimer", { work: duty.caution })}
+              {isQuoteOnlyDuty(duty) ? t("duty.quoteOnlySuffix") : ""}
             </p>
           ) : null}
 

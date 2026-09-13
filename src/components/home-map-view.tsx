@@ -60,7 +60,7 @@ export function HomeMapView({
             )}
             {rooms.length === 0 ? (
               <p className="rounded-2xl bg-card px-4 py-6 text-center ui-body text-muted-foreground">
-                No rooms on this floor yet.
+                {t("map.noRoomsOnFloor")}
               </p>
             ) : (
               <TileGrid
@@ -82,19 +82,19 @@ export function HomeMapView({
 
 function roomCaption(status: NodeStatus, nearReplacement: boolean) {
   if (status.overdue > 0) {
-    return { text: `${status.overdue} overdue`, className: "text-destructive" };
+    return { text: tActive("map.overdueCount", { count: status.overdue }), className: "text-destructive" };
   }
   if (status.dueSoon > 0) {
-    return { text: `${status.dueSoon} due soon`, className: "text-warning" };
+    return { text: tActive("map.dueSoonCount", { count: status.dueSoon }), className: "text-warning" };
   }
   if (status.reorderPending > 0) {
-    return { text: `${status.reorderPending} to reorder`, className: "text-warning" };
+    return { text: tActive("map.reorderCount", { count: status.reorderPending }), className: "text-warning" };
   }
   if (nearReplacement) {
     return { text: tActive("home.replacementSoon"), className: "text-warning" };
   }
   if (status.total > 0) {
-    return { text: `${status.total} to do`, className: "text-muted-foreground" };
+    return { text: tActive("map.toDoCount", { count: status.total }), className: "text-muted-foreground" };
   }
   return { text: tActive("home.allCaughtUp"), className: "text-muted-foreground" };
 }

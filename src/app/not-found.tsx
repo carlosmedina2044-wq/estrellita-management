@@ -13,7 +13,7 @@ export default function NotFound() {
       <h1 className="ui-heading mt-5 ui-display font-semibold tracking-tight">
         {t("error.notFound")}
       </h1>
-      <p className="mt-2 text-sm text-muted-foreground">That screen isn’t part of Cuidala.</p>
+      <p className="mt-2 text-sm text-muted-foreground">{t("error.notFoundBody")}</p>
       <Link href="/" className="mt-6 ui-body font-medium text-primary">
         {t("error.goHome")}
       </Link>
