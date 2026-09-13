@@ -30,8 +30,10 @@ With no servers or accounts, the realistic incidents are: a dependency vulnerabi
 - [ ] Settings → Erase all data → relaunch → onboarding; no residual data.
 - [ ] Airplane mode: app opens, Today works, weather shows a graceful error.
 - [ ] Tab bar shows Today / Home / Restock only; Budget and Seasonal open from their cards and Back returns to Home / Today respectively.
-- [ ] Seasonal shows Apple Weather attribution when a forecast is present. No poor-air or dust-advisory in Watching for.
+- [ ] Today shows This season when a playbook is open; Apple Weather attribution (mark + Other data sources) is present when a forecast is loaded. No poor-air or dust-advisory in Watching for.
+- [ ] Onboarding walk does not ask for sizes; first Order can capture Size or model; Costco appears as a retailer chip.
 - [ ] How Cuidala works, Additional terms, Privacy policy, Report a problem, and Cuidala Pro coming soon open from Settings.
+- [ ] Before App Store submission (human): Privacy + Support URLs live; `support@` / `privacy@` receive mail; archive with Xcode 26.2+; ASC checklist (Data Not Collected, Free US, 6.9" screenshots, export compliance, Reviewer Notes, age questionnaire → 4+).
 - [ ] Confirm built Info.plist includes Face ID and location usage strings; PrivacyInfo.xcprivacy is Data Not Collected (no coarse-location collected type); portrait-only; WeatherKit entitlement present.
 - [ ] Confirm the binary is iPhone-only (no iPad destination). Always run a signed build — unsigned Keychain writes fail and show the load-failure screen.
 - [ ] PBKDF2 timing: create a backup with a 4-word passphrase; the device stays responsive (spinner, not a freeze).

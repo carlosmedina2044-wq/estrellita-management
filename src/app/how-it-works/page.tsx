@@ -37,10 +37,18 @@ export default function HowItWorksPage() {
       </section>
 
       <section>
-        <h2 className="font-semibold">Seasonal follows climate</h2>
+        <h2 className="font-semibold">Seasonal lives on Today</h2>
         <p className="mt-1 text-muted-foreground">
           A ZIP sets your climate zone on device. Apple Weather fills the forecast. Seasonal checklists show
-          up when they matter for this house.
+          up on Today when they matter for this house, with the full year one tap away.
+        </p>
+      </section>
+
+      <section>
+        <h2 className="font-semibold">Forecast lives on Home</h2>
+        <p className="mt-1 text-muted-foreground">
+          Replacement forecast sits on Home next to your rooms and appliances. Open it when you want the
+          full Budget timeline.
         </p>
       </section>
 

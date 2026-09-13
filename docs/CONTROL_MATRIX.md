@@ -37,6 +37,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 | Dependency audit, secret scan, OSV, Semgrep | Supply chain | `.github/workflows/security.yml` | CI: `npm audit --omit=dev --audit-level=moderate`. OSV pinned to `osv-scanner-action@v2.5.1`. Known exception: `@capacitor/cli → xcode → uuid` (`GHSA-w5hq-g745-h8pq`) in `osv-scanner.toml`; not in the shipped bundle. | VERIFIED |
 | Forecast, playbooks, restock math, onboarding, backups | Product | `src/lib/**` | Unit tests including weather-fire idempotence, restock invariants, climate ZIP-3 table, WeatherKit provider mock | VERIFIED |
 | Typical costs labeled and reviewed | Q3 | `src/lib/costs/sources.json` ("national typical, 2026"); quote-only for gas/electrical/roof/structural/pest | Review this file annually | VERIFIED (file) |
+| Seasonal content floor per zone | Product | `playbooks.json` climate-specific tasks | `playbooks.test.ts` zone-floor test | VERIFIED |
 | Portrait-only iPhone | Product | `Info.plist` `UISupportedInterfaceOrientations` portrait; `TARGETED_DEVICE_FAMILY = 1` | File inspection | VERIFIED |
 | UserDefaults vault (not Filesystem) | Q8 deferred | `@capacitor/preferences` | Documented as 1.1; skip Filesystem move this pass | ACCEPTED for v1 |
 

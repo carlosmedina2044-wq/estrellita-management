@@ -1,12 +1,12 @@
 # Cuidala
 
-Home maintenance for iPhone: rooms, chores, the filters and batteries you need to reorder, a maintenance budget forecast, and seasonal / weather-driven checklists.
+Home maintenance for iPhone: rooms, chores, and the filters and batteries you need to reorder. Replacement forecast lives inside Home; seasonal and weather-driven checklists live inside Today.
 
 **Local-first.** There are no accounts and no Cuidala servers. Everything lives on the device, encrypted at rest (AES-256-GCM) with a key held in the iOS Keychain (`kSecAttrAccessibleAfterFirstUnlock`). That key migrates with encrypted iCloud and Finder backups and Quick Start. Face ID / Touch ID / passcode is required before the home is shown and fails closed. That lock is an app-level UI gate, not a second encryption layer on the Keychain item (see `docs/RESIDUAL_RISKS.md`). Forecasts come from Apple WeatherKit on device. ZIP stays on the phone for climate zone.
 
 The UI is a Next.js app exported to static files and packaged by Capacitor into a native iOS shell. No remote code is loaded.
 
-**No account. No cloud. Yours.** One home, one phone, for v1.
+**No account. No cloud. Yours.** One home, one phone, for v1 (**1.0**; App Store build numbers increase per upload).
 
 ## Develop
 
@@ -21,7 +21,7 @@ npm run build        # static export to out/ — this is what ships
 
 ## Build the iOS app
 
-Requires macOS with Xcode 16+ and **Node 22+** (Capacitor 8). The native project is committed at `ios/App/App.xcodeproj`. Plugins are Swift packages, so CocoaPods is not required.
+Requires macOS with **Xcode 26.2+** (iOS 26 SDK — App Store uploads require the current-year SDK; confirm at developer.apple.com/news before archiving) and **Node 22+** (Capacitor 8). The native project is committed at `ios/App/App.xcodeproj`. Plugins are Swift packages, so CocoaPods is not required.
 
 ```bash
 nvm install 22 && nvm use 22      # or any Node 22+
@@ -44,7 +44,9 @@ In Xcode:
 - **Devices:** iPhone only for v1 (`TARGETED_DEVICE_FAMILY = 1`). Portrait only. iPad is planned for a later release.
 - **Storefront:** United States only for v1.
 - **App Privacy:** Data Not Collected. WeatherKit is Apple-collected. Matches `PrivacyInfo.xcprivacy`.
-- **Privacy policy URL:** host `out/privacy/` (e.g. on Vercel) and use that URL; the same policy is reachable in-app at Settings → Privacy policy. Have a support URL ready before submission.
+- **Privacy policy URL:** host `out/privacy/` (e.g. on Vercel) and use that live URL in App Store Connect; the same policy is reachable in-app at Settings → Privacy policy. **Support URL** and working `support@` / `privacy@` mailboxes are required before submission (human ops — R1).
+- **Version:** ship as **1.0** (`MARKETING_VERSION`); increase `CURRENT_PROJECT_VERSION` for every upload.
+- **Archive toolchain:** build the App Store archive with **Xcode 26.2+ / iOS 26 SDK** (human ops — R5). An older Xcode archive is refused at upload.
 - **Listing copy:** lead with “No account. No cloud. Yours.” State one home, one phone.
 - **Reviewer notes:** This is a Capacitor/WKWebView app with native iOS capabilities, not a thin website wrapper:
   - Face ID / Touch ID / device passcode lock (LocalAuthentication via native plugin); cancel stays locked.
