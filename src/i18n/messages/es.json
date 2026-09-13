@@ -1121,5 +1121,8 @@
   "today.headlineClear": "Todo listo. Siguiente: {day}.",
   "retailer.lastTimeRow": "Última vez: {store} · {when}",
   "seasonal.addCompact": "Añadir",
-  "seasonal.skipCompact": "Omitir"
+  "seasonal.skipCompact": "Omitir",
+  "onboarding.welcomeHeroChore": "Cambiar filtro HVAC",
+  "onboarding.welcomeHeroItem": "Pastillas para lavavajillas",
+  "onboarding.welcomeHeroMeta": "Cocina · pedir para vie"
 }

@@ -1121,5 +1121,8 @@
   "today.headlineClear": "Tudo certo. Próximo: {day}.",
   "retailer.lastTimeRow": "Última vez: {store} · {when}",
   "seasonal.addCompact": "Adicionar",
-  "seasonal.skipCompact": "Pular"
+  "seasonal.skipCompact": "Pular",
+  "onboarding.welcomeHeroChore": "Trocar filtro HVAC",
+  "onboarding.welcomeHeroItem": "Pastilhas da lava-louças",
+  "onboarding.welcomeHeroMeta": "Cozinha · pedir até sex"
 }

@@ -1121,5 +1121,8 @@
   "today.headlineClear": "All clear. Next up {day}.",
   "retailer.lastTimeRow": "Last time: {store} · {when}",
   "seasonal.addCompact": "Add",
-  "seasonal.skipCompact": "Skip"
+  "seasonal.skipCompact": "Skip",
+  "onboarding.welcomeHeroChore": "Change HVAC filter",
+  "onboarding.welcomeHeroItem": "Dishwasher pods",
+  "onboarding.welcomeHeroMeta": "Kitchen · order by Fri"
 }

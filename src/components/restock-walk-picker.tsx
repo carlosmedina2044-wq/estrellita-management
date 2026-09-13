@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CircleCheck } from "@/components/circle-check";
 import { useLocale } from "@/i18n/locale-provider";
 import { tWalkGroupLabel, tWalkItemHint, tWalkItemName } from "@/i18n/content";
 import {
@@ -104,13 +105,16 @@ export function RestockWalkPicker({
                 return (
                   <div key={item.id} className="rounded-2xl bg-card px-3 py-3">
                     <label className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(pick) || tracked}
-                        disabled={tracked}
-                        onChange={() => toggle(item.id)}
-                        className="mt-1 size-5 accent-primary disabled:opacity-60"
-                      />
+                      <span className="relative mt-0.5 flex size-6 shrink-0 items-center justify-center">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(pick) || tracked}
+                          disabled={tracked}
+                          onChange={() => toggle(item.id)}
+                          className="absolute inset-0 z-10 cursor-pointer opacity-0 disabled:cursor-default"
+                        />
+                        <CircleCheck checked={Boolean(pick) || tracked} disabled={tracked} />
+                      </span>
                       <span className="min-w-0 flex-1">
                         <span className="block ui-card font-medium">{tWalkItemName(item)}</span>
                         <span className="mt-0.5 block ui-caption text-muted-foreground">
@@ -169,12 +173,15 @@ export function RestockWalkPicker({
               {custom.map((pick) => (
                 <div key={pick.id} className="rounded-2xl bg-card px-3 py-3">
                   <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked
-                      onChange={() => toggle(pick.id)}
-                      className="mt-1 size-5 accent-primary"
-                    />
+                    <span className="relative mt-0.5 flex size-6 shrink-0 items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked
+                        onChange={() => toggle(pick.id)}
+                        className="absolute inset-0 z-10 cursor-pointer opacity-0"
+                      />
+                      <CircleCheck checked />
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block ui-card font-medium">{pick.custom.itemName}</span>
                       {pick.custom.sku ? (

@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { BrandLockup } from "@/components/brand-logo";
+import { CircleCheck } from "@/components/circle-check";
+import { Gauge } from "@/components/gauge";
 import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Circle } from "lucide-react";
 import { useLocale } from "@/i18n/locale-provider";
 import type { MessageKey } from "@/i18n";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
@@ -253,23 +256,28 @@ export function Onboarding({
   return (
     <div className="flex min-h-dvh flex-col bg-background px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
-        <div
-          className="h-1 overflow-hidden rounded-full bg-secondary"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(progress * 100)}
-          aria-label={t("onboarding.progressAria")}
-        >
-          <div className="h-full bg-brand transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
-        </div>
+        {step > 0 ? (
+          <div
+            className="h-1 overflow-hidden rounded-full bg-secondary"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progress * 100)}
+            aria-label={t("onboarding.progressAria")}
+          >
+            <div className="h-full bg-brand transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+        ) : (
+          <div className="h-1" aria-hidden />
+        )}
         <div className="mt-8">
           <BrandLockup size={step === 0 ? "md" : "sm"} />
         </div>
 
         {step === 0 ? (
           <Screen title={t("onboarding.welcomeTitle")} copy={t("onboarding.welcomeCopy")}>
-            <Button className="h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
+            <WelcomeHero />
+            <Button className="mt-6 h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
               {t("onboarding.setupCta")}
             </Button>
             <Button
@@ -329,17 +337,20 @@ export function Onboarding({
           <Screen title={t("onboarding.buildTitle")} copy={t("onboarding.buildCopy")}>
             <div className="grid gap-2">
               {rooms.map((room) => (
-                <label key={room.key} className="flex items-center gap-3 rounded-2xl bg-card px-3 py-2">
-                  <input
-                    type="checkbox"
-                    checked={room.enabled}
-                    onChange={() =>
-                      setRooms((current) =>
-                        current.map((item) => (item.key === room.key ? { ...item, enabled: !item.enabled } : item)),
-                      )
-                    }
-                    className="size-11 shrink-0 accent-primary"
-                  />
+                <label key={room.key} className="flex items-center gap-3 rounded-[var(--r-container)] bg-card px-3 py-2">
+                  <span className="relative flex size-11 shrink-0 items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={room.enabled}
+                      onChange={() =>
+                        setRooms((current) =>
+                          current.map((item) => (item.key === room.key ? { ...item, enabled: !item.enabled } : item)),
+                        )
+                      }
+                      className="peer absolute inset-0 z-10 cursor-pointer opacity-0"
+                    />
+                    <CircleCheck checked={room.enabled} />
+                  </span>
                   <Input
                     value={room.name}
                     onChange={(event) =>
@@ -563,6 +574,33 @@ export function Onboarding({
         ) : null}
       </div>
       <LegalDocSheet doc={legalDoc} onOpenChange={(open) => !open && setLegalDoc(null)} />
+    </div>
+  );
+}
+
+function WelcomeHero() {
+  const { t } = useLocale();
+  return (
+    <div className="ui-group pointer-events-none select-none" aria-hidden>
+      <div className="ui-group-row flex items-center gap-3 px-3">
+        <Circle className="size-6 stroke-[2.2] text-overdue" />
+        <span className="min-w-0 flex-1">
+          <span className="block ui-body font-medium">{t("onboarding.welcomeHeroChore")}</span>
+          <span className="mt-0.5 block ui-caption text-overdue">{t("chore.overdue")}</span>
+        </span>
+      </div>
+      <div className="ui-group-row flex items-center gap-3 px-3 py-2.5">
+        <span className="min-w-0 flex-1">
+          <span className="block ui-body font-medium">{t("onboarding.welcomeHeroItem")}</span>
+          <span className="mt-0.5 block ui-caption text-muted-foreground">{t("onboarding.welcomeHeroMeta")}</span>
+        </span>
+        <div className="w-[120px] shrink-0">
+          <Gauge fraction={0.35} runwayDays={5} showCaption={false} />
+        </div>
+        <span className="inline-flex h-8 items-center rounded-full bg-primary px-3 ui-caption font-medium text-primary-foreground">
+          {t("common.order")}
+        </span>
+      </div>
     </div>
   );
 }
