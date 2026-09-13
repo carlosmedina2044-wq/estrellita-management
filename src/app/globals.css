@@ -293,6 +293,7 @@
 .app-tab-bar {
   z-index: 40;
   background-color: var(--background);
+  border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -342,14 +343,14 @@ html.keyboard-open [data-slot="sheet-footer"] {
 
 .ui-bevel {
   background: var(--card);
-  border: 1px solid rgb(0 0 0 / 8%);
+  border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
 }
 
 .ui-inset {
   background: var(--muted);
-  border: 1px solid rgb(61 40 20 / 6%);
+  border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: none;
 }
@@ -379,11 +380,11 @@ html.keyboard-open [data-slot="sheet-footer"] {
   overflow: hidden;
   border-radius: 16px;
   background: var(--card);
-  border: 1px solid rgb(61 40 20 / 8%);
+  border: 1px solid var(--border);
 }
 
 .ui-group-row + .ui-group-row {
-  border-top: 1px solid rgb(61 40 20 / 8%);
+  border-top: 1px solid var(--border);
 }
 
 .brand-enter {

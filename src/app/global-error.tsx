@@ -3,6 +3,26 @@
 import { useEffect } from "react";
 import { detectDeviceLocale, translate } from "@/i18n";
 
+const GLOBAL_ERROR_THEME_CSS = `
+:root {
+  color-scheme: light dark;
+  --ge-bg: #faf6ef;
+  --ge-fg: #1f1a16;
+  --ge-muted: #6b635c;
+  --ge-btn-bg: #1f1a16;
+  --ge-btn-fg: #faf6ef;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ge-bg: #1f1a16;
+    --ge-fg: #faf6ef;
+    --ge-muted: #b7aea5;
+    --ge-btn-bg: #faf6ef;
+    --ge-btn-fg: #1f1a16;
+  }
+}
+`;
+
 export default function GlobalError({
   error,
   retry,
@@ -19,6 +39,9 @@ export default function GlobalError({
 
   return (
     <html lang={locale === "pt-BR" ? "pt-BR" : locale === "es" ? "es" : "en"}>
+      <head>
+        <style>{GLOBAL_ERROR_THEME_CSS}</style>
+      </head>
       <body
         style={{
           margin: 0,
@@ -26,8 +49,8 @@ export default function GlobalError({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#f7f3ec",
-          color: "#1d1d1f",
+          background: "var(--ge-bg)",
+          color: "var(--ge-fg)",
           fontFamily:
             '-apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif',
         }}
@@ -43,7 +66,7 @@ export default function GlobalError({
             style={{ height: 32, width: "auto" }}
           />
           <h1 style={{ fontSize: 28, margin: "20px 0 0" }}>{t("error.somethingWrong")}</h1>
-          <p style={{ color: "#86868b", marginTop: 8, fontSize: 14 }}>
+          <p style={{ color: "var(--ge-muted)", marginTop: 8, fontSize: 14 }}>
             {t("error.globalBody")}
           </p>
           <button
@@ -55,8 +78,8 @@ export default function GlobalError({
               width: "100%",
               border: 0,
               borderRadius: 12,
-              background: "#1d1d1f",
-              color: "#f7f3ec",
+              background: "var(--ge-btn-bg)",
+              color: "var(--ge-btn-fg)",
               fontSize: 16,
               fontWeight: 600,
             }}
