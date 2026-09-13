@@ -14,6 +14,7 @@ export function DutyRow({
   household,
   now,
   done,
+  doneMeta,
   overdue,
   upcoming,
   partChip,
@@ -30,6 +31,7 @@ export function DutyRow({
   household?: Household;
   now?: Date;
   done?: boolean;
+  doneMeta?: string;
   overdue?: boolean;
   upcoming?: boolean;
   partChip?: { kind: string; label: string } | null;
@@ -225,10 +227,16 @@ export function DutyRow({
               {title}
             </span>
             <span className={cn("mt-0.5 block truncate ui-caption num", metaTone)}>
-              {metaLabel && !showDone ? `${metaLabel} · ${subtitle}` : subtitle}
-              {duty.audience === "cleaner" && !showDone
-                ? ` · ${t("audience.cleaner")}`
-                : ""}
+              {showDone && doneMeta ? (
+                doneMeta
+              ) : (
+                <>
+                  {metaLabel && !showDone ? `${metaLabel} · ${subtitle}` : subtitle}
+                  {duty.audience === "cleaner" && !showDone
+                    ? ` · ${t("audience.cleaner")}`
+                    : ""}
+                </>
+              )}
             </span>
           </span>
         </button>
