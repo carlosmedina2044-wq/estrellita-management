@@ -64,6 +64,9 @@ export function Onboarding({
   const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
   const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
+  const [locationDeniedHint, setLocationDeniedHint] = useState(false);
+  const [ownerName, setOwnerName] = useState("");
+  const [walkRoomKeys, setWalkRoomKeys] = useState<string | null>(null);
 
   const location: HomeLocation = {
     postalCode: postalCode || undefined,
@@ -93,10 +96,19 @@ export function Onboarding({
   async function finish(nextAnswers: OnboardingAnswers) {
     setBusy(true);
     try {
-      await onComplete({ answers: nextAnswers });
+      const trimmed = ownerName.trim();
+      await onComplete({ answers: nextAnswers, ownerName: trimmed || undefined });
     } finally {
       setBusy(false);
     }
+  }
+
+  function enabledRoomKeysSignature(list: RoomChoice[]): string {
+    return list
+      .filter((room) => room.enabled)
+      .map((room) => room.key)
+      .sort()
+      .join("\0");
   }
 
   function applyType(next: HomeType) {
@@ -129,7 +141,11 @@ export function Onboarding({
       features: extraFeatures,
     });
     setWalkContext(preview);
-    setRestockPicks(defaultWalkPicks(preview));
+    const nextKeys = enabledRoomKeysSignature(rooms);
+    if (walkRoomKeys !== nextKeys) {
+      setRestockPicks(defaultWalkPicks(preview));
+      setWalkRoomKeys(nextKeys);
+    }
     setWalkPhase("items");
     setSizeBanner(false);
     go(4);
@@ -156,6 +172,7 @@ export function Onboarding({
 
   async function requestLocation() {
     setBusy(true);
+    setLocationDeniedHint(false);
     try {
       if (isNative()) {
         const { Geolocation } = await import("@capacitor/geolocation");
@@ -176,7 +193,7 @@ export function Onboarding({
         return;
       }
       if (!navigator.geolocation) {
-        afterLocation(location);
+        setLocationDeniedHint(true);
         return;
       }
       await new Promise<void>((resolve) => {
@@ -190,14 +207,14 @@ export function Onboarding({
             resolve();
           },
           () => {
-            afterLocation(location);
+            setLocationDeniedHint(true);
             resolve();
           },
           { enableHighAccuracy: false, timeout: 8000 },
         );
       });
     } catch {
-      afterLocation(location);
+      setLocationDeniedHint(true);
     } finally {
       setBusy(false);
     }
@@ -406,6 +423,9 @@ export function Onboarding({
             <Button className="h-14 w-full" disabled={busy} onClick={() => void requestLocation()}>
               {t("onboarding.allowLocation")}
             </Button>
+            {locationDeniedHint ? (
+              <p className="mt-3 text-sm text-muted-foreground">{t("onboarding.locationDeniedZip")}</p>
+            ) : null}
             <p className="mt-3 text-sm text-muted-foreground">{t("onboarding.orZip")}</p>
             <Input
               inputMode="numeric"
@@ -420,9 +440,14 @@ export function Onboarding({
               aria-label={t("onboarding.zipPlaceholder")}
             />
             {zipError ? <p className="mt-2 text-sm text-destructive">{zipError}</p> : null}
-            <Button className="mt-6 h-14 w-full" disabled={busy} onClick={() => void continueFromZip()}>
-              {t("common.continue")}
-            </Button>
+            <div className="mt-auto flex gap-3 pt-6">
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(2)}>
+                {t("common.back")}
+              </Button>
+              <Button className="h-14 flex-1" disabled={busy} onClick={() => void continueFromZip()}>
+                {t("common.continue")}
+              </Button>
+            </div>
           </Screen>
         ) : null}
 
@@ -513,6 +538,17 @@ export function Onboarding({
                 );
               })}
             </div>
+            <label className="mt-6 block">
+              <span className="ui-caption font-medium text-muted-foreground">{t("onboarding.ownerNameLabel")}</span>
+              <Input
+                value={ownerName}
+                onChange={(event) => setOwnerName(event.target.value)}
+                placeholder={t("onboarding.ownerNamePlaceholder")}
+                className="mt-2 h-14"
+                autoComplete="given-name"
+                aria-label={t("onboarding.ownerNameLabel")}
+              />
+            </label>
             <div className="mt-auto flex gap-3 pt-6">
               <Button variant="secondary" className="h-14 flex-1" onClick={() => setWalkPhase("items")}>
                 {t("common.back")}
