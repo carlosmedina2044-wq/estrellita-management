@@ -18,10 +18,10 @@ export function SeasonSection({
   return (
     <section className="rounded-2xl bg-card px-4 py-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="ui-heading text-[17px] font-semibold">This season</h2>
+        <h2 className="ui-heading ui-card font-semibold">This season</h2>
         <button
           type="button"
-          className="inline-flex min-h-11 items-center text-[13px] font-medium text-primary"
+          className="inline-flex min-h-11 items-center ui-caption font-medium text-primary"
           onClick={() => onNavigate?.({ tab: "seasonal" })}
         >
           See the year
@@ -32,7 +32,7 @@ export function SeasonSection({
           <li key={`${fire.name}-${fire.firedAt}`}>
             <button
               type="button"
-              className="flex min-h-11 w-full items-center text-left text-[15px]"
+              className="flex min-h-11 w-full items-center text-left ui-body"
               onClick={() => onNavigate?.({ tab: "seasonal" })}
             >
               {fire.name} — {fire.taskCount} task{fire.taskCount === 1 ? "" : "s"} added to Today
@@ -43,11 +43,11 @@ export function SeasonSection({
           <li key={entry.playbook.id}>
             <button
               type="button"
-              className="flex min-h-11 w-full items-baseline justify-between gap-3 text-left text-[15px]"
+              className="flex min-h-11 w-full items-baseline justify-between gap-3 text-left ui-body"
               onClick={() => onNavigate?.({ tab: "seasonal", playbookId: entry.playbook.id })}
             >
               <span className="min-w-0 truncate font-medium">{entry.playbook.name}</span>
-              <span className="shrink-0 text-[13px] text-muted-foreground">
+              <span className="shrink-0 ui-caption text-muted-foreground">
                 {entry.done} of {entry.total} done
               </span>
             </button>

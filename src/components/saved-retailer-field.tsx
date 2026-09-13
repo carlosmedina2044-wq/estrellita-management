@@ -54,7 +54,7 @@ export function SavedRetailerField({
       />
       {suggestions.length > 0 ? (
         <div>
-          <p className="mb-1.5 text-[13px] text-muted-foreground">Saved links</p>
+          <p className="mb-1.5 ui-caption text-muted-foreground">Saved links</p>
           <div className="flex flex-wrap gap-1.5">
             {suggestions.slice(0, 8).map((item) => {
               const selected = value.trim() === item.url;
@@ -74,7 +74,7 @@ export function SavedRetailerField({
           </div>
         </div>
       ) : (
-        <p className="text-[13px] text-muted-foreground">
+        <p className="ui-caption text-muted-foreground">
           Type a store (ebay.com) or paste a listing. We’ll suggest it next time. You can always add another.
         </p>
       )}

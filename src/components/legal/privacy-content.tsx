@@ -1,6 +1,6 @@
 export function PrivacyContent() {
   return (
-    <div className="grid gap-3 text-[15px] leading-6">
+    <div className="grid gap-3 ui-body leading-6">
       <p className="text-sm text-muted-foreground">Effective August 2026</p>
 
       <h2 className="mt-2 font-semibold">What Cuidala is</h2>

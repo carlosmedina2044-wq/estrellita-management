@@ -76,7 +76,7 @@ export function ZipSheet({
           </Button>
           <button
             type="button"
-            className="h-11 text-[15px] font-medium text-primary"
+            className="h-11 ui-body font-medium text-primary"
             onClick={() => onOpenChange(false)}
           >
             Skip for now

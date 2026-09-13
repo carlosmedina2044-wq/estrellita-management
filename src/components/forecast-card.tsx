@@ -24,10 +24,10 @@ export function ForecastCard({
         className="w-full rounded-2xl bg-card px-4 py-4 text-left"
         onClick={onAddInstallDate}
       >
-        <p className="text-[15px] text-muted-foreground">
+        <p className="ui-body text-muted-foreground">
           Add an install date to any appliance to see what&apos;s coming
         </p>
-        <span className="mt-3 inline-flex min-h-11 items-center text-[13px] font-medium text-primary">
+        <span className="mt-3 inline-flex min-h-11 items-center ui-caption font-medium text-primary">
           Open appliances
         </span>
       </button>
@@ -48,12 +48,12 @@ export function ForecastCard({
       className="w-full rounded-2xl border border-border/60 bg-accent px-4 py-4 text-left"
       onClick={() => onNavigate?.({ tab: "budget" })}
     >
-      <p className="text-[13px] font-medium text-muted-foreground">Replacement forecast</p>
-      <p className="ui-heading mt-1 text-[20px] font-semibold">
+      <p className="ui-caption font-medium text-muted-foreground">Replacement forecast</p>
+      <p className="ui-heading mt-1 ui-title font-semibold">
         Next 90 days: ~{formatMoney(Math.round(summary.next90))}
       </p>
-      {nextLine ? <p className="mt-1 text-[13px] text-muted-foreground">{nextLine}</p> : null}
-      <span className="mt-3 inline-flex min-h-11 items-center text-[13px] font-medium text-primary">
+      {nextLine ? <p className="mt-1 ui-caption text-muted-foreground">{nextLine}</p> : null}
+      <span className="mt-3 inline-flex min-h-11 items-center ui-caption font-medium text-primary">
         Open forecast
       </span>
     </button>

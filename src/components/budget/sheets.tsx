@@ -90,7 +90,7 @@ export function LogPurchaseSheet({
                     type="button"
                     onClick={() => setLaborKind(value)}
                     className={cn(
-                      "h-11 min-h-11 flex-1 rounded-full text-[15px] font-medium",
+                      "h-11 min-h-11 flex-1 rounded-full ui-body font-medium",
                       laborKind === value ? "bg-card shadow-sm" : "text-secondary-foreground",
                     )}
                   >
@@ -159,7 +159,7 @@ export function DeferSheet({
                 type="button"
                 onClick={() => setMonths(value)}
                 className={cn(
-                  "h-11 min-h-11 flex-1 rounded-full text-[15px] font-medium",
+                  "h-11 min-h-11 flex-1 rounded-full ui-body font-medium",
                   months === value ? "bg-card shadow-sm" : "text-secondary-foreground",
                 )}
               >
@@ -324,7 +324,7 @@ export function ViewOptionsSheet({
                   type="button"
                   onClick={() => onHorizon(item)}
                   className={cn(
-                    "h-11 min-h-11 flex-1 rounded-full text-[15px] font-medium",
+                    "h-11 min-h-11 flex-1 rounded-full ui-body font-medium",
                     horizon === item ? "bg-card shadow-sm" : "text-secondary-foreground",
                   )}
                 >
@@ -366,10 +366,10 @@ export function ViewOptionsSheet({
               placeholder="425000"
             />
           </div>
-          <button type="button" className="h-11 text-left text-[15px] font-medium text-primary" onClick={onShare}>
+          <button type="button" className="h-11 text-left ui-body font-medium text-primary" onClick={onShare}>
             Share a summary
           </button>
-          <p className="text-[13px] text-muted-foreground">
+          <p className="ui-caption text-muted-foreground">
             Big expenses currently start at {formatMoney(threshold)}.
           </p>
         </div>

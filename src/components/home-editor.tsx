@@ -286,7 +286,7 @@ export function HomeEditor({
                 <button
                   key={years}
                   type="button"
-                  className="h-11 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                  className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
                   onClick={() => setAssetWarranty(warrantyFromInstall(assetInstall, years))}
                 >
                   +{years} yr
@@ -348,7 +348,7 @@ export function HomeEditor({
             return (
               <section key={asset.id} id={`home-asset-${asset.id}`} className="rounded-2xl bg-card p-4">
                 <p className="font-medium">{asset.name}</p>
-                <p className="mt-0.5 text-[13px] text-muted-foreground">
+                <p className="mt-0.5 ui-caption text-muted-foreground">
                   {room?.name ?? "Home"}
                   {badge ? ` · ${badge}` : ""}
                 </p>
@@ -387,7 +387,7 @@ export function HomeEditor({
                         <button
                           key={years}
                           type="button"
-                          className="h-11 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                          className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
                           onClick={() =>
                             onChange({
                               ...household,

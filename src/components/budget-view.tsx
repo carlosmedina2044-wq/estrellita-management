@@ -154,7 +154,7 @@ export function BudgetView({
 
       {forecast.missingData.length > 0 && !empty ? (
         <section>
-          <h2 className="ui-heading text-[20px] font-semibold">Make this more accurate</h2>
+          <h2 className="ui-heading ui-title font-semibold">Make this more accurate</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             A date or cost is missing, so this item isn’t fully in the forecast yet.
           </p>

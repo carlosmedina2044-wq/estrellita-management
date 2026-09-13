@@ -73,9 +73,9 @@ export function RestockWalkPicker({
     <div className="grid gap-5">
       {missing.length > 0 ? (
         <div className="rounded-2xl bg-secondary px-3 py-3">
-          <p className="text-[15px] font-medium">Sizes to confirm: {missing.join(", ")}</p>
+          <p className="ui-body font-medium">Sizes to confirm: {missing.join(", ")}</p>
           {onSkipSizes ? (
-            <button type="button" className="mt-2 text-[13px] font-medium text-brand" onClick={onSkipSizes}>
+            <button type="button" className="mt-2 ui-caption font-medium text-brand" onClick={onSkipSizes}>
               Skip for now
             </button>
           ) : null}
@@ -90,7 +90,7 @@ export function RestockWalkPicker({
         if (items.length === 0 && custom.length === 0 && !onAddCustom && group.id !== "bath") return null;
         return (
           <section key={group.id}>
-            <h2 className="mb-2 px-1 text-[13px] font-medium text-muted-foreground">{group.label}</h2>
+            <h2 className="mb-2 px-1 ui-caption font-medium text-muted-foreground">{group.label}</h2>
             <div className="grid gap-2">
               {items.map((item) => {
                 const pick = catalogPick(item.id);
@@ -109,8 +109,8 @@ export function RestockWalkPicker({
                         className="mt-1 size-5 accent-primary disabled:opacity-60"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[17px] font-medium">{item.itemName}</span>
-                        <span className="mt-0.5 block text-[13px] text-muted-foreground">
+                        <span className="block ui-card font-medium">{item.itemName}</span>
+                        <span className="mt-0.5 block ui-caption text-muted-foreground">
                           {tracked ? "Tracking" : item.hint}
                         </span>
                       </span>
@@ -123,7 +123,7 @@ export function RestockWalkPicker({
                               key={variant.id}
                               type="button"
                               className={cn(
-                                "h-11 rounded-full px-3 text-[13px] font-medium",
+                                "h-11 rounded-full px-3 ui-caption font-medium",
                                 pick.variant === variant.label ? "bg-primary text-primary-foreground" : "bg-secondary",
                               )}
                               onClick={() => {
@@ -137,7 +137,7 @@ export function RestockWalkPicker({
                           <button
                             type="button"
                             className={cn(
-                              "h-11 rounded-full px-3 text-[13px] font-medium",
+                              "h-11 rounded-full px-3 ui-caption font-medium",
                               typing ? "bg-primary text-primary-foreground" : "bg-secondary",
                             )}
                             onClick={() => {
@@ -155,7 +155,7 @@ export function RestockWalkPicker({
                             placeholder="20×20×1"
                             inputMode="text"
                             aria-label={`${item.itemName} size`}
-                            className="mt-2 h-11 w-full rounded-xl bg-secondary px-3 text-[15px]"
+                            className="mt-2 h-11 w-full rounded-xl bg-secondary px-3 ui-body"
                           />
                         ) : null}
                       </div>
@@ -173,16 +173,16 @@ export function RestockWalkPicker({
                       className="mt-1 size-5 accent-primary"
                     />
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[17px] font-medium">{pick.custom.itemName}</span>
+                      <span className="block ui-card font-medium">{pick.custom.itemName}</span>
                       {pick.custom.sku ? (
-                        <span className="mt-0.5 block text-[13px] text-muted-foreground">{pick.custom.sku}</span>
+                        <span className="mt-0.5 block ui-caption text-muted-foreground">{pick.custom.sku}</span>
                       ) : null}
                     </span>
                   </label>
                   {onEditCustom ? (
                     <button
                       type="button"
-                      className="mt-2 pl-8 text-[13px] font-medium text-brand"
+                      className="mt-2 pl-8 ui-caption font-medium text-brand"
                       onClick={() => onEditCustom(pick)}
                     >
                       Edit
@@ -193,7 +193,7 @@ export function RestockWalkPicker({
               {onAddCustom ? (
                 <button
                   type="button"
-                  className="rounded-2xl border border-dashed border-border px-3 py-3 text-left text-[15px] font-medium text-brand"
+                  className="rounded-2xl border border-dashed border-border px-3 py-3 text-left ui-body font-medium text-brand"
                   onClick={() => onAddCustom(group.id)}
                 >
                   + Add something you buy for the {group.label.toLowerCase()}

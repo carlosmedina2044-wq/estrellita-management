@@ -6,7 +6,7 @@ import { dutySubtitle, installedAtFor } from "@/lib/duties";
 import type { Duty, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const CHIP = "h-5 rounded-full px-1.5 text-[11px] font-medium";
+const CHIP = "h-5 rounded-full px-1.5 ui-caption font-medium";
 
 export function DutyRow({
   duty,
@@ -83,7 +83,7 @@ export function DutyRow({
           <span className="flex flex-wrap items-center gap-1.5">
             <span
               className={cn(
-                "text-[17px] font-medium leading-snug",
+                "ui-card font-medium leading-snug",
                 done && "text-muted-foreground line-through",
               )}
             >
@@ -106,7 +106,7 @@ export function DutyRow({
               )
             ) : null}
           </span>
-          <span className="mt-0.5 block truncate text-[13px] text-muted-foreground">{subtitle}</span>
+          <span className="mt-0.5 block truncate ui-caption text-muted-foreground">{subtitle}</span>
         </span>
       </button>
       {partChip && !done && partChip.kind === "order_first" ? (

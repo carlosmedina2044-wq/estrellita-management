@@ -19,7 +19,7 @@ export function CostPrompt({
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2">
-      <span className="text-[13px] text-muted-foreground">What did it cost?</span>
+      <span className="ui-caption text-muted-foreground">What did it cost? (optional)</span>
       <Input
         inputMode="decimal"
         value={value}
@@ -30,15 +30,16 @@ export function CostPrompt({
       />
       <Button
         type="button"
+        variant="secondary"
         className="h-11 px-3"
         disabled={parsed == null}
         onClick={() => {
           if (parsed != null) onSave(parsed);
         }}
       >
-        Save
+        {parsed == null ? "Enter an amount" : "Save"}
       </Button>
-      <Button type="button" variant="secondary" className="h-11 px-3" onClick={onSkip}>
+      <Button type="button" className="h-11 px-3" onClick={onSkip}>
         Skip
       </Button>
     </div>

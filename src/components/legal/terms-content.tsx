@@ -1,6 +1,6 @@
 export function TermsContent() {
   return (
-    <div className="grid gap-3 text-[15px] leading-6">
+    <div className="grid gap-3 ui-body leading-6">
       <p className="text-sm text-muted-foreground">Effective August 2026</p>
       <p>
         These additional terms apply to Cuidala on the App Store. Apple’s Standard EULA also applies, as set in

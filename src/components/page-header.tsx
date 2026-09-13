@@ -30,9 +30,9 @@ export function PageHeader({
           </button>
         ) : null}
         <div className="min-w-0">
-          {eyebrow ? <p className="text-[13px] text-muted-foreground">{eyebrow}</p> : null}
-          <h1 className="ui-heading text-[28px] font-semibold tracking-tight">{title}</h1>
-          {subtitle ? <div className="mt-1 text-[13px] text-muted-foreground">{subtitle}</div> : null}
+          {eyebrow ? <p className="ui-caption text-muted-foreground">{eyebrow}</p> : null}
+          <h1 className="ui-heading ui-display font-semibold tracking-tight">{title}</h1>
+          {subtitle ? <div className="mt-1 ui-caption text-muted-foreground">{subtitle}</div> : null}
         </div>
       </div>
       <div className="flex size-11 shrink-0 items-center justify-center">{action ?? null}</div>

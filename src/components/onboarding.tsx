@@ -249,8 +249,8 @@ export function Onboarding({
 
         {step === 0 ? (
           <Screen
-            title="Your home, on your iPhone."
-            copy="Rooms, chores, and the filters and batteries you reorder. All on this device. Setup takes about a minute."
+            title="Your home, calmly kept."
+            copy="Chores, restock reminders, and rooms — private on this iPhone."
           >
             <Button className="h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
               Set up my home
@@ -263,11 +263,15 @@ export function Onboarding({
             >
               Use a sample home instead
             </Button>
-            <p className="mt-auto pt-8 text-sm leading-5 text-muted-foreground">
-              Cuidala keeps your home data on this iPhone, encrypted. No account, no server copy.
-              Your home moves to your next iPhone with your normal iCloud backup. A passphrase file in
-              Settings is extra protection. Deleting the app removes your home from this iPhone.
-              See Settings for the privacy policy.
+            <button
+              type="button"
+              className="mt-auto pt-8 text-sm font-medium text-primary"
+              onClick={() => go(1)}
+            >
+              How it works
+            </button>
+            <p className="mt-3 text-sm leading-5 text-muted-foreground">
+              No account. No Cuidala server. See Settings after setup for privacy details and backup.
             </p>
           </Screen>
         ) : null}
@@ -277,7 +281,7 @@ export function Onboarding({
             title="Tell us about your place"
             copy="Home type fills rooms. How long you’ve been here shapes the first-week checklist."
           >
-            <p className="mb-2 text-[13px] font-medium text-muted-foreground">What are you managing?</p>
+            <p className="mb-2 ui-caption font-medium text-muted-foreground">What are you managing?</p>
             <ChoiceGrid
               value={homeType}
               options={[
@@ -288,7 +292,7 @@ export function Onboarding({
               ]}
               onChange={(value) => applyType(value as HomeType)}
             />
-            <p className="mb-2 mt-6 text-[13px] font-medium text-muted-foreground">How long have you been here?</p>
+            <p className="mb-2 mt-6 ui-caption font-medium text-muted-foreground">How long have you been here?</p>
             <ChoiceGrid
               value={tenure ?? ""}
               options={[
@@ -351,11 +355,11 @@ export function Onboarding({
                 ))}
               </div>
             ) : (
-              <button type="button" className="mt-4 text-[15px] font-medium text-brand" onClick={() => setAdding(true)}>
+              <button type="button" className="mt-4 ui-body font-medium text-brand" onClick={() => setAdding(true)}>
                 + Add room
               </button>
             )}
-            <p className="mt-6 text-[13px] font-medium text-muted-foreground">Also here</p>
+            <p className="mt-6 ui-caption font-medium text-muted-foreground">Also here</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {EXTRA_HOME_FEATURES.map((item) => {
                 const on = extraFeatures.includes(item.id);
@@ -364,7 +368,7 @@ export function Onboarding({
                     key={item.id}
                     type="button"
                     className={cn(
-                      "h-11 rounded-full px-3 text-[13px] font-medium",
+                      "h-11 rounded-full px-3 ui-caption font-medium",
                       on ? "bg-primary text-primary-foreground" : "bg-secondary",
                     )}
                     onClick={() =>
@@ -496,7 +500,7 @@ export function Onboarding({
                     key={chip.id}
                     type="button"
                     className={cn(
-                      "h-11 rounded-full px-3 text-[15px] font-medium",
+                      "h-11 rounded-full px-3 ui-body font-medium",
                       index >= 0 ? "bg-primary text-primary-foreground" : "bg-secondary",
                     )}
                     onClick={() => toggleRetailer(chip.id)}
@@ -541,11 +545,11 @@ function Screen({
 }) {
   return (
     <div className="flex flex-1 flex-col pt-10">
-      <h1 className="ui-heading text-[28px] leading-tight font-semibold tracking-tight">{title}</h1>
+      <h1 className="ui-heading ui-display leading-tight font-semibold tracking-tight">{title}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{copy}</p>
       <div className="mt-6 flex flex-1 flex-col">{children}</div>
       {onSkip ? (
-        <button type="button" className="mt-4 text-[13px] font-medium text-brand" onClick={onSkip}>
+        <button type="button" className="mt-4 ui-caption font-medium text-brand" onClick={onSkip}>
           {skipLabel}
         </button>
       ) : null}
@@ -570,12 +574,12 @@ function ChoiceGrid({
           type="button"
           onClick={() => onChange(item.id)}
           className={cn(
-            "min-h-14 rounded-2xl border px-4 py-3 text-left text-[17px] font-medium",
+            "min-h-14 rounded-2xl border px-4 py-3 text-left ui-card font-medium",
             value === item.id ? "border-brand bg-brand-cream/60" : "border-border bg-card",
           )}
         >
           <span className="block">{item.label}</span>
-          {item.hint ? <span className="mt-0.5 block text-[13px] font-normal text-muted-foreground">{item.hint}</span> : null}
+          {item.hint ? <span className="mt-0.5 block ui-caption font-normal text-muted-foreground">{item.hint}</span> : null}
         </button>
       ))}
     </div>

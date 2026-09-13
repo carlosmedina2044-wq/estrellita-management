@@ -464,7 +464,7 @@ export function DutyForm({
                     />
                   </Field>
                 </div>
-                <p className="text-[13px] text-muted-foreground">
+                <p className="ui-caption text-muted-foreground">
                   When on hand is this many or fewer, it shows on Today with Order. 0 means order when you’re out.
                 </p>
                 <Field label="Lead time (days)">

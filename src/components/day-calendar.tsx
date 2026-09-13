@@ -33,7 +33,7 @@ export function DayCalendar({
         >
           <ChevronLeft className="size-5" />
         </button>
-        <p className="ui-heading text-[17px] font-semibold">{formatMonthTitle(month)}</p>
+        <p className="ui-heading ui-card font-semibold">{formatMonthTitle(month)}</p>
         <button
           type="button"
           className="flex size-11 items-center justify-center text-primary"
@@ -62,7 +62,7 @@ export function DayCalendar({
               type="button"
               onClick={() => onSelect(day)}
               className={cn(
-                "mx-auto flex size-11 items-center justify-center rounded-full text-[15px]",
+                "mx-auto flex size-11 items-center justify-center rounded-full ui-body",
                 !inMonth && "text-muted-foreground/40",
                 isSelected && "bg-primary font-semibold text-primary-foreground",
                 !isSelected && isToday && "font-semibold text-primary",

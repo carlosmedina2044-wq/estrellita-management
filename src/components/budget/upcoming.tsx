@@ -26,7 +26,7 @@ export function UpcomingExpenses({
 }) {
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <h2 className="ui-heading text-[20px] font-semibold">Upcoming big expenses</h2>
+      <h2 className="ui-heading ui-title font-semibold">Upcoming big expenses</h2>
       <p className="mt-1 text-sm text-muted-foreground">The replacements that actually move the needle.</p>
       {items.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">No large replacements in this window.</p>
@@ -45,7 +45,7 @@ export function UpcomingExpenses({
                   {room ? ` · ${room.name}` : ""}
                 </p>
                 {asset?.deferReason ? (
-                  <p className="mt-1 text-[13px] text-muted-foreground">Waiting: {asset.deferReason}</p>
+                  <p className="mt-1 ui-caption text-muted-foreground">Waiting: {asset.deferReason}</p>
                 ) : null}
                 {item.assetId ? (
                   <div className="mt-3 grid grid-cols-2 gap-2">
@@ -57,7 +57,7 @@ export function UpcomingExpenses({
                     </Button>
                   </div>
                 ) : null}
-                <p className="mt-2 text-[13px] text-muted-foreground">
+                <p className="mt-2 ui-caption text-muted-foreground">
                   Logging what you paid trains the forecast. Deferring pushes the date out if it’s still working.
                 </p>
               </li>
@@ -77,7 +77,7 @@ export function InsightsList({
   if (insights.length === 0) return null;
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <h2 className="ui-heading text-[20px] font-semibold">What this means</h2>
+      <h2 className="ui-heading ui-title font-semibold">What this means</h2>
       <ul className="mt-3 grid gap-3">
         {insights.map((insight) => (
           <li
@@ -111,7 +111,7 @@ export function SpendingSection({
   const delta = planned - actual;
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <h2 className="ui-heading text-[20px] font-semibold">Spending</h2>
+      <h2 className="ui-heading ui-title font-semibold">Spending</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         Last {months} months: forecast {formatMoney(planned)}, actual {formatMoney(actual)}
         {logged && delta > 0 ? ". Under plan." : logged && delta < 0 ? ". Over plan." : "."}

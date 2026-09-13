@@ -44,15 +44,15 @@ export function CleanerVisit({
     <div className="app-frame px-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       <header className="pt-1">
         <p className="text-sm text-muted-foreground">Cleaner visit</p>
-        <h1 className="ui-heading text-[28px] font-semibold tracking-tight">
+        <h1 className="ui-heading ui-display font-semibold tracking-tight">
           {open.length === 0 ? "All caught up" : `${open.length} left`}
         </h1>
       </header>
 
       {next ? (
         <div className="mt-4 rounded-2xl bg-card p-4">
-          <p className="text-[13px] font-medium text-muted-foreground">Next up</p>
-          <p className="ui-heading mt-1 text-[20px] font-semibold">{next.title}</p>
+          <p className="ui-caption font-medium text-muted-foreground">Next up</p>
+          <p className="ui-heading mt-1 ui-title font-semibold">{next.title}</p>
           <Button className="mt-3 h-11 w-full" onClick={() => onComplete(next.id)}>
             Done. Next
           </Button>
@@ -64,12 +64,12 @@ export function CleanerVisit({
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              className="self-start text-[15px] font-medium text-primary"
+              className="self-start ui-body font-medium text-primary"
               onClick={() => setSelected(null)}
             >
               Map
             </button>
-            <h2 className="ui-heading text-[20px] font-semibold">{selectedRoom.name}</h2>
+            <h2 className="ui-heading ui-title font-semibold">{selectedRoom.name}</h2>
             <p className="text-sm text-muted-foreground">
               {roomOpen.length === 0 ? "Nothing left here." : `${roomOpen.length} left here. Use Done. Next above.`}
             </p>

@@ -81,7 +81,7 @@ export function QuarterTimeline({
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="ui-heading text-[20px] font-semibold">Next 3 months</h2>
+        <h2 className="ui-heading ui-title font-semibold">Next 3 months</h2>
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -125,18 +125,18 @@ export function QuarterTimeline({
                 aria-label={`${longMonth(month.month)} ${formatCostRange({ low: month.total, mid: month.total, high: month.total })}`}
               >
                 {label ? (
-                  <span className="line-clamp-2 text-center text-[11px] leading-tight text-primary">{label}</span>
+                  <span className="line-clamp-2 text-center ui-caption leading-tight text-primary">{label}</span>
                 ) : (
                   <span className="h-7" />
                 )}
-                <span className="text-[13px] font-medium tabular-nums">
+                <span className="ui-caption font-medium tabular-nums">
                   {month.total ? `$${Math.round(month.total).toLocaleString()}` : "—"}
                 </span>
                 <span
                   className={cn("w-full rounded-md", spike ? "bg-warning" : "bg-primary")}
                   style={{ height: `${height}%` }}
                 />
-                <span className="text-[13px] text-muted-foreground">{shortMonth(month.month)}</span>
+                <span className="ui-caption text-muted-foreground">{shortMonth(month.month)}</span>
               </button>
             );
           })}
@@ -239,7 +239,7 @@ function Group({
     <div>
       <button type="button" className="flex w-full items-center justify-between py-1 text-left" onClick={onToggle}>
         <span className="text-sm font-medium">{title}</span>
-        <span className="text-[13px] text-muted-foreground">{open ? "Hide" : "Show"}</span>
+        <span className="ui-caption text-muted-foreground">{open ? "Hide" : "Show"}</span>
       </button>
       {open ? <ul className="mt-2 grid gap-3">{children}</ul> : null}
     </div>
@@ -269,11 +269,11 @@ function ForecastRow({
       <p className="text-sm font-medium">{item.label}</p>
       <p className="text-sm text-muted-foreground">{formatCostRange(item.cost)}</p>
       {item.source === "catalog" && item.kind === "replacement" ? (
-        <button type="button" className="mt-1 text-left text-[13px] leading-4 text-muted-foreground" onClick={onEdit}>
+        <button type="button" className="mt-1 text-left ui-caption leading-4 text-muted-foreground" onClick={onEdit}>
           {forecastSourceBlurb(item.source)}
         </button>
       ) : (
-        <p className="mt-1 text-[13px] text-muted-foreground">
+        <p className="mt-1 ui-caption text-muted-foreground">
           {item.source === "catalog" ? "Typical supply price." : forecastSourceTag(item.source)}
         </p>
       )}

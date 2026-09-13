@@ -135,7 +135,7 @@ export function RestockWalkAddSheet({
                 <button
                   key={entry.id}
                   type="button"
-                  className="h-11 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                  className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
                   onClick={() => applyChip(entry)}
                 >
                   {entry.itemName}
@@ -144,14 +144,14 @@ export function RestockWalkAddSheet({
             </div>
           ) : null}
           <div className="grid gap-1.5">
-            <p className="text-[13px] font-medium">One usually lasts</p>
+            <p className="ui-caption font-medium">One usually lasts</p>
             <div className="flex flex-wrap gap-1.5">
               {INTERVALS.map((item) => (
                 <button
                   key={item.months}
                   type="button"
                   className={cn(
-                    "h-11 rounded-full px-3 text-[13px] font-medium",
+                    "h-11 rounded-full px-3 ui-caption font-medium",
                     intervalMonths === item.months ? "bg-primary text-primary-foreground" : "bg-secondary",
                   )}
                   onClick={() => setIntervalMonths(item.months)}
@@ -184,7 +184,7 @@ export function RestockWalkAddSheet({
             Add
           </Button>
           {onMoreOptions ? (
-            <button type="button" className="text-center text-[13px] font-medium text-brand" onClick={onMoreOptions}>
+            <button type="button" className="text-center ui-caption font-medium text-brand" onClick={onMoreOptions}>
               More options
             </button>
           ) : null}

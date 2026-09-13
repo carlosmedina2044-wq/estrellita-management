@@ -36,7 +36,7 @@ export function SupplyGauge({
           />
         ) : null}
       </span>
-      <span className="mt-1 block text-[13px] text-muted-foreground">{caption}</span>
+      <span className="mt-1 block ui-caption text-muted-foreground">{caption}</span>
     </>
   );
   if (!onTap) {

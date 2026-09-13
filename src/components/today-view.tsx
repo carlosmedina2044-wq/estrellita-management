@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, Map, Package, Settings, Share2, UserRound } from "lucide-react";
+import { CalendarDays, Package, Settings, Share2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -9,8 +9,7 @@ import { DayCalendar } from "@/components/day-calendar";
 import { SeasonSection } from "@/components/season-section";
 import { CostPrompt } from "@/components/cost-prompt";
 import { ConsumableForm } from "@/components/consumable-form";
-import { ItemName } from "@/components/item-name";
-import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
+import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { ZipSheet } from "@/components/zip-prompt";
@@ -162,11 +161,22 @@ export function TodayView({
   function toggle(duty: Duty, completed: boolean) {
     if (completed) {
       onUndo(duty.id);
+      void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
       toast("Put back on today's list");
       return;
     }
     onComplete(duty.id);
-    toast.success("Done", { description: duty.title });
+    void import("@/lib/native/haptics").then((m) => m.hapticComplete()).catch(() => {});
+    toast.success("Done", {
+      description: duty.title,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          onUndo(duty.id);
+          void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
+        },
+      },
+    });
   }
 
   async function share() {
@@ -207,9 +217,8 @@ export function TodayView({
     );
   }
 
-  const restockItems = [...restock.ordered, ...restock.order_now].slice(0, 3);
-  const restockHeader = restock.order_now.length > 0 ? "Order now" : "On the way";
-  const showRestock = restock.order_now.length + restock.ordered.length > 0;
+  const restockCount = restock.order_now.length + restock.ordered.length;
+  const showRestockChip = restockCount > 0;
   const hasCleanerDuties = household.duties.some((duty) => duty.audience !== "me");
   const hasCleaner = Boolean(household.cleanerName.trim());
   const orderItem = orderItemId
@@ -266,8 +275,8 @@ export function TodayView({
       />
       {zipBannerVisible ? (
         <div className="rounded-2xl bg-card px-4 py-3">
-          <p className="text-[15px] font-medium">Add your ZIP</p>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="ui-body font-medium">Add your ZIP</p>
+          <p className="mt-0.5 ui-caption text-muted-foreground">
             {weatherLine ?? "Used for Apple Weather and which seasonal jobs apply here."}
           </p>
           <div className="mt-2 flex gap-2">
@@ -316,7 +325,7 @@ export function TodayView({
               aria-selected={scope === item.id && !viewingCalendar}
               onClick={() => selectScope(item.id)}
               className={cn(
-                "h-11 flex-1 rounded-full text-[13px] font-medium",
+                "h-11 flex-1 rounded-full ui-caption font-medium",
                 scope === item.id && !viewingCalendar
                   ? "bg-brand-cream text-foreground shadow-sm ring-1 ring-primary/40"
                   : "text-secondary-foreground",
@@ -362,8 +371,8 @@ export function TodayView({
             onClick={() => setFilter(item)}
             className={
               filter === item
-                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 text-[13px] font-medium text-foreground shadow-sm ring-1 ring-primary/40"
-                : "h-11 shrink-0 rounded-full bg-secondary px-3.5 text-[13px] font-medium text-secondary-foreground"
+                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 ui-caption font-medium text-foreground shadow-sm ring-1 ring-primary/40"
+                : "h-11 shrink-0 rounded-full bg-secondary px-3.5 ui-caption font-medium text-secondary-foreground"
             }
           >
             {item === "all" ? "All" : item === "me" ? "Mine" : "Cleaner's"}
@@ -374,8 +383,8 @@ export function TodayView({
 
       {firstOfMonth ? (
         <section className="rounded-2xl bg-accent px-4 py-4">
-          <p className="text-[13px] font-medium text-primary">First of the month</p>
-          <p className="ui-heading mt-1 text-[20px] font-semibold">This month’s list</p>
+          <p className="ui-caption font-medium text-primary">First of the month</p>
+          <p className="ui-heading mt-1 ui-title font-semibold">This month’s list</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {monthPlan.length === 0
               ? "Nothing scheduled for this month yet."
@@ -439,110 +448,77 @@ export function TodayView({
 
       {household.supplyAutomations.length === 0 ? (
         <section className="rounded-2xl bg-card px-4 py-4">
-          <p className="text-[13px] font-medium text-muted-foreground">Restock</p>
-          <p className="ui-heading mt-1 text-[20px] font-semibold">Track a filter or battery</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            We’ll remind you when to order so it arrives before you run out. Checkout happens on the retailer’s site.
+          <p className="ui-caption font-medium text-muted-foreground">Restock</p>
+          <p className="ui-title mt-1 font-semibold">Track a filter or battery</p>
+          <p className="mt-1 ui-body text-muted-foreground">
+            We’ll remind you when to order so it arrives before you run out.
           </p>
           <Button className="mt-4 h-11" onClick={() => createGuard.tryOpen(() => setCreatingRule(true))}>
             Track a filter or battery
           </Button>
         </section>
-      ) : showRestock ? (
-        <section className="rounded-2xl bg-card px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="font-medium">{restockHeader}</p>
-            {onOpenRestock ? (
-              <button type="button" className="inline-flex min-h-11 items-center text-[13px] font-medium text-primary" onClick={onOpenRestock}>
-                See all
-              </button>
-            ) : null}
-          </div>
-          <ul className="mt-3 grid gap-3">
-            {restockItems.map((item) => (
-              <li key={item.id} className="grid gap-2">
-                <button
-                  type="button"
-                  className="text-left"
-                  onClick={() => {
-                    const duty = household.duties.find(
-                      (entry) => entry.id === item.dutyId || item.linkedDutyIds.includes(entry.id),
-                    );
-                    if (duty) setEditing(duty);
-                  }}
-                >
-                  <span className="block text-[15px] font-medium">
-                    <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
-                  </span>
-                  <span className="text-[13px] text-muted-foreground">
-                    <OrderByLine item={item} household={household} />
-                  </span>
-                </button>
-                <RestockOrderButton
-                  item={item}
-                  household={household}
-                  compact
-                  {...restockButtonProps(item, restockHandlers)}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
+      ) : showRestockChip && onOpenRestock ? (
+        <button
+          type="button"
+          onClick={onOpenRestock}
+          className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 text-left"
+        >
+          <span className="flex items-center gap-2">
+            <Package className="size-4 text-primary" aria-hidden />
+            <span className="ui-body font-medium">
+              {restock.order_now.length > 0
+                ? `${restock.order_now.length} to order`
+                : `${restock.ordered.length} on the way`}
+            </span>
+          </span>
+          <span className="ui-caption font-medium text-primary">Restock</span>
+        </button>
       ) : null}
 
       {showTeachingCard ? (
         <div className="rounded-2xl bg-card px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[15px] font-medium">Next up</p>
-              <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <div className="flex items-start gap-3">
+            <BrandMark size="sm" className="mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="ui-body font-medium">Tip</p>
+              <p className="mt-0.5 ui-caption text-muted-foreground">
                 {!household.teaching.checkedChore
-                  ? "Check off one chore on Today"
+                  ? "Check off one chore on Today."
                   : !household.teaching.openedRestock
-                    ? "Open Restock and see what is running low"
+                    ? "Open Restock and see what is running low."
                     : !household.teaching.setDigestOrZip
-                      ? "Turn on the weekly digest, or add a ZIP"
-                      : "You’re set"}
+                      ? "Turn on the weekly restock reminder, or add a ZIP."
+                      : "You’re set."}
               </p>
-            </div>
-            <div className="flex shrink-0 gap-2">
-              {!household.teaching.openedRestock ? (
-                <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
-                  Restock
+              <div className="mt-2 flex gap-2">
+                {!household.teaching.openedRestock ? (
+                  <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
+                    Restock
+                  </Button>
+                ) : !household.teaching.setDigestOrZip ? (
+                  <Button className="h-11 px-3" onClick={() => onOpenDigest?.()}>
+                    Reminders
+                  </Button>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  className="h-11 px-2"
+                  onClick={() => {
+                    setTeachingHidden(true);
+                  }}
+                >
+                  Got it
                 </Button>
-              ) : !household.teaching.setDigestOrZip ? (
-                <Button className="h-11 px-3" onClick={() => onOpenDigest?.()}>
-                  Digest
-                </Button>
-              ) : (
-                <Button className="h-11 px-3" onClick={() => onOpenRestock?.()}>
-                  Restock
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                className="h-11 px-2"
-                onClick={() => {
-                  setTeachingHidden(true);
-                }}
-              >
-                Hide
-              </Button>
+              </div>
             </div>
           </div>
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button variant="secondary" className="h-12 rounded-full" onClick={() => onOpenHome?.()}>
-          <Map className="size-4" />
-          House
-        </Button>
-        <Button variant="secondary" className="h-12 rounded-full" onClick={share}>
-          <Share2 className="size-4" />
-          Share list
-        </Button>
-      </div>
+      <Button variant="secondary" className="h-12 rounded-full" onClick={share}>
+        <Share2 className="size-4" />
+        Share list
+      </Button>
       {hasCleaner ? (
         <Button variant="secondary" className="h-12 rounded-full" onClick={onStartCleanerVisit}>
           <UserRound className="size-4" />
@@ -692,8 +668,8 @@ function AttentionTiles({
         className="flex min-h-11 w-full items-center rounded-full bg-success/10 px-4 text-left"
         aria-label="All clear. Nothing due, nothing to order"
       >
-        <span className="text-[15px] font-medium text-success">All clear</span>
-        <span className="ml-2 text-[13px] text-muted-foreground">Nothing due or to order</span>
+        <span className="ui-body font-medium text-success">All clear</span>
+        <span className="ml-2 ui-caption text-muted-foreground">Nothing due or to order</span>
       </button>
     );
   }
@@ -712,8 +688,8 @@ function AttentionTiles({
           )}
         >
           {"icon" in tile && tile.icon ? <Package className="size-4 shrink-0" aria-hidden /> : null}
-          <span className={cn("text-[15px] font-semibold tabular-nums", tile.countClass)}>{tile.count}</span>
-          <span className="text-[13px] text-muted-foreground">
+          <span className={cn("ui-body font-semibold tabular-nums", tile.countClass)}>{tile.count}</span>
+          <span className="ui-caption text-muted-foreground">
             {"costLine" in tile && tile.costLine ? `${tile.label} · ${tile.costLine}` : tile.label}
           </span>
         </button>
@@ -728,7 +704,7 @@ function EmptyToday({ onAdd, calendar }: { onAdd: () => void; calendar?: boolean
       <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
         <BrandMark size="sm" />
       </span>
-      <p className="ui-heading mt-4 text-[20px] font-semibold">Clear day</p>
+      <p className="ui-heading mt-4 ui-title font-semibold">Clear day</p>
       <p className="mt-1 text-sm text-muted-foreground">
         {calendar
           ? "Nothing is due on this day. Daily chores show on their weekday. Seasonal jobs show in their window."

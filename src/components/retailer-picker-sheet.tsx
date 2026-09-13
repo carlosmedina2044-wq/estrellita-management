@@ -85,7 +85,7 @@ export function RetailerPickerSheet({
               I already ordered it
             </Button>
           ) : null}
-          <div className="text-[13px] text-muted-foreground">
+          <div className="ui-caption text-muted-foreground">
             {size ? (
               size
             ) : onAddSize ? (
@@ -108,11 +108,11 @@ export function RetailerPickerSheet({
               <Button type="button" className="h-12 w-full" onClick={() => void shop(href, item.preferredRetailer, href)}>
                 Open saved link
               </Button>
-              <p className="text-center text-[13px] text-muted-foreground">{savedRetailerLabel(href)}</p>
+              <p className="text-center ui-caption text-muted-foreground">{savedRetailerLabel(href)}</p>
             </div>
           ) : null}
           <div className="grid gap-2">
-            <p className="text-[13px] font-medium">Stores</p>
+            <p className="ui-caption font-medium">Stores</p>
             <div className="flex flex-wrap gap-1.5">
               {chips.map((chip) => (
                 <span key={chip.id} className="grid justify-items-center gap-0.5">
@@ -126,7 +126,7 @@ export function RetailerPickerSheet({
                     {chip.label}
                   </Button>
                   {chip.lastTime ? (
-                    <span className="text-[11px] text-muted-foreground">Last time</span>
+                    <span className="ui-caption text-muted-foreground">Last time</span>
                   ) : null}
                 </span>
               ))}
@@ -153,7 +153,7 @@ export function RetailerPickerSheet({
             sizeSpec={size || undefined}
             onSearch={(saveUrl, openUrl) => void shop(openUrl, hostOf(saveUrl), saveUrl)}
           />
-          <p className="text-[13px] text-muted-foreground">
+          <p className="ui-caption text-muted-foreground">
             You check out on the store’s site. Cuidala never sees your payment.
           </p>
         </div>
@@ -185,7 +185,7 @@ export function CustomStoreSearch({
 
   return (
     <div className="grid gap-1.5">
-      <p className="text-[13px] text-muted-foreground">Any other store</p>
+      <p className="ui-caption text-muted-foreground">Any other store</p>
       <div className="flex gap-2">
         <Input
           value={draft}

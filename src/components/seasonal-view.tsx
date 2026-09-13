@@ -25,7 +25,7 @@ import { AppleWeatherAttribution } from "@/components/apple-weather-attribution"
 import type { WeatherAttribution } from "@/lib/native/weatherkit";
 import type { Household } from "@/lib/types";
 
-const CHIP = "rounded-full px-2 py-0.5 text-[11px] font-medium";
+const CHIP = "rounded-full px-2 py-0.5 ui-caption font-medium";
 
 const ATTRIBUTE_TOGGLES = [
   ["hasPool", "Pool"],
@@ -157,12 +157,12 @@ export function SeasonalView({
         <PageHeader title="Seasonal" subtitle={subtitle} onBack={onBack} backLabel={backLabel} />
         {forecast ? (
           <AppleWeatherAttribution
-            className="mt-1 text-[11px] text-muted-foreground"
+            className="mt-1 ui-caption text-muted-foreground"
             attribution={weatherAttribution}
           />
         ) : null}
         {showWeatherError ? (
-          <p className="mt-2 text-[13px] text-muted-foreground">
+          <p className="mt-2 ui-caption text-muted-foreground">
             Couldn&apos;t refresh weather. Seasonal lists still work.
           </p>
         ) : null}
@@ -173,7 +173,7 @@ export function SeasonalView({
             onClick={() => setZipOpen(true)}
           >
             <p className="font-medium text-primary">Add your ZIP</p>
-            <p className="mt-1 text-[15px] text-muted-foreground">
+            <p className="mt-1 ui-body text-muted-foreground">
               Same ZIP as Today — for weather and seasonal jobs.
             </p>
           </button>
@@ -184,19 +184,19 @@ export function SeasonalView({
         <ul className="grid gap-3">
           {watch.active.slice(0, 2).map((item) => (
             <li key={item.trigger.id} className="rounded-2xl bg-card px-4 py-4">
-              <p className="text-[17px] font-medium">{item.trigger.name}</p>
-              <p className="mt-1 text-[13px] text-muted-foreground">{watchCaption(item)}</p>
+              <p className="ui-card font-medium">{item.trigger.name}</p>
+              <p className="mt-1 ui-caption text-muted-foreground">{watchCaption(item)}</p>
             </li>
           ))}
         </ul>
       ) : showWatchingLine ? (
-        <p className="text-[13px] text-muted-foreground">Watching your forecast for {joinWatching(watch.watching)}.</p>
+        <p className="ui-caption text-muted-foreground">Watching your forecast for {joinWatching(watch.watching)}.</p>
       ) : null}
 
       <section>
-        <h2 className="ui-heading text-[20px] font-semibold">Do now</h2>
+        <h2 className="ui-heading ui-title font-semibold">Do now</h2>
         {suggested.length === 0 ? (
-          <p className="mt-2 text-[13px] text-muted-foreground">Nothing needs starting right now. Your year is below.</p>
+          <p className="mt-2 ui-caption text-muted-foreground">Nothing needs starting right now. Your year is below.</p>
         ) : (
           <ul className="mt-3 grid gap-3">
             {suggested.map((entry) => (
@@ -217,7 +217,7 @@ export function SeasonalView({
       </section>
 
       <section>
-        <h2 className="ui-heading text-[20px] font-semibold">Your year</h2>
+        <h2 className="ui-heading ui-title font-semibold">Your year</h2>
         <ul className="mt-3 grid gap-3">
           {timeline
             .filter((row) => row.entries.length > 0)
@@ -225,7 +225,7 @@ export function SeasonalView({
               const isCurrent = row.month === now.getMonth() + 1 && row.year === now.getFullYear();
               return (
                 <li key={`${row.year}-${row.month}`} className="flex gap-3">
-                  <p className="w-14 shrink-0 text-[13px] text-muted-foreground">{row.label}</p>
+                  <p className="w-14 shrink-0 ui-caption text-muted-foreground">{row.label}</p>
                   <ul className="min-w-0 flex-1 grid gap-2">
                     {row.entries.map((entry) => {
                       const window = windowFor(entry.playbook);
@@ -242,14 +242,14 @@ export function SeasonalView({
                               className="flex w-full items-center justify-between gap-2 text-left"
                               onClick={() => scrollToPlaybook(entry.playbook.id)}
                             >
-                              <span className={`text-[15px] ${isCurrent ? "font-medium" : ""}`}>
+                              <span className={`ui-body ${isCurrent ? "font-medium" : ""}`}>
                                 {entry.playbook.name}
                               </span>
                               {chip ? <span className={`${CHIP} ${chip.className}`}>{chip.label}</span> : null}
                             </button>
                           ) : (
                             <div className="flex items-center justify-between gap-2">
-                              <span className={`text-[15px] ${isCurrent ? "font-medium" : ""}`}>
+                              <span className={`ui-body ${isCurrent ? "font-medium" : ""}`}>
                                 {entry.playbook.name}
                               </span>
                               {chip ? <span className={`${CHIP} ${chip.className}`}>{chip.label}</span> : null}
@@ -267,7 +267,7 @@ export function SeasonalView({
 
       <button
         type="button"
-        className="text-left text-[13px] font-medium text-primary"
+        className="text-left ui-caption font-medium text-primary"
         onClick={() => setAttrsOpen(true)}
       >
         Not seeing something? Tell us about your home
@@ -276,14 +276,14 @@ export function SeasonalView({
       <Sheet open={attrsOpen} onOpenChange={setAttrsOpen}>
         <SheetContent side="bottom" className="gap-0 rounded-t-3xl pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <SheetHeader>
-            <SheetTitle className="text-[20px]">Your home</SheetTitle>
+            <SheetTitle className="ui-title">Your home</SheetTitle>
           </SheetHeader>
           <div className="ui-group mx-4 mb-4">
             {ATTRIBUTE_TOGGLES.map(([key, label]) => (
               <div key={key} className="ui-group-row flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="text-[15px] font-medium">{label}</p>
-                  <p className="text-[13px] text-muted-foreground">{attributeCaption(key, household)}</p>
+                  <p className="ui-body font-medium">{label}</p>
+                  <p className="ui-caption text-muted-foreground">{attributeCaption(key, household)}</p>
                 </div>
                 <button
                   type="button"
@@ -291,8 +291,8 @@ export function SeasonalView({
                   onClick={() => onToggleAttribute(key)}
                   className={
                     household.attributes[key]
-                      ? "h-11 shrink-0 rounded-full bg-primary px-3 text-[13px] font-medium text-primary-foreground"
-                      : "h-11 shrink-0 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                      ? "h-11 shrink-0 rounded-full bg-primary px-3 ui-caption font-medium text-primary-foreground"
+                      : "h-11 shrink-0 rounded-full bg-secondary px-3 ui-caption font-medium"
                   }
                 >
                   {household.attributes[key] ? "On" : "Off"}
@@ -341,15 +341,15 @@ function DoNowCard({
   return (
     <li id={`seasonal-playbook-${playbook.id}`} className="rounded-2xl bg-card px-4 py-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[17px] font-medium">{playbook.name}</p>
+        <p className="ui-card font-medium">{playbook.name}</p>
         {chip ? <span className={`${CHIP} shrink-0 ${chip.className}`}>{chip.label}</span> : null}
       </div>
       {playbook.why ? (
-        <p className="mt-1 line-clamp-2 text-[13px] text-muted-foreground">{playbook.why}</p>
+        <p className="mt-1 line-clamp-2 ui-caption text-muted-foreground">{playbook.why}</p>
       ) : null}
       {decided && progress.total > 0 ? (
         <div className="mt-3">
-          <p className="text-[13px] text-muted-foreground">
+          <p className="ui-caption text-muted-foreground">
             {progress.done} of {progress.total} done
             {progress.nextTitle ? ` · next: ${progress.nextTitle}` : ""}
           </p>
@@ -359,14 +359,14 @@ function DoNowCard({
         </div>
       ) : decided && progress.total === 0 ? (
         <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-[13px] text-muted-foreground">Skipped this year.</p>
-          <button type="button" className="text-[13px] font-medium text-primary" onClick={() => onReconsider(playbook.id)}>
+          <p className="ui-caption text-muted-foreground">Skipped this year.</p>
+          <button type="button" className="ui-caption font-medium text-primary" onClick={() => onReconsider(playbook.id)}>
             Reconsider
           </button>
         </div>
       ) : (
         <>
-          <ul className="mt-2 grid gap-1 text-[15px] text-muted-foreground">
+          <ul className="mt-2 grid gap-1 ui-body text-muted-foreground">
             {playbook.tasks.map((task) => (
               <li key={task.title}>{task.title}</li>
             ))}

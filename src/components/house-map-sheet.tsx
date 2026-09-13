@@ -125,7 +125,7 @@ export function HouseMapSheet({
             {selectedRoom ? (
               <div className="flex flex-col gap-4">
                 <div>
-                  <h2 className="ui-heading text-[28px] font-semibold">{selectedRoom.name}</h2>
+                  <h2 className="ui-heading ui-display font-semibold">{selectedRoom.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {roomOpen.length === 0 ? "All clear" : `${roomOpen.length} open`}
                   </p>
@@ -176,7 +176,7 @@ export function HouseMapSheet({
                 )}
                 {roomConsumables.length > 0 ? (
                   <section>
-                    <h3 className="mb-2 text-[13px] font-medium text-muted-foreground">Items</h3>
+                    <h3 className="mb-2 ui-caption font-medium text-muted-foreground">Items</h3>
                     <ul className="grid gap-2">
                       {roomConsumables.map((item) => {
                         const placement = restockPlacement(item, household, now);
@@ -185,7 +185,7 @@ export function HouseMapSheet({
                           <p className="font-medium">
                             <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
                           </p>
-                          <p className="mt-0.5 text-[13px] text-muted-foreground">
+                          <p className="mt-0.5 ui-caption text-muted-foreground">
                             {placement.bucket === "ordered" && item.expectedArrivalDate
                               ? `Arriving ~${item.expectedArrivalDate}`
                               : `On hand ${item.onHand} · lead ${item.leadTimeDays}d`}
@@ -206,7 +206,7 @@ export function HouseMapSheet({
                   </section>
                 ) : null}
                 <section>
-                  <h3 className="mb-2 text-[13px] font-medium text-muted-foreground">Assets</h3>
+                  <h3 className="mb-2 ui-caption font-medium text-muted-foreground">Assets</h3>
                   {roomAssets.length === 0 ? (
                     <p className="text-sm text-muted-foreground">No appliances or units tagged yet.</p>
                   ) : (
@@ -216,7 +216,7 @@ export function HouseMapSheet({
                         return (
                         <li key={asset.id} className="rounded-2xl bg-card px-4 py-3 text-sm">
                           <p className="font-medium">{asset.name}</p>
-                          <p className="mt-0.5 text-[13px] text-muted-foreground">
+                          <p className="mt-0.5 ui-caption text-muted-foreground">
                             {ASSET_TYPES.find((item) => item.id === asset.type)?.label ?? asset.type}
                             {badge ? ` · ${badge}` : ""}
                           </p>

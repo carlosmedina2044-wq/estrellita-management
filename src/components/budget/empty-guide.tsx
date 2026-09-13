@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandMark } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { catalogEntry, normalizeAssetType } from "@/lib/asset-catalog";
@@ -23,12 +24,15 @@ export function EmptyGuide({
 
   if (ranked.length === 0) {
     return (
-      <section className="rounded-2xl bg-card px-4 py-5">
-        <p className="font-medium">Nothing priced yet</p>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <section className="rounded-2xl bg-card px-5 py-10 text-center">
+        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
+          <BrandMark size="sm" />
+        </span>
+        <p className="ui-heading mt-4 ui-title font-semibold">Nothing priced yet</p>
+        <p className="mt-1 ui-body text-muted-foreground">
           Add a date or cost on Home so we can estimate upkeep and replacements.
         </p>
-        <Button className="mt-4 h-11 w-full" onClick={onGoHome}>
+        <Button className="mt-5 h-11 w-full" onClick={onGoHome}>
           Go to Home
         </Button>
       </section>

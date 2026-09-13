@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, Package } from "lucide-react";
+import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
@@ -118,7 +119,7 @@ export function RestockView({
           household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
               type="button"
-              className="inline-flex h-11 items-center rounded-full px-3 text-[13px] font-medium text-primary"
+              className="inline-flex h-11 items-center rounded-full px-3 ui-caption font-medium text-primary"
               onClick={startWalk}
             >
               Walk house
@@ -128,16 +129,20 @@ export function RestockView({
       />
 
       {household.supplyAutomations.length === 0 ? (
-        <div className="rounded-2xl bg-card px-4 py-5">
-          <p className="text-[17px] font-medium">Restock is empty</p>
-          <p className="mt-1 text-[15px] text-muted-foreground">
+        <div className="rounded-2xl bg-card px-5 py-10 text-center">
+          <span className="relative mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
+            <BrandMark size="sm" />
+            <Package className="absolute -bottom-0.5 -right-0.5 size-5 text-primary" aria-hidden />
+          </span>
+          <p className="ui-heading mt-4 ui-title font-semibold">Restock is empty</p>
+          <p className="mt-1 ui-body text-muted-foreground">
             Tracks what’s running out and when to order. You check out at the store.
           </p>
-          <p className="mt-2 text-[15px] text-muted-foreground">
+          <p className="mt-2 ui-body text-muted-foreground">
             Walk the house once. HVAC filter, water filter, smoke-detector batteries. This tab stays useful after that.
           </p>
           {onWalkHouse ? (
-            <Button className="mt-3 h-11 w-full" onClick={startWalk}>
+            <Button className="mt-5 h-11 w-full" onClick={startWalk}>
               Walk your house
             </Button>
           ) : null}
@@ -153,8 +158,8 @@ export function RestockView({
         ) : (
           <div className="rounded-2xl bg-card px-4 py-4">
             <div className="flex items-baseline justify-between gap-3">
-              <p className="text-[17px] font-medium">This week</p>
-              {weekCost ? <p className="text-[13px] text-muted-foreground">{weekCost}</p> : null}
+              <p className="ui-card font-medium">This week</p>
+              {weekCost ? <p className="ui-caption text-muted-foreground">{weekCost}</p> : null}
             </div>
             <div className="mt-2 flex flex-col gap-2">
               {weekItems.map((item) => {
@@ -166,9 +171,9 @@ export function RestockView({
                     className="w-full text-left"
                     onClick={() => openItem(item)}
                   >
-                    <span className="block text-[15px] font-medium">{item.itemName}</span>
+                    <span className="block ui-body font-medium">{item.itemName}</span>
                     {placement.orderByDate ? (
-                      <span className="mt-0.5 block text-[13px] text-muted-foreground">
+                      <span className="mt-0.5 block ui-caption text-muted-foreground">
                         order by {formatDueDate(placement.orderByDate)}
                       </span>
                     ) : null}
@@ -182,12 +187,12 @@ export function RestockView({
 
       {needsCheckin.length > 0 ? (
         <div className="rounded-2xl bg-card px-4 py-4">
-          <p className="text-[17px] font-medium">Quick check</p>
-          <p className="mt-1 text-[13px] text-muted-foreground">Keeps the estimates honest.</p>
+          <p className="ui-card font-medium">Quick check</p>
+          <p className="mt-1 ui-caption text-muted-foreground">Keeps the estimates honest.</p>
           <div className="mt-3 flex flex-col gap-3">
             {needsCheckin.map((item) => (
               <div key={item.id}>
-                <p className="text-[15px] font-medium">{item.itemName}</p>
+                <p className="ui-body font-medium">{item.itemName}</p>
                 <div className="mt-2 flex gap-2">
                   {(
                     [
@@ -268,8 +273,8 @@ export function RestockView({
           onClick={() => setStockedOpen((current) => !current)}
           aria-expanded={stockedOpen}
         >
-          <h2 className="ui-heading text-[17px] font-semibold">Stocked</h2>
-          <span className="inline-flex items-center gap-1 text-[13px] text-muted-foreground">
+          <h2 className="ui-heading ui-card font-semibold">Stocked</h2>
+          <span className="inline-flex items-center gap-1 ui-caption text-muted-foreground">
             {groups.stocked.length}
             <ChevronDown className={cn("size-4 transition-transform", stockedOpen && "rotate-180")} />
           </span>
@@ -429,8 +434,8 @@ function Section({
   return (
     <section id={id}>
       <header className="mb-2 flex items-baseline justify-between gap-3 px-1">
-        <h2 className="ui-heading text-[17px] font-semibold">{title}</h2>
-        <span className="text-[13px] text-muted-foreground">{count}</span>
+        <h2 className="ui-heading ui-card font-semibold">{title}</h2>
+        <span className="ui-caption text-muted-foreground">{count}</span>
       </header>
       <div className="ui-group">{children}</div>
     </section>
@@ -465,10 +470,10 @@ function RestockRow({
             className={`mt-0.5 size-4 shrink-0 ${placement.bucket === "order_now" ? "text-primary" : "text-muted-foreground"}`}
           />
           <span className="min-w-0 flex-1">
-            <span className="block text-[17px] font-medium leading-snug">
+            <span className="block ui-card font-medium leading-snug">
               <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
             </span>
-            <span className="mt-0.5 block text-[13px] text-muted-foreground">
+            <span className="mt-0.5 block ui-caption text-muted-foreground">
               {where ? `${where} · ` : ""}
               <OrderByLine item={item} household={household} />
             </span>
@@ -476,7 +481,7 @@ function RestockRow({
         </span>
       </button>
       {needsSize && onAddSize ? (
-        <button type="button" className="mt-1 inline-flex min-h-11 items-center pl-7 text-[13px] font-medium text-brand" onClick={onAddSize}>
+        <button type="button" className="mt-1 inline-flex min-h-11 items-center pl-7 ui-caption font-medium text-brand" onClick={onAddSize}>
           Add size
         </button>
       ) : null}

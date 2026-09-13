@@ -15,7 +15,7 @@ export function FundHero({
     return (
       <section className="animate-in fade-in slide-in-from-bottom-2 rounded-2xl bg-card px-4 py-5 duration-300">
         <p className="text-sm text-muted-foreground">Home maintenance fund</p>
-        <p className="ui-heading mt-1 text-[28px] font-semibold tracking-tight leading-tight">
+        <p className="ui-heading mt-1 ui-display font-semibold tracking-tight leading-tight">
           How much do you have saved for home maintenance?
         </p>
         <p className="mt-2 text-sm leading-5 text-muted-foreground">
@@ -26,7 +26,7 @@ export function FundHero({
           Set a balance
         </Button>
         {health.onePercentCopy ? (
-          <p className="mt-3 text-[13px] leading-5 text-muted-foreground">{health.onePercentCopy}</p>
+          <p className="mt-3 ui-caption leading-5 text-muted-foreground">{health.onePercentCopy}</p>
         ) : null}
       </section>
     );
@@ -54,9 +54,9 @@ export function FundHero({
         Suggested pace: {formatMoney(health.suggestedMonthly)}/month.
       </p>
       {health.onePercentCopy ? (
-        <p className="mt-2 text-[13px] leading-5 text-muted-foreground">{health.onePercentCopy}</p>
+        <p className="mt-2 ui-caption leading-5 text-muted-foreground">{health.onePercentCopy}</p>
       ) : null}
-      <button type="button" className="mt-3 text-[15px] font-medium text-primary" onClick={onEditFund}>
+      <button type="button" className="mt-3 ui-body font-medium text-primary" onClick={onEditFund}>
         Update balance
       </button>
     </section>

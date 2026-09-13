@@ -211,7 +211,7 @@ export function ConsumableForm({
             />
           </Field>
           <div className="grid gap-1.5">
-            <p className="text-[13px] font-medium">One usually lasts</p>
+            <p className="ui-caption font-medium">One usually lasts</p>
             <div className="flex flex-wrap gap-1.5">
               {LIFESPAN_PILLS.map((item) => (
                 <button
@@ -219,8 +219,8 @@ export function ConsumableForm({
                   type="button"
                   className={
                     draft.lifespanMonths === item.months
-                      ? "h-11 rounded-full bg-primary px-3 text-[13px] font-medium text-primary-foreground"
-                      : "h-11 rounded-full bg-secondary px-3 text-[13px] font-medium"
+                      ? "h-11 rounded-full bg-primary px-3 ui-caption font-medium text-primary-foreground"
+                      : "h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
                   }
                   onClick={() =>
                     setDraft((current) => ({
@@ -273,7 +273,7 @@ export function ConsumableForm({
             </Field>
           ) : (
             <div className="grid gap-1.5">
-              <p className="text-[13px] font-medium">On hand</p>
+              <p className="ui-caption font-medium">On hand</p>
               <div className="grid grid-cols-2 gap-2">
                 {CHECKIN_OPTIONS.map((option) => (
                   <Button
@@ -304,7 +304,7 @@ export function ConsumableForm({
           ) : null}
           <button
             type="button"
-            className="text-left text-[13px] font-medium text-primary"
+            className="text-left ui-caption font-medium text-primary"
             onClick={() => setAdvanced((current) => !current)}
           >
             Advanced
@@ -317,7 +317,7 @@ export function ConsumableForm({
                   saved={household.savedRetailerLinks ?? []}
                   onChange={(retailerUrl) => setDraft((current) => ({ ...current, retailerUrl }))}
                 />
-                <p className="text-[13px] text-muted-foreground">
+                <p className="ui-caption text-muted-foreground">
                   Optional. You can also pick a store the first time you order.
                 </p>
               </Field>
@@ -330,7 +330,7 @@ export function ConsumableForm({
                   onChange={(event) => setDraft((current) => ({ ...current, reorderAt: event.target.value }))}
                   className="h-12"
                 />
-                <p className="text-[13px] text-muted-foreground">
+                <p className="ui-caption text-muted-foreground">
                   Optional. Also flag for ordering at this count, on top of the automatic timing.
                 </p>
               </Field>
@@ -342,7 +342,7 @@ export function ConsumableForm({
                   onChange={(event) => setDraft((current) => ({ ...current, leadTimeDays: event.target.value }))}
                   className="h-12"
                 />
-                <p className="text-[13px] text-muted-foreground">
+                <p className="ui-caption text-muted-foreground">
                   Learned from your deliveries automatically. Set only to override.
                 </p>
               </Field>
@@ -397,7 +397,7 @@ function EstimatedUseLine({
   if (!resolved) return null;
   const n = Math.max(1, Math.round(1 / resolved.rate));
   return (
-    <p className="text-[13px] text-muted-foreground">
+    <p className="ui-caption text-muted-foreground">
       Estimated use: about 1 every {n} days
       {resolved.source === "observed" ? " (from your orders)" : ""}
     </p>

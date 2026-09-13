@@ -230,7 +230,7 @@ export function RestockOrderButton({
   if (placement.nudgeArrive) {
     return (
       <div className="grid gap-2">
-        <p className="text-[13px] text-muted-foreground">Did it arrive?</p>
+        <p className="ui-caption text-muted-foreground">Did it arrive?</p>
         {onReceived ? (
           <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setSheet("receive")}>
             Received
@@ -255,7 +255,7 @@ export function RestockOrderButton({
     return (
       <div className="grid gap-2">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-[13px] text-muted-foreground">{arrivalLine(item)}</p>
+          <p className="ui-caption text-muted-foreground">{arrivalLine(item)}</p>
           {onChangeArrival || onNeverCame ? (
             <Button
               type="button"
@@ -432,7 +432,7 @@ function OrderConfirmSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="gap-0">
         <SheetHeader>
-          <SheetTitle>Confirm your order</SheetTitle>
+          <SheetTitle>Did you finish ordering?</SheetTitle>
           <SheetDescription>
             {item.itemName}
             {size ? ` · ${size}` : ""}
@@ -442,7 +442,7 @@ function OrderConfirmSheet({
         <div className="grid gap-4 px-4 pb-4">
           {askSize ? (
             <div className="grid gap-1.5">
-              <label htmlFor="order-size" className="text-[13px] text-muted-foreground">
+              <label htmlFor="order-size" className="ui-caption text-muted-foreground">
                 Size or model (optional)
               </label>
               <Input
@@ -460,11 +460,11 @@ function OrderConfirmSheet({
             </TeachingTip>
           ) : null}
           <div className="grid gap-1.5">
-            <p className="text-[13px] font-medium">When does it arrive?</p>
+            <p className="ui-caption font-medium">When does it arrive?</p>
             <ArrivalChips offset={offset} dateDraft={dateDraft} onOffset={setOffset} onDate={setDateDraft} />
           </div>
           <div className="grid gap-1.5">
-            <p className="text-[13px] font-medium">How many?</p>
+            <p className="ui-caption font-medium">How many?</p>
             <div className="flex items-center gap-3">
               <Button
                 type="button"
@@ -475,7 +475,7 @@ function OrderConfirmSheet({
               >
                 −
               </Button>
-              <span className="min-w-8 text-center text-[17px] font-medium">{qty}</span>
+              <span className="min-w-8 text-center ui-card font-medium">{qty}</span>
               <Button
                 type="button"
                 variant="secondary"
@@ -500,9 +500,12 @@ function OrderConfirmSheet({
                 })
               }
             >
-              Yes, ordered
+              Yes
             </Button>
             <Button type="button" variant="secondary" className="h-12" onClick={() => onOpenChange(false)}>
+              Not yet
+            </Button>
+            <Button type="button" variant="ghost" className="h-12" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
           </div>
@@ -637,7 +640,7 @@ function ReceiveDialog({
         </SheetHeader>
         <div className="grid gap-3 px-4 pb-4">
           <Input type="number" min={1} value={qty} onChange={(event) => onQty(event.target.value)} className="h-11" />
-          <p className="text-[13px] text-muted-foreground">What did it cost?</p>
+          <p className="ui-caption text-muted-foreground">What did it cost?</p>
           <Input
             inputMode="decimal"
             value={costDraft}

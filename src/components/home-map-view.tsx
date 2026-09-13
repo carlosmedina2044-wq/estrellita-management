@@ -32,7 +32,7 @@ export function HomeMapView({
     <div className="flex flex-col gap-5">
       {system.length > 0 ? (
         <section>
-          <h2 className="ui-heading mb-2 text-[17px] font-semibold">Whole home</h2>
+          <h2 className="ui-heading mb-2 ui-card font-semibold">Whole home</h2>
           <TileGrid
             rooms={system}
             household={household}
@@ -51,12 +51,12 @@ export function HomeMapView({
           <section key={floor.id}>
             {hideFloorHeader ? null : (
               <header className="mb-2 flex items-baseline justify-between gap-3">
-                <h2 className="ui-heading text-[17px] font-semibold">{floor.name}</h2>
+                <h2 className="ui-heading ui-card font-semibold">{floor.name}</h2>
                 <StatusLine status={floorStatus} compact />
               </header>
             )}
             {rooms.length === 0 ? (
-              <p className="rounded-2xl bg-card px-4 py-6 text-center text-[15px] text-muted-foreground">
+              <p className="rounded-2xl bg-card px-4 py-6 text-center ui-body text-muted-foreground">
                 No rooms on this floor yet.
               </p>
             ) : (
@@ -172,8 +172,8 @@ function TileGrid({
             <span className="flex min-w-0 items-start gap-3">
               <RoomTypeIcon room={room} className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
               <span className="min-w-0">
-                <span className="block text-[17px] font-medium leading-snug">{room.name}</span>
-                <span className={cn("mt-0.5 flex items-center gap-1 text-[13px]", caption.className)}>
+                <span className="block ui-card font-medium leading-snug">{room.name}</span>
+                <span className={cn("mt-0.5 flex items-center gap-1 ui-caption", caption.className)}>
                   {overdue || dueSoon ? <AlertCircle className="size-3.5 shrink-0" aria-hidden /> : null}
                   {caption.text}
                 </span>
@@ -184,7 +184,7 @@ function TileGrid({
                 <Package className="size-4 text-warning" aria-hidden />
               ) : null}
               {status.total > 0 ? (
-                <span className="flex size-6 items-center justify-center rounded-full bg-secondary text-[13px] font-semibold text-foreground">
+                <span className="flex size-6 items-center justify-center rounded-full bg-secondary ui-caption font-semibold text-foreground">
                   {status.total}
                 </span>
               ) : null}
@@ -203,5 +203,5 @@ function StatusLine({
   compact?: boolean;
 }) {
   const text = statusText(status);
-  return <span className="text-[13px] text-muted-foreground">{text}</span>;
+  return <span className="ui-caption text-muted-foreground">{text}</span>;
 }

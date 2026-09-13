@@ -1,6 +1,6 @@
 export function HowItWorksContent() {
   return (
-    <div className="grid gap-4 text-[15px] leading-6">
+    <div className="grid gap-4 ui-body leading-6">
       <section>
         <h2 className="font-semibold">One home, one phone</h2>
         <p className="mt-1 text-muted-foreground">

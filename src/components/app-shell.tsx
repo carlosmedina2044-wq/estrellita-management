@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useHousehold } from "@/hooks/use-household";
+import { useLocale } from "@/i18n/locale-provider";
 import { digestPayload } from "@/lib/digest";
 import { OPEN_RESTOCK_EVENT, overdueChoreCount, showLocalNotification } from "@/lib/notifications";
 import { groupRestock } from "@/lib/restock";
@@ -50,6 +51,7 @@ const IMMEDIATE_GRACE_MS = 750;
 const LOCK_MS = { immediate: IMMEDIATE_GRACE_MS, "2min": 120_000, "15min": 900_000 } as const;
 
 export function AppShell() {
+  const { t } = useLocale();
   const {
     household,
     hydrated,
@@ -83,6 +85,11 @@ export function AppShell() {
     acceptPlaybook,
     declinePlaybook,
     reconsiderPlaybook,
+    pendingUnlock,
+    sessionMeta,
+    sessionUnlocked,
+    lockSession,
+    unlockSession,
   } = useHousehold();
   const [rootTab, setRootTab] = useState<RootTab>(() => initialTab());
   const [stack, setStack] = useState<AppNavigateTarget[]>([]);
@@ -117,11 +124,14 @@ export function AppShell() {
         : null,
     );
   }, []);
-  // Start locked; unlock only after the device reports no biometric/passcode
-  // capability or the user passes the system prompt.
+  // Start locked; unlock only after ACL Keychain get succeeds (or no vault / web).
   const [locked, setLocked] = useState(true);
   const [lockMethod, setLockMethod] = useState<LockMethod | null>(null);
   const canLock = lockMethod === null ? null : lockMethod !== "none";
+  const requireFaceId = sessionMeta?.requireFaceId ?? household.lockSettings?.requireFaceId ?? true;
+  const lockAfter = sessionMeta?.lockAfter ?? household.lockSettings?.lockAfter ?? "2min";
+  const cleanerVisitActive = sessionMeta?.cleanerVisitActive ?? household.mode === "cleaner";
+  const onboarded = sessionMeta?.onboarded ?? household.onboarded;
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [weatherAttribution, setWeatherAttribution] = useState<WeatherAttribution | null>(null);
@@ -139,28 +149,40 @@ export function AppShell() {
     void detectLockMethod().then((method) => {
       if (cancelled) return;
       setLockMethod(method);
-      if (method === "none") setLocked(false);
+      if (method === "none" && !pendingUnlock) setLocked(false);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pendingUnlock]);
 
   useEffect(() => {
-    if (!household.onboarded || !household.lockSettings?.requireFaceId || !canLock) return;
-    if (household.mode === "cleaner") return;
-    const ms = LOCK_MS[household.lockSettings.lockAfter];
+    if (!pendingUnlock && sessionUnlocked && !requireFaceId) {
+      setLocked(false);
+    }
+  }, [pendingUnlock, sessionUnlocked, requireFaceId]);
+
+  useEffect(() => {
+    if (!onboarded || !requireFaceId || !canLock) return;
+    if (cleanerVisitActive) return;
+    const ms = LOCK_MS[lockAfter];
     let backgroundedAt: number | null = null;
 
     const onBackground = () => {
       if (isOwnerPromptInFlight()) return;
       backgroundedAt = Date.now();
-      if (household.lockSettings.lockAfter === "immediate") setLocked(true);
+      if (lockAfter === "immediate") {
+        lockSession();
+        setLocked(true);
+      }
     };
     const onForeground = () => {
       if (isOwnerPromptInFlight()) return;
       if (backgroundedAt == null) return;
-      if (Date.now() - backgroundedAt >= ms) setLocked(true);
+      if (Date.now() - backgroundedAt >= ms) {
+        lockSession();
+        setLocked(true);
+      }
       backgroundedAt = null;
     };
 
@@ -194,7 +216,7 @@ export function AppShell() {
       document.removeEventListener("visibilitychange", onVis);
       removeNative?.();
     };
-  }, [household.onboarded, household.lockSettings, household.mode, canLock]);
+  }, [onboarded, requireFaceId, lockAfter, cleanerVisitActive, canLock, lockSession]);
 
   useEffect(() => {
     const onFail = () => toast.error("Couldn’t save. Try again, or back up in Settings.");
@@ -349,22 +371,36 @@ export function AppShell() {
     );
   }
 
-  if (!household.onboarded) {
+  // Ciphertext detected (or re-locked): ACL get → decrypt before any household UI.
+  if (pendingUnlock || (locked && requireFaceId && canLock)) {
+    if (canLock === null && !pendingUnlock) {
+      return <OpeningScreen />;
+    }
+    return (
+      <FaceLock
+        method={lockMethod ?? "passcode"}
+        performUnlock={() => unlockSession("Unlock Cuidala")}
+        onUnlocked={() => {
+          setLocked(false);
+        }}
+        onUnlockFailed={(result) => {
+          if (result.reason === "key-mismatch" || result.reason === "corrupt" || result.reason === "unavailable") {
+            void retryLoad();
+          }
+        }}
+        showTip={sessionUnlocked ? !hasSeenTip(household, TIP_LOCK_REENGAGE) : false}
+        onDismissTip={() => updateTree((current) => markTipSeen(current, TIP_LOCK_REENGAGE))}
+        cleanerVisitActive={cleanerVisitActive}
+      />
+    );
+  }
+
+  if (!onboarded) {
     return <Onboarding onComplete={(input) => completeOnboarding(input)} />;
   }
 
-  if (household.lockSettings.requireFaceId && canLock === null) {
+  if (requireFaceId && canLock === null) {
     return <OpeningScreen />;
-  }
-
-  if (locked && household.lockSettings.requireFaceId && canLock) {
-    return <FaceLock
-      method={lockMethod ?? "none"}
-      onUnlocked={() => setLocked(false)}
-      showTip={!hasSeenTip(household, TIP_LOCK_REENGAGE)}
-      onDismissTip={() => updateTree((current) => markTipSeen(current, TIP_LOCK_REENGAGE))}
-      cleanerVisitActive={household.mode === "cleaner"}
-    />;
   }
 
   if (household.mode === "cleaner") {
@@ -565,19 +601,19 @@ export function AppShell() {
           className="app-tab-inner pointer-events-auto mx-auto grid grid-cols-3 border-t border-black/6 bg-background/90 px-1 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur-xl"
         >
           <NavButton
-            label="Today"
+            label={t("tabs.today")}
             icon={<Sun className={cn("size-5", rootTab === "today" && "fill-current")} />}
             active={rootTab === "today"}
             onClick={() => selectRootTab("today")}
           />
           <NavButton
-            label="Home"
+            label={t("tabs.home")}
             icon={<Home className={cn("size-5", rootTab === "home" && "fill-current")} />}
             active={rootTab === "home"}
             onClick={() => selectRootTab("home")}
           />
           <NavButton
-            label="Restock"
+            label={t("tabs.restock")}
             icon={<Package className={cn("size-5", rootTab === "restock" && "fill-current")} />}
             active={rootTab === "restock"}
             badge={restockGroups?.order_now.length ?? 0}
@@ -625,27 +661,28 @@ function LoadFailed({
   onConfirmEraseChange: (open: boolean) => void;
   onErase: () => void;
 }) {
+  const { t } = useLocale();
   const keyMismatch = reason === "key-mismatch";
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-5">
       <BrandMark size="sm" />
-      <h1 className="ui-heading mt-5 text-[28px] font-semibold tracking-tight">
-        {keyMismatch ? "This iPhone doesn’t have the key" : "Couldn’t load the house"}
+      <h1 className="ui-heading mt-5 ui-display font-semibold tracking-tight">
+        {keyMismatch ? t("recovery.titleMismatch") : t("recovery.titleGeneric")}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         {keyMismatch
-          ? "Cuidala can’t find the Keychain item that unlocks this home. Restore from a Cuidala backup file, or erase this copy and start over."
+          ? t("recovery.bodyMismatch")
           : reason === "unavailable"
-            ? "Saved household data couldn’t be read right now. Try again, or erase this device’s copy and start over."
-            : "Saved household data on this device looks damaged. Nothing was overwritten. You can try again, restore a backup, or erase it and start over."}
+            ? t("recovery.bodyUnavailable")
+            : t("recovery.bodyCorrupt")}
       </p>
       <div className="mt-6 flex flex-col gap-2">
-        <Button className="h-12" onClick={onRetry}>
-          Try again
-        </Button>
         <BackupPanel mode="import-only" onImport={onImport} replaceCounts={{ chores: 0, items: 0 }} />
+        <Button variant="secondary" className="h-12" onClick={onRetry}>
+          {t("recovery.tryAgain")}
+        </Button>
         <Button variant="secondary" className="h-12 text-destructive" onClick={onStartFresh}>
-          Erase and start over
+          {t("recovery.erase")}
         </Button>
       </div>
       <AlertDialog open={confirmErase} onOpenChange={onConfirmEraseChange}>
