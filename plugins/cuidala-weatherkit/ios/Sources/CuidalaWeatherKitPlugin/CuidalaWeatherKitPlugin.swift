@@ -3,6 +3,18 @@ import Capacitor
 import CoreLocation
 import WeatherKit
 
+private actor AttributionCacheStore {
+    private var cache: [String: String]?
+
+    func get() -> [String: String]? {
+        cache
+    }
+
+    func set(_ value: [String: String]) {
+        cache = value
+    }
+}
+
 @objc(CuidalaWeatherKitPlugin)
 public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "CuidalaWeatherKitPlugin"
@@ -13,7 +25,16 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "fetchAttribution", returnType: CAPPluginReturnPromise)
     ]
 
-    private static var attributionCache: [String: String]?
+    private static let attributionCache = AttributionCacheStore()
+
+    private static let isoDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 
     @objc func fetchForecast(_ call: CAPPluginCall) {
         guard let latitude = call.getDouble("latitude"),
@@ -34,12 +55,17 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
                         "precipIn": day.precipitationAmount.converted(to: .inches).value
                     ]
                 }
-                call.resolve([
-                    "days": days,
-                    "fetchedAt": ISO8601DateFormatter().string(from: Date())
-                ])
+                let fetchedAt = ISO8601DateFormatter().string(from: .now)
+                await MainActor.run {
+                    call.resolve([
+                        "days": days,
+                        "fetchedAt": fetchedAt
+                    ])
+                }
             } catch {
-                call.reject(error.localizedDescription)
+                await MainActor.run {
+                    call.reject(error.localizedDescription)
+                }
             }
         }
     }
@@ -51,31 +77,35 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString("\(postalCode), United States") { placemarks, error in
-            if let error {
-                call.reject(error.localizedDescription)
-                return
+            Task { @MainActor in
+                if let error {
+                    call.reject(error.localizedDescription)
+                    return
+                }
+                guard let place = placemarks?.first, let location = place.location else {
+                    call.reject("No place found for that ZIP")
+                    return
+                }
+                var result: [String: Any] = [
+                    "lat": location.coordinate.latitude,
+                    "lng": location.coordinate.longitude
+                ]
+                if let city = place.locality, !city.isEmpty {
+                    result["placeName"] = city
+                }
+                call.resolve(result)
             }
-            guard let place = placemarks?.first, let location = place.location else {
-                call.reject("No place found for that ZIP")
-                return
-            }
-            var result: [String: Any] = [
-                "lat": location.coordinate.latitude,
-                "lng": location.coordinate.longitude
-            ]
-            if let city = place.locality, !city.isEmpty {
-                result["placeName"] = city
-            }
-            call.resolve(result)
         }
     }
 
     @objc func fetchAttribution(_ call: CAPPluginCall) {
-        if let cached = Self.attributionCache {
-            call.resolve(cached)
-            return
-        }
         Task {
+            if let cached = await Self.attributionCache.get() {
+                await MainActor.run {
+                    call.resolve(cached)
+                }
+                return
+            }
             do {
                 let attribution = try await WeatherService.shared.attribution
                 async let lightData = URLSession.shared.data(from: attribution.combinedMarkLightURL)
@@ -88,20 +118,19 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
                     "markLight": "data:image/png;base64,\(light.base64EncodedString())",
                     "markDark": "data:image/png;base64,\(dark.base64EncodedString())"
                 ]
-                Self.attributionCache = payload
-                call.resolve(payload)
+                await Self.attributionCache.set(payload)
+                await MainActor.run {
+                    call.resolve(payload)
+                }
             } catch {
-                call.reject(error.localizedDescription)
+                await MainActor.run {
+                    call.reject(error.localizedDescription)
+                }
             }
         }
     }
 
     private static func isoDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
+        isoDateFormatter.string(from: date)
     }
 }
