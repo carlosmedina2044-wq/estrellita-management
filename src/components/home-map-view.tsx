@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Package } from "lucide-react";
+import { ChevronRight, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { tActive } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
@@ -55,11 +55,11 @@ export function HomeMapView({
             {hideFloorHeader ? null : (
               <header className="mb-2 flex items-baseline justify-between gap-3">
                 <h2 className="ui-heading ui-card font-semibold">{floor.name}</h2>
-                <StatusLine status={floorStatus} compact />
+                <StatusLine status={floorStatus} />
               </header>
             )}
             {rooms.length === 0 ? (
-              <p className="rounded-2xl bg-card px-4 py-6 text-center ui-body text-muted-foreground">
+              <p className="rounded-[var(--r-container)] bg-card px-4 py-6 text-center ui-body text-muted-foreground">
                 {t("map.noRoomsOnFloor")}
               </p>
             ) : (
@@ -82,21 +82,21 @@ export function HomeMapView({
 
 function roomCaption(status: NodeStatus, nearReplacement: boolean) {
   if (status.overdue > 0) {
-    return { text: tActive("map.overdueCount", { count: status.overdue }), className: "text-destructive" };
+    return { text: tActive("map.overdueCount", { count: status.overdue }), className: "text-overdue" };
   }
   if (status.dueSoon > 0) {
-    return { text: tActive("map.dueSoonCount", { count: status.dueSoon }), className: "text-warning" };
+    return { text: tActive("map.dueSoonCount", { count: status.dueSoon }), className: "text-soon" };
   }
   if (status.reorderPending > 0) {
-    return { text: tActive("map.reorderCount", { count: status.reorderPending }), className: "text-warning" };
+    return { text: tActive("map.reorderCount", { count: status.reorderPending }), className: "text-soon" };
   }
   if (nearReplacement) {
-    return { text: tActive("home.replacementSoon"), className: "text-warning" };
+    return { text: tActive("home.replacementSoon"), className: "text-soon" };
   }
   if (status.total > 0) {
     return { text: tActive("map.toDoCount", { count: status.total }), className: "text-muted-foreground" };
   }
-  return { text: tActive("home.allCaughtUp"), className: "text-muted-foreground" };
+  return { text: tActive("home.allCaughtUp"), className: "text-done" };
 }
 
 function TileGrid({
@@ -127,13 +127,11 @@ function TileGrid({
   const canDrag = Boolean(onReorder) && finePointer;
 
   return (
-    <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+    <div className="ui-group">
       {rooms.map((room) => {
         const status = nodeStatus(household, room.id, "room", now);
         const nearReplacement = Boolean(replacementRooms?.has(room.id));
         const caption = roomCaption(status, nearReplacement);
-        const overdue = status.overdue > 0;
-        const dueSoon = !overdue && (status.dueSoon > 0 || nearReplacement);
         return (
           <button
             key={room.id}
@@ -163,35 +161,17 @@ function TileGrid({
             }}
             onClick={() => onSelectRoom(room.id)}
             className={cn(
-              "flex min-h-20 items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-transform duration-75 active:scale-[0.98]",
-              overdue
-                ? "border-border border-l-[3px] border-l-destructive bg-card"
-                : dueSoon
-                  ? "border-border border-l-[3px] border-l-warning bg-card"
-                  : "border-border bg-card",
-              selectedId === room.id && "ring-2 ring-primary",
+              "ui-group-row flex w-full items-center gap-3 px-4 text-left transition-colors active:bg-foreground/6",
+              selectedId === room.id && "bg-primary/5",
             )}
           >
-            <span className="flex min-w-0 items-start gap-3">
-              <RoomTypeIcon room={room} className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-              <span className="min-w-0">
-                <span className="block ui-card font-medium leading-snug">{room.name}</span>
-                <span className={cn("mt-0.5 flex items-center gap-1 ui-caption", caption.className)}>
-                  {overdue || dueSoon ? <AlertCircle className="size-3.5 shrink-0" aria-hidden /> : null}
-                  {caption.text}
-                </span>
-              </span>
+            <RoomTypeIcon room={room} className="size-6 shrink-0 text-muted-foreground" />
+            <span className="min-w-0 flex-1 truncate ui-body font-medium">{room.name}</span>
+            <span className={cn("flex shrink-0 items-center gap-1.5 ui-caption font-medium", caption.className)}>
+              {status.reorderPending > 0 ? <Package className="size-3.5" aria-hidden /> : null}
+              {caption.text}
             </span>
-            <span className="flex shrink-0 items-center gap-1.5">
-              {status.reorderPending > 0 ? (
-                <Package className="size-4 text-warning" aria-hidden />
-              ) : null}
-              {status.total > 0 ? (
-                <span className="flex size-6 items-center justify-center rounded-full bg-secondary ui-caption font-semibold tabular-nums text-foreground">
-                  {status.total}
-                </span>
-              ) : null}
-            </span>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground/70" aria-hidden />
           </button>
         );
       })}
@@ -203,7 +183,6 @@ function StatusLine({
   status,
 }: {
   status: NodeStatus;
-  compact?: boolean;
 }) {
   const text = statusText(status);
   return <span className="ui-caption text-muted-foreground">{text}</span>;

@@ -4,13 +4,10 @@ import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react
 import { useLocale } from "@/i18n/locale-provider";
 import { tDutyTitle } from "@/i18n/content";
 import { Check, Circle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { dutySubtitle, installedAtFor } from "@/lib/duties";
 import { prefersReducedMotion } from "@/lib/motion";
 import type { Duty, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const CHIP = "h-5 rounded-full px-1.5 ui-caption font-medium";
 
 export function DutyRow({
   duty,
@@ -66,15 +63,29 @@ export function DutyRow({
     subtitle = t("chore.suppliesOnHand", { subtitle });
   }
 
-  const statusChip = overdue && !hideOverdueChip
-    ? { label: t("chore.overdue"), className: "", destructive: true }
-    : partChip && partChip.kind === "arriving"
-      ? { label: partChip.label, className: "bg-secondary text-muted-foreground" }
-      : partChip && partChip.kind === "install_today"
-        ? { label: partChip.label, className: "bg-success/15 text-success" }
+  const metaTone = overdue && !hideOverdueChip
+    ? "text-overdue"
+    : partChip && partChip.kind === "install_today"
+      ? "text-done"
+      : partChip && partChip.kind === "arriving"
+        ? "text-soon"
         : upcoming
-          ? { label: t("chore.upcoming"), className: "bg-secondary text-muted-foreground" }
-          : null;
+          ? "text-muted-foreground"
+          : "text-muted-foreground";
+  const circleTone = overdue && !hideOverdueChip
+    ? "text-overdue"
+    : partChip && partChip.kind === "install_today"
+      ? "text-done"
+      : upcoming
+        ? "text-soon"
+        : "text-foreground/55";
+  const metaLabel = overdue && !hideOverdueChip
+    ? t("chore.overdue")
+    : partChip && (partChip.kind === "arriving" || partChip.kind === "install_today")
+      ? partChip.label
+      : upcoming
+        ? t("chore.upcoming")
+        : null;
 
   useEffect(() => {
     onExitCompleteRef.current = onExitComplete;
@@ -167,7 +178,7 @@ export function DutyRow({
         onLongPress({ x: event.clientX, y: event.clientY });
       }}
     >
-      <div className={cn("flex items-stretch bg-transparent px-2 py-1", showDone && "opacity-60")}>
+      <div className={cn("ui-group-row flex items-stretch bg-transparent px-1", showDone && "opacity-60")}>
         <button
           type="button"
           onClick={onToggle}
@@ -195,7 +206,7 @@ export function DutyRow({
               )}
             </span>
           ) : (
-            <Circle className="size-6 stroke-[2.2] text-foreground/55" />
+            <Circle className={cn("size-6 stroke-[2.2]", circleTone)} />
           )}
         </button>
         <button
@@ -205,33 +216,20 @@ export function DutyRow({
           className="flex min-w-0 flex-1 items-center py-2.5 pr-3 text-left active:bg-foreground/6"
         >
           <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-1.5">
-              <span
-                className={cn(
-                  "ui-card font-medium leading-snug",
-                  showDone && "text-muted-foreground line-through",
-                )}
-              >
-                {title}
-              </span>
-              {duty.audience === "cleaner" && !showDone ? (
-                <Badge variant="secondary" className={CHIP}>
-                  {t("audience.cleaner")}
-                </Badge>
-              ) : null}
-              {statusChip && !showDone ? (
-                statusChip.destructive ? (
-                  <Badge variant="destructive" className={CHIP}>
-                    {statusChip.label}
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className={cn(CHIP, statusChip.className)}>
-                    {statusChip.label}
-                  </Badge>
-                )
-              ) : null}
+            <span
+              className={cn(
+                "block w-full ui-body font-medium leading-snug",
+                showDone && "text-muted-foreground line-through",
+              )}
+            >
+              {title}
             </span>
-            <span className="mt-0.5 block truncate ui-caption text-muted-foreground">{subtitle}</span>
+            <span className={cn("mt-0.5 block truncate ui-caption", metaTone)}>
+              {metaLabel && !showDone ? `${metaLabel} · ${subtitle}` : subtitle}
+              {duty.audience === "cleaner" && !showDone
+                ? ` · ${t("audience.cleaner")}`
+                : ""}
+            </span>
           </span>
         </button>
         {partChip && !showDone && partChip.kind === "order_first" ? (
@@ -240,9 +238,9 @@ export function DutyRow({
             onClick={onPartChip}
             className="flex min-h-11 items-center self-center pr-3"
           >
-            <Badge variant="secondary" className={cn(CHIP, "h-11 px-3")}>
+            <span className="inline-flex h-8 items-center rounded-full bg-signal-soft px-3 ui-caption font-medium text-signal">
               {partChip.label}
-            </Badge>
+            </span>
           </button>
         ) : null}
       </div>

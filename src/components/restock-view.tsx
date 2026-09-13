@@ -9,7 +9,7 @@ import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
-import { OrderByLine, RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
+import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { SupplyCheckinSheet } from "@/components/supply-checkin-sheet";
 import { SupplyGauge } from "@/components/supply-gauge";
 import { Button } from "@/components/ui/button";
@@ -465,31 +465,34 @@ function RestockRow({
   const placement = restockPlacement(item, household);
   const catalog = catalogItemForSupply(item);
   const needsSize = Boolean(catalog?.variants?.length && !item.sku.trim());
+  const orderBy = placement.orderByDate ? formatDueDate(placement.orderByDate) : null;
+  const meta = [where, orderBy ? t("restock.orderByLower", { date: orderBy }) : null]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <div id={`restock-item-${item.id}`} className="ui-group-row w-full px-4 py-3">
-      <button type="button" className="w-full text-left active:bg-foreground/6" onClick={onOpen}>
-        <span className="flex items-start gap-3">
-          <Package
-            className={`mt-0.5 size-4 shrink-0 ${placement.bucket === "order_now" ? "text-primary" : "text-muted-foreground"}`}
-          />
-          <span className="min-w-0 flex-1">
-            <span className="block ui-card font-medium leading-snug">
-              <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
-            </span>
-            <span className="mt-0.5 block ui-caption text-muted-foreground">
-              {where ? `${where} · ` : ""}
-              <OrderByLine item={item} household={household} />
-            </span>
+    <div id={`restock-item-${item.id}`} className="ui-group-row flex w-full items-center gap-3 px-4 py-2.5">
+      <div className="min-w-0 flex-1">
+        <button type="button" className="w-full text-left active:bg-foreground/6" onClick={onOpen}>
+          <span className="block truncate ui-body font-medium leading-snug">
+            <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
           </span>
-        </span>
-      </button>
-      {needsSize && onAddSize ? (
-        <button type="button" className="mt-1 inline-flex min-h-11 items-center pl-7 ui-caption font-medium text-brand" onClick={onAddSize}>
-          {t("restock.addSize")}
+          {meta ? (
+            <span className="mt-0.5 block truncate ui-caption text-muted-foreground">{meta}</span>
+          ) : null}
         </button>
-      ) : null}
+        {needsSize && onAddSize ? (
+          <button
+            type="button"
+            className="mt-1 inline-flex min-h-11 items-center ui-caption font-medium text-primary"
+            onClick={onAddSize}
+          >
+            {t("restock.addSize")}
+          </button>
+        ) : null}
+      </div>
       {placement.estimatedLevelFraction != null ? (
-        <div className="mt-2 pl-7">
+        <div className="w-[160px] shrink-0">
           <SupplyGauge
             fraction={placement.estimatedLevelFraction}
             runwayDays={placement.runwayDays}
@@ -497,8 +500,12 @@ function RestockRow({
           />
         </div>
       ) : null}
-      {placement.bucket === "stocked" ? null : (
-        <div className="mt-2 pl-7">
+      {placement.bucket === "stocked" ? (
+        orderBy ? (
+          <span className="shrink-0 ui-caption tabular-nums text-muted-foreground">{orderBy}</span>
+        ) : null
+      ) : (
+        <div className="shrink-0">
           <RestockOrderButton
             item={item}
             household={household}
@@ -506,6 +513,8 @@ function RestockRow({
             autoReceive={autoReceive}
             subdued={placement.bucket !== "order_now"}
             early={placement.bucket === "coming_up"}
+            compact
+            className="h-8 rounded-full px-3"
             {...restockButtonProps(item, restock)}
           />
         </div>
@@ -513,3 +522,4 @@ function RestockRow({
     </div>
   );
 }
+

@@ -521,13 +521,17 @@ html.keyboard-open [data-slot="sheet-footer"] {
 
 .ui-group {
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: var(--r-container);
   background: var(--card);
   border: 1px solid var(--border);
 }
 
 .ui-group-row + .ui-group-row {
   border-top: 1px solid var(--border);
+}
+
+.ui-group-row {
+  min-height: 56px;
 }
 
 .app-frame {
