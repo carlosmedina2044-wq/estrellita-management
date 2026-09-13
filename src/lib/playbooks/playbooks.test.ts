@@ -372,17 +372,20 @@ test("weatherWatch lists a freeze hit and drops requires-gated triggers", () => 
 });
 
 test("seasonSectionModel hides when open and fires are empty", () => {
-  // Mixed has no climate-specific playbooks yet; decline year-round ones.
+  const now = new Date(2026, 6, 15);
+  const year = 2026;
   const household = home({
     location: { postalCode: "37201", climateZone: "mixed" },
     attributes: { ...DEFAULT_ATTRIBUTES },
     weatherFires: [],
-    playbookDecisions: [
-      { playbookId: "all-safety", year: 2026, declinedTaskKeys: ["*"], disabled: true },
-      { playbookId: "new-home", year: 2026, declinedTaskKeys: ["*"], disabled: true },
-    ],
+    playbookDecisions: PLAYBOOKS.map((playbook) => ({
+      playbookId: playbook.id,
+      year,
+      declinedTaskKeys: ["*"],
+      disabled: true,
+    })),
   });
-  const model = seasonSectionModel(household, new Date(2026, 6, 15));
+  const model = seasonSectionModel(household, now);
   assert.equal(model.fires.length, 0);
   assert.equal(model.open.length, 0);
 });
