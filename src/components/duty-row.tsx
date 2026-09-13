@@ -128,7 +128,7 @@ export function DutyRow({
         <button
           type="button"
           onClick={onToggle}
-          className="flex size-11 shrink-0 items-center justify-center text-primary"
+          className="flex size-11 shrink-0 items-center justify-center text-primary active:bg-foreground/6"
           aria-label={showDone ? t("chore.undoAria", { title }) : t("chore.completeAria", { title })}
         >
           {showDone ? (
@@ -159,7 +159,7 @@ export function DutyRow({
           type="button"
           onClick={onOpen}
           disabled={!onOpen || exiting}
-          className="flex min-w-0 flex-1 items-center py-2.5 pr-3 text-left"
+          className="flex min-w-0 flex-1 items-center py-2.5 pr-3 text-left active:bg-foreground/6"
         >
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-1.5">

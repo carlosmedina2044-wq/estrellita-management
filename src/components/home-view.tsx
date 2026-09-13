@@ -275,7 +275,7 @@ export function HomeView({
       <section>
         <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.location")}</h2>
         <div className="ui-group">
-          <button type="button" className="ui-group-row w-full px-4 py-3 text-left" onClick={() => setZipOpen(true)}>
+          <button type="button" className="ui-group-row w-full px-4 py-3 text-left active:bg-foreground/6" onClick={() => setZipOpen(true)}>
             <p className="ui-body font-medium">{t("settings.zip")}</p>
             <p className="mt-0.5 ui-caption text-muted-foreground">
               {household.location.postalCode

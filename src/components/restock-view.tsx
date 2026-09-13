@@ -121,7 +121,7 @@ export function RestockView({
           household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
               type="button"
-              className="inline-flex h-11 items-center rounded-full px-3 ui-caption font-medium text-primary"
+              className="inline-flex h-11 items-center rounded-full px-3 ui-caption font-medium text-primary transition-transform duration-75 active:scale-[0.98]"
               onClick={startWalk}
             >
               {t("restock.walkHouseShort")}
@@ -170,7 +170,7 @@ export function RestockView({
                   <button
                     key={item.id}
                     type="button"
-                    className="w-full text-left"
+                    className="w-full text-left active:bg-foreground/6"
                     onClick={() => openItem(item)}
                   >
                     <span className="block ui-body font-medium">{item.itemName}</span>
@@ -467,7 +467,7 @@ function RestockRow({
   const needsSize = Boolean(catalog?.variants?.length && !item.sku.trim());
   return (
     <div id={`restock-item-${item.id}`} className="ui-group-row w-full px-4 py-3">
-      <button type="button" className="w-full text-left" onClick={onOpen}>
+      <button type="button" className="w-full text-left active:bg-foreground/6" onClick={onOpen}>
         <span className="flex items-start gap-3">
           <Package
             className={`mt-0.5 size-4 shrink-0 ${placement.bucket === "order_now" ? "text-primary" : "text-muted-foreground"}`}

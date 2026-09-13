@@ -188,7 +188,7 @@ export function SeasonalView({
         {missingZip && onSavePostalCode ? (
           <button
             type="button"
-            className="mt-3 w-full rounded-2xl bg-card px-4 py-4 text-left"
+            className="mt-3 w-full rounded-2xl bg-card px-4 py-4 text-left transition-transform duration-75 active:scale-[0.98]"
             onClick={() => setZipOpen(true)}
           >
             <p className="font-medium text-primary">{t("zip.addTitle")}</p>

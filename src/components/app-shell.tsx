@@ -708,7 +708,7 @@ export function AppShell() {
                   type="button"
                   aria-label={t("common.settings")}
                   onClick={() => navigate({ tab: "settings" })}
-                  className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+                  className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-transform duration-75 active:scale-[0.98]"
                 >
                   <Settings className="size-5" />
                 </button>
@@ -1010,7 +1010,7 @@ function NavButton({
       aria-label={ariaLabel}
       onClick={onClick}
       className={cn(
-        "relative mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl ui-caption font-medium",
+        "relative mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl ui-caption font-medium transition-transform duration-75 active:scale-[0.98]",
         active ? "bg-secondary text-primary" : "text-muted-foreground",
       )}
     >
