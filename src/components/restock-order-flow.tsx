@@ -14,6 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { addDays, formatDueDate, formatWeekdayDate, toISODate } from "@/lib/dates";
+import { hapticOrdered } from "@/lib/native/haptics";
 import { isNative } from "@/lib/native/platform";
 import { RETAILER_CHIPS } from "@/lib/retailer";
 import {
@@ -35,6 +36,8 @@ import { TeachingTip } from "@/components/teaching-tip";
 
 const LOOKING_MS = 30 * 60 * 1000;
 const lookingUntil = new Map<string, number>();
+
+type OrderSheet = "closed" | "picker" | "confirm" | "receive" | "overflow" | "date";
 /** Retailers confirmed this session — skip the confirm sheet on the next order. */
 const trustedRetailers = new Set<string>();
 
@@ -85,6 +88,7 @@ export function RestockOrderButton({
   autoPicker,
   onPickerOpenChange,
   subdued,
+  early,
 }: {
   item: SupplyAutomation;
   household: Pick<Household, "duties" | "completions" | "savedRetailerLinks" | "consumables" | "preferredRetailers" | "restockSafetyBufferDays" | "seenTips">;
@@ -104,18 +108,16 @@ export function RestockOrderButton({
   autoPicker?: boolean;
   onPickerOpenChange?: (open: boolean) => void;
   subdued?: boolean;
+  early?: boolean;
 }) {
-  const [picker, setPicker] = useState(false);
-  const [ask, setAsk] = useState(false);
-  const [receive, setReceive] = useState(false);
-  const [overflow, setOverflow] = useState(false);
-  const [changeDate, setChangeDate] = useState(false);
+  const [sheet, setSheet] = useState<OrderSheet>("closed");
+  const confirmCommitted = useRef(false);
   const [waitingResume, setWaitingResume] = useState(false);
   const [qtyDraft, setQtyDraft] = useState(String(item.qtyPerOrder || 1));
   const [pendingRetailer, setPendingRetailer] = useState<string | undefined>();
   const pendingRetailerRef = useRef<string | undefined>(undefined);
-  if (autoReceive && !receive) setReceive(true);
-  if (autoPicker && !picker) setPicker(true);
+  if (autoReceive && sheet === "closed") setSheet("receive");
+  if (autoPicker && sheet === "closed") setSheet("picker");
   const placement = restockPlacement(item, household);
   const arriving = placement.bucket === "ordered";
   const linkedConsumable = (household.consumables ?? []).find(
@@ -142,7 +144,8 @@ export function RestockOrderButton({
     const key = retailerKey(details.retailer);
     if (key) trustedRetailers.add(key);
     onOrdered?.(details);
-    setAsk(false);
+    setSheet("closed");
+    void hapticOrdered();
     toast.success("Marked ordered", { description: item.itemName });
   }
 
@@ -155,7 +158,8 @@ export function RestockOrderButton({
       finishOrdered(defaultOrderDetails(retailer ?? item.preferredRetailer));
       return;
     }
-    setAsk(true);
+    confirmCommitted.current = false;
+    setSheet("confirm");
   }
   const maybeAskRef = useRef(maybeAsk);
   useEffect(() => {
@@ -214,11 +218,11 @@ export function RestockOrderButton({
 
   const receiveDialog = (
     <ReceiveDialog
-      open={receive}
+      open={sheet === "receive"}
       qty={qtyDraft}
       onQty={setQtyDraft}
       suggestedCost={suggestedCost}
-      onOpenChange={setReceive}
+      onOpenChange={(open) => setSheet(open ? "receive" : "closed")}
       onConfirm={finishReceive}
     />
   );
@@ -228,7 +232,7 @@ export function RestockOrderButton({
       <div className="grid gap-2">
         <p className="text-[13px] text-muted-foreground">Did it arrive?</p>
         {onReceived ? (
-          <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setReceive(true)}>
+          <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setSheet("receive")}>
             Received
           </Button>
         ) : null}
@@ -259,19 +263,19 @@ export function RestockOrderButton({
               size="icon"
               className="size-11 shrink-0"
               aria-label="More"
-              onClick={() => setOverflow(true)}
+              onClick={() => setSheet("overflow")}
             >
               <Ellipsis className="size-4" />
             </Button>
           ) : null}
         </div>
         {onReceived ? (
-          <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setReceive(true)}>
+          <Button type="button" className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")} onClick={() => setSheet("receive")}>
             Received
           </Button>
         ) : null}
         {receiveDialog}
-        <Sheet open={overflow} onOpenChange={setOverflow}>
+        <Sheet open={sheet === "overflow"} onOpenChange={(open) => setSheet(open ? "overflow" : "closed")}>
           <SheetContent side="bottom" className="gap-0">
             <SheetHeader>
               <SheetTitle>On the way</SheetTitle>
@@ -284,8 +288,7 @@ export function RestockOrderButton({
                   variant="secondary"
                   className="h-12"
                   onClick={() => {
-                    setOverflow(false);
-                    setChangeDate(true);
+                    setSheet("date");
                   }}
                 >
                   Change date
@@ -297,7 +300,7 @@ export function RestockOrderButton({
                   variant="ghost"
                   className="h-12"
                   onClick={() => {
-                    setOverflow(false);
+                    setSheet("closed");
                     onNeverCame();
                   }}
                 >
@@ -309,12 +312,12 @@ export function RestockOrderButton({
         </Sheet>
         {onChangeArrival ? (
           <ChangeDateSheet
-            open={changeDate}
+            open={sheet === "date"}
             item={item}
-            onOpenChange={setChangeDate}
+            onOpenChange={(open) => setSheet(open ? "date" : "closed")}
             onConfirm={(date) => {
               onChangeArrival(date);
-              setChangeDate(false);
+              setSheet("closed");
             }}
           />
         ) : null}
@@ -326,19 +329,19 @@ export function RestockOrderButton({
     <>
       <Button
         type="button"
-        variant={subdued ? "secondary" : "default"}
+        variant={early ? "ghost" : subdued ? "secondary" : "default"}
         className={className ?? (compact ? "h-11 w-auto self-start px-4" : "h-11")}
-        onClick={() => setPicker(true)}
+        onClick={() => setSheet("picker")}
       >
-        Order
+        {early ? "Order early" : "Order"}
       </Button>
 
       <RetailerPickerSheet
-        open={picker}
+        open={sheet === "picker"}
         item={item}
         household={household}
         onOpenChange={(open) => {
-          setPicker(open);
+          setSheet(open ? "picker" : "closed");
           onPickerOpenChange?.(open);
         }}
         onSaveLink={onSaveLink}
@@ -346,7 +349,8 @@ export function RestockOrderButton({
         onAddSize={onAddSize}
         onAlreadyOrdered={() => {
           rememberRetailer();
-          setAsk(true);
+          confirmCommitted.current = false;
+          setSheet("confirm");
         }}
         onOpened={(retailer) => {
           rememberRetailer(retailer);
@@ -359,17 +363,24 @@ export function RestockOrderButton({
       />
 
       <OrderConfirmSheet
-        open={ask}
+        open={sheet === "confirm"}
         item={item}
         retailer={pendingRetailer}
         showArrivalTip={!hasSeenTip(household, TIP_ARRIVAL)}
         onDismissArrivalTip={() => onMarkTip?.(TIP_ARRIVAL)}
-        onOpenChange={setAsk}
-        onJustLooking={() => {
-          lookingUntil.set(item.id, Date.now() + LOOKING_MS);
-          setAsk(false);
+        onOpenChange={(open) => {
+          if (open) {
+            confirmCommitted.current = false;
+            setSheet("confirm");
+            return;
+          }
+          if (!confirmCommitted.current) lookingUntil.set(item.id, Date.now() + LOOKING_MS);
+          setSheet("closed");
         }}
-        onConfirm={finishOrdered}
+        onConfirm={(details) => {
+          confirmCommitted.current = true;
+          finishOrdered(details);
+        }}
       />
       {receiveDialog}
     </>
@@ -383,7 +394,6 @@ function OrderConfirmSheet({
   showArrivalTip,
   onDismissArrivalTip,
   onOpenChange,
-  onJustLooking,
   onConfirm,
 }: {
   open: boolean;
@@ -392,7 +402,6 @@ function OrderConfirmSheet({
   showArrivalTip?: boolean;
   onDismissArrivalTip?: () => void;
   onOpenChange: (open: boolean) => void;
-  onJustLooking: () => void;
   onConfirm: (details: MarkOrderedDetails) => void;
 }) {
   const defaultOffset = closestArrivalOffset(leadTimeDaysFor(item));
@@ -494,10 +503,7 @@ function OrderConfirmSheet({
               Yes, ordered
             </Button>
             <Button type="button" variant="secondary" className="h-12" onClick={() => onOpenChange(false)}>
-              Not yet
-            </Button>
-            <Button type="button" variant="ghost" className="h-12" onClick={onJustLooking}>
-              Just looking
+              Cancel
             </Button>
           </div>
         </div>

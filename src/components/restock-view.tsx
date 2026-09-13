@@ -110,7 +110,8 @@ export function RestockView({
   }, [focus, onFocusHandled]);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="relative flex min-h-full flex-col gap-5">
+      <div inert={walking} className={cn("flex flex-col gap-5", walking && "invisible")}>
       <PageHeader
         title="Restock"
         action={
@@ -126,51 +127,7 @@ export function RestockView({
         }
       />
 
-      {walking ? (
-        <div className="rounded-2xl bg-card px-4 py-5">
-          <p className="text-[17px] font-medium">Walk your house</p>
-          <p className="mt-1 text-sm text-muted-foreground">Room by room. Tap what you buy, add anything we missed. Sizes come later, when you order.</p>
-          {isAfterFirstDay(household) && !hasSeenTip(household, TIP_WALK_AFTER_DAY_ONE) && restock.onMarkTip ? (
-            <div className="mt-3">
-              <TeachingTip onDismiss={() => restock.onMarkTip?.(TIP_WALK_AFTER_DAY_ONE)}>
-                Walk anytime. Filters, batteries, soap. Takes a few minutes.
-              </TeachingTip>
-            </div>
-          ) : null}
-          <div className="mt-3">
-            <RestockWalkPicker
-              picks={walkPicks}
-              onChange={setWalkPicks}
-              context={household}
-              trackedNames={household.supplyAutomations.map((item) => item.itemName)}
-              onAddCustom={(group) => {
-                setEditingCustom(null);
-                setQuickAdd(false);
-                setAddGroup(group);
-              }}
-              onEditCustom={(pick) => {
-                setEditingCustom(pick);
-                setQuickAdd(false);
-                setAddGroup(pick.custom.group);
-              }}
-            />
-          </div>
-          <div className="mt-3 flex gap-2">
-            <Button variant="secondary" className="h-11 flex-1" onClick={() => setWalking(false)}>
-              Cancel
-            </Button>
-            <Button
-              className="h-11 flex-1"
-              onClick={() => {
-                onWalkHouse?.(walkPicks);
-                setWalking(false);
-              }}
-            >
-              Add to Restock
-            </Button>
-          </div>
-        </div>
-      ) : household.supplyAutomations.length === 0 ? (
+      {household.supplyAutomations.length === 0 ? (
         <div className="rounded-2xl bg-card px-4 py-5">
           <p className="text-[17px] font-medium">Restock is empty</p>
           <p className="mt-1 text-[15px] text-muted-foreground">
@@ -187,7 +144,7 @@ export function RestockView({
         </div>
       ) : null}
 
-      {household.supplyAutomations.length > 0 && !walking ? (
+      {household.supplyAutomations.length > 0 ? (
         weekItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Nothing to order this week.
@@ -207,12 +164,7 @@ export function RestockView({
                     key={item.id}
                     type="button"
                     className="w-full text-left"
-                    onClick={() =>
-                      document.getElementById(`restock-item-${item.id}`)?.scrollIntoView({
-                        behavior: scrollBehavior(),
-                        block: "center",
-                      })
-                    }
+                    onClick={() => openItem(item)}
                   >
                     <span className="block text-[15px] font-medium">{item.itemName}</span>
                     {placement.orderByDate ? (
@@ -228,7 +180,7 @@ export function RestockView({
         )
       ) : null}
 
-      {needsCheckin.length > 0 && !walking ? (
+      {needsCheckin.length > 0 ? (
         <div className="rounded-2xl bg-card px-4 py-4">
           <p className="text-[17px] font-medium">Quick check</p>
           <p className="mt-1 text-[13px] text-muted-foreground">Keeps the estimates honest.</p>
@@ -347,6 +299,53 @@ export function RestockView({
       })}>
         Quick add
       </Button>
+      </div>
+
+      {walking ? (
+        <div className="absolute inset-0 z-10 flex flex-col overflow-y-auto bg-background pb-4">
+          <p className="ui-display">Walk your house</p>
+          <p className="mt-1 text-sm text-muted-foreground">Room by room. Tap what you buy, add anything we missed. Sizes come later, when you order.</p>
+          {isAfterFirstDay(household) && !hasSeenTip(household, TIP_WALK_AFTER_DAY_ONE) && restock.onMarkTip ? (
+            <div className="mt-3">
+              <TeachingTip onDismiss={() => restock.onMarkTip?.(TIP_WALK_AFTER_DAY_ONE)}>
+                Walk anytime. Filters, batteries, soap. Takes a few minutes.
+              </TeachingTip>
+            </div>
+          ) : null}
+          <div className="mt-3">
+            <RestockWalkPicker
+              picks={walkPicks}
+              onChange={setWalkPicks}
+              context={household}
+              trackedNames={household.supplyAutomations.map((item) => item.itemName)}
+              onAddCustom={(group) => {
+                setEditingCustom(null);
+                setQuickAdd(false);
+                setAddGroup(group);
+              }}
+              onEditCustom={(pick) => {
+                setEditingCustom(pick);
+                setQuickAdd(false);
+                setAddGroup(pick.custom.group);
+              }}
+            />
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button variant="secondary" className="h-11 flex-1" onClick={() => setWalking(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="h-11 flex-1"
+              onClick={() => {
+                onWalkHouse?.(walkPicks);
+                setWalking(false);
+              }}
+            >
+              Add to Restock
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <RestockWalkAddSheet
         open={addGroup !== null}
@@ -490,16 +489,19 @@ function RestockRow({
           />
         </div>
       ) : null}
-      <div className="mt-2 pl-7">
-        <RestockOrderButton
-          item={item}
-          household={household}
-          onAddSize={onAddSize ?? onOpen}
-          autoReceive={autoReceive}
-          subdued={placement.bucket !== "order_now"}
-          {...restockButtonProps(item, restock)}
-        />
-      </div>
+      {placement.bucket === "stocked" ? null : (
+        <div className="mt-2 pl-7">
+          <RestockOrderButton
+            item={item}
+            household={household}
+            onAddSize={onAddSize ?? onOpen}
+            autoReceive={autoReceive}
+            subdued={placement.bucket !== "order_now"}
+            early={placement.bucket === "coming_up"}
+            {...restockButtonProps(item, restock)}
+          />
+        </div>
+      )}
     </div>
   );
 }
