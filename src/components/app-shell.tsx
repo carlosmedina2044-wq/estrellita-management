@@ -37,7 +37,6 @@ import { roomsWithNearReplacement } from "@/lib/forecast";
 import { ForecastCard } from "@/components/forecast-card";
 import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
-import { hapticTab } from "@/lib/native/haptics";
 import { isNative } from "@/lib/native/platform";
 import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { fetchForecastFor } from "@/lib/weather/client";
@@ -265,7 +264,6 @@ export function AppShell() {
 
   const tabPaneRefs = useRef<Partial<Record<RootTab, HTMLDivElement | null>>>({});
   const selectRootTab = useCallback((next: RootTab) => {
-    void hapticTab();
     setRootTab((current) => {
       if (current === next && top === null && !leavingPush) {
         const pane = tabPaneRefs.current[next];
