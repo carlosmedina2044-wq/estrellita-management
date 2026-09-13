@@ -15,8 +15,9 @@ import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
-import { formatLongDate, formatTime, formatWeekdayDate, isFirstOfMonth, sameDay, addDays, toISODate } from "@/lib/dates";
+import { addDays, formatLongDate, formatTime, formatWeekdayDate, isFirstOfMonth, sameDay, startOfMonth, startOfWeek, toISODate } from "@/lib/dates";
 import {
+  completionDays,
   doneOnDay,
   doneThisWeek,
   doneToday,
@@ -139,6 +140,10 @@ export function TodayView({
     onFocusHandled?.();
   }, [focus, onFocusHandled]);
 
+  const calendarMarks = useMemo(() => {
+    const start = startOfWeek(startOfMonth(calendarMonth));
+    return completionDays(household, start, addDays(start, 41));
+  }, [household, calendarMonth]);
   const viewingCalendar = calendarDay !== null;
   const viewDate = calendarDay ?? now;
   const calendarIsToday = viewingCalendar && sameDay(viewDate, now);
@@ -486,6 +491,7 @@ export function TodayView({
           month={calendarMonth}
           selected={viewDate}
           today={now}
+          marks={calendarMarks}
           onSelect={selectCalendarDay}
           onMonthChange={setCalendarMonth}
         />

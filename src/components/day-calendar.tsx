@@ -11,12 +11,14 @@ export function DayCalendar({
   month,
   selected,
   today,
+  marks,
   onSelect,
   onMonthChange,
 }: {
   month: Date;
   selected: Date;
   today: Date;
+  marks?: Set<string>;
   onSelect: (date: Date) => void;
   onMonthChange: (date: Date) => void;
 }) {
@@ -64,19 +66,29 @@ export function DayCalendar({
           const inMonth = day.getMonth() === month.getMonth();
           const isSelected = sameDay(day, selected);
           const isToday = sameDay(day, today);
+          const iso = toISODate(day);
+          const hasDone = Boolean(marks?.has(iso));
+          const dayLabel = String(day.getDate());
           return (
             <button
-              key={toISODate(day)}
+              key={iso}
               type="button"
               onClick={() => onSelect(day)}
+              aria-label={hasDone ? `${dayLabel}. ${t("calendar.hasDone")}` : dayLabel}
               className={cn(
-                "mx-auto flex size-11 items-center justify-center rounded-full ui-body",
+                "relative mx-auto flex size-11 items-center justify-center rounded-full ui-body",
                 !inMonth && "text-muted-foreground/40",
                 isSelected && "bg-primary font-semibold text-primary-foreground",
                 !isSelected && isToday && "font-semibold text-primary",
               )}
             >
               {day.getDate()}
+              {hasDone ? (
+                <span
+                  className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-done"
+                  aria-hidden
+                />
+              ) : null}
             </button>
           );
         })}

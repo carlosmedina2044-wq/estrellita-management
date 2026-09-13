@@ -635,6 +635,7 @@
   "supply.arrivingDay": "Llega {day}",
   "calendar.prevMonth": "Mes anterior",
   "calendar.nextMonth": "Mes siguiente",
+  "calendar.hasDone": "Hay trabajo completado",
   "duty.wasDue": "Venció {date}",
   "duty.due": "Vence {date}",
   "duty.nothingQueued": "Nada en la lista de hoy.",
