@@ -28,6 +28,7 @@ import {
   monthPlanDuties,
   openDutiesInScope,
   relativeDayLabel,
+  shareDoneText,
   shareText,
   todaysOpenDuties,
   type DoneEntry,
@@ -262,6 +263,15 @@ export function TodayView({
     const text = shareText(household, cleanerOpen.length ? cleanerOpen : open);
     const result = await nativeShare(t("share.todayTitle", { name: household.householdName }), text);
     if (result === "copied") toast.success(t("share.copiedToday"));
+    if (result === "failed") toast.error(t("share.failedList"));
+  }
+
+  async function shareDone() {
+    const result = await nativeShare(
+      t("share.doneTitle", { name: household.householdName }),
+      shareDoneText(household, doneEntries),
+    );
+    if (result === "copied") toast.success(t("share.copiedDone"));
     if (result === "failed") toast.error(t("share.failedList"));
   }
 
@@ -710,6 +720,10 @@ export function TodayView({
             <Button variant="secondary" className="h-12 rounded-full" onClick={share}>
               <Share2 className="size-4" />
               {t("today.shareList")}
+            </Button>
+            <Button variant="secondary" className="h-12 rounded-full" onClick={shareDone}>
+              <Share2 className="size-4" />
+              {t("today.shareDone")}
             </Button>
             {hasCleaner ? (
               <Button variant="secondary" className="h-12 rounded-full" onClick={onStartCleanerVisit}>
