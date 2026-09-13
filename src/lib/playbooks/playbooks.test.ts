@@ -371,6 +371,91 @@ test("weatherWatch lists a freeze hit and drops requires-gated triggers", () => 
   assert.ok(result.watching.includes("Heat wave"));
 });
 
+function dayForecast(
+  now: Date,
+  partial: Partial<WeatherForecast["days"][number]> & Pick<WeatherForecast["days"][number], "tempMinF" | "tempMaxF" | "windMph" | "precipIn">,
+): WeatherForecast {
+  // ISO date-only strings parse as UTC midnight, which is the prior local evening in US zones.
+  // Use tomorrow's calendar date so the day falls inside conditionHits' local window.
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const date = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+  return {
+    fetchedAt: now.toISOString(),
+    days: [{ date, ...partial }],
+  };
+}
+
+test("zone-relative: Tucson 102°F does not fire heat-wave", () => {
+  const now = new Date(2026, 6, 1);
+  const tucson = home({ location: { postalCode: "85701", climateZone: "hot-arid" } });
+  const result = evaluateTriggers(
+    tucson,
+    dayForecast(now, { tempMinF: 70, tempMaxF: 102, windMph: 5, precipIn: 0 }),
+    now,
+  );
+  assert.equal(result.fires.some((fire) => fire.triggerId === "heat-wave"), false);
+});
+
+test("zone-relative: Atlanta 99°F fires heat-wave", () => {
+  const now = new Date(2026, 6, 1);
+  const atlanta = home({ location: { postalCode: "30301", climateZone: "humid-subtropical" } });
+  const result = evaluateTriggers(
+    atlanta,
+    dayForecast(now, { tempMinF: 70, tempMaxF: 99, windMph: 5, precipIn: 0 }),
+    now,
+  );
+  assert.ok(result.fires.some((fire) => fire.triggerId === "heat-wave"));
+});
+
+test("zone-relative: Minneapolis 20°F fires nothing; 3°F fires deep-freeze only", () => {
+  const now = new Date(2026, 0, 1);
+  const mpls = home({ location: { postalCode: "55401", climateZone: "cold" } });
+  const mild = evaluateTriggers(
+    mpls,
+    dayForecast(now, { tempMinF: 20, tempMaxF: 30, windMph: 5, precipIn: 0 }),
+    now,
+  );
+  assert.equal(mild.fires.length, 0);
+  const deep = evaluateTriggers(
+    mpls,
+    dayForecast(now, { tempMinF: 3, tempMaxF: 20, windMph: 5, precipIn: 0 }),
+    now,
+  );
+  assert.deepEqual(
+    deep.fires.map((fire) => fire.triggerId),
+    ["deep-freeze"],
+  );
+});
+
+test("zone-relative: Nashville 24°F fires hard-freeze", () => {
+  const now = new Date(2026, 0, 1);
+  const nashville = home({ location: { postalCode: "37201", climateZone: "mixed" } });
+  const result = evaluateTriggers(
+    nashville,
+    dayForecast(now, { tempMinF: 24, tempMaxF: 40, windMph: 5, precipIn: 0 }),
+    now,
+  );
+  assert.ok(result.fires.some((fire) => fire.triggerId === "hard-freeze"));
+});
+
+test("zone-relative: no ZIP behaves as mixed", () => {
+  const now = new Date(2026, 0, 1);
+  const unset = home({ location: {} });
+  const result = evaluateTriggers(
+    unset,
+    dayForecast(now, { tempMinF: 24, tempMaxF: 40, windMph: 5, precipIn: 0 }),
+    now,
+  );
+  assert.ok(result.fires.some((fire) => fire.triggerId === "hard-freeze"));
+});
+
+test("weatherWatch excludes hard-freeze for cold zones", () => {
+  const mpls = home({ location: { postalCode: "55401", climateZone: "cold" } });
+  const watch = weatherWatch(null, mpls, new Date(2026, 0, 1));
+  assert.equal(watch.watching.includes("Hard freeze"), false);
+  assert.ok(watch.watching.includes("Deep freeze"));
+});
+
 test("seasonSectionModel hides when open and fires are empty", () => {
   const now = new Date(2026, 6, 15);
   const year = 2026;

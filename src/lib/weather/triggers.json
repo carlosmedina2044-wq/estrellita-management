@@ -2,7 +2,19 @@
   {
     "id": "hard-freeze",
     "name": "Hard freeze",
-    "condition": { "metric": "tempMinF", "op": "<", "value": 28, "withinDays": 3 },
+    "climateZones": ["hot-arid", "humid-subtropical", "mixed", "marine"],
+    "condition": {
+      "metric": "tempMinF",
+      "op": "<",
+      "value": 28,
+      "withinDays": 3,
+      "byZone": {
+        "hot-arid": 28,
+        "humid-subtropical": 28,
+        "mixed": 25,
+        "marine": 28
+      }
+    },
     "cooldownDays": 7,
     "tasks": [
       {
@@ -29,14 +41,64 @@
     ]
   },
   {
+    "id": "deep-freeze",
+    "name": "Deep freeze",
+    "climateZones": ["cold"],
+    "condition": {
+      "metric": "tempMinF",
+      "op": "<",
+      "value": 5,
+      "withinDays": 2,
+      "byZone": {
+        "cold": 5
+      }
+    },
+    "cooldownDays": 7,
+    "tasks": [
+      {
+        "title": "Drip faucets on exterior walls overnight",
+        "description": "A trickle keeps pipes from freezing when the deep freeze hits.",
+        "nodeType": "home",
+        "estimatedMinutes": 5,
+        "isDiy": true
+      },
+      {
+        "title": "Open cabinet doors under sinks on outside walls",
+        "description": "Let warm air reach the pipes overnight.",
+        "nodeType": "home",
+        "estimatedMinutes": 5,
+        "isDiy": true
+      },
+      {
+        "title": "Keep the thermostat at 55°F or above, even if away",
+        "description": "Do not set back heat all the way while pipes are at risk.",
+        "nodeType": "home",
+        "estimatedMinutes": 5,
+        "isDiy": true
+      }
+    ]
+  },
+  {
     "id": "heat-wave",
     "name": "Heat wave",
-    "condition": { "metric": "tempMaxF", "op": ">", "value": 105, "withinDays": 3 },
+    "condition": {
+      "metric": "tempMaxF",
+      "op": ">",
+      "value": 100,
+      "withinDays": 3,
+      "byZone": {
+        "hot-arid": 105,
+        "humid-subtropical": 98,
+        "mixed": 97,
+        "cold": 95,
+        "marine": 90
+      }
+    },
     "cooldownDays": 5,
     "tasks": [
       {
         "title": "Check the AC filter",
-        "description": "A dirty filter during a 105° stretch is how compressors fail.",
+        "description": "A dirty filter during a heat wave is how compressors fail.",
         "nodeType": "assetType",
         "target": "hvac_system",
         "estimatedMinutes": 10,
@@ -62,7 +124,19 @@
   {
     "id": "high-wind",
     "name": "High wind",
-    "condition": { "metric": "windMph", "op": ">", "value": 40, "withinDays": 2 },
+    "condition": {
+      "metric": "windMph",
+      "op": ">",
+      "value": 40,
+      "withinDays": 2,
+      "byZone": {
+        "hot-arid": 40,
+        "humid-subtropical": 40,
+        "mixed": 40,
+        "cold": 40,
+        "marine": 45
+      }
+    },
     "cooldownDays": 4,
     "tasks": [
       {
@@ -77,7 +151,19 @@
   {
     "id": "heavy-rain",
     "name": "Heavy rain",
-    "condition": { "metric": "precipIn", "op": ">", "value": 1, "withinDays": 1 },
+    "condition": {
+      "metric": "precipIn",
+      "op": ">",
+      "value": 1,
+      "withinDays": 1,
+      "byZone": {
+        "hot-arid": 1,
+        "humid-subtropical": 2,
+        "mixed": 1.5,
+        "cold": 1,
+        "marine": 1.5
+      }
+    },
     "cooldownDays": 3,
     "tasks": [
       {

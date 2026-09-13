@@ -2,7 +2,7 @@ import triggerSeed from "@/lib/weather/triggers.json";
 import { climateLabel, deriveClimate } from "@/lib/climate";
 import { addDays, toISODate } from "@/lib/dates";
 import { attributesMatch, dutyFromPlaybookTask, resolvePlaybookTarget, type Playbook, type PlaybookTaskDef } from "@/lib/playbooks";
-import type { HomeAttributes, HomeLocation, Household, WeatherFire } from "@/lib/types";
+import type { ClimateZone, HomeAttributes, HomeLocation, Household, WeatherFire } from "@/lib/types";
 
 export type WeatherMetric = "tempMinF" | "tempMaxF" | "windMph" | "precipIn";
 
@@ -19,15 +19,28 @@ export type WeatherForecast = {
   fetchedAt: string;
 };
 
+/**
+ * Zone-relative thresholds: heat and freeze feel different by climate.
+ * hard-freeze is excluded from cold (hoses already drained / plants gone);
+ * deep-freeze is cold-only for pipe-protection tasks.
+ */
 export type WeatherTrigger = {
   id: string;
   name: string;
-  condition: { metric: WeatherMetric; op: "<" | ">" | ">="; value: number; withinDays: number };
+  condition: {
+    metric: WeatherMetric;
+    op: "<" | ">" | ">=";
+    value: number;
+    withinDays: number;
+    byZone?: Partial<Record<ClimateZone, number>>;
+  };
+  climateZones?: ClimateZone[];
   requires?: Partial<HomeAttributes>;
   cooldownDays: number;
   tasks: PlaybookTaskDef[];
 };
 
+/** Zone rationale for thresholds lives in the JSDoc on WeatherTrigger above. */
 export const WEATHER_TRIGGERS = triggerSeed as WeatherTrigger[];
 
 export interface WeatherProvider {
@@ -58,16 +71,26 @@ export function metricValue(day: DailyWeather, metric: WeatherMetric): number {
   }
 }
 
-export function conditionHits(trigger: WeatherTrigger, forecast: WeatherForecast, now = new Date()): DailyWeather | null {
+function triggerAppliesInZone(trigger: WeatherTrigger, zone: ClimateZone): boolean {
+  if (!trigger.climateZones || trigger.climateZones.length === 0) return true;
+  return trigger.climateZones.includes(zone);
+}
+
+export function conditionHits(
+  trigger: WeatherTrigger,
+  forecast: WeatherForecast,
+  now = new Date(),
+  zone?: ClimateZone,
+): DailyWeather | null {
   const window = forecast.days.filter((day) => {
     const time = Date.parse(day.date);
     const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const end = addDays(now, trigger.condition.withinDays).getTime();
     return time >= start && time <= end;
   });
+  const target = (zone && trigger.condition.byZone?.[zone]) ?? trigger.condition.value;
   for (const day of window) {
     const value = metricValue(day, trigger.condition.metric);
-    const target = trigger.condition.value;
     const hit =
       trigger.condition.op === "<"
         ? value < target
@@ -89,16 +112,18 @@ export function onCooldown(trigger: WeatherTrigger, fires: WeatherFire[], now = 
 }
 
 export function evaluateTriggers(
-  household: Pick<Household, "attributes" | "weatherFires" | "rooms" | "assets" | "duties">,
+  household: Pick<Household, "attributes" | "weatherFires" | "rooms" | "assets" | "duties" | "location">,
   forecast: WeatherForecast,
   now = new Date(),
 ): { duties: Array<Omit<Household["duties"][number], "id" | "createdAt">>; fires: WeatherFire[] } {
+  const zone = deriveClimate(household.location);
   const duties: Array<Omit<Household["duties"][number], "id" | "createdAt">> = [];
   const fires: WeatherFire[] = [];
   for (const trigger of WEATHER_TRIGGERS) {
+    if (!triggerAppliesInZone(trigger, zone)) continue;
     if (!attributesMatch(trigger.requires, household.attributes)) continue;
     if (onCooldown(trigger, household.weatherFires, now)) continue;
-    const day = conditionHits(trigger, forecast, now);
+    const day = conditionHits(trigger, forecast, now, zone);
     if (!day) continue;
     const playbook: Playbook = {
       id: trigger.id,
@@ -158,16 +183,17 @@ export type WeatherWatchItem = {
 
 export function weatherWatch(
   forecast: WeatherForecast | null,
-  household: Pick<Household, "attributes" | "weatherFires">,
+  household: Pick<Household, "attributes" | "weatherFires" | "location">,
   now: Date = new Date(),
 ): { active: WeatherWatchItem[]; watching: string[] } {
-  const applicable = WEATHER_TRIGGERS.filter((trigger) =>
-    attributesMatch(trigger.requires, household.attributes),
+  const zone = deriveClimate(household.location);
+  const applicable = WEATHER_TRIGGERS.filter(
+    (trigger) => triggerAppliesInZone(trigger, zone) && attributesMatch(trigger.requires, household.attributes),
   );
   const watching = applicable.map((trigger) => trigger.name);
   const active: WeatherWatchItem[] = [];
   for (const trigger of applicable) {
-    const hitDay = forecast ? conditionHits(trigger, forecast, now) : null;
+    const hitDay = forecast ? conditionHits(trigger, forecast, now, zone) : null;
     const recentlyFired = onCooldown(trigger, household.weatherFires, now);
     if (!hitDay && !recentlyFired) continue;
     active.push({ trigger, hitDay, recentlyFired });
