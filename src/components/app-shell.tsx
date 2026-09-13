@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Home, Package, Settings, Sun } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -168,6 +168,101 @@ export function AppShell() {
 
   const pushScreen = top ?? leavingPush;
   const pushLeaving = Boolean(leavingPush) && !top;
+  const pushLayerRef = useRef<HTMLDivElement | null>(null);
+  const rootsLayerRef = useRef<HTMLDivElement | null>(null);
+  const edgeDrag = useRef<{
+    startX: number;
+    lastX: number;
+    lastTs: number;
+    velocity: number;
+    width: number;
+    active: boolean;
+  } | null>(null);
+  const EDGE_ZONE = 24;
+  const EDGE_DISMISS = 0.35;
+  const EDGE_VELOCITY = 0.6;
+  const EDGE_SPRING = "transform 320ms cubic-bezier(0.32,0.72,0,1), opacity 320ms cubic-bezier(0.32,0.72,0,1)";
+
+  function applyEdgeProgress(progress: number, withTransition: boolean) {
+    const push = pushLayerRef.current;
+    const roots = rootsLayerRef.current;
+    if (!push || !roots) return;
+    const width = edgeDrag.current?.width ?? push.offsetWidth;
+    const x = Math.max(0, progress) * width;
+    push.style.transition = withTransition ? EDGE_SPRING : "none";
+    roots.style.transition = withTransition ? EDGE_SPRING : "none";
+    push.style.transform = x === 0 ? "" : `translateX(${x}px)`;
+    const rootShift = -30 * (1 - Math.min(1, Math.max(0, progress)));
+    const rootOpacity = 0.9 + 0.1 * Math.min(1, Math.max(0, progress));
+    roots.style.transform = rootShift === 0 ? "" : `translateX(${rootShift}%)`;
+    roots.style.opacity = String(rootOpacity);
+  }
+
+  function clearEdgeStyles() {
+    const push = pushLayerRef.current;
+    const roots = rootsLayerRef.current;
+    if (push) {
+      push.style.transition = "";
+      push.style.transform = "";
+    }
+    if (roots) {
+      roots.style.transition = "";
+      roots.style.transform = "";
+      roots.style.opacity = "";
+    }
+  }
+
+  function onEdgePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (reduceMotion || pushLeaving || !top) return;
+    if (event.button !== 0) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (event.clientX - bounds.left > EDGE_ZONE) return;
+    if (!(event.target instanceof Element)) return;
+    if (event.target.closest("input, textarea, select, [contenteditable='true'], button, a")) return;
+    edgeDrag.current = {
+      startX: event.clientX,
+      lastX: event.clientX,
+      lastTs: event.timeStamp,
+      velocity: 0,
+      width: bounds.width,
+      active: true,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    applyEdgeProgress(0, false);
+  }
+
+  function onEdgePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = edgeDrag.current;
+    if (!drag?.active) return;
+    const dt = event.timeStamp - drag.lastTs;
+    if (dt > 0) drag.velocity = (event.clientX - drag.lastX) / dt;
+    drag.lastX = event.clientX;
+    drag.lastTs = event.timeStamp;
+    const progress = Math.max(0, event.clientX - drag.startX) / drag.width;
+    applyEdgeProgress(progress, false);
+  }
+
+  function onEdgePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = edgeDrag.current;
+    if (!drag?.active) return;
+    drag.active = false;
+    const progress = Math.max(0, event.clientX - drag.startX) / drag.width;
+    const shouldPop = progress > EDGE_DISMISS || drag.velocity > EDGE_VELOCITY;
+    if (shouldPop) {
+      applyEdgeProgress(1, true);
+      window.setTimeout(() => {
+        clearEdgeStyles();
+        setStack([]);
+        cancelPushExit();
+      }, 320);
+      edgeDrag.current = null;
+      return;
+    }
+    applyEdgeProgress(0, true);
+    window.setTimeout(() => clearEdgeStyles(), 320);
+    edgeDrag.current = null;
+  }
+
   const tabPaneRefs = useRef<Partial<Record<RootTab, HTMLDivElement | null>>>({});
   const selectRootTab = useCallback((next: RootTab) => {
     void hapticTab();
@@ -559,6 +654,7 @@ export function AppShell() {
       </AlertDialog>
       <main className="app-shell-main relative min-w-0">
         <div
+          ref={rootsLayerRef}
           className="app-shell-roots px-4 pt-[max(0.75rem,env(safe-area-inset-top))]"
           data-pushed={top ? "true" : "false"}
           data-reduce-motion={reduceMotion ? "true" : "false"}
@@ -680,10 +776,20 @@ export function AppShell() {
         </div>
         {pushScreen ? (
           <div
+            ref={pushLayerRef}
             className="app-shell-push"
             data-leaving={pushLeaving ? "true" : "false"}
             data-reduce-motion={reduceMotion ? "true" : "false"}
             inert={pushLeaving}
+            onPointerDown={onEdgePointerDown}
+            onPointerMove={onEdgePointerMove}
+            onPointerUp={onEdgePointerUp}
+            onPointerCancel={() => {
+              if (!edgeDrag.current?.active) return;
+              edgeDrag.current = null;
+              applyEdgeProgress(0, true);
+              window.setTimeout(() => clearEdgeStyles(), 320);
+            }}
           >
             {pushScreen.tab === "budget" ? (
               <BudgetView
