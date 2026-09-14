@@ -1,156 +1,74 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion } from "motion/react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { CountUp } from "@/components/today/count-up";
-import { RunStrip } from "@/components/today/run-strip";
 import { useLocale } from "@/i18n/locale-provider";
-import { CEREMONY_MS, EASE_OUT } from "@/lib/motion";
-import { hapticClose, hapticSuccess } from "@/lib/native/haptics";
-import type { RunDay } from "@/lib/momentum";
-import type { Household } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { EASE_OUT } from "@/lib/motion";
 
-export function ClosingCeremony({
-  household,
-  now,
+export function ClosingStats({
   stats,
-  runDays,
-  ceremony,
-  onSettled,
-  onShare,
-  ledgerLine,
+  instant,
 }: {
-  household: Household;
-  now: Date;
   stats: { done: number; minutes: number; rooms: number };
-  runDays: RunDay[];
-  ceremony: boolean;
-  onSettled?: () => void;
-  onShare?: () => void;
-  ledgerLine?: string;
+  instant: boolean;
 }) {
   const { t } = useLocale();
-  const reduceMotion = useReducedMotion();
-  const [skipped, setSkipped] = useState(false);
-  const [settled, setSettled] = useState(!ceremony);
-  const instant = skipped || !ceremony || Boolean(reduceMotion);
-  const duration = instant ? 0 : undefined;
-
-  useEffect(() => {
-    if (!ceremony) return;
-    if (reduceMotion) {
-      void hapticSuccess();
-      const timer = window.setTimeout(() => {
-        setSettled(true);
-        onSettled?.();
-      }, 0);
-      return () => window.clearTimeout(timer);
-    }
-    void hapticClose();
-    const timer = window.setTimeout(() => {
-      setSettled(true);
-      onSettled?.();
-    }, CEREMONY_MS);
-    return () => window.clearTimeout(timer);
-  }, [ceremony, onSettled, reduceMotion]);
-
-  function skip() {
-    if (!ceremony || settled) return;
-    setSkipped(true);
-    setSettled(true);
-    onSettled?.();
-  }
+  const duration = instant ? 0 : 0.5;
+  const delay = instant ? 0 : 0.3;
 
   return (
-    <div className="relative" onPointerDown={ceremony && !settled ? skip : undefined}>
-      {ceremony && !settled ? (
-        <button
-          type="button"
-          className="absolute inset-0 z-20 cursor-pointer bg-transparent"
-          aria-label={t("today.ceremonySkipAria")}
-          onClick={skip}
-        />
-      ) : null}
-      <motion.div
-        className="pointer-events-none absolute inset-0 -mx-4 -my-2 rounded-[var(--r-container)] bg-[radial-gradient(closest-side,color-mix(in_oklab,var(--brand-cream)_70%,transparent),transparent)]"
-        initial={{ opacity: instant ? 0.55 : 0 }}
-        animate={{ opacity: 0.55 }}
-        transition={{ duration: duration ?? 0.3 }}
-      />
-      <div className="relative z-10 flex flex-col gap-3">
-        <AnimatePresence mode="wait">
-          <motion.h1
-            key="closed"
-            className="ui-hero text-foreground"
-            aria-live="polite"
-            initial={instant ? false : { y: 8, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: duration ?? 0.25, delay: instant ? 0 : 0.15 }}
-          >
-            {t("today.heroClosed1")}
-          </motion.h1>
-        </AnimatePresence>
-        <div className="flex flex-col gap-3">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <CountUp to={stats.done} duration={instant ? 0 : 0.5} className="ui-title font-semibold" />
-              <p className="ui-caption text-muted-foreground">{t("today.ceremonyThings")}</p>
-            </div>
-            <div>
-              <CountUp to={stats.minutes} duration={instant ? 0 : 0.5} className="ui-title font-semibold" />
-              <p className="ui-caption text-muted-foreground">{t("today.ceremonyMinutes")}</p>
-            </div>
-            <div>
-              <CountUp to={stats.rooms} duration={instant ? 0 : 0.5} className="ui-title font-semibold" />
-              <p className="ui-caption text-muted-foreground">{t("today.ceremonyRooms")}</p>
-            </div>
-          </div>
-          <motion.div
-            className="flex justify-start"
-            initial={instant ? false : { opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: duration ?? 0.4, delay: instant ? 0 : 0.7, ease: EASE_OUT }}
-          >
-            <IllustratedMoment
-              kind="shelf-scene"
-              size={112}
-              loop
-              autoplay
-              playing
-            />
-          </motion.div>
-        </div>
-        <RunStrip household={household} now={now} days={runDays} celebrate={!instant} />
-        {ledgerLine ? (
-          <motion.p
-            className="ui-caption text-muted-foreground"
-            initial={instant ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: instant ? 0 : 0.9, duration: duration ?? 0.2 }}
-          >
-            {ledgerLine}
-          </motion.p>
-        ) : null}
-        {onShare ? (
-          <motion.button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onShare();
-            }}
-            className={cn(
-              "relative z-30 h-10 self-start rounded-full bg-secondary px-4 ui-caption font-medium",
-            )}
-            initial={instant ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: instant ? 0 : 0.9, duration: duration ?? 0.2 }}
-          >
-            {t("today.ceremonyShare")}
-          </motion.button>
-        ) : null}
+    <div className="flex items-start gap-3">
+      <div>
+        <CountUp to={stats.done} duration={duration} delay={delay} className="ui-title font-semibold" />
+        <p className="ui-caption text-muted-foreground">{t("today.ceremonyThings")}</p>
+      </div>
+      <div>
+        <CountUp to={stats.minutes} duration={duration} delay={delay} className="ui-title font-semibold" />
+        <p className="ui-caption text-muted-foreground">{t("today.ceremonyMinutes")}</p>
+      </div>
+      <div>
+        <CountUp to={stats.rooms} duration={duration} delay={delay} className="ui-title font-semibold" />
+        <p className="ui-caption text-muted-foreground">{t("today.ceremonyRooms")}</p>
       </div>
     </div>
+  );
+}
+
+export function ClosingReward({
+  onShare,
+  instant,
+}: {
+  onShare?: () => void;
+  instant: boolean;
+}) {
+  const { t } = useLocale();
+
+  return (
+    <motion.div
+      className="flex items-center gap-[12px] rounded-2xl bg-secondary/60 px-[12px] py-[8px]"
+      initial={instant ? false : { opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.25, delay: instant ? 0 : 0.7, ease: EASE_OUT }}
+    >
+      <div
+        className="flex size-[120px] shrink-0 items-center justify-center"
+        style={{
+          background:
+            "radial-gradient(closest-side, var(--brand-cream), color-mix(in oklab, var(--brand-cream) 20%, transparent))",
+        }}
+      >
+        <IllustratedMoment kind="shelf-scene" size={120} loop autoplay />
+      </div>
+      {onShare ? (
+        <button
+          type="button"
+          onClick={onShare}
+          className="h-[40px] shrink-0 rounded-full bg-card px-[16px] ui-caption font-medium ring-1 ring-border"
+        >
+          {t("today.ceremonyShare")}
+        </button>
+      ) : null}
+    </motion.div>
   );
 }

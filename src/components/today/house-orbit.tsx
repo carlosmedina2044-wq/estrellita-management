@@ -1,9 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
-import { houseMomentFor } from "@/lib/care-level";
-import { EASE_OUT, SPRING_SETTLE } from "@/lib/motion";
+import { EASE_OUT } from "@/lib/motion";
 import type { DayArc } from "@/lib/momentum";
 import type { CareLevelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -26,17 +25,12 @@ function describeArc(
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 0 ${end.x} ${end.y}`;
 }
 
-/** Care-level ambience discs (cream + signal halo). Opacity only; no layout motion. */
-const AMBIENCE: Record<
-  CareLevelId,
-  { wrapper: number; cream: number; halo: number; track: string }
-> = {
-  "settling-in": { wrapper: 0.92, cream: 0, halo: 0, track: "var(--border)" },
-  kept: { wrapper: 1, cream: 0.3, halo: 0, track: "var(--border)" },
-  "well-kept": { wrapper: 1, cream: 0.45, halo: 0, track: "var(--done-soft)" },
-  "cared-for": { wrapper: 1, cream: 0.45, halo: 0.12, track: "var(--done-soft)" },
-  // loved: breathing-loop clip; halo stays off so the sun lives in the Lottie.
-  loved: { wrapper: 1, cream: 0.5, halo: 0, track: "var(--done-soft)" },
+const CREAM: Record<CareLevelId, number> = {
+  "settling-in": 0,
+  kept: 0.25,
+  "well-kept": 0.3,
+  "cared-for": 0.35,
+  loved: 0.35,
 };
 
 export function HouseOrbit({
@@ -45,6 +39,7 @@ export function HouseOrbit({
   dimmed,
   ceremony,
   label,
+  size = 116,
   className,
 }: {
   arc: DayArc;
@@ -52,40 +47,24 @@ export function HouseOrbit({
   dimmed: boolean;
   ceremony: boolean;
   label: string;
+  size?: number;
   className?: string;
 }) {
-  const size = 168;
   const cx = size / 2;
   const cy = size / 2;
-  const r = 72;
-  const continuous = arc.total > 12;
-  const segments = continuous ? 1 : Math.max(arc.total, 1);
-  const gap = continuous ? 0 : 6;
-  const sweep = continuous ? 360 : 360 / segments - gap;
-  const filledCount = continuous
-    ? 0
-    : ceremony && arc.state === "closed"
-      ? segments
-      : Math.min(segments, arc.done);
-  const fraction = continuous
-    ? ceremony && arc.state === "closed"
-      ? 1
-      : arc.fraction
-    : filledCount / segments;
-  const headAngle = fraction * 360;
-  const kind = houseMomentFor(level);
-  const ambience = AMBIENCE[level];
-  const creamOpacity = ambience.cream * (dimmed ? 0.6 : 1);
-  const haloOpacity = ambience.halo * (dimmed ? 0.6 : 1);
+  const r = size / 2 - 6;
+  const closed = arc.state === "closed";
+  const segments = Math.max(arc.total, 1);
+  const gap = 3;
+  const sweep = 360 / segments - gap;
+  const filledCount = closed ? 0 : Math.min(segments, arc.done);
+  const creamOpacity = Math.min(CREAM[level], 0.35) * (dimmed ? 0.6 : 1);
+  const art = Math.round(size * 0.72);
 
   return (
     <div
-      className={cn(
-        "relative size-[168px] shrink-0",
-        dimmed && "saturate-[0.85]",
-        className,
-      )}
-      style={{ opacity: ambience.wrapper }}
+      className={cn("relative shrink-0", dimmed && "saturate-[0.85]", className)}
+      style={{ width: size, height: size }}
     >
       <motion.div
         className="pointer-events-none absolute inset-[8%] rounded-full"
@@ -95,35 +74,15 @@ export function HouseOrbit({
         animate={{ opacity: creamOpacity }}
         transition={{ duration: 0.4 }}
       />
-      <motion.div
-        className="pointer-events-none absolute right-[6%] top-[4%] size-16 rounded-full"
-        style={{
-          background:
-            "radial-gradient(closest-side, color-mix(in oklab, var(--signal) 55%, transparent), transparent)",
-        }}
-        animate={{ opacity: haloOpacity }}
-        transition={{ duration: 0.4 }}
-      />
       <div className="absolute inset-0 flex items-center justify-center">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={kind}
-            initial={{ opacity: 0, y: kind === "breathing-loop" ? 4 : 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.35 }}
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            <IllustratedMoment
-              kind={kind}
-              size={120}
-              loop
-              autoplay={!dimmed}
-              playing={!dimmed}
-              label={label}
-            />
-          </motion.div>
-        </AnimatePresence>
+        <IllustratedMoment
+          kind="living-house"
+          size={art}
+          loop
+          autoplay={!dimmed}
+          playing={!dimmed}
+          label={label}
+        />
       </div>
       <svg
         width={size}
@@ -132,66 +91,50 @@ export function HouseOrbit({
         className="pointer-events-none absolute inset-0"
         aria-hidden
       >
-        {continuous ? (
-          <>
-            <circle
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill="none"
-              stroke={ambience.track}
-              strokeWidth={5}
-              strokeDasharray="4 6"
-              strokeLinecap="round"
-            />
-            <motion.circle
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill="none"
-              stroke="var(--done)"
-              strokeWidth={5}
-              strokeLinecap="round"
-              pathLength={1}
-              initial={false}
-              animate={{ pathLength: fraction }}
-              transition={{ duration: 0.26, ease: EASE_OUT }}
-              transform={`rotate(-90 ${cx} ${cy})`}
-              style={{ strokeDasharray: "1 1" }}
-            />
-          </>
+        <circle
+          cx={cx}
+          cy={cy}
+          r={r}
+          fill="none"
+          stroke="var(--border)"
+          strokeWidth={3.5}
+        />
+        {closed ? (
+          <motion.circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke="var(--done)"
+            strokeWidth={3.5}
+            strokeLinecap="round"
+            pathLength={1}
+            initial={{ pathLength: ceremony ? 0 : 1 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.5, ease: EASE_OUT }}
+            transform={`rotate(-90 ${cx} ${cy})`}
+            style={{ strokeDasharray: "1 1" }}
+          />
         ) : (
-          Array.from({ length: segments }, (_, index) => {
+          Array.from({ length: filledCount }, (_, index) => {
             const start = index * (360 / segments);
             const end = start + sweep;
-            const filled = index < filledCount;
             return (
               <motion.path
                 key={index}
                 d={describeArc(cx, cy, r, start, end)}
                 fill="none"
-                stroke={filled ? "var(--done)" : ambience.track}
-                strokeWidth={5}
+                stroke="var(--done)"
+                strokeWidth={3.5}
                 strokeLinecap="round"
-                strokeDasharray={filled ? undefined : "4 6"}
                 pathLength={1}
-                initial={filled ? { pathLength: 0 } : false}
+                initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
                 transition={{ duration: 0.26, ease: EASE_OUT }}
               />
             );
           })
         )}
-        <motion.circle
-          r={3}
-          fill="var(--brand-cream)"
-          initial={false}
-          animate={{
-            cx: polar(cx, cy, r, headAngle).x,
-            cy: polar(cx, cy, r, headAngle).y,
-          }}
-          transition={SPRING_SETTLE}
-        />
       </svg>
     </div>
   );

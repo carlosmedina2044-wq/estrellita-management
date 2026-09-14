@@ -7,32 +7,34 @@ import { cn } from "@/lib/utils";
 export function CountUp({
   to,
   duration = 0.5,
+  delay = 0,
   className,
 }: {
   to: number;
   duration?: number;
+  delay?: number;
   className?: string;
 }) {
   const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLSpanElement>(null);
-  const value = useMotionValue(reduceMotion ? to : 0);
+  const value = useMotionValue(reduceMotion || duration === 0 ? to : 0);
 
   useMotionValueEvent(value, "change", (latest) => {
     if (ref.current) ref.current.textContent = String(Math.round(latest));
   });
 
   useEffect(() => {
-    if (reduceMotion) {
+    if (reduceMotion || duration === 0) {
       if (ref.current) ref.current.textContent = String(Math.round(to));
       return;
     }
-    const controls = animate(value, to, { duration, ease: [0.32, 0.72, 0, 1] });
+    const controls = animate(value, to, { duration, delay, ease: [0.32, 0.72, 0, 1] });
     return () => controls.stop();
-  }, [duration, reduceMotion, to, value]);
+  }, [delay, duration, reduceMotion, to, value]);
 
   return (
     <span ref={ref} className={cn("num tabular-nums", className)}>
-      {Math.round(reduceMotion ? to : 0)}
+      {Math.round(reduceMotion || duration === 0 ? to : 0)}
     </span>
   );
 }

@@ -195,6 +195,12 @@ async function prepareLottie(packRoot, id) {
     // u stays images/
   }
 
+  if (id === "breathing-loop") {
+    for (const layer of Array.isArray(data.layers) ? data.layers : []) {
+      if (layer?.nm === "Breathing sun") layer.hd = true;
+    }
+  }
+
   const jsonBuf = Buffer.from(JSON.stringify(data), "utf8");
   writeOutput(outJson, jsonBuf, data.w ?? 0, data.h ?? 0);
 }

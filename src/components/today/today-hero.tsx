@@ -1,15 +1,20 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Settings } from "lucide-react";
+import { IllustratedMoment } from "@/components/illustrated-moment";
 import { CareTitle } from "@/components/today/care-title";
-import { ClosingCeremony } from "@/components/today/closing-ceremony";
+import { ClosingReward, ClosingStats } from "@/components/today/closing-ceremony";
 import { HouseOrbit } from "@/components/today/house-orbit";
 import { KeptRoomsRow } from "@/components/today/kept-rooms-row";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { RunStrip } from "@/components/today/run-strip";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatWeekdayDate } from "@/lib/dates";
+import { CEREMONY_MS, EASE_OUT } from "@/lib/motion";
+import { hapticClose, hapticSuccess } from "@/lib/native/haptics";
 import type { CareState, Household } from "@/lib/types";
 import type { DayArc, RunDay } from "@/lib/momentum";
 import { runStripDays } from "@/lib/momentum";
@@ -30,7 +35,6 @@ export function TodayHero({
   onCeremonySettled,
   onShareClosed,
   ledgerLine,
-  children,
 }: {
   household: Household;
   now: Date;
@@ -46,9 +50,9 @@ export function TodayHero({
   onCeremonySettled?: () => void;
   onShareClosed?: () => void;
   ledgerLine?: string;
-  children?: ReactNode;
 }) {
   const { t } = useLocale();
+  const reduceMotion = useReducedMotion();
   const level =
     arc.state === "closed" ? "loved" : (careState?.level ?? "settling-in");
   const hasName = Boolean(household.ownerName.trim());
@@ -70,87 +74,149 @@ export function TodayHero({
 
   const minutesParts = t("today.minutesLeft", { minutes: "%%" }).split("%%");
   const stripDays: RunDay[] = runStripDays(household, now);
-  const showCeremony = variant === "momentum" && arc.state === "closed";
+  const closed = variant === "momentum" && arc.state === "closed";
+  const ceremonyOn = Boolean(ceremony) && closed;
+  const ceremonyKey = ceremonyOn ? "on" : "off";
+  const [phase, setPhase] = useState({ key: ceremonyKey, skipped: false, done: !ceremonyOn });
+  if (phase.key !== ceremonyKey) {
+    setPhase({ key: ceremonyKey, skipped: false, done: !ceremonyOn });
+  }
+  const settled = !ceremonyOn || phase.skipped || phase.done || Boolean(reduceMotion);
+  const instant = settled;
+
+  useEffect(() => {
+    if (!ceremonyOn) return;
+    if (reduceMotion) {
+      void hapticSuccess();
+      onCeremonySettled?.();
+      return;
+    }
+    void hapticClose();
+    const timer = window.setTimeout(() => {
+      setPhase((prev) => (prev.key === "on" ? { ...prev, done: true } : prev));
+      onCeremonySettled?.();
+    }, CEREMONY_MS);
+    return () => window.clearTimeout(timer);
+  }, [ceremonyOn, onCeremonySettled, reduceMotion]);
 
   return (
-    <header className="relative ui-group bg-card px-4 py-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="ui-card font-semibold leading-snug text-foreground">{greeting}</p>
-            {onOpenSettings ? (
-              <button
-                type="button"
-                aria-label={t("common.settings")}
-                onClick={onOpenSettings}
-                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-              >
-                <Settings className="size-5" />
-              </button>
-            ) : null}
-          </div>
-          {variant === "momentum" ? <CareTitle careState={careState} now={now} /> : null}
-          {children}
-          {showCeremony && ceremonyStats ? (
-            <ClosingCeremony
-              household={household}
-              now={now}
-              stats={ceremonyStats}
-              runDays={stripDays}
-              ceremony={Boolean(ceremony)}
-              onSettled={onCeremonySettled}
-              onShare={onShareClosed}
-              ledgerLine={ledgerLine}
-            />
-          ) : (
-            <>
-              <h1
-                aria-live="polite"
-                aria-atomic="true"
-                className="ui-hero mt-1 origin-left text-foreground"
-              >
-                {headline}
-              </h1>
-              <div className="mt-1.5 ui-caption num text-muted-foreground">{secondaryLine}</div>
-            </>
-          )}
-        </div>
-        {variant === "momentum" ? (
-          <div className="flex flex-col items-center gap-1">
-            <HouseOrbit
-              arc={arc}
-              level={level}
-              dimmed={careState?.direction === "down"}
-              ceremony={Boolean(ceremony) && arc.state === "closed"}
-              label={t("today.houseAria", {
-                level: t(`care.level.${level}` as "care.level.settling-in"),
-              })}
-            />
-            {!showCeremony ? (
-              <p className="ui-caption num text-muted-foreground">
-                {minutesParts[0]}
-                <RollingNumber value={arc.minutesLeft} />
-                {minutesParts[1] ?? null}
-              </p>
-            ) : null}
-          </div>
+    <header data-today-hero className="relative ui-group bg-card p-4">
+      {ceremonyOn && !settled ? (
+        <button
+          type="button"
+          className="absolute inset-0 z-20 cursor-pointer bg-transparent"
+          aria-label={t("today.ceremonySkipAria")}
+          onClick={() => {
+            setPhase((prev) => ({ ...prev, skipped: true, done: true }));
+            onCeremonySettled?.();
+          }}
+        />
+      ) : null}
+
+      <div className="flex items-start justify-between gap-2">
+        <p className="ui-card font-semibold leading-snug text-foreground">{greeting}</p>
+        {onOpenSettings ? (
+          <button
+            type="button"
+            aria-label={t("common.settings")}
+            onClick={onOpenSettings}
+            className="relative z-30 flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+          >
+            <Settings className="size-5" />
+          </button>
         ) : null}
       </div>
-      {variant === "momentum" && !showCeremony ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <RunStrip
-            household={household}
-            now={now}
-            days={stripDays}
-            onOpenCalendar={onOpenCalendar}
-          />
-          <KeptRoomsRow household={household} now={now} />
-        </div>
-      ) : null}
-      {variant === "momentum" && showCeremony ? (
-        <div className="mt-3">
-          <KeptRoomsRow household={household} now={now} />
-        </div>
+
+      <AnimatePresence mode="wait">
+        <motion.h1
+          key={arc.state}
+          aria-live="polite"
+          aria-atomic="true"
+          className="ui-hero-serif mt-[4px] max-w-[22ch] text-foreground"
+          initial={{ y: 8, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -8, opacity: 0 }}
+          transition={{
+            duration: 0.25,
+            ease: EASE_OUT,
+            delay: ceremonyOn && !settled ? 0.15 : 0,
+          }}
+        >
+          {headline}
+        </motion.h1>
+      </AnimatePresence>
+      <div className="ui-caption num text-muted-foreground">{secondaryLine}</div>
+
+      {variant === "momentum" ? (
+        <>
+          <div className="mt-3 flex items-start gap-4">
+            <div className="relative w-[116px] shrink-0">
+              <HouseOrbit
+                size={116}
+                arc={arc}
+                level={level}
+                dimmed={careState?.direction === "down"}
+                ceremony={ceremonyOn}
+                label={t("today.houseAria", {
+                  level: t(`care.level.${level}` as "care.level.settling-in"),
+                })}
+              />
+              <CareTitle
+                careState={closed ? { level: "loved", since: careState?.since ?? "" } : careState}
+                now={now}
+                className="mt-1.5 block w-full text-center"
+              />
+              {ceremonyOn && !settled ? (
+                <motion.div
+                  className="pointer-events-none absolute left-1/2 top-[58px] -translate-x-1/2 -translate-y-1/2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5, duration: 0.2 }}
+                >
+                  <IllustratedMoment kind="sparkle-burst" size={160} autoplay />
+                </motion.div>
+              ) : null}
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+              {closed && ceremonyStats ? (
+                <>
+                  <ClosingStats stats={ceremonyStats} instant={instant} />
+                  <RunStrip
+                    household={household}
+                    now={now}
+                    days={stripDays}
+                    celebrate={!instant}
+                    onOpenCalendar={onOpenCalendar}
+                  />
+                  {ledgerLine ? (
+                    <p className="ui-caption text-muted-foreground">{ledgerLine}</p>
+                  ) : null}
+                  <KeptRoomsRow household={household} now={now} />
+                </>
+              ) : (
+                <>
+                  <p className="ui-body font-medium num text-foreground">
+                    {minutesParts[0]}
+                    <RollingNumber value={arc.minutesLeft} />
+                    {minutesParts[1] ?? null}
+                  </p>
+                  <RunStrip
+                    household={household}
+                    now={now}
+                    days={stripDays}
+                    onOpenCalendar={onOpenCalendar}
+                  />
+                  <KeptRoomsRow household={household} now={now} />
+                </>
+              )}
+            </div>
+          </div>
+          {closed ? (
+            <div className="relative z-30 mt-4">
+              <ClosingReward onShare={onShareClosed} instant={instant} />
+            </div>
+          ) : null}
+        </>
       ) : null}
     </header>
   );

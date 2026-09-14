@@ -20,7 +20,6 @@ import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/part
 import { TodayHero } from "@/components/today/today-hero";
 import { TodayNoticeCard, type TodayNotice } from "@/components/today/today-notice-card";
 import { WholeHouseCard } from "@/components/today/whole-house-card";
-import { RollingNumber } from "@/components/today/rolling-number";
 import { useCompletionFlow } from "@/components/today/use-completion-flow";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
 import { IllustratedMoment } from "@/components/illustrated-moment";
@@ -363,16 +362,6 @@ export function TodayView({
   const showTeachingCard = Boolean(showTeaching && !teachingHidden && !zipBannerVisible && summary.overdue === 0);
   const arc = dayArc(household, viewDate, filter);
   const momentumOn = household.momentum.enabled && household.mode === "owner";
-  const effortMinutes = !viewingCalendar && scope === "daily" ? todayEffort(open) : 0;
-  const minutesTemplate =
-    effortMinutes > 0
-      ? t("today.minutesLeft", { minutes: "%%" })
-      : !viewingCalendar && scope === "daily"
-        ? t("today.minutesLeftNone")
-        : null;
-  const [minutesBefore, minutesAfter] = minutesTemplate?.includes("%%")
-    ? minutesTemplate.split("%%")
-    : [minutesTemplate, null];
   const doneIds = new Set(doneEntries.map((entry) => entry.duty.id));
   const leftoverCostPrompts = costPrompts.filter(
     (item) => !doneIds.has(item.dutyId) && !open.some((duty) => duty.id === item.dutyId),
@@ -398,23 +387,9 @@ export function TodayView({
     return parts.join(" · ");
   }
 
-  const secondaryLine = (
-    <>
-      {[headingDate, !needsZip ? weatherLine : null].filter(Boolean).join(" · ")}
-      {minutesBefore != null && !momentumOn ? (
-        <>
-          {" · "}
-          {minutesBefore}
-          {minutesAfter != null ? (
-            <>
-              <RollingNumber value={effortMinutes} />
-              {minutesAfter}
-            </>
-          ) : null}
-        </>
-      ) : null}
-    </>
-  );
+  const secondaryLine = [headingDate, !needsZip ? weatherLine : null]
+    .filter(Boolean)
+    .join(" · ");
 
   const todayIso = toISODate(now);
   const ceremonyActive = ceremonyDay === todayIso;

@@ -6,8 +6,17 @@ import { useLocale } from "@/i18n/locale-provider";
 import { toISODate } from "@/lib/dates";
 import { EASE_OUT } from "@/lib/motion";
 import type { CareState } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
-export function CareTitle({ careState, now }: { careState?: CareState; now: Date }) {
+export function CareTitle({
+  careState,
+  now,
+  className,
+}: {
+  careState?: CareState;
+  now: Date;
+  className?: string;
+}) {
   const { t } = useLocale();
   const level = careState?.level ?? "settling-in";
   const label = t(`care.level.${level}` as MessageKey);
@@ -16,7 +25,7 @@ export function CareTitle({ careState, now }: { careState?: CareState; now: Date
 
   return (
     <motion.p
-      className="relative mt-1 inline-block ui-caption text-primary"
+      className={cn("relative inline-block ui-caption text-primary", className)}
       aria-label={t("care.titleAria", { level: label })}
       initial={rising ? { opacity: 0 } : false}
       animate={{ opacity: 1 }}

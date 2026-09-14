@@ -39,6 +39,16 @@ test("MOMENTS Lottie JSON ships with WebP layers and no expressions", () => {
   }
 });
 
+test("breathing-loop hides the Breathing sun layer", () => {
+  const jsonPath = path.join(PUBLIC, "illustrations/lottie/breathing-loop/breathing-loop.json");
+  const data = JSON.parse(fs.readFileSync(jsonPath, "utf8")) as {
+    layers?: Array<{ nm?: string; hd?: boolean }>;
+  };
+  const sun = data.layers?.find((layer) => layer.nm === "Breathing sun");
+  assert.ok(sun, "Breathing sun layer missing");
+  assert.equal(sun.hd, true);
+});
+
 test("ILLUSTRATIONS still files exist", () => {
   for (const [name, art] of Object.entries(ILLUSTRATIONS)) {
     const rel = art.src.replace(/^\//, "");

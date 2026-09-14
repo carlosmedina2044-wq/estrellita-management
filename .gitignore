@@ -53,3 +53,10 @@ ios/App/App.xcodeproj/project.xcworkspace/xcuserdata
 ios/DerivedData
 *.ipa
 *.xcarchive
+
+# Local verification and Blender scratch (M7-09)
+.verify-screenshots/
+.tmp/
+tools/blender/out/
+tools/blender/reference/png/
+*.blend1

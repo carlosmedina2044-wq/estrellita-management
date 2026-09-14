@@ -35,7 +35,7 @@ export function RunStrip({
       <motion.span
         className="flex items-center gap-1.5"
         variants={{
-          show: { transition: { staggerChildren: 0.07 } },
+          show: { transition: { staggerChildren: 0.07, delayChildren: 0.4 } },
         }}
         initial={celebrate ? "hidden" : false}
         animate={celebrate ? "show" : undefined}
@@ -48,7 +48,7 @@ export function RunStrip({
               show: { scale: 1, opacity: 1 },
             }}
             className={cn(
-              "size-2.5 rounded-full",
+              "size-2 rounded-full",
               day.outcome === "closed" && "bg-done",
               day.outcome === "rest" && "bg-transparent ring-1 ring-done/40",
               day.outcome === "open" && "bg-border",
