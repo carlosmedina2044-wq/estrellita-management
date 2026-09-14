@@ -47,7 +47,7 @@ struct CuidalaWidgetEntryView: View {
     var body: some View {
         switch family {
         case .accessoryCircular:
-            CuidalaCircularView(dueCount: snapshot.dueCount, dueLabel: snapshot.dueLabel)
+            CuidalaCircularView(snapshot: snapshot)
         case .accessoryRectangular:
             CuidalaRectangularView(snapshot: snapshot)
         case .accessoryInline:
@@ -59,14 +59,14 @@ struct CuidalaWidgetEntryView: View {
 }
 
 struct CuidalaCircularView: View {
-    let dueCount: Int
-    let dueLabel: String
+    let snapshot: CuidalaWidgetSnapshot
 
     var body: some View {
-        Text(dueCount, format: .number)
-            .font(.headline)
-            .widgetAccentable()
-            .accessibilityLabel(dueLabel)
+        Gauge(value: snapshot.dayFraction) {
+            Text("\(snapshot.dueCount)")
+        }
+        .gaugeStyle(.accessoryCircularCapacity)
+        .accessibilityLabel(snapshot.dueLabel)
     }
 }
 
@@ -78,7 +78,11 @@ struct CuidalaRectangularView: View {
             Text(snapshot.dueLabel)
                 .font(.headline)
                 .widgetAccentable()
-            if snapshot.isEmpty {
+            if !snapshot.careLabel.isEmpty {
+                Text(snapshot.careLabel)
+                    .font(.caption)
+                    .lineLimit(1)
+            } else if snapshot.isEmpty {
                 Text(snapshot.emptyLabel)
                     .font(.caption)
             } else if let title = snapshot.titles.first {
@@ -88,6 +92,11 @@ struct CuidalaRectangularView: View {
             } else {
                 Text(snapshot.doneLabel)
                     .font(.caption)
+            }
+            if snapshot.runLength > 0, !snapshot.runLabel.isEmpty {
+                Text(snapshot.runLabel)
+                    .font(.caption2)
+                    .lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -118,6 +127,16 @@ struct CuidalaSmallView: View {
             Text(snapshot.doneLabel)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+            if !snapshot.careLabel.isEmpty {
+                Text(snapshot.careLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if snapshot.runLength > 0, !snapshot.runLabel.isEmpty {
+                Text(snapshot.runLabel)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             if !snapshot.titles.isEmpty {
                 ForEach(snapshot.titles, id: \.self) { title in
                     Text(title)

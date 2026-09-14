@@ -1231,5 +1231,6 @@
   "payoff.hvacService": "Um sistema revisado é o que não falha na primeira onda de calor.",
   "payoff.irrigation": "Um sistema revisado rega o jardim, não a calçada.",
   "payoff.locks": "Boas fechaduras são tranquilidade que você ajusta uma vez.",
-  "payoff.generic": "Cuidados de estação como este são o que evita as contas grandes."
+  "payoff.generic": "Cuidados de estação como este são o que evita as contas grandes.",
+  "widget.run": "Dia {count}"
 }

@@ -88,6 +88,10 @@ test("widgetSnapshotFor counts open and done duties and keeps three titles", () 
   assert.equal(snap.dueLabel, "4 due");
   assert.equal(snap.doneLabel, "1 done");
   assert.equal(snap.emptyLabel, "All clear");
+  assert.equal(snap.runLength, 0);
+  assert.equal(snap.dayFraction, 0.2);
+  assert.equal(snap.careLabel, "Settling in");
+  assert.equal(snap.runLabel, "");
 });
 
 test("widgetSnapshotFor omits titles when privateNotifications is on", () => {
@@ -132,13 +136,31 @@ test("widgetSnapshotFor localizes seed titles at snapshot time", () => {
 test("widgetSnapshotFor is empty when nothing is due or done", () => {
   const now = new Date(2026, 8, 13, 15, 0, 0);
   const snap = widgetSnapshotFor(household(), now);
-  assert.deepEqual(snap, {
-    dueCount: 0,
-    doneCount: 0,
-    updatedAt: now.toISOString(),
-    titles: [],
-    dueLabel: "0 due",
-    doneLabel: "0 done",
-    emptyLabel: "All clear",
-  });
+  assert.equal(snap.dueCount, 0);
+  assert.equal(snap.doneCount, 0);
+  assert.deepEqual(snap.titles, []);
+  assert.equal(snap.dueLabel, "0 due");
+  assert.equal(snap.doneLabel, "0 done");
+  assert.equal(snap.emptyLabel, "All clear");
+  assert.equal(snap.dayFraction, 0);
+  assert.equal(snap.careLabel, "Settling in");
+  // A clear day counts toward the closed-day run.
+  assert.equal(snap.runLength, 1);
+  assert.equal(snap.runLabel, "Day 1");
+});
+
+test("widgetSnapshotFor clears momentum fields when momentum is off", () => {
+  const now = new Date(2026, 8, 13, 15, 0, 0);
+  const snap = widgetSnapshotFor(
+    household({
+      momentum: { enabled: false, bestRun: 0 },
+      duties: [duty({ id: "open-a", title: "Wipe counters" })],
+    }),
+    now,
+  );
+  assert.equal(snap.dueCount, 1);
+  assert.equal(snap.runLength, 0);
+  assert.equal(snap.dayFraction, 0);
+  assert.equal(snap.careLabel, "");
+  assert.equal(snap.runLabel, "");
 });

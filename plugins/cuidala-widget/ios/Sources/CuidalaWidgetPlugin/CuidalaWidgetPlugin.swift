@@ -21,6 +21,10 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
     private static let dueLabelKey = "dueLabel"
     private static let doneLabelKey = "doneLabel"
     private static let emptyLabelKey = "emptyLabel"
+    private static let runLengthKey = "runLength"
+    private static let dayFractionKey = "dayFraction"
+    private static let careLabelKey = "careLabel"
+    private static let runLabelKey = "runLabel"
 
     @objc func updateSnapshot(_ call: CAPPluginCall) {
         guard let defaults = UserDefaults(suiteName: Self.suiteName) else {
@@ -38,6 +42,10 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         defaults.set(call.getString("dueLabel") ?? "", forKey: Self.dueLabelKey)
         defaults.set(call.getString("doneLabel") ?? "", forKey: Self.doneLabelKey)
         defaults.set(call.getString("emptyLabel") ?? "", forKey: Self.emptyLabelKey)
+        defaults.set(call.getInt("runLength") ?? 0, forKey: Self.runLengthKey)
+        defaults.set(call.getDouble("dayFraction") ?? 0, forKey: Self.dayFractionKey)
+        defaults.set(call.getString("careLabel") ?? "", forKey: Self.careLabelKey)
+        defaults.set(call.getString("runLabel") ?? "", forKey: Self.runLabelKey)
         WidgetCenter.shared.reloadAllTimelines()
         call.resolve()
     }
@@ -54,6 +62,10 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         defaults.removeObject(forKey: Self.dueLabelKey)
         defaults.removeObject(forKey: Self.doneLabelKey)
         defaults.removeObject(forKey: Self.emptyLabelKey)
+        defaults.removeObject(forKey: Self.runLengthKey)
+        defaults.removeObject(forKey: Self.dayFractionKey)
+        defaults.removeObject(forKey: Self.careLabelKey)
+        defaults.removeObject(forKey: Self.runLabelKey)
         WidgetCenter.shared.reloadAllTimelines()
         call.resolve()
     }

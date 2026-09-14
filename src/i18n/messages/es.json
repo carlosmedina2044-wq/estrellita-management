@@ -1231,5 +1231,6 @@
   "payoff.hvacService": "Un sistema con mantenimiento es el que no falla en la primera ola de calor.",
   "payoff.irrigation": "Un sistema revisado riega el jardín, no la acera.",
   "payoff.locks": "Las buenas cerraduras son tranquilidad que configuras una vez.",
-  "payoff.generic": "El cuidado de temporada como este es lo que evita las cuentas grandes."
+  "payoff.generic": "El cuidado de temporada como este es lo que evita las cuentas grandes.",
+  "widget.run": "Día {count}"
 }

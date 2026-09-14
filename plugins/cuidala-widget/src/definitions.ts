@@ -6,6 +6,10 @@ export type WidgetSnapshotPayload = {
   dueLabel: string;
   doneLabel: string;
   emptyLabel: string;
+  runLength: number;
+  dayFraction: number;
+  careLabel: string;
+  runLabel: string;
 };
 
 export interface CuidalaWidgetPlugin {

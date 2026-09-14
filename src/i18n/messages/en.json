@@ -1231,5 +1231,6 @@
   "payoff.hvacService": "A serviced system is the one that doesn't fail in the first heat wave.",
   "payoff.irrigation": "A checked system waters the yard, not the sidewalk.",
   "payoff.locks": "Good locks are peace of mind you set once.",
-  "payoff.generic": "Seasonal care like this is what keeps the big bills away."
+  "payoff.generic": "Seasonal care like this is what keeps the big bills away.",
+  "widget.run": "Day {count}"
 }
