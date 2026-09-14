@@ -95,14 +95,18 @@ export const MOMENTS: Record<
   },
 };
 
-/** Placeholder clip-paths for the house-cutaway overlays; tuned in phase 6. */
+/**
+ * Hand-tuned clip-paths over house-cutaway.webp (judgment call, M7-06).
+ * Approximate room zones on the cropped home overview: upper band bedrooms/baths,
+ * lower band living/kitchen. Overlays use cream at 55% until the room is fresh.
+ */
 export const CUTAWAY_ROOMS: Record<
   "bedroom" | "bath" | "laundry" | "living" | "kitchen",
   string
 > = {
-  bedroom: "polygon(8% 12%, 38% 12%, 38% 48%, 8% 48%)",
-  bath: "polygon(40% 12%, 62% 12%, 62% 48%, 40% 48%)",
-  laundry: "polygon(64% 12%, 92% 12%, 92% 48%, 64% 48%)",
-  living: "polygon(8% 52%, 48% 52%, 48% 88%, 8% 88%)",
-  kitchen: "polygon(52% 52%, 92% 52%, 92% 88%, 52% 88%)",
+  bedroom: "polygon(6% 10%, 36% 10%, 36% 46%, 6% 46%)",
+  bath: "polygon(38% 10%, 60% 10%, 60% 46%, 38% 46%)",
+  laundry: "polygon(62% 10%, 94% 10%, 94% 46%, 62% 46%)",
+  living: "polygon(6% 50%, 48% 50%, 48% 90%, 6% 90%)",
+  kitchen: "polygon(50% 50%, 94% 50%, 94% 90%, 50% 90%)",
 };

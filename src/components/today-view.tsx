@@ -18,11 +18,17 @@ import { Button } from "@/components/ui/button";
 import { AttentionTiles } from "@/components/today/attention-tiles";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
 import { TodayHero } from "@/components/today/today-hero";
+import { TodayNoticeCard, type TodayNotice } from "@/components/today/today-notice-card";
+import { WholeHouseCard } from "@/components/today/whole-house-card";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { useCompletionFlow } from "@/components/today/use-completion-flow";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
+import { keptRooms, wholeHouseKept } from "@/lib/kept-rooms";
+import { payoffKeyFor } from "@/lib/payoff-lines";
+import { hasSeenTip, markTipSeen } from "@/lib/teaching";
+import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
 import {
   completionDays,
   doneOnDay,
@@ -130,7 +136,11 @@ export function TodayView({
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const particlesRef = useRef<ParticleLayerHandle>(null);
   const celebratedDays = useRef<Set<string>>(new Set());
+  const wholeHouseShownWeeks = useRef<Set<string>>(new Set());
   const [ceremonyDay, setCeremonyDay] = useState<string | null>(null);
+  const [payoffDuty, setPayoffDuty] = useState<Duty | null>(null);
+  const [dismissedCareKeys, setDismissedCareKeys] = useState<Set<string>>(() => new Set());
+  const [showWholeHouseCard, setShowWholeHouseCard] = useState(false);
   const [prevFocus, setPrevFocus] = useState(focus);
   if (focus !== prevFocus) {
     setPrevFocus(focus);
@@ -197,7 +207,12 @@ export function TodayView({
     momentumOn: household.momentum.enabled,
     onComplete,
     onUndo,
-    onCommitted: (_duty, remaining) => {
+    onCommitted: (duty, remaining) => {
+      if (payoffKeyFor(duty)) {
+        setPayoffDuty(duty);
+      } else {
+        setPayoffDuty(null);
+      }
       if (
         remaining.length === 0 &&
         scope === "daily" &&
@@ -408,6 +423,53 @@ export function TodayView({
     minutes: todayEffort(doneTodayEntries.map((entry) => entry.duty)),
     rooms: roomsTouchedInRange(household, new Date(startOfDay(now)), now),
   };
+  const monthLedgerLine = useMemo(() => formatLedgerLine(monthLedger(household, now), t), [household, now, t]);
+  const kept = useMemo(() => keptRooms(household, now), [household, now]);
+  const houseKept = useMemo(() => wholeHouseKept(kept, household, now), [kept, household, now]);
+  const weekKey = toISODate(startOfWeek(now));
+
+  useEffect(() => {
+    if (!household.momentum.enabled || !houseKept) return;
+    if (wholeHouseShownWeeks.current.has(weekKey)) return;
+    wholeHouseShownWeeks.current.add(weekKey);
+    setShowWholeHouseCard(true);
+  }, [houseKept, household.momentum.enabled, weekKey]);
+
+  const pendingMilestone = household.milestones.find(
+    (item) =>
+      sameDay(new Date(item.earnedAt), now) &&
+      !hasSeenTip(household, `milestone-card-${item.id}`),
+  );
+  const careState = household.momentum.care;
+  const careKey =
+    careState?.since === todayIso && careState.direction
+      ? `${careState.since}:${careState.direction}:${careState.level}`
+      : null;
+  const careNotice =
+    careKey && careState && !dismissedCareKeys.has(careKey) ? careState : null;
+
+  let activeNotice: TodayNotice | null = null;
+  if (pendingMilestone) {
+    activeNotice = { kind: "milestone", id: pendingMilestone.id };
+  } else if (careNotice) {
+    activeNotice = { kind: "care", state: careNotice };
+  } else if (payoffDuty) {
+    activeNotice = { kind: "payoff", duty: payoffDuty };
+  }
+
+  function dismissNotice() {
+    if (activeNotice?.kind === "milestone") {
+      onChangeTree?.(markTipSeen(household, `milestone-card-${activeNotice.id}`));
+      return;
+    }
+    if (activeNotice?.kind === "care" && careKey) {
+      setDismissedCareKeys((prev) => new Set(prev).add(careKey));
+      return;
+    }
+    if (activeNotice?.kind === "payoff") {
+      setPayoffDuty(null);
+    }
+  }
 
   async function shareClosedDay() {
     const run = closedDayRun(household, now).current;
@@ -437,6 +499,7 @@ export function TodayView({
         careState={household.momentum.care}
         ceremony={ceremonyActive}
         ceremonyStats={ceremonyStats}
+        ledgerLine={monthLedgerLine}
         onOpenSettings={onOpenSettings}
         onOpenCalendar={() => setCalendarOpen(true)}
         onShareClosed={() => {
@@ -444,6 +507,7 @@ export function TodayView({
         }}
       />
 
+      {momentumOn ? <TodayNoticeCard notice={activeNotice} onDismiss={dismissNotice} /> : null}
       {zipBannerVisible ? (
         <button
           type="button"
@@ -719,8 +783,8 @@ export function TodayView({
       ) : null}
 
       {showWeekWrapped ? (
-        <div className="rounded-2xl bg-card px-4 py-3">
-          <div className="flex items-start gap-3">
+        <WholeHouseCard rooms={kept}>
+          <div className="mt-3 flex items-start gap-3">
             <BrandMark size="sm" className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="ui-body font-medium">{t("today.weekWrappedTitle")}</p>
@@ -731,6 +795,7 @@ export function TodayView({
                   rooms: weekRooms,
                 })}
               </p>
+              <p className="mt-1 ui-caption text-muted-foreground">{monthLedgerLine}</p>
               <div className="mt-2 flex gap-2">
                 <Button
                   variant="ghost"
@@ -742,7 +807,19 @@ export function TodayView({
               </div>
             </div>
           </div>
-        </div>
+        </WholeHouseCard>
+      ) : showWholeHouseCard && momentumOn ? (
+        <WholeHouseCard rooms={kept}>
+          <div className="mt-3 flex justify-end">
+            <Button
+              variant="ghost"
+              className="h-11 px-2"
+              onClick={() => setShowWholeHouseCard(false)}
+            >
+              {t("common.gotIt")}
+            </Button>
+          </div>
+        </WholeHouseCard>
       ) : null}
 
       {showTeachingCard ? (

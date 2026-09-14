@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { motion } from "motion/react";
-import { toast } from "sonner";
 import type { MessageKey } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { toISODate } from "@/lib/dates";
@@ -15,15 +13,6 @@ export function CareTitle({ careState, now }: { careState?: CareState; now: Date
   const label = t(`care.level.${level}` as MessageKey);
   const today = toISODate(now);
   const rising = careState?.since === today && careState.direction === "up";
-  const toasted = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!rising || !careState) return;
-    const key = `${careState.level}-${careState.since}`;
-    if (toasted.current === key) return;
-    toasted.current = key;
-    toast(t("care.rose", { level: label }));
-  }, [rising, careState, label, t]);
 
   return (
     <motion.p

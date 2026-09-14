@@ -37,7 +37,7 @@ import type {
   MorningBriefSettings,
   RestockDigestSettings,
 } from "@/lib/types";
-import { applyMomentumOnComplete, newlyEarned } from "@/lib/momentum";
+import { applyMomentumOnComplete } from "@/lib/momentum";
 import { reconcileCareLevel } from "@/lib/care-level";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
@@ -66,7 +66,7 @@ import {
   type CheckinLevel,
   type MarkOrderedDetails,
 } from "@/lib/restock";
-import { tActive, type MessageKey } from "@/i18n";
+import { tActive } from "@/i18n";
 import { tDutyTitle } from "@/i18n/content";
 import { hapticDestructive, hapticUndo } from "@/lib/native/haptics";
 import { toast } from "sonner";
@@ -469,12 +469,7 @@ export function useHousehold() {
             linkedDutyIdsFor(item).includes(dutyId) ? consumeLinkedUnit(item) : item,
           ),
         };
-        const earned = newlyEarned(next, now);
-        const updated = applyMomentumOnComplete(next, now);
-        if (earned.length > 0 && updated.momentum.enabled) {
-          toast.success(tActive(`milestone.${earned[0]}.title` as MessageKey));
-        }
-        return updated;
+        return applyMomentumOnComplete(next, now);
       });
     },
     [update],
