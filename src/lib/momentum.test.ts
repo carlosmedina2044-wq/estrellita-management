@@ -5,6 +5,7 @@ import { withHouseholdDefaults } from "@/lib/household-defaults";
 import {
   applyMomentumOnComplete,
   closedDayRun,
+  dayArc,
   dayOutcome,
   dismissWeekWrapped,
   monthRecap,
@@ -297,4 +298,49 @@ test("applyMomentumOnComplete records ids and bestRun; undo does not revoke", ()
   assert.ok(next.momentum.bestRun >= 1);
   const undone = { ...next, completions: [] };
   assert.equal(undone.milestones.length, next.milestones.length);
+});
+
+test("dayArc reports open closed clear and rest", () => {
+  const today = new Date(2026, 8, 13);
+  const daily = duty({ id: "wipe", title: "Wipe", estimatedMinutes: 5 });
+  const openHome = household({ duties: [daily] });
+  const open = dayArc(openHome, today);
+  assert.equal(open.state, "open");
+  assert.equal(open.open, 1);
+  assert.equal(open.done, 0);
+  assert.equal(open.minutesLeft, 5);
+
+  const closedHome = household({
+    duties: [daily],
+    completions: [completion({ dutyId: "wipe", completedAt: atNoon(today) })],
+  });
+  const closed = dayArc(closedHome, today);
+  assert.equal(closed.state, "closed");
+  assert.equal(closed.done, 1);
+  assert.equal(closed.minutesDone, 5);
+
+  const weekly = duty({
+    id: "trash",
+    title: "Trash",
+    frequency: "weekly",
+    weekday: 6,
+  });
+  const clearHome = household({ duties: [weekly] });
+  const clear = dayArc(clearHome, today);
+  assert.equal(clear.state, "clear");
+  assert.ok(clear.nextUp);
+
+  const rest = dayArc(household({ duties: [] }), today);
+  assert.equal(rest.state, "rest");
+  assert.equal(rest.nextUp, null);
+});
+
+test("dayArc respects audience filter", () => {
+  const today = new Date(2026, 8, 13);
+  const mine = duty({ id: "me", title: "Mine", audience: "me" });
+  const cleaner = duty({ id: "cl", title: "Cleaner", audience: "cleaner" });
+  const home = household({ duties: [mine, cleaner] });
+  assert.equal(dayArc(home, today, "me").open, 1);
+  assert.equal(dayArc(home, today, "cleaner").open, 1);
+  assert.equal(dayArc(home, today, "all").open, 2);
 });

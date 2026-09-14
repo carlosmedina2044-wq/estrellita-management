@@ -2,15 +2,30 @@ import { addDays, addCalendarMonths, monthRange, startOfDay, weekRange } from "@
 import {
   completionsInRange,
   doneOnDay,
+  doneToday,
   dutiesDueOnDate,
   installedAtFor,
+  isDoneThisPeriod,
   isOverdue,
   isScheduledInRange,
   todaysOpenDuties,
 } from "@/lib/duties";
-import type { Duty, Household, MilestoneId } from "@/lib/types";
+import type { Audience, Duty, Household, MilestoneId } from "@/lib/types";
 
 export type DayOutcome = "closed" | "open" | "rest";
+
+export type DayArcState = "open" | "closed" | "clear" | "rest";
+
+export type DayArc = {
+  total: number;
+  done: number;
+  open: number;
+  fraction: number;
+  minutesLeft: number;
+  minutesDone: number;
+  state: DayArcState;
+  nextUp: Date | null;
+};
 
 export type ClosedDayRun = {
   current: number;
@@ -135,6 +150,56 @@ export function weekProgress(household: Household, now = new Date()): WeekProgre
 
 export function todayEffort(open: Duty[]): number {
   return open.reduce((sum, duty) => sum + effortMinutes(duty), 0);
+}
+
+export function dayArc(
+  household: Household,
+  now = new Date(),
+  audience: Audience | "all" = "all",
+): DayArc {
+  const openDuties = todaysOpenDuties(household, now, audience);
+  const doneEntries = doneToday(household, now, audience);
+  const doneDuties = doneEntries.map((entry) => entry.duty);
+  const openCount = openDuties.length;
+  const doneCount = doneDuties.length;
+  const total = openCount + doneCount;
+  const minutesLeft = todayEffort(openDuties);
+  const minutesDone = todayEffort(doneDuties);
+  let nextUp: Date | null = null;
+  let state: DayArcState;
+  if (openCount > 0) {
+    state = "open";
+  } else if (doneCount > 0) {
+    state = "closed";
+  } else {
+    for (let offset = 1; offset <= 14; offset += 1) {
+      const day = addDays(now, offset);
+      const due = dutiesDueOnDate(household, day, audience).filter(
+        (duty) =>
+          !isDoneThisPeriod(
+            duty,
+            household.completions,
+            day,
+            installedAtFor(household, duty.id),
+          ),
+      );
+      if (due.length > 0) {
+        nextUp = day;
+        break;
+      }
+    }
+    state = nextUp ? "clear" : "rest";
+  }
+  return {
+    total,
+    done: doneCount,
+    open: openCount,
+    fraction: total ? doneCount / total : 0,
+    minutesLeft,
+    minutesDone,
+    state,
+    nextUp,
+  };
 }
 
 function longestClosedStretch(household: Household, start: Date, end: Date): number {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { CalendarDays, ChevronDown, Package, Settings, Share2, UserRound } from "lucide-react";
+import { CalendarDays, ChevronDown, Package, Share2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { DayCalendar } from "@/components/day-calendar";
@@ -13,14 +13,15 @@ import { RestockOrderButton, restockButtonProps } from "@/components/restock-ord
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-menu";
-import { WeekRing } from "@/components/week-ring";
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
+import { AttentionTiles } from "@/components/today/attention-tiles";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
+import { TodayHero } from "@/components/today/today-hero";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { useCompletionFlow } from "@/components/today/use-completion-flow";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
-import { addDays, formatLongDate, formatTime, formatWeekdayDate, isFirstOfMonth, sameDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
+import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
 import {
   completionDays,
   doneOnDay,
@@ -39,7 +40,7 @@ import {
   type DoneEntry,
   type OutstandingScope,
 } from "@/lib/duties";
-import { closedDayRun, dismissWeekWrapped, roomsTouchedInRange, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
+import { closedDayRun, dayArc, dismissWeekWrapped, roomsTouchedInRange, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
 import { tDutyTitle } from "@/i18n/content";
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
@@ -335,31 +336,8 @@ export function TodayView({
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
   const zipBannerVisible = Boolean(needsZip && onSavePostalCode);
   const showTeachingCard = Boolean(showTeaching && !teachingHidden && !zipBannerVisible && summary.overdue === 0);
-  const needCount = open.length;
-  let nextUpDay: string | null = null;
-  if (needCount === 0) {
-    nextUpDay = formatWeekdayDate(addDays(now, 1));
-    for (let offset = 1; offset <= 14; offset += 1) {
-      const day = addDays(now, offset);
-      const due = dutiesDueOnDate(household, day, filter).filter(
-        (duty) => !isDoneThisPeriod(duty, household.completions, day, installedAtFor(household, duty.id)),
-      );
-      if (due.length > 0) {
-        nextUpDay = formatWeekdayDate(day);
-        break;
-      }
-    }
-  }
-  const dayClosed = !viewingCalendar && scope === "daily" && needCount === 0 && doneTodayEntries.length > 0;
-  const displayHeadline = dayClosed
-    ? t("today.headlineClosed", { count: doneTodayEntries.length })
-    : needCount === 0 && doneEntries.length > 0
-      ? t("today.headlineDone", { count: doneEntries.length })
-      : needCount === 0
-        ? t("today.headlineClear", { day: nextUpDay ?? "" })
-        : needCount === 1
-          ? t("today.headlineOne")
-          : t("today.headlineMany", { count: needCount });
+  const arc = dayArc(household, viewDate, filter);
+  const momentumOn = household.momentum.enabled && household.mode === "owner";
   const effortMinutes = !viewingCalendar && scope === "daily" ? todayEffort(open) : 0;
   const minutesTemplate =
     effortMinutes > 0
@@ -396,51 +374,42 @@ export function TodayView({
     return parts.join(" · ");
   }
 
+  const secondaryLine = (
+    <>
+      {[headingDate, !needsZip ? weatherLine : null].filter(Boolean).join(" · ")}
+      {showRunPill ? (
+        <span className="ml-2 inline-flex rounded-full bg-success/10 px-2.5 py-0.5 ui-caption text-success">
+          {t("today.runPill", { count: run.current })}
+        </span>
+      ) : null}
+      {minutesBefore != null && !momentumOn ? (
+        <>
+          {" · "}
+          {minutesBefore}
+          {minutesAfter != null ? (
+            <>
+              <RollingNumber value={effortMinutes} />
+              {minutesAfter}
+            </>
+          ) : null}
+        </>
+      ) : null}
+    </>
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <ParticleLayer ref={particlesRef} />
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="ui-card font-semibold leading-snug text-foreground">{greeting}</p>
-          <h1
-            aria-live="polite"
-            aria-atomic="true"
-            className="ui-hero mt-1 origin-left text-foreground"
-          >
-            {displayHeadline}
-          </h1>
-          {showRunPill ? (
-            <p className="mt-2 inline-flex rounded-full bg-success/10 px-2.5 py-1 ui-caption text-success">
-              {t("today.runPill", { count: run.current })}
-            </p>
-          ) : null}
-          <p className="mt-1.5 ui-caption num text-muted-foreground">
-            {[headingDate, !needsZip ? weatherLine : null].filter(Boolean).join(" · ")}
-            {minutesBefore != null ? (
-              <>
-                {" · "}
-                {minutesBefore}
-                {minutesAfter != null ? (
-                  <>
-                    <RollingNumber value={effortMinutes} />
-                    {minutesAfter}
-                  </>
-                ) : null}
-              </>
-            ) : null}
-          </p>
-        </div>
-        {onOpenSettings ? (
-          <button
-            type="button"
-            aria-label={t("common.settings")}
-            onClick={onOpenSettings}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-          >
-            <Settings className="size-5" />
-          </button>
-        ) : null}
-      </header>
+      <TodayHero
+        household={household}
+        now={now}
+        arc={arc}
+        greeting={greeting}
+        secondaryLine={secondaryLine}
+        variant={momentumOn ? "momentum" : "plain"}
+        careState={household.momentum.care}
+        onOpenSettings={onOpenSettings}
+      />
 
       {zipBannerVisible ? (
         <button
@@ -472,16 +441,6 @@ export function TodayView({
         orderNow={summary.orderNow}
         orderNowCost={orderNowCostCaption(restock.order_now)}
         arriving={summary.arriving}
-        weekRing={
-          household.momentum.enabled
-            ? {
-                done: week.done,
-                planned: week.planned,
-                label: t("today.weekRing", { done: week.done, planned: week.planned }),
-                onClick: () => selectScope("weekly"),
-              }
-            : undefined
-        }
         labels={{
           overdue: t("today.overdue"),
           dueToday: t("today.dueToday"),
@@ -902,151 +861,6 @@ export function TodayView({
         onSave={onSaveDuty}
         {...restockHandlers}
       />
-    </div>
-  );
-}
-
-function AttentionTiles({
-  overdue,
-  dueToday,
-  orderNow,
-  orderNowCost,
-  arriving,
-  weekRing,
-  labels,
-  onOverdue,
-  onDueToday,
-  onOrder,
-  onArriving,
-  onAllClear,
-}: {
-  overdue: number;
-  dueToday: number;
-  orderNow: number;
-  orderNowCost: string | null;
-  arriving: number;
-  weekRing?: { done: number; planned: number; label: string; onClick: () => void };
-  labels: {
-    overdue: string;
-    dueToday: string;
-    orderNow: string;
-    onTheWay: string;
-    allClear: string;
-    allClearHint: string;
-    allClearAria: string;
-  };
-  onOverdue: () => void;
-  onDueToday: () => void;
-  onOrder: () => void;
-  onArriving: () => void;
-  onAllClear: () => void;
-}) {
-  const tiles = [
-    overdue > 0
-      ? {
-          key: "overdue",
-          count: overdue,
-          label: labels.overdue,
-          onClick: onOverdue,
-          countClass: "text-destructive",
-          className: "ring-destructive/40",
-        }
-      : null,
-    dueToday > 0
-      ? {
-          key: "due",
-          count: dueToday,
-          label: labels.dueToday,
-          onClick: onDueToday,
-          countClass: "text-foreground",
-        }
-      : null,
-    orderNow > 0
-      ? {
-          key: "order",
-          count: orderNow,
-          label: labels.orderNow,
-          costLine: orderNowCost,
-          onClick: onOrder,
-          countClass: "text-warning",
-          icon: true,
-        }
-      : null,
-    arriving > 0
-      ? {
-          key: "arriving",
-          count: arriving,
-          label: labels.onTheWay,
-          onClick: onArriving,
-          countClass: "text-muted-foreground",
-        }
-      : null,
-  ].filter((tile): tile is NonNullable<typeof tile> => Boolean(tile));
-
-  const ring = weekRing ? (
-    <button
-      type="button"
-      onClick={weekRing.onClick}
-      aria-label={weekRing.label}
-      className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 ring-1 ring-border transition-transform duration-75 active:scale-[0.98]"
-    >
-      <WeekRing done={weekRing.done} planned={weekRing.planned} />
-      <span className="ui-caption text-muted-foreground">{weekRing.label}</span>
-    </button>
-  ) : null;
-
-  if (tiles.length === 0 && !ring) {
-    return (
-      <button
-        type="button"
-        onClick={onAllClear}
-        className="flex min-h-11 w-full items-center rounded-full bg-success/10 px-4 text-left transition-transform duration-75 active:scale-[0.98]"
-        aria-label={labels.allClearAria}
-      >
-        <span className="ui-body font-medium text-success">{labels.allClear}</span>
-        <span className="ml-2 ui-caption text-muted-foreground">{labels.allClearHint}</span>
-      </button>
-    );
-  }
-
-  if (tiles.length === 0) {
-    return (
-      <div className="app-h-scroll -mx-1 flex gap-2 overflow-x-auto px-1">
-        <button
-          type="button"
-          onClick={onAllClear}
-          className="flex min-h-11 min-w-0 flex-1 items-center rounded-full bg-success/10 px-4 text-left transition-transform duration-75 active:scale-[0.98]"
-          aria-label={labels.allClearAria}
-        >
-          <span className="ui-body font-medium text-success">{labels.allClear}</span>
-          <span className="ml-2 ui-caption text-muted-foreground">{labels.allClearHint}</span>
-        </button>
-        {ring}
-      </div>
-    );
-  }
-
-  return (
-    <div className="app-h-scroll -mx-1 flex gap-2 overflow-x-auto px-1">
-      {tiles.map((tile) => (
-        <button
-          key={tile.key}
-          type="button"
-          onClick={tile.onClick}
-          aria-label={`${tile.count} ${tile.label}`}
-          className={cn(
-            "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 ring-1 ring-border transition-transform duration-75 active:scale-[0.98]",
-            "className" in tile ? tile.className : null,
-          )}
-        >
-          {"icon" in tile && tile.icon ? <Package className="size-4 shrink-0" aria-hidden /> : null}
-          <span className={cn("ui-body font-semibold num", tile.countClass)}>{tile.count}</span>
-          <span className="ui-caption text-muted-foreground">
-            {"costLine" in tile && tile.costLine ? `${tile.label} · ${tile.costLine}` : tile.label}
-          </span>
-        </button>
-      ))}
-      {ring}
     </div>
   );
 }

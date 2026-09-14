@@ -339,6 +339,21 @@ export type Milestone = {
 export type MomentumSettings = {
   enabled: boolean;
   bestRun: number;
+  care?: CareState;
+};
+
+export const CARE_LEVELS = [
+  "settling-in",
+  "kept",
+  "well-kept",
+  "cared-for",
+  "loved",
+] as const;
+export type CareLevelId = (typeof CARE_LEVELS)[number];
+export type CareState = {
+  level: CareLevelId;
+  since: string;
+  direction?: "up" | "down";
 };
 
 export type Household = {
