@@ -746,6 +746,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       ? {
           enabled: raw.momentum.enabled !== false,
           bestRun: asInt(raw.momentum.bestRun, 0, 0, 10_000),
+          nightFollowsSky: raw.momentum.nightFollowsSky !== false,
           ...migrateCare(raw.momentum.care),
         }
       : { ...DEFAULT_MOMENTUM },

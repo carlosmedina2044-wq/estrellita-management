@@ -302,7 +302,7 @@ test("lat: 999 migrates to undefined", () => {
 
 test("missing momentum and milestones migrate to defaults", () => {
   const household = parseStored(JSON.stringify({ onboarded: true, householdName: "Home" }));
-  assert.deepEqual(household.momentum, { enabled: true, bestRun: 0 });
+  assert.deepEqual(household.momentum, { enabled: true, bestRun: 0, nightFollowsSky: true });
   assert.deepEqual(household.milestones, []);
 });
 

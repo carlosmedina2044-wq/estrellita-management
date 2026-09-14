@@ -9,6 +9,7 @@ const FALLBACK_LEGAL = "https://weatherkit.apple.com/legal-attribution.html";
 export type NativeWeatherForecast = {
   days: DailyWeather[];
   fetchedAt: string;
+  current?: { condition: string; cloudCover: number; isDaylight: boolean };
 };
 
 export type NativeGeocodedZip = {
@@ -54,7 +55,18 @@ export async function weatherKitForecast(lat: number, lng: number): Promise<Weat
       tempMaxF: Number(day.tempMaxF) || 0,
       windMph: Number(day.windMph) || 0,
       precipIn: Number(day.precipIn) || 0,
+      ...(typeof day.condition === "string" ? { condition: day.condition } : {}),
+      ...(typeof day.precipChance === "number" ? { precipChance: day.precipChance } : {}),
     })),
+    ...(result.current
+      ? {
+          current: {
+            condition: String(result.current.condition ?? ""),
+            cloudCover: Number(result.current.cloudCover) || 0,
+            isDaylight: Boolean(result.current.isDaylight),
+          },
+        }
+      : {}),
   };
 }
 

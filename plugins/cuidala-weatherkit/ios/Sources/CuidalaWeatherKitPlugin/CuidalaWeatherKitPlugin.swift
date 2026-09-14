@@ -46,21 +46,32 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
         let location = CLLocation(latitude: latitude, longitude: longitude)
         Task {
             do {
-                let forecast = try await WeatherService.shared.weather(for: location, including: .daily)
-                let days: [[String: Any]] = forecast.forecast.prefix(7).map { day in
+                let (current, daily) = try await WeatherService.shared.weather(
+                    for: location,
+                    including: .current,
+                    .daily
+                )
+                let days: [[String: Any]] = daily.forecast.prefix(7).map { day in
                     [
                         "date": Self.isoDate(day.date),
                         "tempMinF": day.lowTemperature.converted(to: .fahrenheit).value,
                         "tempMaxF": day.highTemperature.converted(to: .fahrenheit).value,
                         "windMph": day.wind.speed.converted(to: .milesPerHour).value,
-                        "precipIn": day.precipitationAmount.converted(to: .inches).value
+                        "precipIn": day.precipitationAmount.converted(to: .inches).value,
+                        "condition": day.condition.rawValue,
+                        "precipChance": day.precipitationChance
                     ]
                 }
                 let fetchedAt = ISO8601DateFormatter().string(from: .now)
                 await MainActor.run {
                     call.resolve([
                         "days": days,
-                        "fetchedAt": fetchedAt
+                        "fetchedAt": fetchedAt,
+                        "current": [
+                            "condition": current.condition.rawValue,
+                            "cloudCover": current.cloudCover,
+                            "isDaylight": current.isDaylight
+                        ]
                     ])
                 }
             } catch {

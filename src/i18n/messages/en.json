@@ -1167,6 +1167,8 @@
   "settings.milestonesEmpty": "Close a day and it shows up here.",
   "settings.momentumTitle": "Runs and milestones",
   "settings.momentumHelp": "Shows the living house, day ring, runs, and milestones on Today.",
+  "settings.nightFollowsSky": "Night follows the sky",
+  "settings.nightFollowsSkyHelp": "After sunset, Today switches to its evening look.",
   "retailer.lastTimeRow": "Last time: {store} · {when}",
   "seasonal.addCompact": "Add",
   "seasonal.skipCompact": "Skip",

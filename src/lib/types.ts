@@ -340,6 +340,7 @@ export type MomentumSettings = {
   enabled: boolean;
   bestRun: number;
   care?: CareState;
+  nightFollowsSky?: boolean;
 };
 
 export const CARE_LEVELS = [

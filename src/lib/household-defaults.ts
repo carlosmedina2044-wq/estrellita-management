@@ -55,6 +55,7 @@ export const DEFAULT_TEACHING: TeachingProgress = {
 export const DEFAULT_MOMENTUM: MomentumSettings = {
   enabled: true,
   bestRun: 0,
+  nightFollowsSky: true,
 };
 
 export function defaultHomeType(): HomeType {

@@ -579,6 +579,23 @@ export function HomeView({
               />
             </div>
           </div>
+          <div className="ui-group-row px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p id="night-sky-switch-label" className="ui-body font-medium">
+                  {t("settings.nightFollowsSky")}
+                </p>
+                <p className="mt-0.5 ui-caption text-muted-foreground">
+                  {t("settings.nightFollowsSkyHelp")}
+                </p>
+              </div>
+              <Switch
+                checked={household.momentum.nightFollowsSky !== false}
+                aria-labelledby="night-sky-switch-label"
+                onCheckedChange={(nightFollowsSky) => onUpdateMomentum({ nightFollowsSky })}
+              />
+            </div>
+          </div>
         </div>
       ) : null}
 

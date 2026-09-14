@@ -14,11 +14,14 @@ export type DailyWeather = {
   tempMaxF: number;
   windMph: number;
   precipIn: number;
+  condition?: string;
+  precipChance?: number;
 };
 
 export type WeatherForecast = {
   days: DailyWeather[];
   fetchedAt: string;
+  current?: { condition: string; cloudCover: number; isDaylight: boolean };
 };
 
 /**

@@ -1167,6 +1167,8 @@
   "settings.milestonesEmpty": "Encerre um dia e isso aparece aqui.",
   "settings.momentumTitle": "Sequências e marcos",
   "settings.momentumHelp": "Mostra a casa, o anel do dia, as sequências e os marcos em Hoje.",
+  "settings.nightFollowsSky": "A noite segue o céu",
+  "settings.nightFollowsSkyHelp": "Depois do pôr do sol, Hoje muda para o visual noturno.",
   "retailer.lastTimeRow": "Última vez: {store} · {when}",
   "seasonal.addCompact": "Adicionar",
   "seasonal.skipCompact": "Pular",

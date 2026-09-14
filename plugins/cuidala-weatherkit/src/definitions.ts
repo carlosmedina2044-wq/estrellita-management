@@ -4,11 +4,14 @@ export type WeatherKitDay = {
   tempMaxF: number;
   windMph: number;
   precipIn: number;
+  condition?: string;
+  precipChance?: number;
 };
 
 export type WeatherKitForecast = {
   days: WeatherKitDay[];
   fetchedAt: string;
+  current?: { condition: string; cloudCover: number; isDaylight: boolean };
 };
 
 export type GeocodedZip = {
