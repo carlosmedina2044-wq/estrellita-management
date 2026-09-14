@@ -16,7 +16,7 @@ export function Illustration({
   label?: string;
 }) {
   const art = ILLUSTRATIONS[name];
-  const height = Math.round((size / art.width) * art.height);
+  const height = Math.min(size, Math.round((size / art.width) * art.height));
   return (
     <Image
       src={art.src}
@@ -26,7 +26,7 @@ export function Illustration({
       unoptimized
       draggable={false}
       aria-hidden={label ? undefined : true}
-      className={cn("object-contain", className)}
+      className={cn("max-h-full max-w-full object-contain", className)}
       style={{ width: size, height }}
     />
   );

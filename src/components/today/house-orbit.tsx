@@ -105,13 +105,13 @@ export function HouseOrbit({
         transition={{ duration: 0.4 }}
       />
       <div className="absolute inset-0 flex items-center justify-center">
-        <AnimatePresence mode="sync" initial={false}>
+        <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={kind}
             initial={{ opacity: 0, y: kind === "breathing-loop" ? 4 : 0 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.35 }}
             className="absolute inset-0 flex items-center justify-center"
           >
             <IllustratedMoment
