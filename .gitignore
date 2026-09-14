@@ -54,9 +54,12 @@ ios/DerivedData
 *.ipa
 *.xcarchive
 
-# Local verification and Blender scratch (M7-09)
+# Local verification and Blender scratch (M7-09 / remediation)
 .verify-screenshots/
 .tmp/
+__pycache__/
 tools/blender/out/
+tools/blender/preview/png/
 tools/blender/reference/png/
+tools/blender/reference/showcase/png/
 *.blend1

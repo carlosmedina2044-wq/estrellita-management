@@ -70,7 +70,7 @@ export function householdAsOf(household: Household, day: Date): Household {
   };
 }
 
-function historyFloor(household: Household): number {
+function historyFloor(household: Household, now: Date): number {
   let earliest = Number.POSITIVE_INFINITY;
   for (const duty of household.duties) {
     const created = startOfDay(new Date(duty.createdAt));
@@ -80,8 +80,8 @@ function historyFloor(household: Household): number {
     const done = startOfDay(new Date(item.completedAt));
     if (Number.isFinite(done) && done < earliest) earliest = done;
   }
-  if (!Number.isFinite(earliest)) return startOfDay(new Date());
-  const cap = startOfDay(addCalendarMonths(new Date(), -24));
+  if (!Number.isFinite(earliest)) return startOfDay(now);
+  const cap = startOfDay(addCalendarMonths(now, -24));
   return Math.max(earliest, cap);
 }
 
@@ -104,7 +104,7 @@ function walkRun(
 ): { current: number; graceDays: Set<number> } {
   const today = dayOutcome(household, now);
   let cursor = today === "open" ? addDays(now, -1) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const floor = historyFloor(household);
+  const floor = historyFloor(household, now);
   let current = 0;
   const graceDays = new Set<number>();
   let graceAt: number | null = null;
@@ -311,7 +311,7 @@ export function dismissWeekWrapped(household: Household, now = new Date()): Hous
 }
 
 function hasClosedDay(household: Household, now: Date): boolean {
-  const floor = historyFloor(household);
+  const floor = historyFloor(household, now);
   let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let steps = 0;
   while (startOfDay(cursor) >= floor && steps < 400) {

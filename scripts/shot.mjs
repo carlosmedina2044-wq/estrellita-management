@@ -7,7 +7,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { chromium } from "playwright";
+import { chromium } from "/Users/medina/.local/share/node-tools/index.mjs";
 
 function arg(name, fallback) {
   const index = process.argv.indexOf(`--${name}`);

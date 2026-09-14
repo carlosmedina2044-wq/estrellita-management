@@ -19,17 +19,23 @@ export function ClosingStats({
 
   return (
     <div className="flex items-start gap-3">
-      <div>
+      <div className="min-w-0">
         <CountUp to={stats.done} duration={duration} delay={delay} className="ui-title font-semibold" />
-        <p className="ui-caption text-muted-foreground">{t("today.ceremonyThings")}</p>
+        <p className="ui-caption truncate leading-tight text-muted-foreground">
+          {t("today.ceremonyThings")}
+        </p>
       </div>
-      <div>
+      <div className="min-w-0">
         <CountUp to={stats.minutes} duration={duration} delay={delay} className="ui-title font-semibold" />
-        <p className="ui-caption text-muted-foreground">{t("today.ceremonyMinutes")}</p>
+        <p className="ui-caption truncate leading-tight text-muted-foreground">
+          {t("today.ceremonyMinutes")}
+        </p>
       </div>
-      <div>
+      <div className="min-w-0">
         <CountUp to={stats.rooms} duration={duration} delay={delay} className="ui-title font-semibold" />
-        <p className="ui-caption text-muted-foreground">{t("today.ceremonyRooms")}</p>
+        <p className="ui-caption truncate leading-tight text-muted-foreground">
+          {t("today.ceremonyRooms")}
+        </p>
       </div>
     </div>
   );
@@ -52,13 +58,13 @@ export function ClosingReward({
       transition={{ duration: 0.25, delay: instant ? 0 : 0.7, ease: EASE_OUT }}
     >
       <div
-        className="flex size-[120px] shrink-0 items-center justify-center"
+        className="flex size-[88px] shrink-0 items-center justify-center"
         style={{
           background:
             "radial-gradient(closest-side, var(--brand-cream), color-mix(in oklab, var(--brand-cream) 20%, transparent))",
         }}
       >
-        <IllustratedMoment kind="shelf-scene" size={120} loop autoplay />
+        <IllustratedMoment kind="shelf-scene" size={88} loop autoplay />
       </div>
       {onShare ? (
         <button

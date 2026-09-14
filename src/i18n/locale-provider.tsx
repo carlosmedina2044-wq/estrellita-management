@@ -123,6 +123,32 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }
 
+/** Dev/screenshot helper: pin t()/locale without fighting Preferences hydration. */
+export function DevLocaleOverride({
+  locale,
+  children,
+}: {
+  locale: AppLocale;
+  children: ReactNode;
+}) {
+  const value = useMemo<LocaleContextValue>(
+    () => ({
+      locale,
+      preference: locale,
+      setPreference: () => undefined,
+      t: (key, params) => translate(locale, key, params),
+      dateLocale: localeDateTag(locale),
+    }),
+    [locale],
+  );
+  useEffect(() => {
+    setActiveAppLocale(locale);
+    setActiveDateLocale(localeDateTag(locale));
+    document.documentElement.lang = htmlLang(locale);
+  }, [locale]);
+  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
+}
+
 export function useLocale() {
   const ctx = useContext(LocaleContext);
   if (!ctx) throw new Error("useLocale requires LocaleProvider");

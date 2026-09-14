@@ -1184,6 +1184,7 @@
   "today.heroClosed3": "Cerrado por hoy. {count} hechas.",
   "today.heroClear1": "Todo listo. Siguiente: {day}.",
   "today.heroClear2": "Nada pendiente. Lo próximo es {day}.",
+  "today.heroClear3": "Todo en orden. Nada en el horizonte.",
   "today.heroRest1": "Día de descanso. La casa está bien.",
   "today.heroRest2": "Nada en la lista. Tómate el día.",
   "today.dayArcAria": "{done} de {total} hechas hoy",

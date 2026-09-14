@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { TodayHero } from "@/components/today/today-hero";
-import { useLocale } from "@/i18n/locale-provider";
+import { DevLocaleOverride, useLocale } from "@/i18n/locale-provider";
 import { addDays, formatLongDate, toISODate } from "@/lib/dates";
 import { todayGreeting } from "@/lib/greeting";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
@@ -136,13 +136,14 @@ function fixtureHousehold(state: ShotState, now: Date): Household {
   });
 }
 
-export function HeroShotPage() {
-  const params = useSearchParams();
-  const { t, setPreference } = useLocale();
-  const rawState = params.get("state");
-  const state: ShotState = isShotState(rawState) ? rawState : "open-many";
-  const localeParam = params.get("locale");
-  const locale: AppLocale = isAppLocale(localeParam) ? localeParam : "en";
+function HeroShotInner({
+  state,
+  locale,
+}: {
+  state: ShotState;
+  locale: AppLocale;
+}) {
+  const { t } = useLocale();
   const now = new Date(2026, 8, 13, 10, 0, 0);
   const household = fixtureHousehold(state, now);
   const arc = dayArc(household, now);
@@ -150,18 +151,12 @@ export function HeroShotPage() {
   const greeting = todayGreeting(household.ownerName, 10);
   const secondaryLine = `${formatLongDate(now)} · ${72}°`;
 
-  useEffect(() => {
-    setPreference(locale);
-  }, [locale, setPreference]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (params.get("theme") === "dark") root.classList.add("dark");
-    else root.classList.remove("dark");
-  }, [params]);
-
   return (
-    <div className="min-h-dvh bg-background p-4">
+    <div
+      className="min-h-dvh bg-background px-4 py-4"
+      data-locale={locale}
+      data-locale-ready="1"
+    >
       <TodayHero
         household={household}
         now={now}
@@ -178,5 +173,25 @@ export function HeroShotPage() {
         onShareClosed={() => undefined}
       />
     </div>
+  );
+}
+
+export function HeroShotPage() {
+  const params = useSearchParams();
+  const rawState = params.get("state");
+  const state: ShotState = isShotState(rawState) ? rawState : "open-many";
+  const localeParam = params.get("locale");
+  const locale: AppLocale = isAppLocale(localeParam) ? localeParam : "en";
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (params.get("theme") === "dark") root.classList.add("dark");
+    else root.classList.remove("dark");
+  }, [params]);
+
+  return (
+    <DevLocaleOverride locale={locale}>
+      <HeroShotInner state={state} locale={locale} />
+    </DevLocaleOverride>
   );
 }

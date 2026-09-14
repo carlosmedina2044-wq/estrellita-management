@@ -12,13 +12,12 @@ import { KeptRoomsRow } from "@/components/today/kept-rooms-row";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { RunStrip } from "@/components/today/run-strip";
 import { useLocale } from "@/i18n/locale-provider";
-import { formatWeekdayDate } from "@/lib/dates";
 import { CEREMONY_MS, EASE_OUT } from "@/lib/motion";
 import { hapticClose, hapticSuccess } from "@/lib/native/haptics";
 import type { CareState, Household } from "@/lib/types";
 import type { DayArc, RunDay } from "@/lib/momentum";
 import { runStripDays } from "@/lib/momentum";
-import { dayOfYear, heroCopyKey } from "@/lib/today-copy";
+import { dayOfYear, heroCopyKey, nextUpDayLabel } from "@/lib/today-copy";
 
 export function TodayHero({
   household,
@@ -56,7 +55,7 @@ export function TodayHero({
   const level =
     arc.state === "closed" ? "loved" : (careState?.level ?? "settling-in");
   const hasName = Boolean(household.ownerName.trim());
-  const dayLabel = arc.nextUp ? formatWeekdayDate(arc.nextUp) : "";
+  const dayLabel = nextUpDayLabel(arc.nextUp);
   const count = arc.state === "closed" ? arc.done : arc.open;
   const headline =
     variant === "plain"
@@ -64,13 +63,22 @@ export function TodayHero({
         ? t("today.headlineOne")
         : arc.open > 1
           ? t("today.headlineMany", { count: arc.open })
-          : t("today.headlineClear", { day: dayLabel || "—" })
-      : t(heroCopyKey(arc.state, dayOfYear(now), { hasName, count }), {
-          count,
-          minutes: arc.minutesLeft,
-          day: dayLabel,
-          name: household.ownerName.trim(),
-        });
+          : dayLabel
+            ? t("today.headlineClear", { day: dayLabel })
+            : t("today.heroClear3")
+      : t(
+          heroCopyKey(arc.state, dayOfYear(now), {
+            hasName,
+            count,
+            nextUp: arc.nextUp,
+          }),
+          {
+            count,
+            minutes: arc.minutesLeft,
+            day: dayLabel,
+            name: household.ownerName.trim(),
+          },
+        );
 
   const minutesParts = t("today.minutesLeft", { minutes: "%%" }).split("%%");
   const stripDays: RunDay[] = runStripDays(household, now);
@@ -100,7 +108,7 @@ export function TodayHero({
   }, [ceremonyOn, onCeremonySettled, reduceMotion]);
 
   return (
-    <header data-today-hero className="relative ui-group bg-card p-4">
+    <header data-today-hero className="relative ui-group bg-card px-3 py-2">
       {ceremonyOn && !settled ? (
         <button
           type="button"
@@ -113,18 +121,19 @@ export function TodayHero({
         />
       ) : null}
 
-      <div className="flex items-start justify-between gap-2">
+      {onOpenSettings ? (
+        <button
+          type="button"
+          aria-label={t("common.settings")}
+          onClick={onOpenSettings}
+          className="absolute right-2 top-2 z-30 flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+        >
+          <Settings className="size-5" />
+        </button>
+      ) : null}
+
+      <div className="pr-12">
         <p className="ui-card font-semibold leading-snug text-foreground">{greeting}</p>
-        {onOpenSettings ? (
-          <button
-            type="button"
-            aria-label={t("common.settings")}
-            onClick={onOpenSettings}
-            className="relative z-30 flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary text-muted-foreground"
-          >
-            <Settings className="size-5" />
-          </button>
-        ) : null}
       </div>
 
       <AnimatePresence mode="wait">
@@ -132,7 +141,7 @@ export function TodayHero({
           key={arc.state}
           aria-live="polite"
           aria-atomic="true"
-          className="ui-hero-serif mt-[4px] max-w-[22ch] text-foreground"
+          className="ui-hero-serif mt-[4px] max-w-[22ch] pr-12 text-foreground"
           initial={{ y: 8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -8, opacity: 0 }}
@@ -149,10 +158,10 @@ export function TodayHero({
 
       {variant === "momentum" ? (
         <>
-          <div className="mt-3 flex items-start gap-4">
-            <div className="relative w-[116px] shrink-0">
+          <div className="mt-1.5 flex items-start gap-4">
+            <div className="relative w-[104px] shrink-0">
               <HouseOrbit
-                size={116}
+                size={104}
                 arc={arc}
                 level={level}
                 dimmed={careState?.direction === "down"}
@@ -164,20 +173,20 @@ export function TodayHero({
               <CareTitle
                 careState={closed ? { level: "loved", since: careState?.since ?? "" } : careState}
                 now={now}
-                className="mt-1.5 block w-full text-center"
+                className="mt-0.5 block w-full text-center"
               />
               {ceremonyOn && !settled ? (
                 <motion.div
-                  className="pointer-events-none absolute left-1/2 top-[58px] -translate-x-1/2 -translate-y-1/2"
+                  className="pointer-events-none absolute left-1/2 top-[52px] -translate-x-1/2 -translate-y-1/2"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5, duration: 0.2 }}
                 >
-                  <IllustratedMoment kind="sparkle-burst" size={160} autoplay />
+                  <IllustratedMoment kind="sparkle-burst" size={140} autoplay />
                 </motion.div>
               ) : null}
             </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-2 pt-1">
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-1">
               {closed && ceremonyStats ? (
                 <>
                   <ClosingStats stats={ceremonyStats} instant={instant} />
@@ -189,7 +198,7 @@ export function TodayHero({
                     onOpenCalendar={onOpenCalendar}
                   />
                   {ledgerLine ? (
-                    <p className="ui-caption text-muted-foreground">{ledgerLine}</p>
+                    <p className="ui-caption truncate text-muted-foreground">{ledgerLine}</p>
                   ) : null}
                   <KeptRoomsRow household={household} now={now} />
                 </>
@@ -212,7 +221,7 @@ export function TodayHero({
             </div>
           </div>
           {closed ? (
-            <div className="relative z-30 mt-4">
+            <div className="relative z-30 mt-2">
               <ClosingReward onShare={onShareClosed} instant={instant} />
             </div>
           ) : null}
