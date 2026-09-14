@@ -1200,5 +1200,12 @@
   "care.rose": "Tu casa ahora está: {level}.",
   "care.dropped": "Bajó a {level} por ahora. Unos días cerrados la recuperan.",
   "care.titleAria": "Nivel de cuidado de la casa: {level}",
-  "today.houseAria": "Tu casa, {level}"
+  "today.houseAria": "Tu casa, {level}",
+  "today.ceremonyThings": "cosas hechas",
+  "today.ceremonyMinutes": "minutos dedicados",
+  "today.ceremonyRooms": "cuartos atendidos",
+  "today.ceremonyShare": "Compartir",
+  "today.ceremonySkipAria": "Saltar la celebración",
+  "share.dayClosedTitle": "Día cerrado en {name}",
+  "share.dayClosedText": "Día cerrado: {done} cosas, unos {minutes} min, {rooms} cuartos. {run} días seguidos."
 }

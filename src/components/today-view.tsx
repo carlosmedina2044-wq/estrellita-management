@@ -21,7 +21,8 @@ import { TodayHero } from "@/components/today/today-hero";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { useCompletionFlow } from "@/components/today/use-completion-flow";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
-import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
+import { IllustratedMoment } from "@/components/illustrated-moment";
+import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
 import {
   completionDays,
   doneOnDay,
@@ -40,13 +41,12 @@ import {
   type DoneEntry,
   type OutstandingScope,
 } from "@/lib/duties";
-import { dayArc, dismissWeekWrapped, roomsTouchedInRange, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
+import { closedDayRun, dayArc, dismissWeekWrapped, roomsTouchedInRange, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
 import { tDutyTitle } from "@/i18n/content";
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
 import type { WeatherAttribution } from "@/lib/native/weatherkit";
-import { hapticSuccess } from "@/lib/native/haptics";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
@@ -129,6 +129,8 @@ export function TodayView({
   const [dutyMenu, setDutyMenu] = useState<{ duty: Duty; x: number; y: number } | null>(null);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const particlesRef = useRef<ParticleLayerHandle>(null);
+  const celebratedDays = useRef<Set<string>>(new Set());
+  const [ceremonyDay, setCeremonyDay] = useState<string | null>(null);
   const [prevFocus, setPrevFocus] = useState(focus);
   if (focus !== prevFocus) {
     setPrevFocus(focus);
@@ -196,8 +198,17 @@ export function TodayView({
     onComplete,
     onUndo,
     onCommitted: (_duty, remaining) => {
-      if (remaining.length === 0 && scope === "daily" && !viewingCalendar) {
-        void hapticSuccess();
+      if (
+        remaining.length === 0 &&
+        scope === "daily" &&
+        !viewingCalendar &&
+        household.momentum.enabled
+      ) {
+        const iso = toISODate(now);
+        if (!celebratedDays.current.has(iso)) {
+          celebratedDays.current.add(iso);
+          setCeremonyDay(iso);
+        }
       }
     },
   });
@@ -390,6 +401,29 @@ export function TodayView({
     </>
   );
 
+  const todayIso = toISODate(now);
+  const ceremonyActive = ceremonyDay === todayIso;
+  const ceremonyStats = {
+    done: doneTodayEntries.length,
+    minutes: todayEffort(doneTodayEntries.map((entry) => entry.duty)),
+    rooms: roomsTouchedInRange(household, new Date(startOfDay(now)), now),
+  };
+
+  async function shareClosedDay() {
+    const run = closedDayRun(household, now).current;
+    const result = await nativeShare(
+      t("share.dayClosedTitle", { name: household.householdName }),
+      t("share.dayClosedText", {
+        done: ceremonyStats.done,
+        minutes: ceremonyStats.minutes,
+        rooms: ceremonyStats.rooms,
+        run,
+      }),
+    );
+    if (result === "copied") toast.success(t("share.copiedDone"));
+    if (result === "failed") toast.error(t("share.failedList"));
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <ParticleLayer ref={particlesRef} />
@@ -401,8 +435,13 @@ export function TodayView({
         secondaryLine={secondaryLine}
         variant={momentumOn ? "momentum" : "plain"}
         careState={household.momentum.care}
+        ceremony={ceremonyActive}
+        ceremonyStats={ceremonyStats}
         onOpenSettings={onOpenSettings}
         onOpenCalendar={() => setCalendarOpen(true)}
+        onShareClosed={() => {
+          void shareClosedDay();
+        }}
       />
 
       {zipBannerVisible ? (
@@ -870,9 +909,15 @@ function EmptyToday({
 }) {
   return (
     <div className="rounded-2xl bg-card px-5 py-10 text-center">
-      <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
-        <BrandMark size="sm" />
-      </span>
+      {calendar ? (
+        <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
+          <BrandMark size="sm" />
+        </span>
+      ) : (
+        <span className="mx-auto flex justify-center">
+          <IllustratedMoment kind="shelf-scene" size={140} loop autoplay />
+        </span>
+      )}
       <p className="ui-heading mt-4 ui-title font-semibold">{t("today.clearDay")}</p>
       <p className="mt-1 text-sm text-muted-foreground">
         {calendar ? t("today.emptyCalendar") : t("today.emptyToday")}

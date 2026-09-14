@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { houseMomentFor } from "@/lib/care-level";
 import { EASE_OUT, SPRING_SETTLE } from "@/lib/motion";
@@ -25,6 +25,17 @@ function describeArc(
   const large = endAngle - startAngle <= 180 ? 0 : 1;
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 0 ${end.x} ${end.y}`;
 }
+
+const AMBIENCE: Record<
+  CareLevelId,
+  { wrapper: number; cream: number; halo: number; track: string }
+> = {
+  "settling-in": { wrapper: 0.92, cream: 0, halo: 0, track: "var(--border)" },
+  kept: { wrapper: 1, cream: 0.3, halo: 0, track: "var(--border)" },
+  "well-kept": { wrapper: 1, cream: 0.45, halo: 0, track: "var(--done-soft)" },
+  "cared-for": { wrapper: 1, cream: 0.45, halo: 0.12, track: "var(--done-soft)" },
+  loved: { wrapper: 1, cream: 0.45, halo: 0, track: "var(--done-soft)" },
+};
 
 export function HouseOrbit({
   arc,
@@ -60,6 +71,10 @@ export function HouseOrbit({
       : arc.fraction
     : filledCount / segments;
   const headAngle = fraction * 360;
+  const kind = houseMomentFor(level);
+  const ambience = AMBIENCE[level];
+  const creamOpacity = ambience.cream * (dimmed ? 0.6 : 1);
+  const haloOpacity = ambience.halo * (dimmed ? 0.6 : 1);
 
   return (
     <div
@@ -68,16 +83,45 @@ export function HouseOrbit({
         dimmed && "saturate-[0.85]",
         className,
       )}
+      style={{ opacity: ambience.wrapper }}
     >
+      <motion.div
+        className="pointer-events-none absolute inset-[8%] rounded-full"
+        style={{
+          background: "radial-gradient(closest-side, var(--brand-cream), transparent)",
+        }}
+        animate={{ opacity: creamOpacity }}
+        transition={{ duration: 0.4 }}
+      />
+      <motion.div
+        className="pointer-events-none absolute right-[6%] top-[4%] size-16 rounded-full"
+        style={{
+          background:
+            "radial-gradient(closest-side, color-mix(in oklab, var(--signal) 55%, transparent), transparent)",
+        }}
+        animate={{ opacity: haloOpacity }}
+        transition={{ duration: 0.4 }}
+      />
       <div className="absolute inset-0 flex items-center justify-center">
-        <IllustratedMoment
-          kind={houseMomentFor(level)}
-          size={120}
-          loop
-          autoplay={!dimmed}
-          playing={!dimmed}
-          label={label}
-        />
+        <AnimatePresence mode="sync" initial={false}>
+          <motion.div
+            key={kind}
+            initial={{ opacity: 0, y: kind === "breathing-loop" ? 4 : 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <IllustratedMoment
+              kind={kind}
+              size={120}
+              loop
+              autoplay={!dimmed}
+              playing={!dimmed}
+              label={label}
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
       <svg
         width={size}
@@ -93,7 +137,7 @@ export function HouseOrbit({
               cy={cy}
               r={r}
               fill="none"
-              stroke="var(--border)"
+              stroke={ambience.track}
               strokeWidth={5}
               strokeDasharray="4 6"
               strokeLinecap="round"
@@ -124,7 +168,7 @@ export function HouseOrbit({
                 key={index}
                 d={describeArc(cx, cy, r, start, end)}
                 fill="none"
-                stroke={filled ? "var(--done)" : "var(--border)"}
+                stroke={filled ? "var(--done)" : ambience.track}
                 strokeWidth={5}
                 strokeLinecap="round"
                 strokeDasharray={filled ? undefined : "4 6"}
