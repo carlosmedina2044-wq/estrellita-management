@@ -26,6 +26,7 @@ function describeArc(
   return `M ${start.x} ${start.y} A ${r} ${r} 0 ${large} 0 ${end.x} ${end.y}`;
 }
 
+/** Care-level ambience discs (cream + signal halo). Opacity only; no layout motion. */
 const AMBIENCE: Record<
   CareLevelId,
   { wrapper: number; cream: number; halo: number; track: string }
@@ -34,7 +35,8 @@ const AMBIENCE: Record<
   kept: { wrapper: 1, cream: 0.3, halo: 0, track: "var(--border)" },
   "well-kept": { wrapper: 1, cream: 0.45, halo: 0, track: "var(--done-soft)" },
   "cared-for": { wrapper: 1, cream: 0.45, halo: 0.12, track: "var(--done-soft)" },
-  loved: { wrapper: 1, cream: 0.45, halo: 0, track: "var(--done-soft)" },
+  // loved: breathing-loop clip; halo stays off so the sun lives in the Lottie.
+  loved: { wrapper: 1, cream: 0.5, halo: 0, track: "var(--done-soft)" },
 };
 
 export function HouseOrbit({
