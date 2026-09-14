@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  hapticClose,
   hapticComplete,
   hapticDestructive,
   hapticOrdered,
+  hapticPress,
   hapticSuccess,
   hapticTab,
   hapticUndo,
@@ -18,6 +20,8 @@ test("haptics are a no-op off native", async () => {
       hapticOrdered(),
       hapticTab(),
       hapticDestructive(),
+      hapticPress(),
+      hapticClose(),
     ]),
   );
 });

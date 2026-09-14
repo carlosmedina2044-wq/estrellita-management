@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, LayoutGroup, motion } from "motion/react";
 import { CalendarDays, ChevronDown, Package, Settings, Share2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
@@ -15,6 +16,9 @@ import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-
 import { WeekRing } from "@/components/week-ring";
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
+import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
+import { RollingNumber } from "@/components/today/rolling-number";
+import { useCompletionFlow } from "@/components/today/use-completion-flow";
 import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
 import { addDays, formatLongDate, formatTime, formatWeekdayDate, isFirstOfMonth, sameDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
 import {
@@ -41,11 +45,12 @@ import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
 import { shareText as nativeShare } from "@/lib/native/share";
 import type { WeatherAttribution } from "@/lib/native/weatherkit";
+import { hapticSuccess } from "@/lib/native/haptics";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
+import { SPRING_SETTLE, scrollBehavior } from "@/lib/motion";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { useLocale } from "@/i18n/locale-provider";
 import { useNow } from "@/hooks/use-now";
@@ -120,11 +125,9 @@ export function TodayView({
   const [teachingHidden, setTeachingHidden] = useState(false);
   const [onlyOverdue, setOnlyOverdue] = useState(false);
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
-  const [exitingId, setExitingId] = useState<string | null>(null);
-  const exitingIdRef = useRef<string | null>(null);
-  const [closedPulse, setClosedPulse] = useState(false);
   const [dutyMenu, setDutyMenu] = useState<{ duty: Duty; x: number; y: number } | null>(null);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
+  const particlesRef = useRef<ParticleLayerHandle>(null);
   const [prevFocus, setPrevFocus] = useState(focus);
   if (focus !== prevFocus) {
     setPrevFocus(focus);
@@ -185,6 +188,20 @@ export function TodayView({
   const weatherListed = listed.filter((duty) => Boolean(duty.weatherTriggerId));
   const regularListed = listed.filter((duty) => !duty.weatherTriggerId);
 
+  const completion = useCompletionFlow({
+    open,
+    scope,
+    viewingCalendar,
+    momentumOn: household.momentum.enabled,
+    onComplete,
+    onUndo,
+    onCommitted: (_duty, remaining) => {
+      if (remaining.length === 0 && scope === "daily" && !viewingCalendar) {
+        void hapticSuccess();
+      }
+    },
+  });
+
   function selectScope(next: OutstandingScope) {
     setOnlyOverdue(false);
     setScope(next);
@@ -197,74 +214,11 @@ export function TodayView({
     setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
   }
 
-  function toggle(duty: Duty, completed: boolean) {
-    if (completed) {
-      if (exitingIdRef.current === duty.id) {
-        exitingIdRef.current = null;
-        setExitingId(null);
-        return;
-      }
-      onUndo(duty.id);
-      void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
-      toast(t("today.undoToast"));
-      return;
-    }
-    if (exitingIdRef.current) return;
-    if (prefersReducedMotion()) {
-      onComplete(duty.id);
-      void import("@/lib/native/haptics").then((m) => m.hapticComplete()).catch(() => {});
-      const remaining = open.filter((item) => item.id !== duty.id);
-      if (remaining.length === 0 && !viewingCalendar && scope === "daily") {
-        void import("@/lib/native/haptics").then((m) => m.hapticSuccess()).catch(() => {});
-      }
-      toast.success(tDutyTitle(duty.title), {
-        action: {
-          label: t("today.undoToast"),
-          onClick: () => {
-            onUndo(duty.id);
-            void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
-          },
-        },
-      });
-      return;
-    }
-    exitingIdRef.current = duty.id;
-    setExitingId(duty.id);
-    void import("@/lib/native/haptics").then((m) => m.hapticComplete()).catch(() => {});
-    toast.success(tDutyTitle(duty.title), {
-      action: {
-        label: t("today.undoToast"),
-        onClick: () => {
-          const wasExiting = exitingIdRef.current === duty.id;
-          exitingIdRef.current = null;
-          setExitingId(null);
-          if (!wasExiting) onUndo(duty.id);
-          void import("@/lib/native/haptics").then((m) => m.hapticUndo()).catch(() => {});
-        },
-      },
-    });
-  }
-
-  function finishExit(dutyId: string) {
-    if (exitingIdRef.current !== dutyId) return;
-    exitingIdRef.current = null;
-    setExitingId(null);
-    const remaining = open.filter((duty) => duty.id !== dutyId);
-    if (remaining.length === 0 && !viewingCalendar && scope === "daily") {
-      void import("@/lib/native/haptics").then((m) => m.hapticSuccess()).catch(() => {});
-      if (!prefersReducedMotion()) {
-        setClosedPulse(true);
-        window.setTimeout(() => setClosedPulse(false), 400);
-      }
-    }
-    onComplete(dutyId);
-  }
-
   function handleDutyMenu(action: DutyMenuAction) {
     const target = dutyMenu?.duty;
     if (!target) return;
     if (action === "complete") {
-      toggle(target, false);
+      completion.complete(target);
       return;
     }
     if (action === "edit") {
@@ -313,8 +267,8 @@ export function TodayView({
         overdue={extra.overdue}
         hideOverdueChip={onlyOverdue}
         partChip={chip}
-        exiting={exitingId === duty.id}
-        onExitComplete={() => finishExit(duty.id)}
+        completing={!extra.done && completion.completingId === duty.id}
+        onPressStart={() => {}}
         onLongPress={
           extra.done
             ? undefined
@@ -336,9 +290,31 @@ export function TodayView({
             : undefined
         }
         missingPartHint={chip?.kind === "order_first"}
-        onToggle={() => toggle(duty, Boolean(extra.done) || exitingId === duty.id)}
+        onToggle={() =>
+          extra.done || completion.completingId === duty.id
+            ? completion.undo(duty)
+            : completion.complete(duty)
+        }
         onOpen={() => setEditing(duty)}
+        onSparkleError={(point) => particlesRef.current?.burst({ ...point, count: 12 })}
       />
+    );
+  }
+
+  function animatedDuty(duty: Duty, extra: { done?: boolean; overdue?: boolean; doneMeta?: string } = {}) {
+    return (
+      <motion.div
+        key={duty.id}
+        layout
+        layoutId={duty.id}
+        className="ui-group-row"
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={SPRING_SETTLE}
+      >
+        {dutyRow(duty, extra)}
+      </motion.div>
     );
   }
 
@@ -384,14 +360,16 @@ export function TodayView({
         : needCount === 1
           ? t("today.headlineOne")
           : t("today.headlineMany", { count: needCount });
-  const effortMinutes = !viewingCalendar && scope === "daily" && open.length > 0 ? todayEffort(open) : 0;
-  const secondaryLine = [
-    headingDate,
-    !needsZip ? weatherLine : null,
-    effortMinutes > 0 ? t("today.effort", { minutes: effortMinutes }) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const effortMinutes = !viewingCalendar && scope === "daily" ? todayEffort(open) : 0;
+  const minutesTemplate =
+    effortMinutes > 0
+      ? t("today.minutesLeft", { minutes: "%%" })
+      : !viewingCalendar && scope === "daily"
+        ? t("today.minutesLeftNone")
+        : null;
+  const [minutesBefore, minutesAfter] = minutesTemplate?.includes("%%")
+    ? minutesTemplate.split("%%")
+    : [minutesTemplate, null];
   const showRunPill = run.current >= 2 && household.momentum.enabled;
   const doneIds = new Set(doneEntries.map((entry) => entry.duty.id));
   const leftoverCostPrompts = costPrompts.filter(
@@ -420,16 +398,14 @@ export function TodayView({
 
   return (
     <div className="flex flex-col gap-5">
+      <ParticleLayer ref={particlesRef} />
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="ui-card font-semibold leading-snug text-foreground">{greeting}</p>
           <h1
             aria-live="polite"
             aria-atomic="true"
-            className={cn(
-              "ui-hero mt-1 origin-left text-foreground transition-transform duration-[400ms] ease-out",
-              closedPulse ? "scale-[1.03]" : "scale-100",
-            )}
+            className="ui-hero mt-1 origin-left text-foreground"
           >
             {displayHeadline}
           </h1>
@@ -438,7 +414,21 @@ export function TodayView({
               {t("today.runPill", { count: run.current })}
             </p>
           ) : null}
-          <p className="mt-1.5 ui-caption num text-muted-foreground">{secondaryLine}</p>
+          <p className="mt-1.5 ui-caption num text-muted-foreground">
+            {[headingDate, !needsZip ? weatherLine : null].filter(Boolean).join(" · ")}
+            {minutesBefore != null ? (
+              <>
+                {" · "}
+                {minutesBefore}
+                {minutesAfter != null ? (
+                  <>
+                    <RollingNumber value={effortMinutes} />
+                    {minutesAfter}
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </p>
         </div>
         {onOpenSettings ? (
           <button
@@ -612,62 +602,38 @@ export function TodayView({
       ) : (
         <>
           <div ref={listRef} className="flex flex-col gap-5">
-            {weatherListed.length > 0 ? (
-              <div>
-                <p className="mb-2 px-1 ui-caption font-medium text-muted-foreground">
-                  {t("today.weatherAddedHeader")}
-                </p>
-                <div className="ui-group">
-                  {weatherListed.map((duty) => (
-                    <div key={duty.id} className="ui-group-row">
-                      {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {regularListed.length > 0 || leftoverCostPrompts.length > 0 ? (
-              <div className="ui-group">
-                {regularListed.map((duty) => (
-                  <div key={duty.id} className="ui-group-row">
-                    {dutyRow(duty, { overdue: isOverdueFor(duty, household, now) })}
+            <LayoutGroup id="today-list">
+              {weatherListed.length > 0 ? (
+                <div>
+                  <p className="mb-2 px-1 ui-caption font-medium text-muted-foreground">
+                    {t("today.weatherAddedHeader")}
+                  </p>
+                  <div className="ui-group">
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {weatherListed.map((duty) =>
+                        animatedDuty(duty, { overdue: isOverdueFor(duty, household, now) }),
+                      )}
+                    </AnimatePresence>
                   </div>
-                ))}
-                {leftoverCostPrompts.map((prompt) => {
-                  const duty = household.duties.find((item) => item.id === prompt.dutyId);
-                  if (!duty) return null;
-                  return (
-                    <div key={prompt.id} className="ui-group-row">
-                      {dutyRow(duty, { done: true })}
-                      {onRecordCost ? (
-                        <div className="px-4 pb-3">
-                          <CostPrompt
-                            suggested={suggestedCostFor(duty, household)}
-                            onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
-                            onSkip={() => onRecordCost(prompt.id, { skip: true })}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : null}
-            {doneEntries.length > 0 ? (
-              <div>
-                <p className="mb-2 px-1 ui-caption font-medium text-muted-foreground">
-                  {doneHeader}
-                </p>
+                </div>
+              ) : null}
+              {regularListed.length > 0 || leftoverCostPrompts.length > 0 ? (
                 <div className="ui-group">
-                  {doneEntries.map((entry) => {
-                    const prompt = costPrompts.find((item) => item.dutyId === entry.duty.id);
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {regularListed.map((duty) =>
+                      animatedDuty(duty, { overdue: isOverdueFor(duty, household, now) }),
+                    )}
+                  </AnimatePresence>
+                  {leftoverCostPrompts.map((prompt) => {
+                    const duty = household.duties.find((item) => item.id === prompt.dutyId);
+                    if (!duty) return null;
                     return (
-                      <div key={entry.duty.id} className="ui-group-row">
-                        {dutyRow(entry.duty, { done: true, doneMeta: doneMetaFor(entry) })}
-                        {prompt && onRecordCost ? (
+                      <div key={prompt.id} className="ui-group-row">
+                        {dutyRow(duty, { done: true })}
+                        {onRecordCost ? (
                           <div className="px-4 pb-3">
                             <CostPrompt
-                              suggested={suggestedCostFor(entry.duty, household)}
+                              suggested={suggestedCostFor(duty, household)}
                               onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
                               onSkip={() => onRecordCost(prompt.id, { skip: true })}
                             />
@@ -677,8 +643,48 @@ export function TodayView({
                     );
                   })}
                 </div>
-              </div>
-            ) : null}
+              ) : null}
+              {doneEntries.length > 0 ? (
+                <div>
+                  <p className="mb-2 px-1 ui-caption font-medium text-muted-foreground">
+                    {doneHeader}
+                  </p>
+                  <div
+                    className="ui-group"
+                    data-animating={completion.completingId ? "" : undefined}
+                  >
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {doneEntries.map((entry) => (
+                        <motion.div
+                          key={entry.duty.id}
+                          layout
+                          layoutId={entry.duty.id}
+                          className="ui-group-row"
+                          initial={{ opacity: 0, y: -6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.98 }}
+                          transition={SPRING_SETTLE}
+                        >
+                          {dutyRow(entry.duty, { done: true, doneMeta: doneMetaFor(entry) })}
+                          {(() => {
+                            const prompt = costPrompts.find((item) => item.dutyId === entry.duty.id);
+                            return prompt && onRecordCost ? (
+                              <div className="px-4 pb-3">
+                                <CostPrompt
+                                  suggested={suggestedCostFor(entry.duty, household)}
+                                  onSave={(amount) => onRecordCost(prompt.id, { actualCost: amount })}
+                                  onSkip={() => onRecordCost(prompt.id, { skip: true })}
+                                />
+                              </div>
+                            ) : null;
+                          })()}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              ) : null}
+            </LayoutGroup>
           </div>
           <Button
             className="h-12 rounded-full"

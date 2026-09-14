@@ -1,6 +1,20 @@
 import { isNative } from "@/lib/native/platform";
 
-export type HapticKind = "complete" | "success" | "undo" | "ordered" | "tab" | "destructive";
+export type HapticKind =
+  | "complete"
+  | "success"
+  | "undo"
+  | "ordered"
+  | "tab"
+  | "destructive"
+  | "press"
+  | "close";
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 async function play(kind: HapticKind): Promise<void> {
   if (!isNative()) return;
@@ -12,6 +26,7 @@ async function play(kind: HapticKind): Promise<void> {
         await Haptics.notification({ type: NotificationType.Success });
         return;
       case "undo":
+      case "press":
         await Haptics.impact({ style: ImpactStyle.Light });
         return;
       case "ordered":
@@ -22,6 +37,13 @@ async function play(kind: HapticKind): Promise<void> {
         return;
       case "destructive":
         await Haptics.notification({ type: NotificationType.Warning });
+        return;
+      case "close":
+        await Haptics.notification({ type: NotificationType.Success });
+        await wait(120);
+        await Haptics.impact({ style: ImpactStyle.Light });
+        await wait(120);
+        await Haptics.impact({ style: ImpactStyle.Medium });
         return;
     }
   } catch {
@@ -51,4 +73,12 @@ export function hapticTab(): Promise<void> {
 
 export function hapticDestructive(): Promise<void> {
   return play("destructive");
+}
+
+export function hapticPress(): Promise<void> {
+  return play("press");
+}
+
+export function hapticClose(): Promise<void> {
+  return play("close");
 }

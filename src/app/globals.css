@@ -567,6 +567,10 @@ html.keyboard-open [data-slot="sheet-footer"] {
   border: 1px solid var(--border);
 }
 
+.ui-group[data-animating] {
+  overflow: visible;
+}
+
 .ui-group-row + .ui-group-row {
   border-top: 1px solid var(--border);
 }

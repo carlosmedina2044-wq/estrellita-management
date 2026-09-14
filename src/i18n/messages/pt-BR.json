@@ -1154,6 +1154,8 @@
   "today.done": "Feito",
   "today.doneBy": "Feito por {name}",
   "today.effort": "cerca de {minutes} min",
+  "today.minutesLeft": "Faltam {minutes} min",
+  "today.minutesLeftNone": "Nada pendente",
   "today.headlineClosed": "Dia encerrado. {count} feitas.",
   "today.runPill": "{count} dias seguidos",
   "today.weekRing": "Nesta semana {done} de {planned}",

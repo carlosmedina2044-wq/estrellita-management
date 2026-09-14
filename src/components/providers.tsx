@@ -1,5 +1,6 @@
 "use client";
 
+import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { useVisualViewport } from "@/hooks/use-visual-viewport";
@@ -11,8 +12,10 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <LocaleProvider>
-        {children}
-        <Toaster position="bottom-center" className="mb-[max(1rem,env(safe-area-inset-bottom))]" />
+        <MotionConfig reducedMotion="user">
+          {children}
+          <Toaster position="bottom-center" className="mb-[max(1rem,env(safe-area-inset-bottom))]" />
+        </MotionConfig>
       </LocaleProvider>
     </ThemeProvider>
   );

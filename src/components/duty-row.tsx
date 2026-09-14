@@ -1,13 +1,42 @@
 "use client";
 
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { motion } from "motion/react";
 import { useLocale } from "@/i18n/locale-provider";
 import { tDutyTitle } from "@/i18n/content";
-import { Check, Circle, Ellipsis } from "lucide-react";
+import { Circle, Ellipsis } from "lucide-react";
+import { IllustratedMoment } from "@/components/illustrated-moment";
 import { dutySubtitle, installedAtFor } from "@/lib/duties";
-import { prefersReducedMotion } from "@/lib/motion";
+import { EASE_OUT, SPRING_PRESS } from "@/lib/motion";
+import { hapticPress } from "@/lib/native/haptics";
 import type { Duty, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+function DelayedSparkle({
+  onComplete,
+  onError,
+}: {
+  onComplete: () => void;
+  onError: () => void;
+}) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShow(true), 200);
+    return () => window.clearTimeout(timer);
+  }, []);
+  if (!show) return null;
+  return (
+    <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <IllustratedMoment
+        kind="sparkle-burst"
+        size={96}
+        autoplay
+        onComplete={onComplete}
+        onError={onError}
+      />
+    </span>
+  );
+}
 
 export function DutyRow({
   duty,
@@ -21,12 +50,13 @@ export function DutyRow({
   onPartChip,
   missingPartHint,
   hideOverdueChip,
-  exiting,
-  onExitComplete,
+  completing,
+  onPressStart,
   onLongPress,
   onMore,
   onToggle,
   onOpen,
+  onSparkleError,
 }: {
   duty: Duty;
   household?: Household;
@@ -39,21 +69,19 @@ export function DutyRow({
   onPartChip?: () => void;
   missingPartHint?: boolean;
   hideOverdueChip?: boolean;
-  exiting?: boolean;
-  onExitComplete?: () => void;
+  completing?: boolean;
+  onPressStart?: () => void;
   onLongPress?: (point: { x: number; y: number }) => void;
   onMore?: (point: { x: number; y: number }) => void;
   onToggle: () => void;
   onOpen?: () => void;
+  onSparkleError?: (point: { x: number; y: number }) => void;
 }) {
   const { t } = useLocale();
-  const reduceMotion = prefersReducedMotion();
-  const shellRef = useRef<HTMLDivElement>(null);
-  const pathRef = useRef<SVGPathElement>(null);
-  const onExitCompleteRef = useRef(onExitComplete);
   const longPressTimer = useRef<number | null>(null);
   const longPressOrigin = useRef<{ x: number; y: number } | null>(null);
-  const showDone = Boolean(done || exiting);
+  const checkRef = useRef<HTMLButtonElement>(null);
+  const showDone = Boolean(done || completing);
   const title = tDutyTitle(duty.title);
   let subtitle = missingPartHint
     ? t("chore.noPart")
@@ -91,56 +119,6 @@ export function DutyRow({
         ? t("chore.upcoming")
         : null;
 
-  useEffect(() => {
-    onExitCompleteRef.current = onExitComplete;
-  }, [onExitComplete]);
-
-  useEffect(() => {
-    if (!exiting) {
-      const shell = shellRef.current;
-      const path = pathRef.current;
-      if (shell) {
-        shell.style.height = "";
-        shell.style.opacity = "";
-        shell.style.transition = "";
-      }
-      if (path) {
-        path.style.strokeDashoffset = "1";
-        path.style.transition = "none";
-      }
-      return;
-    }
-    if (reduceMotion) {
-      const timer = window.setTimeout(() => onExitCompleteRef.current?.(), 0);
-      return () => window.clearTimeout(timer);
-    }
-    const shell = shellRef.current;
-    const path = pathRef.current;
-    if (!shell) return;
-    const height = shell.offsetHeight;
-    shell.style.height = `${height}px`;
-    shell.style.opacity = "1";
-    if (path) {
-      path.style.strokeDashoffset = "1";
-      path.style.transition = "none";
-      window.requestAnimationFrame(() => {
-        path.style.transition = "stroke-dashoffset 200ms ease-out";
-        path.style.strokeDashoffset = "0";
-      });
-    }
-    const collapseTimer = window.setTimeout(() => {
-      shell.style.transition =
-        "height 220ms cubic-bezier(0.32,0.72,0,1), opacity 220ms ease-out";
-      shell.style.height = "0px";
-      shell.style.opacity = "0";
-    }, 200 + 300);
-    const doneTimer = window.setTimeout(() => onExitCompleteRef.current?.(), 200 + 300 + 220);
-    return () => {
-      window.clearTimeout(collapseTimer);
-      window.clearTimeout(doneTimer);
-    };
-  }, [exiting, reduceMotion]);
-
   function clearLongPress() {
     if (longPressTimer.current != null) {
       window.clearTimeout(longPressTimer.current);
@@ -150,7 +128,7 @@ export function DutyRow({
   }
 
   function onRowPointerDown(event: ReactPointerEvent) {
-    if (!onLongPress || done || exiting || event.button !== 0) return;
+    if (!onLongPress || done || completing || event.button !== 0) return;
     longPressOrigin.current = { x: event.clientX, y: event.clientY };
     longPressTimer.current = window.setTimeout(() => {
       const origin = longPressOrigin.current;
@@ -170,63 +148,121 @@ export function DutyRow({
 
   return (
     <div
-      ref={shellRef}
       className="overflow-hidden"
       onPointerDown={onRowPointerDown}
       onPointerMove={onRowPointerMove}
       onPointerUp={clearLongPress}
       onPointerCancel={clearLongPress}
       onContextMenu={(event) => {
-        if (!onLongPress || done || exiting) return;
+        if (!onLongPress || done || completing) return;
         event.preventDefault();
         onLongPress({ x: event.clientX, y: event.clientY });
       }}
     >
       <div className={cn("ui-group-row flex items-stretch bg-transparent px-1", showDone && "opacity-60")}>
-        <button
+        <motion.button
+          ref={checkRef}
           type="button"
           onClick={onToggle}
-          className="flex size-11 shrink-0 items-center justify-center text-primary active:bg-foreground/6"
+          onPointerDown={() => {
+            onPressStart?.();
+            void hapticPress();
+          }}
+          whileTap={{ scale: 0.92 }}
+          transition={SPRING_PRESS}
+          className="relative flex size-11 shrink-0 items-center justify-center text-primary active:bg-foreground/6"
           aria-label={showDone ? t("chore.undoAria", { title }) : t("chore.completeAria", { title })}
         >
           {showDone ? (
-            <span className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              {exiting && !done ? (
-                <svg viewBox="0 0 24 24" className="size-3.5" aria-hidden>
-                  <path
-                    ref={pathRef}
-                    d="M5 13l4 4L19 7"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    pathLength={1}
-                    style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
-                  />
-                </svg>
-              ) : (
-                <Check className="size-3.5" />
-              )}
+            <span className="relative flex size-6 items-center justify-center">
+              <motion.span
+                className="absolute inset-0 rounded-full bg-primary"
+                initial={completing && !done ? { scale: 0 } : false}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.18, ease: EASE_OUT }}
+              />
+              <svg viewBox="0 0 24 24" className="relative size-3.5 text-primary-foreground" aria-hidden>
+                <motion.path
+                  d="M5 13l4 4L19 7"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  initial={completing && !done ? { pathLength: 0 } : false}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.2, delay: completing && !done ? 0.18 : 0, ease: EASE_OUT }}
+                />
+                {completing && !done ? (
+                  <>
+                    <motion.path
+                      d="M17 4l2 2"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0, opacity: 1 }}
+                      animate={{ pathLength: 1, opacity: 0 }}
+                      transition={{ duration: 0.12, delay: 0.18, ease: EASE_OUT }}
+                    />
+                    <motion.path
+                      d="M20 7l1.5 1"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      initial={{ pathLength: 0, opacity: 1 }}
+                      animate={{ pathLength: 1, opacity: 0 }}
+                      transition={{ duration: 0.12, delay: 0.18, ease: EASE_OUT }}
+                    />
+                  </>
+                ) : null}
+              </svg>
             </span>
           ) : (
             <Circle className={cn("size-6 stroke-[2.2]", circleTone)} />
           )}
-        </button>
+          {completing ? (
+            <DelayedSparkle
+              onComplete={() => {}}
+              onError={() => {
+                const rect = checkRef.current?.getBoundingClientRect();
+                if (rect) {
+                  onSparkleError?.({
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2,
+                  });
+                }
+              }}
+            />
+          ) : null}
+        </motion.button>
         <button
           type="button"
           onClick={onOpen}
-          disabled={!onOpen || exiting}
-          className="flex min-w-0 flex-1 items-center py-2.5 pr-3 text-left active:bg-foreground/6"
+          disabled={!onOpen || completing}
+          className="relative flex min-w-0 flex-1 items-center py-2.5 pr-3 text-left active:bg-foreground/6"
         >
           <span className="min-w-0 flex-1">
-            <span
-              className={cn(
-                "block w-full ui-body font-medium leading-snug",
-                showDone && "text-muted-foreground line-through",
-              )}
-            >
-              {title}
+            <span className="relative block w-full">
+              <span
+                className={cn(
+                  "block w-full ui-body font-medium leading-snug",
+                  done && "text-muted-foreground line-through",
+                  completing && !done && "text-muted-foreground",
+                )}
+              >
+                {title}
+              </span>
+              {completing && !done ? (
+                <motion.span
+                  aria-hidden
+                  className="pointer-events-none absolute left-0 top-1/2 h-px w-full origin-left bg-muted-foreground"
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.22, delay: 0.22, ease: EASE_OUT }}
+                />
+              ) : null}
             </span>
             <span className={cn("mt-0.5 block truncate ui-caption num", metaTone)}>
               {showDone && doneMeta ? (

@@ -1154,6 +1154,8 @@
   "today.done": "Done",
   "today.doneBy": "Done by {name}",
   "today.effort": "about {minutes} min",
+  "today.minutesLeft": "{minutes} min left",
+  "today.minutesLeftNone": "Nothing left",
   "today.headlineClosed": "Day closed. {count} done.",
   "today.runPill": "{count}-day run",
   "today.weekRing": "This week {done} of {planned}",
