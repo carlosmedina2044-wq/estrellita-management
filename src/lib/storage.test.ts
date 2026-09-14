@@ -363,3 +363,32 @@ test("morning brief keeps disabled hour and weekdaysOnly", () => {
   );
   assert.deepEqual(household.morningBrief, { enabled: false, hour: 7, weekdaysOnly: true });
 });
+
+test("momentum care round-trips and drops invalid since", () => {
+  const kept = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      momentum: {
+        enabled: true,
+        bestRun: 2,
+        care: { level: "loved", since: "2026-09-01", direction: "up" },
+      },
+    }),
+  );
+  assert.deepEqual(kept.momentum.care, {
+    level: "loved",
+    since: "2026-09-01",
+    direction: "up",
+  });
+  const dropped = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      momentum: {
+        enabled: true,
+        bestRun: 1,
+        care: { level: "kept", since: "not-a-date" },
+      },
+    }),
+  );
+  assert.equal(dropped.momentum.care, undefined);
+});

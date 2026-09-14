@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { todayISO } from "@/lib/dates";
+import { useNow } from "@/hooks/use-now";
 import { sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
 import {
   EMPTY_HOUSEHOLD,
@@ -37,6 +38,7 @@ import type {
   RestockDigestSettings,
 } from "@/lib/types";
 import { applyMomentumOnComplete, newlyEarned } from "@/lib/momentum";
+import { reconcileCareLevel } from "@/lib/care-level";
 import type { OnboardingAnswers } from "@/lib/onboarding/generate";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { generateHomeFromAnswers, seedDutiesForHome } from "@/lib/onboarding/generate";
@@ -121,6 +123,15 @@ export function useHousehold() {
       unsubscribe();
     };
   }, [syncFromStore]);
+
+  const now = useNow();
+  useEffect(() => {
+    if (!hydrated || !sessionUnlocked || pendingUnlock) return;
+    const current = getHousehold();
+    const next = reconcileCareLevel(current, now);
+    if (next !== current) updateHousehold(() => next);
+  }, [hydrated, sessionUnlocked, pendingUnlock, now]);
+
   const update = useCallback((updater: (current: Household) => Household) => {
     updateHousehold(updater);
   }, []);

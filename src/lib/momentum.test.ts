@@ -6,6 +6,7 @@ import {
   applyMomentumOnComplete,
   closedDayRun,
   dayArc,
+  runStripDays,
   dayOutcome,
   dismissWeekWrapped,
   monthRecap,
@@ -343,4 +344,21 @@ test("dayArc respects audience filter", () => {
   assert.equal(dayArc(home, today, "me").open, 1);
   assert.equal(dayArc(home, today, "cleaner").open, 1);
   assert.equal(dayArc(home, today, "all").open, 2);
+});
+
+test("runStripDays marks grace and today", () => {
+  const today = new Date(2026, 8, 13);
+  const daily = duty({ id: "wipe", title: "Wipe" });
+  // closed yesterday, open today with grace on an earlier open day in the run
+  const home = household({
+    duties: [daily],
+    completions: [
+      completion({ dutyId: "wipe", completedAt: atNoon(addDays(today, -1)) }),
+      completion({ dutyId: "wipe", completedAt: atNoon(addDays(today, -3)) }),
+    ],
+  });
+  const days = runStripDays(home, today);
+  assert.equal(days.length, 7);
+  assert.equal(days[6]?.isToday, true);
+  assert.equal(days[6]?.outcome, "open");
 });

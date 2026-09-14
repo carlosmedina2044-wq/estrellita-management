@@ -34,6 +34,9 @@ import {
   type LifespanUnit,
   type LockSettings,
   type MaintenanceFund,
+  CARE_LEVELS,
+  type CareLevelId,
+  type CareState,
   MILESTONE_IDS,
   type Milestone,
   type MilestoneId,
@@ -743,9 +746,24 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       ? {
           enabled: raw.momentum.enabled !== false,
           bestRun: asInt(raw.momentum.bestRun, 0, 0, 10_000),
+          ...migrateCare(raw.momentum.care),
         }
       : { ...DEFAULT_MOMENTUM },
   });
+}
+
+function migrateCare(raw: unknown): { care?: CareState } {
+  if (!isPlainObject(raw)) return {};
+  const level =
+    typeof raw.level === "string" && (CARE_LEVELS as readonly string[]).includes(raw.level)
+      ? (raw.level as CareLevelId)
+      : null;
+  const since =
+    typeof raw.since === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.since) ? raw.since : null;
+  if (!level || !since) return {};
+  const direction =
+    raw.direction === "up" || raw.direction === "down" ? raw.direction : undefined;
+  return { care: { level, since, ...(direction ? { direction } : {}) } };
 }
 
 function migrateMilestones(raw: unknown): Milestone[] {

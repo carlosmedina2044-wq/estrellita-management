@@ -11,7 +11,7 @@ import {
   type RoomGlyphKind,
 } from "@/components/icons/room-glyphs";
 
-const TYPE_TO_GLYPH: Record<RoomType, RoomGlyphKind> = {
+export const TYPE_TO_GLYPH: Record<RoomType, RoomGlyphKind> = {
   kitchen: "kitchen",
   living: "living",
   dining: "living",
@@ -43,5 +43,7 @@ export {
   LaundryGlyph,
   LivingGlyph,
   OutdoorsGlyph,
+  RoomGlyph,
   SystemsGlyph,
+  type RoomGlyphKind,
 };

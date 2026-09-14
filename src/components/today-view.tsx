@@ -40,7 +40,7 @@ import {
   type DoneEntry,
   type OutstandingScope,
 } from "@/lib/duties";
-import { closedDayRun, dayArc, dismissWeekWrapped, roomsTouchedInRange, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
+import { dayArc, dismissWeekWrapped, roomsTouchedInRange, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
 import { tDutyTitle } from "@/i18n/content";
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
@@ -153,7 +153,6 @@ export function TodayView({
     const start = startOfWeek(startOfMonth(calendarMonth));
     return completionDays(household, start, addDays(start, 41));
   }, [household, calendarMonth]);
-  const run = useMemo(() => closedDayRun(household, now), [household, now]);
   const week = useMemo(() => weekProgress(household, now), [household, now]);
   const weekRooms = useMemo(() => {
     const range = weekRange(now);
@@ -348,7 +347,6 @@ export function TodayView({
   const [minutesBefore, minutesAfter] = minutesTemplate?.includes("%%")
     ? minutesTemplate.split("%%")
     : [minutesTemplate, null];
-  const showRunPill = run.current >= 2 && household.momentum.enabled;
   const doneIds = new Set(doneEntries.map((entry) => entry.duty.id));
   const leftoverCostPrompts = costPrompts.filter(
     (item) => !doneIds.has(item.dutyId) && !open.some((duty) => duty.id === item.dutyId),
@@ -377,11 +375,6 @@ export function TodayView({
   const secondaryLine = (
     <>
       {[headingDate, !needsZip ? weatherLine : null].filter(Boolean).join(" · ")}
-      {showRunPill ? (
-        <span className="ml-2 inline-flex rounded-full bg-success/10 px-2.5 py-0.5 ui-caption text-success">
-          {t("today.runPill", { count: run.current })}
-        </span>
-      ) : null}
       {minutesBefore != null && !momentumOn ? (
         <>
           {" · "}
@@ -409,6 +402,7 @@ export function TodayView({
         variant={momentumOn ? "momentum" : "plain"}
         careState={household.momentum.care}
         onOpenSettings={onOpenSettings}
+        onOpenCalendar={() => setCalendarOpen(true)}
       />
 
       {zipBannerVisible ? (

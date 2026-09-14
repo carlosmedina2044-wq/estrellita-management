@@ -2,12 +2,16 @@
 
 import type { ReactNode } from "react";
 import { Settings } from "lucide-react";
+import { CareTitle } from "@/components/today/care-title";
 import { HouseOrbit } from "@/components/today/house-orbit";
+import { KeptRoomsRow } from "@/components/today/kept-rooms-row";
 import { RollingNumber } from "@/components/today/rolling-number";
+import { RunStrip } from "@/components/today/run-strip";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatWeekdayDate } from "@/lib/dates";
 import type { CareState, Household } from "@/lib/types";
 import type { DayArc } from "@/lib/momentum";
+import { runStripDays } from "@/lib/momentum";
 import { dayOfYear, heroCopyKey } from "@/lib/today-copy";
 
 export function TodayHero({
@@ -19,6 +23,7 @@ export function TodayHero({
   variant,
   careState,
   onOpenSettings,
+  onOpenCalendar,
   children,
 }: {
   household: Household;
@@ -29,6 +34,7 @@ export function TodayHero({
   variant: "plain" | "momentum";
   careState?: CareState;
   onOpenSettings?: () => void;
+  onOpenCalendar?: () => void;
   children?: ReactNode;
 }) {
   const { t } = useLocale();
@@ -51,6 +57,7 @@ export function TodayHero({
         });
 
   const minutesParts = t("today.minutesLeft", { minutes: "%%" }).split("%%");
+  const stripDays = runStripDays(household, now);
 
   return (
     <header className="relative ui-group bg-card px-4 py-4">
@@ -69,6 +76,7 @@ export function TodayHero({
               </button>
             ) : null}
           </div>
+          {variant === "momentum" ? <CareTitle careState={careState} now={now} /> : null}
           {children}
           <h1
             aria-live="polite"
@@ -86,7 +94,9 @@ export function TodayHero({
               level={level}
               dimmed={careState?.direction === "down"}
               ceremony={false}
-              label={t("today.dayArcAria", { done: arc.done, total: arc.total })}
+              label={t("today.houseAria", {
+                level: t(`care.level.${level}` as "care.level.settling-in"),
+              })}
             />
             <p className="ui-caption num text-muted-foreground">
               {minutesParts[0]}
@@ -96,6 +106,17 @@ export function TodayHero({
           </div>
         ) : null}
       </div>
+      {variant === "momentum" ? (
+        <div className="mt-3 flex flex-col gap-3">
+          <RunStrip
+            household={household}
+            now={now}
+            days={stripDays}
+            onOpenCalendar={onOpenCalendar}
+          />
+          <KeptRoomsRow household={household} now={now} />
+        </div>
+      ) : null}
     </header>
   );
 }

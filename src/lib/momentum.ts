@@ -94,11 +94,19 @@ export function dayOutcome(household: Household, day: Date): DayOutcome {
 }
 
 export function closedDayRun(household: Household, now = new Date()): ClosedDayRun {
+  const walked = walkRun(household, now);
+  return { current: walked.current, best: cachedBestRun(household), graceUsed: walked.graceDays.size > 0 };
+}
+
+function walkRun(
+  household: Household,
+  now: Date,
+): { current: number; graceDays: Set<number> } {
   const today = dayOutcome(household, now);
   let cursor = today === "open" ? addDays(now, -1) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const floor = historyFloor(household);
   let current = 0;
-  let graceUsed = false;
+  const graceDays = new Set<number>();
   let graceAt: number | null = null;
   let steps = 0;
 
@@ -109,14 +117,37 @@ export function closedDayRun(household: Household, now = new Date()): ClosedDayR
       current += 1;
     } else if (graceAt === null || startOfDay(cursor) <= graceAt - GRACE_WINDOW_DAYS * DAY_MS) {
       graceAt = startOfDay(cursor);
-      graceUsed = true;
+      graceDays.add(graceAt);
     } else {
       break;
     }
     cursor = addDays(cursor, -1);
   }
 
-  return { current, best: cachedBestRun(household), graceUsed };
+  return { current, graceDays };
+}
+
+export type RunDay = {
+  date: Date;
+  outcome: DayOutcome | "grace";
+  isToday: boolean;
+};
+
+export function runStripDays(household: Household, now = new Date()): RunDay[] {
+  const walked = walkRun(household, now);
+  const days: RunDay[] = [];
+  for (let offset = 6; offset >= 0; offset -= 1) {
+    const date = addDays(now, -offset);
+    const raw = dayOutcome(household, date);
+    const outcome: DayOutcome | "grace" =
+      raw === "open" && walked.graceDays.has(startOfDay(date)) ? "grace" : raw;
+    days.push({
+      date,
+      outcome,
+      isToday: offset === 0,
+    });
+  }
+  return days;
 }
 
 export function weekProgress(household: Household, now = new Date()): WeekProgress {
@@ -337,11 +368,13 @@ export function newlyEarned(household: Household, now = new Date()): MilestoneId
   return MILESTONES.filter((item) => !have.has(item.id) && item.when(household, now)).map((item) => item.id);
 }
 
+import { reconcileCareLevel } from "@/lib/care-level";
+
 export function applyMomentumOnComplete(household: Household, now = new Date()): Household {
   const earned = newlyEarned(household, now);
   const run = closedDayRun(household, now);
   const earnedAt = now.toISOString();
-  return {
+  const next: Household = {
     ...household,
     milestones: [...household.milestones, ...earned.map((id) => ({ id, earnedAt }))],
     momentum: {
@@ -349,4 +382,5 @@ export function applyMomentumOnComplete(household: Household, now = new Date()):
       bestRun: Math.max(household.momentum.bestRun, run.current),
     },
   };
+  return reconcileCareLevel(next, now);
 }
