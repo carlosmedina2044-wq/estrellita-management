@@ -2988,5 +2988,12 @@
       "shadow": "/portraits/k-shadow.webp",
       "snow": "/portraits/k-snow.webp"
     }
+  },
+  "_rooftest": {
+    "files": {
+      "undefined": {
+        "undefined": "/portraits/_rooftest.webp"
+      }
+    }
   }
 }

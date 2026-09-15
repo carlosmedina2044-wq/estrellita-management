@@ -478,6 +478,69 @@ def assign_poly_material(obj, poly_indices, mat):
         mesh.polygons[pi].material_index = idx
 
 
+ROOF_COLORS_SRGB = {
+    # Punchy roof paints in sRGB — converted to linear for Principled.
+    "classic": (0.12, 0.42, 0.88),  # clear blue
+    "terracotta": (0.86, 0.28, 0.12),  # clay / house.webp warmth
+    "slate": (0.22, 0.26, 0.32),  # dark slate
+}
+
+
+def srgb_to_linear_channel(c: float) -> float:
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+
+def roof_color_linear(palette: str):
+    r, g, b = ROOF_COLORS_SRGB[palette]
+    return (
+        srgb_to_linear_channel(r),
+        srgb_to_linear_channel(g),
+        srgb_to_linear_channel(b),
+        1.0,
+    )
+
+
+def apply_roof_paint(house_objects, palette: str):
+    """Paint upward-facing roof slabs a solid saturated color; skip solar/dark caps."""
+    color = roof_color_linear(palette)
+    mat = bpy.data.materials.new(f"Roof_{palette}_{len(bpy.data.materials)}")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
+    bsdf.inputs["Base Color"].default_value = color
+    bsdf.inputs["Roughness"].default_value = 0.45
+    if "Specular IOR Level" in bsdf.inputs:
+        bsdf.inputs["Specular IOR Level"].default_value = 0.4
+    nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+
+    cmap = bpy.data.images.load(str(COLORMAPS / f"{palette}.png"), check_existing=True)
+    pixels = list(cmap.pixels)
+    w, h = cmap.size
+
+    total = 0
+    for o in house_objects:
+        mesh = o.data
+        roof_polys = []
+        for poly in mesh.polygons:
+            n = o.matrix_world.to_3x3() @ poly.normal
+            if n.z < 0.55:
+                continue
+            rgb = sample_face_color(o, poly, pixels, w, h)
+            lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+            if lum < 0.15:
+                continue
+            roof_polys.append(poly.index)
+        if roof_polys:
+            assign_poly_material(o, roof_polys, mat)
+            total += len(roof_polys)
+            print(f"roof paint {palette}: {o.name} {len(roof_polys)} faces")
+    if total == 0:
+        print(f"roof paint {palette}: WARNING no faces")
+
+
+
 def set_holdout(objects, enabled=True):
     for o in objects:
         o.is_holdout = enabled
@@ -632,6 +695,7 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
     house_col, house_objs = import_glb(KIT_ROOT / f"building-type-{kit_type}.glb", "House")
     house_meshes = mesh_objects(house_col)
     apply_clay_colormap(house_meshes, palette)
+    apply_roof_paint(house_meshes, palette)
 
     props_col, prop_objs = place_props(entry)
     prop_meshes = [o for o in prop_objs if o.type == "MESH"]

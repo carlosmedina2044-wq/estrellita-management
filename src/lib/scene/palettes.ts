@@ -13,19 +13,19 @@ export const PALETTES: Record<PaletteId, PaletteSwatch> = {
     id: "classic",
     labelKey: "portrait.palette.classic",
     wall: "#f2bf99",
-    roof: "#6794d9",
+    roof: "#2257af",
   },
   terracotta: {
     id: "terracotta",
     labelKey: "portrait.palette.terracotta",
     wall: "#faae8a",
-    roof: "#d4745d",
+    roof: "#af3d23",
   },
   slate: {
     id: "slate",
     labelKey: "portrait.palette.slate",
     wall: "#a0a8c9",
-    roof: "#3a3c3f",
+    roof: "#38414f",
   },
 };
 
