@@ -1,0 +1,1758 @@
+{
+  "a": {
+    "features": {
+      "storeys": 1,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 185.6,
+      "y": 121.4,
+      "w": 432.8,
+      "h": 327.9
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 200.2,
+        "y": 229.3,
+        "w": 56.8,
+        "h": 100.7
+      },
+      {
+        "id": "w1",
+        "x": 297.5,
+        "y": 163.8,
+        "w": 83.1,
+        "h": 100
+      },
+      {
+        "id": "w2",
+        "x": 322.5,
+        "y": 207.8,
+        "w": 110.1,
+        "h": 102.5
+      },
+      {
+        "id": "w3",
+        "x": 413.8,
+        "y": 153.2,
+        "w": 135.6,
+        "h": 88.1
+      },
+      {
+        "id": "w4",
+        "x": 432.6,
+        "y": 207.8,
+        "w": 55.9,
+        "h": 98.1
+      },
+      {
+        "id": "w5",
+        "x": 549,
+        "y": 195.8,
+        "w": 55.1,
+        "h": 86.6
+      }
+    ],
+    "door": {
+      "x": 352.5,
+      "y": 306.6
+    },
+    "chimney": {
+      "x": 330.8,
+      "y": 163.8
+    },
+    "windowCount": 6,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/a-autumn.webp",
+        "spring": "/portraits/a-spring.webp",
+        "summer": "/portraits/a-summer.webp",
+        "winter": "/portraits/a-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/a-classic-day.webp",
+        "slate": "/portraits/a-slate-day.webp",
+        "terracotta": "/portraits/a-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/a-classic-night.webp",
+        "slate": "/portraits/a-slate-night.webp",
+        "terracotta": "/portraits/a-terracotta-night.webp"
+      },
+      "lit": "/portraits/a-lit.webp",
+      "shadow": "/portraits/a-shadow.webp",
+      "snow": "/portraits/a-snow.webp"
+    }
+  },
+  "b": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "wide",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 191.8,
+      "y": 128.9,
+      "w": 409.3,
+      "h": 303.8
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 226.9,
+        "y": 249.6,
+        "w": 17.4,
+        "h": 39.8
+      },
+      {
+        "id": "w1",
+        "x": 321.1,
+        "y": 227.2,
+        "w": 33.5,
+        "h": 19.7
+      },
+      {
+        "id": "w2",
+        "x": 366.4,
+        "y": 137.9,
+        "w": 131.8,
+        "h": 63.9
+      },
+      {
+        "id": "w3",
+        "x": 379.9,
+        "y": 231.5,
+        "w": 60.2,
+        "h": 83.3
+      },
+      {
+        "id": "w4",
+        "x": 431.4,
+        "y": 169.5,
+        "w": 146.9,
+        "h": 73.6
+      }
+    ],
+    "door": {
+      "x": 399.8,
+      "y": 348.4
+    },
+    "chimney": {
+      "x": 508.9,
+      "y": 169.5
+    },
+    "windowCount": 5,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/b-autumn.webp",
+        "spring": "/portraits/b-spring.webp",
+        "summer": "/portraits/b-summer.webp",
+        "winter": "/portraits/b-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/b-classic-day.webp",
+        "slate": "/portraits/b-slate-day.webp",
+        "terracotta": "/portraits/b-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/b-classic-night.webp",
+        "slate": "/portraits/b-slate-night.webp",
+        "terracotta": "/portraits/b-terracotta-night.webp"
+      },
+      "lit": "/portraits/b-lit.webp",
+      "shadow": "/portraits/b-shadow.webp",
+      "snow": "/portraits/b-snow.webp"
+    }
+  },
+  "c": {
+    "features": {
+      "storeys": 2,
+      "garage": 1,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 183.6,
+      "y": 92.4,
+      "w": 437.8,
+      "h": 381.9
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 203.4,
+        "y": 237.4,
+        "w": 99.1,
+        "h": 119.8
+      },
+      {
+        "id": "w1",
+        "x": 274.6,
+        "y": 266.1,
+        "w": 110.2,
+        "h": 88.7
+      },
+      {
+        "id": "w2",
+        "x": 294.2,
+        "y": 130.4,
+        "w": 84.3,
+        "h": 99.9
+      },
+      {
+        "id": "w3",
+        "x": 308.5,
+        "y": 237,
+        "w": 34.8,
+        "h": 37.2
+      },
+      {
+        "id": "w4",
+        "x": 389.7,
+        "y": 176.8,
+        "w": 99,
+        "h": 98
+      },
+      {
+        "id": "w5",
+        "x": 412.6,
+        "y": 120.8,
+        "w": 138.2,
+        "h": 87.9
+      },
+      {
+        "id": "w6",
+        "x": 550.4,
+        "y": 165.7,
+        "w": 56.3,
+        "h": 86.5
+      }
+    ],
+    "door": {
+      "x": 437.1,
+      "y": 313
+    },
+    "chimney": {
+      "x": 457.5,
+      "y": 120.8
+    },
+    "windowCount": 7,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/c-autumn.webp",
+        "spring": "/portraits/c-spring.webp",
+        "summer": "/portraits/c-summer.webp",
+        "winter": "/portraits/c-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/c-classic-day.webp",
+        "slate": "/portraits/c-slate-day.webp",
+        "terracotta": "/portraits/c-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/c-classic-night.webp",
+        "slate": "/portraits/c-slate-night.webp",
+        "terracotta": "/portraits/c-terracotta-night.webp"
+      },
+      "lit": "/portraits/c-lit.webp",
+      "shadow": "/portraits/c-shadow.webp",
+      "snow": "/portraits/c-snow.webp"
+    }
+  },
+  "d": {
+    "features": {
+      "storeys": 2,
+      "garage": 1,
+      "dormers": 1,
+      "solar": false,
+      "porch": false,
+      "footprint": "wide",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 192.3,
+      "y": 115.1,
+      "w": 405.9,
+      "h": 326.7
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 209.2,
+        "y": 268.4,
+        "w": 130.3,
+        "h": 88.3
+      },
+      {
+        "id": "w1",
+        "x": 276.6,
+        "y": 173,
+        "w": 52,
+        "h": 90.6
+      },
+      {
+        "id": "w2",
+        "x": 374,
+        "y": 157.6,
+        "w": 34.4,
+        "h": 20.6
+      },
+      {
+        "id": "w3",
+        "x": 498.8,
+        "y": 152.4,
+        "w": 77.9,
+        "h": 81.9
+      }
+    ],
+    "door": {
+      "x": 387.8,
+      "y": 324.8
+    },
+    "chimney": {
+      "x": 543,
+      "y": 130.6
+    },
+    "windowCount": 4,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/d-autumn.webp",
+        "spring": "/portraits/d-spring.webp",
+        "summer": "/portraits/d-summer.webp",
+        "winter": "/portraits/d-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/d-classic-day.webp",
+        "slate": "/portraits/d-slate-day.webp",
+        "terracotta": "/portraits/d-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/d-classic-night.webp",
+        "slate": "/portraits/d-slate-night.webp",
+        "terracotta": "/portraits/d-terracotta-night.webp"
+      },
+      "lit": "/portraits/d-lit.webp",
+      "shadow": "/portraits/d-shadow.webp",
+      "snow": "/portraits/d-snow.webp"
+    }
+  },
+  "e": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 1,
+      "solar": false,
+      "porch": true,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 183.1,
+      "y": 79.8,
+      "w": 438.4,
+      "h": 404.3
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 196.3,
+        "y": 122.9,
+        "w": 22.2,
+        "h": 70.5
+      },
+      {
+        "id": "w1",
+        "x": 323.4,
+        "y": 141.7,
+        "w": 12.6,
+        "h": 13
+      },
+      {
+        "id": "w2",
+        "x": 331.2,
+        "y": 108.6,
+        "w": 56.7,
+        "h": 30.9
+      },
+      {
+        "id": "w3",
+        "x": 394.6,
+        "y": 136.1,
+        "w": 14.5,
+        "h": 12.5
+      },
+      {
+        "id": "w4",
+        "x": 500.2,
+        "y": 99.7,
+        "w": 108.9,
+        "h": 111
+      }
+    ],
+    "door": {
+      "x": 352.9,
+      "y": 334
+    },
+    "chimney": {
+      "x": 343.4,
+      "y": 114.2
+    },
+    "windowCount": 5,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/e-autumn.webp",
+        "spring": "/portraits/e-spring.webp",
+        "summer": "/portraits/e-summer.webp",
+        "winter": "/portraits/e-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/e-classic-day.webp",
+        "slate": "/portraits/e-slate-day.webp",
+        "terracotta": "/portraits/e-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/e-classic-night.webp",
+        "slate": "/portraits/e-slate-night.webp",
+        "terracotta": "/portraits/e-terracotta-night.webp"
+      },
+      "lit": "/portraits/e-lit.webp",
+      "shadow": "/portraits/e-shadow.webp",
+      "snow": "/portraits/e-snow.webp"
+    }
+  },
+  "l": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "compact",
+      "roof": "mixed"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 177.9,
+      "y": 54.1,
+      "w": 462.9,
+      "h": 464.7
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 321.1,
+        "y": 69.1,
+        "w": 141.9,
+        "h": 73.4
+      },
+      {
+        "id": "w1",
+        "x": 446.7,
+        "y": 120.5,
+        "w": 145.5,
+        "h": 77.4
+      }
+    ],
+    "door": {
+      "x": 438.3,
+      "y": 332.4
+    },
+    "chimney": {
+      "x": 370.3,
+      "y": 87
+    },
+    "windowCount": 2,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/l-autumn.webp",
+        "spring": "/portraits/l-spring.webp",
+        "summer": "/portraits/l-summer.webp",
+        "winter": "/portraits/l-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/l-classic-day.webp",
+        "slate": "/portraits/l-slate-day.webp",
+        "terracotta": "/portraits/l-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/l-classic-night.webp",
+        "slate": "/portraits/l-slate-night.webp",
+        "terracotta": "/portraits/l-terracotta-night.webp"
+      },
+      "lit": "/portraits/l-lit.webp",
+      "shadow": "/portraits/l-shadow.webp",
+      "snow": "/portraits/l-snow.webp"
+    }
+  },
+  "m": {
+    "features": {
+      "storeys": 1,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "wide",
+      "roof": "hip"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 179.8,
+      "y": 137.9,
+      "w": 459.3,
+      "h": 310.1
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 241,
+        "y": 192.9,
+        "w": 88.8,
+        "h": 137.1
+      },
+      {
+        "id": "w1",
+        "x": 308.9,
+        "y": 149.2,
+        "w": 163.7,
+        "h": 82.8
+      }
+    ],
+    "door": {
+      "x": 349,
+      "y": 308.1
+    },
+    "chimney": {
+      "x": 432.9,
+      "y": 168.3
+    },
+    "windowCount": 2,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/m-autumn.webp",
+        "spring": "/portraits/m-spring.webp",
+        "summer": "/portraits/m-summer.webp",
+        "winter": "/portraits/m-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/m-classic-day.webp",
+        "slate": "/portraits/m-slate-day.webp",
+        "terracotta": "/portraits/m-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/m-classic-night.webp",
+        "slate": "/portraits/m-slate-night.webp",
+        "terracotta": "/portraits/m-terracotta-night.webp"
+      },
+      "lit": "/portraits/m-lit.webp",
+      "shadow": "/portraits/m-shadow.webp",
+      "snow": "/portraits/m-snow.webp"
+    }
+  },
+  "n": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "wide",
+      "roof": "mixed"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 186.3,
+      "y": 122.5,
+      "w": 430.1,
+      "h": 324.7
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 225.8,
+        "y": 174.9,
+        "w": 45.4,
+        "h": 92.6
+      },
+      {
+        "id": "w1",
+        "x": 232.3,
+        "y": 321.1,
+        "w": 51.7,
+        "h": 46.4
+      },
+      {
+        "id": "w2",
+        "x": 295.7,
+        "y": 183.6,
+        "w": 11.3,
+        "h": 20.4
+      },
+      {
+        "id": "w3",
+        "x": 351.8,
+        "y": 228.8,
+        "w": 164.7,
+        "h": 72.9
+      },
+      {
+        "id": "w4",
+        "x": 365.3,
+        "y": 337.5,
+        "w": 9.9,
+        "h": 23.1
+      },
+      {
+        "id": "w5",
+        "x": 388.9,
+        "y": 160,
+        "w": 66.1,
+        "h": 86.1
+      },
+      {
+        "id": "w6",
+        "x": 442.3,
+        "y": 326.3,
+        "w": 11.2,
+        "h": 22.2
+      },
+      {
+        "id": "w7",
+        "x": 515.2,
+        "y": 258,
+        "w": 34.5,
+        "h": 24.2
+      }
+    ],
+    "door": {
+      "x": 274.2,
+      "y": 339.2
+    },
+    "chimney": {
+      "x": 334.9,
+      "y": 167.2
+    },
+    "windowCount": 8,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/n-autumn.webp",
+        "spring": "/portraits/n-spring.webp",
+        "summer": "/portraits/n-summer.webp",
+        "winter": "/portraits/n-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/n-classic-day.webp",
+        "slate": "/portraits/n-slate-day.webp",
+        "terracotta": "/portraits/n-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/n-classic-night.webp",
+        "slate": "/portraits/n-slate-night.webp",
+        "terracotta": "/portraits/n-terracotta-night.webp"
+      },
+      "lit": "/portraits/n-lit.webp",
+      "shadow": "/portraits/n-shadow.webp",
+      "snow": "/portraits/n-snow.webp"
+    }
+  },
+  "o": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 2,
+      "solar": false,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 182.2,
+      "y": 75.7,
+      "w": 441.5,
+      "h": 413.1
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 291,
+        "y": 111.2,
+        "w": 85.1,
+        "h": 133.6
+      },
+      {
+        "id": "w1",
+        "x": 383.1,
+        "y": 126.9,
+        "w": 20.2,
+        "h": 29.8
+      },
+      {
+        "id": "w2",
+        "x": 430.2,
+        "y": 123.2,
+        "w": 22.5,
+        "h": 29.5
+      },
+      {
+        "id": "w3",
+        "x": 499.3,
+        "y": 95.7,
+        "w": 111.7,
+        "h": 113.7
+      }
+    ],
+    "door": {
+      "x": 332.3,
+      "y": 310.3
+    },
+    "chimney": {
+      "x": 444,
+      "y": 103.1
+    },
+    "windowCount": 4,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/o-autumn.webp",
+        "spring": "/portraits/o-spring.webp",
+        "summer": "/portraits/o-summer.webp",
+        "winter": "/portraits/o-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/o-classic-day.webp",
+        "slate": "/portraits/o-slate-day.webp",
+        "terracotta": "/portraits/o-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/o-classic-night.webp",
+        "slate": "/portraits/o-slate-night.webp",
+        "terracotta": "/portraits/o-terracotta-night.webp"
+      },
+      "lit": "/portraits/o-lit.webp",
+      "shadow": "/portraits/o-shadow.webp",
+      "snow": "/portraits/o-snow.webp"
+    }
+  },
+  "p": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": true,
+      "footprint": "standard",
+      "roof": "flat"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 184.3,
+      "y": 103.7,
+      "w": 436.2,
+      "h": 361.2
+    },
+    "windows": [],
+    "door": {
+      "x": 352.6,
+      "y": 317.2
+    },
+    "chimney": {
+      "x": 493.6,
+      "y": 118.6
+    },
+    "windowCount": 0,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/p-autumn.webp",
+        "spring": "/portraits/p-spring.webp",
+        "summer": "/portraits/p-summer.webp",
+        "winter": "/portraits/p-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/p-classic-day.webp",
+        "slate": "/portraits/p-slate-day.webp",
+        "terracotta": "/portraits/p-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/p-classic-night.webp",
+        "slate": "/portraits/p-slate-night.webp",
+        "terracotta": "/portraits/p-terracotta-night.webp"
+      },
+      "lit": "/portraits/p-lit.webp",
+      "shadow": "/portraits/p-shadow.webp",
+      "snow": "/portraits/p-snow.webp"
+    }
+  },
+  "q": {
+    "features": {
+      "storeys": 1,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "compact",
+      "roof": "flat"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 187.3,
+      "y": 105.6,
+      "w": 424.4,
+      "h": 352
+    },
+    "windows": [],
+    "door": {
+      "x": 301.2,
+      "y": 342.1
+    },
+    "chimney": {
+      "x": 403.8,
+      "y": 151.9
+    },
+    "windowCount": 0,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/q-autumn.webp",
+        "spring": "/portraits/q-spring.webp",
+        "summer": "/portraits/q-summer.webp",
+        "winter": "/portraits/q-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/q-classic-day.webp",
+        "slate": "/portraits/q-slate-day.webp",
+        "terracotta": "/portraits/q-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/q-classic-night.webp",
+        "slate": "/portraits/q-slate-night.webp",
+        "terracotta": "/portraits/q-terracotta-night.webp"
+      },
+      "lit": "/portraits/q-lit.webp",
+      "shadow": "/portraits/q-shadow.webp",
+      "snow": "/portraits/q-snow.webp"
+    }
+  },
+  "r": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": true,
+      "footprint": "compact",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 194.6,
+      "y": 56,
+      "w": 423.5,
+      "h": 452
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 266.6,
+        "y": 182.5,
+        "w": 12.6,
+        "h": 14.9
+      },
+      {
+        "id": "w1",
+        "x": 312.1,
+        "y": 221.2,
+        "w": 17.1,
+        "h": 14.4
+      },
+      {
+        "id": "w2",
+        "x": 351.4,
+        "y": 63,
+        "w": 111.6,
+        "h": 89.4
+      },
+      {
+        "id": "w3",
+        "x": 573.1,
+        "y": 193.9,
+        "w": 10.4,
+        "h": 12.7
+      }
+    ],
+    "door": {
+      "x": 398.8,
+      "y": 419.5
+    },
+    "chimney": {
+      "x": 383.3,
+      "y": 84.7
+    },
+    "windowCount": 4,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/r-autumn.webp",
+        "spring": "/portraits/r-spring.webp",
+        "summer": "/portraits/r-summer.webp",
+        "winter": "/portraits/r-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/r-classic-day.webp",
+        "slate": "/portraits/r-slate-day.webp",
+        "terracotta": "/portraits/r-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/r-classic-night.webp",
+        "slate": "/portraits/r-slate-night.webp",
+        "terracotta": "/portraits/r-terracotta-night.webp"
+      },
+      "lit": "/portraits/r-lit.webp",
+      "shadow": "/portraits/r-shadow.webp",
+      "snow": "/portraits/r-snow.webp"
+    }
+  },
+  "s": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "mixed"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 184.5,
+      "y": 92,
+      "w": 434.2,
+      "h": 380.8
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 218,
+        "y": 310.2,
+        "w": 44.4,
+        "h": 42
+      },
+      {
+        "id": "w1",
+        "x": 301.1,
+        "y": 105.4,
+        "w": 91.3,
+        "h": 85
+      },
+      {
+        "id": "w2",
+        "x": 332.3,
+        "y": 290.8,
+        "w": 46,
+        "h": 46.6
+      },
+      {
+        "id": "w3",
+        "x": 369.6,
+        "y": 144,
+        "w": 118,
+        "h": 116.8
+      },
+      {
+        "id": "w4",
+        "x": 392.4,
+        "y": 105.4,
+        "w": 85.6,
+        "h": 69.2
+      },
+      {
+        "id": "w5",
+        "x": 476.8,
+        "y": 262.1,
+        "w": 24.7,
+        "h": 10.9
+      },
+      {
+        "id": "w6",
+        "x": 487.2,
+        "y": 144,
+        "w": 96.7,
+        "h": 80.1
+      },
+      {
+        "id": "w7",
+        "x": 507,
+        "y": 268.8,
+        "w": 88.9,
+        "h": 61.7
+      }
+    ],
+    "door": {
+      "x": 425.4,
+      "y": 323.5
+    },
+    "chimney": {
+      "x": 392.4,
+      "y": 105.4
+    },
+    "windowCount": 8,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/s-autumn.webp",
+        "spring": "/portraits/s-spring.webp",
+        "summer": "/portraits/s-summer.webp",
+        "winter": "/portraits/s-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/s-classic-day.webp",
+        "slate": "/portraits/s-slate-day.webp",
+        "terracotta": "/portraits/s-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/s-classic-night.webp",
+        "slate": "/portraits/s-slate-night.webp",
+        "terracotta": "/portraits/s-terracotta-night.webp"
+      },
+      "lit": "/portraits/s-lit.webp",
+      "shadow": "/portraits/s-shadow.webp",
+      "snow": "/portraits/s-snow.webp"
+    }
+  },
+  "t": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": true,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 187.3,
+      "y": 85.5,
+      "w": 445.4,
+      "h": 407.5
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 213.3,
+        "y": 138.5,
+        "w": 56.2,
+        "h": 117.2
+      },
+      {
+        "id": "w1",
+        "x": 276.4,
+        "y": 340.2,
+        "w": 16.5,
+        "h": 39
+      },
+      {
+        "id": "w2",
+        "x": 330.8,
+        "y": 154.2,
+        "w": 11.9,
+        "h": 12.2
+      },
+      {
+        "id": "w3",
+        "x": 337.9,
+        "y": 123.4,
+        "w": 43.7,
+        "h": 25.9
+      },
+      {
+        "id": "w4",
+        "x": 384.1,
+        "y": 185.6,
+        "w": 15.3,
+        "h": 17.1
+      },
+      {
+        "id": "w5",
+        "x": 385.9,
+        "y": 327.9,
+        "w": 27.1,
+        "h": 41.3
+      },
+      {
+        "id": "w6",
+        "x": 396.7,
+        "y": 148.8,
+        "w": 13.5,
+        "h": 11.8
+      },
+      {
+        "id": "w7",
+        "x": 407,
+        "y": 163.5,
+        "w": 67.4,
+        "h": 38.1
+      },
+      {
+        "id": "w8",
+        "x": 482,
+        "y": 313.9,
+        "w": 31.1,
+        "h": 39.1
+      },
+      {
+        "id": "w9",
+        "x": 495,
+        "y": 115.6,
+        "w": 99.3,
+        "h": 103
+      },
+      {
+        "id": "w10",
+        "x": 580.7,
+        "y": 296.3,
+        "w": 27,
+        "h": 33.4
+      }
+    ],
+    "door": {
+      "x": 343,
+      "y": 318.5
+    },
+    "chimney": {
+      "x": 279.4,
+      "y": 125.1
+    },
+    "windowCount": 11,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/t-autumn.webp",
+        "spring": "/portraits/t-spring.webp",
+        "summer": "/portraits/t-summer.webp",
+        "winter": "/portraits/t-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/t-classic-day.webp",
+        "slate": "/portraits/t-slate-day.webp",
+        "terracotta": "/portraits/t-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/t-classic-night.webp",
+        "slate": "/portraits/t-slate-night.webp",
+        "terracotta": "/portraits/t-terracotta-night.webp"
+      },
+      "lit": "/portraits/t-lit.webp",
+      "shadow": "/portraits/t-shadow.webp",
+      "snow": "/portraits/t-snow.webp"
+    }
+  },
+  "u": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": true,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 185,
+      "y": 94.5,
+      "w": 432.3,
+      "h": 375.5
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 324.7,
+        "y": 106.6,
+        "w": 89,
+        "h": 83.1
+      },
+      {
+        "id": "w1",
+        "x": 396,
+        "y": 144.3,
+        "w": 114.6,
+        "h": 105.5
+      },
+      {
+        "id": "w2",
+        "x": 413.6,
+        "y": 106.6,
+        "w": 82.8,
+        "h": 67.7
+      },
+      {
+        "id": "w3",
+        "x": 510.2,
+        "y": 144.3,
+        "w": 93,
+        "h": 78.1
+      }
+    ],
+    "door": {
+      "x": 257.9,
+      "y": 356.2
+    },
+    "chimney": {
+      "x": 457.7,
+      "y": 123.7
+    },
+    "windowCount": 4,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/u-autumn.webp",
+        "spring": "/portraits/u-spring.webp",
+        "summer": "/portraits/u-summer.webp",
+        "winter": "/portraits/u-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/u-classic-day.webp",
+        "slate": "/portraits/u-slate-day.webp",
+        "terracotta": "/portraits/u-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/u-classic-night.webp",
+        "slate": "/portraits/u-slate-night.webp",
+        "terracotta": "/portraits/u-terracotta-night.webp"
+      },
+      "lit": "/portraits/u-lit.webp",
+      "shadow": "/portraits/u-shadow.webp",
+      "snow": "/portraits/u-snow.webp"
+    }
+  },
+  "f": {
+    "features": {
+      "storeys": 2,
+      "garage": 1,
+      "dormers": 0,
+      "solar": false,
+      "porch": true,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 177.4,
+      "y": 89.7,
+      "w": 464.2,
+      "h": 400.4
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 238.1,
+        "y": 137,
+        "w": 89.9,
+        "h": 129.6
+      },
+      {
+        "id": "w1",
+        "x": 307.1,
+        "y": 98.3,
+        "w": 165.5,
+        "h": 79.4
+      }
+    ],
+    "door": {
+      "x": 266.4,
+      "y": 406.4
+    },
+    "chimney": {
+      "x": 378.9,
+      "y": 137.6
+    },
+    "windowCount": 2,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/f-autumn.webp",
+        "spring": "/portraits/f-spring.webp",
+        "summer": "/portraits/f-summer.webp",
+        "winter": "/portraits/f-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/f-classic-day.webp",
+        "slate": "/portraits/f-slate-day.webp",
+        "terracotta": "/portraits/f-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/f-classic-night.webp",
+        "slate": "/portraits/f-slate-night.webp",
+        "terracotta": "/portraits/f-terracotta-night.webp"
+      },
+      "lit": "/portraits/f-lit.webp",
+      "shadow": "/portraits/f-shadow.webp",
+      "snow": "/portraits/f-snow.webp"
+    }
+  },
+  "g": {
+    "features": {
+      "storeys": 1,
+      "garage": 0,
+      "dormers": 1,
+      "solar": false,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 186,
+      "y": 140.4,
+      "w": 433.2,
+      "h": 293.8
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 205.7,
+        "y": 208.4,
+        "w": 20.8,
+        "h": 55.8
+      },
+      {
+        "id": "w1",
+        "x": 320.3,
+        "y": 216.1,
+        "w": 11.3,
+        "h": 12.9
+      },
+      {
+        "id": "w2",
+        "x": 327.4,
+        "y": 185.4,
+        "w": 42.8,
+        "h": 25.3
+      },
+      {
+        "id": "w3",
+        "x": 384.8,
+        "y": 209.6,
+        "w": 12.8,
+        "h": 12.5
+      },
+      {
+        "id": "w4",
+        "x": 481.4,
+        "y": 179.8,
+        "w": 94.4,
+        "h": 103.3
+      }
+    ],
+    "door": {
+      "x": 406.3,
+      "y": 299.1
+    },
+    "chimney": {
+      "x": 273.9,
+      "y": 201.8
+    },
+    "windowCount": 5,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/g-autumn.webp",
+        "spring": "/portraits/g-spring.webp",
+        "summer": "/portraits/g-summer.webp",
+        "winter": "/portraits/g-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/g-classic-day.webp",
+        "slate": "/portraits/g-slate-day.webp",
+        "terracotta": "/portraits/g-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/g-classic-night.webp",
+        "slate": "/portraits/g-slate-night.webp",
+        "terracotta": "/portraits/g-terracotta-night.webp"
+      },
+      "lit": "/portraits/g-lit.webp",
+      "shadow": "/portraits/g-shadow.webp",
+      "snow": "/portraits/g-snow.webp"
+    }
+  },
+  "h": {
+    "features": {
+      "storeys": 1,
+      "garage": 0,
+      "dormers": 0,
+      "solar": true,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 189.4,
+      "y": 136.6,
+      "w": 419.2,
+      "h": 294.5
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 196.2,
+        "y": 185.2,
+        "w": 21.5,
+        "h": 62.7
+      },
+      {
+        "id": "w1",
+        "x": 492.7,
+        "y": 156.8,
+        "w": 104.4,
+        "h": 110.7
+      }
+    ],
+    "door": null,
+    "chimney": {
+      "x": 339,
+      "y": 174.6
+    },
+    "windowCount": 2,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/h-autumn.webp",
+        "spring": "/portraits/h-spring.webp",
+        "summer": "/portraits/h-summer.webp",
+        "winter": "/portraits/h-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/h-classic-day.webp",
+        "slate": "/portraits/h-slate-day.webp",
+        "terracotta": "/portraits/h-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/h-classic-night.webp",
+        "slate": "/portraits/h-slate-night.webp",
+        "terracotta": "/portraits/h-terracotta-night.webp"
+      },
+      "lit": "/portraits/h-lit.webp",
+      "shadow": "/portraits/h-shadow.webp",
+      "snow": "/portraits/h-snow.webp"
+    }
+  },
+  "i": {
+    "features": {
+      "storeys": 1,
+      "garage": 1,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 186,
+      "y": 133.1,
+      "w": 432.3,
+      "h": 306.6
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 201.3,
+        "y": 207.4,
+        "w": 100.2,
+        "h": 112.5
+      },
+      {
+        "id": "w1",
+        "x": 273.1,
+        "y": 232.9,
+        "w": 111.7,
+        "h": 84.6
+      },
+      {
+        "id": "w2",
+        "x": 295.7,
+        "y": 178,
+        "w": 75.8,
+        "h": 125.1
+      },
+      {
+        "id": "w3",
+        "x": 415.8,
+        "y": 190,
+        "w": 15.1,
+        "h": 13.3
+      },
+      {
+        "id": "w4",
+        "x": 422.3,
+        "y": 157.6,
+        "w": 53.1,
+        "h": 29
+      },
+      {
+        "id": "w5",
+        "x": 482.1,
+        "y": 158.4,
+        "w": 69.2,
+        "h": 60.3
+      },
+      {
+        "id": "w6",
+        "x": 550.9,
+        "y": 158.4,
+        "w": 55.5,
+        "h": 113.5
+      }
+    ],
+    "door": {
+      "x": 350.5,
+      "y": 298.2
+    },
+    "chimney": {
+      "x": 444.4,
+      "y": 167.8
+    },
+    "windowCount": 7,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/i-autumn.webp",
+        "spring": "/portraits/i-spring.webp",
+        "summer": "/portraits/i-summer.webp",
+        "winter": "/portraits/i-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/i-classic-day.webp",
+        "slate": "/portraits/i-slate-day.webp",
+        "terracotta": "/portraits/i-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/i-classic-night.webp",
+        "slate": "/portraits/i-slate-night.webp",
+        "terracotta": "/portraits/i-terracotta-night.webp"
+      },
+      "lit": "/portraits/i-lit.webp",
+      "shadow": "/portraits/i-shadow.webp",
+      "snow": "/portraits/i-snow.webp"
+    }
+  },
+  "j": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": true,
+      "porch": false,
+      "footprint": "standard",
+      "roof": "gable"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 188.7,
+      "y": 103.6,
+      "w": 418.5,
+      "h": 352.7
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 199.4,
+        "y": 224.9,
+        "w": 20.5,
+        "h": 54.6
+      },
+      {
+        "id": "w1",
+        "x": 290.4,
+        "y": 163.5,
+        "w": 69.3,
+        "h": 115.1
+      },
+      {
+        "id": "w2",
+        "x": 333.7,
+        "y": 213.2,
+        "w": 41.8,
+        "h": 122.7
+      },
+      {
+        "id": "w3",
+        "x": 481.5,
+        "y": 145.9,
+        "w": 97.6,
+        "h": 105.3
+      }
+    ],
+    "door": null,
+    "chimney": {
+      "x": 536,
+      "y": 118.2
+    },
+    "windowCount": 4,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/j-autumn.webp",
+        "spring": "/portraits/j-spring.webp",
+        "summer": "/portraits/j-summer.webp",
+        "winter": "/portraits/j-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/j-classic-day.webp",
+        "slate": "/portraits/j-slate-day.webp",
+        "terracotta": "/portraits/j-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/j-classic-night.webp",
+        "slate": "/portraits/j-slate-night.webp",
+        "terracotta": "/portraits/j-terracotta-night.webp"
+      },
+      "lit": "/portraits/j-lit.webp",
+      "shadow": "/portraits/j-shadow.webp",
+      "snow": "/portraits/j-snow.webp"
+    }
+  },
+  "k": {
+    "features": {
+      "storeys": 2,
+      "garage": 0,
+      "dormers": 0,
+      "solar": false,
+      "porch": false,
+      "footprint": "compact",
+      "roof": "flat"
+    },
+    "frame": {
+      "w": 780,
+      "h": 560
+    },
+    "houseBounds": {
+      "x": 211.3,
+      "y": 56.9,
+      "w": 389.4,
+      "h": 446.7
+    },
+    "windows": [
+      {
+        "id": "w0",
+        "x": 228,
+        "y": 75.8,
+        "w": 96.8,
+        "h": 60.4
+      },
+      {
+        "id": "w1",
+        "x": 450.8,
+        "y": 148.3,
+        "w": 12.3,
+        "h": 10.9
+      },
+      {
+        "id": "w2",
+        "x": 467.8,
+        "y": 154.5,
+        "w": 117.1,
+        "h": 60.3
+      }
+    ],
+    "door": {
+      "x": 397.8,
+      "y": 334.1
+    },
+    "chimney": {
+      "x": 228,
+      "y": 75.8
+    },
+    "windowCount": 3,
+    "files": {
+      "foliage": {
+        "autumn": "/portraits/k-autumn.webp",
+        "spring": "/portraits/k-spring.webp",
+        "summer": "/portraits/k-summer.webp",
+        "winter": "/portraits/k-winter.webp"
+      },
+      "day": {
+        "classic": "/portraits/k-classic-day.webp",
+        "slate": "/portraits/k-slate-day.webp",
+        "terracotta": "/portraits/k-terracotta-day.webp"
+      },
+      "night": {
+        "classic": "/portraits/k-classic-night.webp",
+        "slate": "/portraits/k-slate-night.webp",
+        "terracotta": "/portraits/k-terracotta-night.webp"
+      },
+      "lit": "/portraits/k-lit.webp",
+      "shadow": "/portraits/k-shadow.webp",
+      "snow": "/portraits/k-snow.webp"
+    }
+  }
+}

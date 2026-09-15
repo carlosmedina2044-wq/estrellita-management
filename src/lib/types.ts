@@ -357,6 +357,40 @@ export type CareState = {
   direction?: "up" | "down";
 };
 
+export const KIT_TYPES = [
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "f",
+  "g",
+  "h",
+  "i",
+  "j",
+  "k",
+  "l",
+  "m",
+  "n",
+  "o",
+  "p",
+  "q",
+  "r",
+  "s",
+  "t",
+  "u",
+] as const;
+export type KitType = (typeof KIT_TYPES)[number];
+export const PALETTE_IDS = ["classic", "terracotta", "slate"] as const;
+export type PaletteId = (typeof PALETTE_IDS)[number];
+export type HomeSpec = {
+  version: 2;
+  kitType: KitType;
+  palette: PaletteId;
+  windows: Array<{ id: string; roomId: string | null }>;
+  seed: number;
+};
+
 export type Household = {
   version: 8;
   householdName: string;
@@ -370,6 +404,7 @@ export type Household = {
   tenure?: Tenure;
   location: HomeLocation;
   attributes: HomeAttributes;
+  homeSpec?: HomeSpec;
   floors: HomeFloor[];
   rooms: HomeRoom[];
   assets: HomeAsset[];

@@ -1,0 +1,248 @@
+{
+  "a": {
+    "features": { "storeys": 1, "garage": 0, "dormers": 0, "solar": false, "porch": false, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.85, "rot": 0 },
+      "path": { "model": "path-short", "x": 0, "y": -0.55, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.55, "y": -0.45, "rot": 0 },
+      "trees": [
+        { "model": "tree-small", "x": -0.95, "y": 0.35, "rot": 15 },
+        { "model": "tree-large", "x": 1.05, "y": 0.15, "rot": -20 }
+      ]
+    }
+  },
+  "b": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": false, "porch": false, "footprint": "wide", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-1x3", "x": 0, "y": -1.0, "rot": 0 },
+      "path": { "model": "path-long", "x": -0.2, "y": -0.65, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.8, "y": -0.5, "rot": 0 },
+      "trees": [
+        { "model": "tree-large", "x": -1.25, "y": 0.4, "rot": 10 },
+        { "model": "tree-small", "x": 1.3, "y": 0.2, "rot": -12 }
+      ]
+    }
+  },
+  "c": {
+    "features": { "storeys": 2, "garage": 1, "dormers": 0, "solar": false, "porch": false, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.9, "rot": 0 },
+      "path": { "model": "path-short", "x": -0.25, "y": -0.55, "rot": 0 },
+      "driveway": { "model": "driveway-short", "x": 0.55, "y": -0.85, "rot": 0 },
+      "planter": null,
+      "trees": [{ "model": "tree-large", "x": -1.05, "y": 0.25, "rot": 25 }]
+    }
+  },
+  "d": {
+    "features": { "storeys": 2, "garage": 1, "dormers": 1, "solar": false, "porch": false, "footprint": "wide", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-1x4", "x": 0, "y": -1.0, "rot": 0 },
+      "path": { "model": "path-stones-short", "x": -0.15, "y": -0.6, "rot": 0 },
+      "driveway": { "model": "driveway-short", "x": 0.75, "y": -0.9, "rot": 0 },
+      "planter": { "model": "planter", "x": -0.7, "y": -0.45, "rot": 0 },
+      "trees": [
+        { "model": "tree-large", "x": -1.3, "y": 0.35, "rot": 5 },
+        { "model": "tree-small", "x": 1.35, "y": 0.1, "rot": -30 }
+      ]
+    }
+  },
+  "e": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 1, "solar": false, "porch": true, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.9, "rot": 0 },
+      "path": { "model": "path-stones-messy", "x": 0, "y": -0.55, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.5, "y": -0.4, "rot": 0 },
+      "trees": [
+        { "model": "tree-small", "x": -1.0, "y": 0.3, "rot": 18 },
+        { "model": "tree-large", "x": 1.1, "y": 0.2, "rot": -8 }
+      ]
+    }
+  },
+  "f": {
+    "features": { "storeys": 2, "garage": 1, "dormers": 0, "solar": false, "porch": true, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-2x2", "x": 0, "y": -1.05, "rot": 0 },
+      "path": { "model": "path-short", "x": -0.2, "y": -0.6, "rot": 0 },
+      "driveway": { "model": "driveway-short", "x": 0.55, "y": -0.95, "rot": 0 },
+      "planter": null,
+      "trees": [{ "model": "tree-large", "x": -1.15, "y": 0.35, "rot": 12 }]
+    }
+  },
+  "g": {
+    "features": { "storeys": 1, "garage": 0, "dormers": 1, "solar": false, "porch": false, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.95, "rot": 0 },
+      "path": { "model": "path-stones-short", "x": 0, "y": -0.55, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": -0.55, "y": -0.4, "rot": 0 },
+      "trees": [
+        { "model": "tree-small", "x": -1.05, "y": 0.2, "rot": 22 },
+        { "model": "tree-large", "x": 1.15, "y": 0.15, "rot": -15 }
+      ]
+    }
+  },
+  "h": {
+    "features": { "storeys": 1, "garage": 0, "dormers": 0, "solar": true, "porch": false, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.85, "rot": 0 },
+      "path": { "model": "path-short", "x": 0, "y": -0.5, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.5, "y": -0.4, "rot": 0 },
+      "trees": [{ "model": "tree-large", "x": -1.0, "y": 0.25, "rot": 8 }]
+    }
+  },
+  "i": {
+    "features": { "storeys": 1, "garage": 1, "dormers": 0, "solar": false, "porch": false, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-1x2", "x": 0, "y": -0.9, "rot": 0 },
+      "path": { "model": "path-short", "x": -0.2, "y": -0.5, "rot": 0 },
+      "driveway": { "model": "driveway-short", "x": 0.5, "y": -0.85, "rot": 0 },
+      "planter": null,
+      "trees": [{ "model": "tree-small", "x": -1.0, "y": 0.2, "rot": 14 }]
+    }
+  },
+  "j": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": true, "porch": false, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.9, "rot": 0 },
+      "path": { "model": "path-long", "x": 0, "y": -0.55, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.55, "y": -0.4, "rot": 0 },
+      "trees": [
+        { "model": "tree-large", "x": -1.05, "y": 0.3, "rot": 20 },
+        { "model": "tree-small", "x": 1.05, "y": 0.15, "rot": -10 }
+      ]
+    }
+  },
+  "k": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": false, "porch": false, "footprint": "compact", "roof": "flat" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.8, "rot": 0 },
+      "path": { "model": "path-stones-short", "x": 0, "y": -0.45, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.4, "y": -0.35, "rot": 0 },
+      "trees": [{ "model": "tree-small", "x": -0.85, "y": 0.2, "rot": 30 }]
+    }
+  },
+  "l": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": false, "porch": false, "footprint": "compact", "roof": "mixed" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.8, "rot": 0 },
+      "path": { "model": "path-short", "x": 0, "y": -0.45, "rot": 0 },
+      "driveway": null,
+      "planter": null,
+      "trees": [{ "model": "tree-small", "x": -0.9, "y": 0.25, "rot": 16 }]
+    }
+  },
+  "m": {
+    "features": { "storeys": 1, "garage": 0, "dormers": 0, "solar": false, "porch": false, "footprint": "wide", "roof": "hip" },
+    "props": {
+      "fence": { "model": "fence-1x3", "x": 0, "y": -1.05, "rot": 0 },
+      "path": { "model": "path-stones-long", "x": 0, "y": -0.65, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.7, "y": -0.45, "rot": 0 },
+      "trees": [
+        { "model": "tree-large", "x": -1.2, "y": 0.35, "rot": 5 },
+        { "model": "tree-large", "x": 1.25, "y": 0.2, "rot": -22 }
+      ]
+    }
+  },
+  "n": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": false, "porch": false, "footprint": "wide", "roof": "mixed" },
+    "props": {
+      "fence": { "model": "fence-1x4", "x": 0, "y": -1.1, "rot": 0 },
+      "path": { "model": "path-long", "x": 0, "y": -0.7, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": -0.8, "y": -0.5, "rot": 0 },
+      "trees": [
+        { "model": "tree-large", "x": -1.35, "y": 0.4, "rot": 12 },
+        { "model": "tree-small", "x": 1.4, "y": 0.15, "rot": -18 }
+      ]
+    }
+  },
+  "o": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 2, "solar": false, "porch": false, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.9, "rot": 0 },
+      "path": { "model": "path-short", "x": 0, "y": -0.55, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.5, "y": -0.4, "rot": 0 },
+      "trees": [
+        { "model": "tree-small", "x": -1.0, "y": 0.25, "rot": 9 },
+        { "model": "tree-large", "x": 1.1, "y": 0.2, "rot": -14 }
+      ]
+    }
+  },
+  "p": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": false, "porch": true, "footprint": "standard", "roof": "flat" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.85, "rot": 0 },
+      "path": { "model": "path-stones-short", "x": 0, "y": -0.5, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.45, "y": -0.35, "rot": 0 },
+      "trees": [{ "model": "tree-small", "x": -0.95, "y": 0.2, "rot": 27 }]
+    }
+  },
+  "q": {
+    "features": { "storeys": 1, "garage": 0, "dormers": 0, "solar": false, "porch": false, "footprint": "compact", "roof": "flat" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.8, "rot": 0 },
+      "path": { "model": "path-short", "x": 0, "y": -0.45, "rot": 0 },
+      "driveway": null,
+      "planter": null,
+      "trees": [{ "model": "tree-small", "x": -0.9, "y": 0.15, "rot": 11 }]
+    }
+  },
+  "r": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": false, "porch": true, "footprint": "compact", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.85, "rot": 0 },
+      "path": { "model": "path-stones-messy", "x": 0, "y": -0.5, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.4, "y": -0.35, "rot": 0 },
+      "trees": [{ "model": "tree-small", "x": -0.9, "y": 0.25, "rot": 19 }]
+    }
+  },
+  "s": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": false, "porch": false, "footprint": "standard", "roof": "mixed" },
+    "props": {
+      "fence": { "model": "fence-2x2", "x": 0, "y": -0.95, "rot": 0 },
+      "path": { "model": "path-long", "x": 0, "y": -0.6, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": -0.55, "y": -0.4, "rot": 0 },
+      "trees": [
+        { "model": "tree-large", "x": -1.15, "y": 0.3, "rot": 7 },
+        { "model": "tree-small", "x": 1.15, "y": 0.15, "rot": -25 }
+      ]
+    }
+  },
+  "t": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": false, "porch": true, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-low", "x": 0, "y": -0.95, "rot": 0 },
+      "path": { "model": "path-short", "x": 0, "y": -0.55, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.55, "y": -0.4, "rot": 0 },
+      "trees": [
+        { "model": "tree-large", "x": -1.1, "y": 0.35, "rot": 13 },
+        { "model": "tree-small", "x": 1.15, "y": 0.1, "rot": -9 }
+      ]
+    }
+  },
+  "u": {
+    "features": { "storeys": 2, "garage": 0, "dormers": 0, "solar": true, "porch": false, "footprint": "standard", "roof": "gable" },
+    "props": {
+      "fence": { "model": "fence-1x3", "x": 0, "y": -0.95, "rot": 0 },
+      "path": { "model": "path-stones-short", "x": 0, "y": -0.55, "rot": 0 },
+      "driveway": null,
+      "planter": { "model": "planter", "x": 0.55, "y": -0.4, "rot": 0 },
+      "trees": [
+        { "model": "tree-large", "x": -1.15, "y": 0.3, "rot": 21 },
+        { "model": "tree-small", "x": 1.2, "y": 0.15, "rot": -16 }
+      ]
+    }
+  }
+}

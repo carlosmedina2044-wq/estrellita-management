@@ -37,6 +37,11 @@ import {
   CARE_LEVELS,
   type CareLevelId,
   type CareState,
+  KIT_TYPES,
+  type KitType,
+  PALETTE_IDS,
+  type PaletteId,
+  type HomeSpec,
   MILESTONE_IDS,
   type Milestone,
   type MilestoneId,
@@ -677,6 +682,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     tenure,
     location: migrateLocation(raw.location),
     attributes: migrateAttributes(raw.attributes),
+    homeSpec: migrateHomeSpec(raw.homeSpec),
     floors: seeded.floors,
     rooms: seeded.rooms,
     assets: seeded.assets,
@@ -765,6 +771,38 @@ function migrateCare(raw: unknown): { care?: CareState } {
   const direction =
     raw.direction === "up" || raw.direction === "down" ? raw.direction : undefined;
   return { care: { level, since, ...(direction ? { direction } : {}) } };
+}
+
+function migrateHomeSpec(raw: unknown): HomeSpec | undefined {
+  if (!isPlainObject(raw)) return undefined;
+  if (raw.version !== 2) return undefined;
+  const kitType =
+    typeof raw.kitType === "string" && (KIT_TYPES as readonly string[]).includes(raw.kitType)
+      ? (raw.kitType as KitType)
+      : null;
+  const palette =
+    typeof raw.palette === "string" && (PALETTE_IDS as readonly string[]).includes(raw.palette)
+      ? (raw.palette as PaletteId)
+      : null;
+  if (!kitType || !palette) return undefined;
+  const seed =
+    typeof raw.seed === "number" && Number.isFinite(raw.seed) ? Math.trunc(raw.seed) : null;
+  if (seed == null) return undefined;
+  const windows: HomeSpec["windows"] = [];
+  if (Array.isArray(raw.windows)) {
+    for (const item of raw.windows) {
+      if (!isPlainObject(item)) continue;
+      if (typeof item.id !== "string" || !item.id) continue;
+      const roomId =
+        item.roomId === null
+          ? null
+          : typeof item.roomId === "string" && item.roomId
+            ? item.roomId
+            : null;
+      windows.push({ id: item.id, roomId });
+    }
+  }
+  return { version: 2, kitType, palette, windows, seed };
 }
 
 function migrateMilestones(raw: unknown): Milestone[] {
