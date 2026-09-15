@@ -111,9 +111,11 @@ def configure_cycles(samples: int):
     scene.render.film_transparent = True
     scene.render.image_settings.file_format = "PNG"
     scene.render.image_settings.color_mode = "RGBA"
-    scene.view_settings.view_transform = "Standard"
+    # AgX keeps sunlit roofs from clipping to white (Standard did). Palette colour
+    # comes from the colormap cells (scripts/portrait-palettes.mjs), never from
+    # saturation boosts or painted materials.
+    scene.view_settings.view_transform = "AgX"
     scene.view_settings.look = "None"
-    # Keep Standard; slight positive exposure so sat boost doesn't crush midtones.
     if hasattr(scene.view_settings, "exposure"):
         scene.view_settings.exposure = 0.0
     if hasattr(scene.view_settings, "gamma"):
@@ -152,7 +154,7 @@ def setup_lights(phase: str):
     if phase == "night":
         sun_data.energy = 0.0
     else:
-        sun_data.energy = 1.75
+        sun_data.energy = 2.5
     sun = bpy.data.objects.new("KeySun", sun_data)
     bpy.context.collection.objects.link(sun)
     # elevation 35°, azimuth ~ camera-left of three-quarter.
@@ -180,13 +182,21 @@ def setup_lights(phase: str):
     # AO via world — Cycles uses scene.eevee AO not applicable; rely on soft fill.
 
 
-def setup_camera(house_objects):
+def setup_camera(house_objects, frame_objects=None):
     minc, maxc = world_bounds(house_objects)
     center = (minc + maxc) / 2
     size = maxc - minc
     # Three-quarter front: azimuth ~22° left of frontal (-Y), elevation ~16°.
-    span = max(size.x, size.y, size.z)
-    dist = span * 3.15
+    # Distance follows the widest thing in frame (fence and path included) so
+    # wide types never touch the border; the aim stays on the house.
+    fmin, fmax = world_bounds(frame_objects or house_objects)
+    fsize = fmax - fmin
+    house_span = max(size.x, size.y, size.z)
+    frame_span = max(fsize.x, fsize.y, size.z)
+    # House alone → 3.15× (fills ~78% of the frame); only back off when the
+    # fence or path would otherwise touch the border.
+    span = house_span
+    dist = max(house_span * 3.15, frame_span * 2.45)
     elev = math.radians(16)
     azim = math.radians(22)  # left of frontal when viewing toward +Y from -Y
     loc = Vector(
@@ -233,25 +243,7 @@ def apply_clay_colormap(objects, palette: str):
                     principled = n
             if principled:
                 principled.inputs["Roughness"].default_value = 0.65
-            # Punch Kenney chroma — EEVEE + pastel cells otherwise read faded.
-            if tex and principled:
-                sat = None
-                for n in nt.nodes:
-                    if n.type == "HUE_SAT" and n.label == "PortraitSat":
-                        sat = n
-                        break
-                if sat is None:
-                    sat = nt.nodes.new("ShaderNodeHueSaturation")
-                    sat.label = "PortraitSat"
-                    sat.location = (tex.location.x + 180, tex.location.y)
-                sat.inputs["Saturation"].default_value = 1.35
-                sat.inputs["Value"].default_value = 1.05
-                # Rewire tex → sat → principled Base Color
-                for link in list(nt.links):
-                    if link.to_node == principled and link.to_socket.name == "Base Color":
-                        nt.links.remove(link)
-                nt.links.new(tex.outputs["Color"], sat.inputs["Color"])
-                nt.links.new(sat.outputs["Color"], principled.inputs["Base Color"])
+            # Base Color stays tex → Principled: the colormap cells carry the palette.
 
 
 # Kenney variation glass cells (linear 0..1), plus near neighbours.
@@ -310,22 +302,52 @@ def sample_face_color(obj, poly, img_pixels, img_w, img_h):
     return (img_pixels[i], img_pixels[i + 1], img_pixels[i + 2])
 
 
+# Kenney colormap cells (512×512: three 128 px bands below a 128 px unused strip,
+# eight 64 px columns). Verified by probing face UVs of building-type-a/e/p:
+#   panes  = band 0, col 5     door   = band 1, col 1     bushes = band 2, col 1
+#   roof   = band 0, col 0     trim   = band 1, col 0     walls  = band 1, col 3
+# Classification by cell is palette-independent; colour heuristics matched the
+# grey trim cell and missed the light-blue panes.
+CELL_PANES = (0, 5)
+CELL_DOOR = (1, 1)
+CELL_FOLIAGE = (2, 1)
+CELL_ROOF = (0, 0)
+
+
+def face_cell(obj, poly):
+    """(band, col) of the colormap cell a face samples, or None without UVs."""
+    uvs = obj.data.uv_layers.active
+    if not uvs:
+        return None
+    su = sv = 0.0
+    for li in poly.loop_indices:
+        uv = uvs.data[li].uv
+        su += uv.x
+        sv += uv.y
+    n = len(poly.loop_indices)
+    u, v = su / n, sv / n
+    y_from_top = (1.0 - v) * 512.0
+    if y_from_top < 128.0:
+        return None
+    band = int((y_from_top - 128.0) // 128)
+    col = int((u * 512.0) // 64)
+    return (min(2, band), min(7, col))
+
+
 def classify_faces(house_objects, palette: str):
     img = bpy.data.images.load(str(COLORMAPS / f"{palette}.png"), check_existing=True)
-    pixels = list(img.pixels)  # 0..1 floats
-    w, h = img.size
+    pixels = list(img.pixels)  # kept for callers that sample colours
     glass = []  # (obj, poly_index)
     foliage = []
     door = []
     for o in house_objects:
-        mesh = o.data
-        for poly in mesh.polygons:
-            rgb = sample_face_color(o, poly, pixels, w, h)
-            if is_glass_color(rgb):
+        for poly in o.data.polygons:
+            cell = face_cell(o, poly)
+            if cell == CELL_PANES:
                 glass.append((o, poly.index))
-            elif is_foliage_color(rgb):
+            elif cell == CELL_FOLIAGE:
                 foliage.append((o, poly.index))
-            elif is_door_color(rgb):
+            elif cell == CELL_DOOR:
                 door.append((o, poly.index))
     return glass, foliage, door, pixels
 
@@ -379,7 +401,23 @@ def cluster_windows(glass_faces):
 def refine_window_rects(cam, clusters):
     """Project clusters, drop tiny/huge, merge overlaps."""
     rects = []
+    cam_loc = cam.matrix_world.translation
     for o, polys, _ in clusters:
+        # Skip panes on faces that point away from the camera: windows on the
+        # back and far side project into the frame but are hidden by the house.
+        mesh = o.data
+        rot = o.matrix_world.to_3x3()
+        normal = Vector((0.0, 0.0, 0.0))
+        centre = Vector((0.0, 0.0, 0.0))
+        for pi in polys:
+            normal += rot @ mesh.polygons[pi].normal
+            centre += o.matrix_world @ mesh.polygons[pi].center
+        if normal.length == 0:
+            continue
+        normal.normalize()
+        centre /= len(polys)
+        if normal.dot((cam_loc - centre).normalized()) < 0.2:
+            continue
         rect = project_rect(cam, window_world_points(o, polys))
         if not rect:
             continue
@@ -478,72 +516,37 @@ def assign_poly_material(obj, poly_indices, mat):
         mesh.polygons[pi].material_index = idx
 
 
-ROOF_COLORS_SRGB = {
-    # Punchy roof paints in sRGB — converted to linear for Principled.
-    "classic": (0.12, 0.42, 0.88),  # clear blue
-    "terracotta": (0.86, 0.28, 0.12),  # clay / house.webp warmth
-    "slate": (0.22, 0.26, 0.32),  # dark slate
-}
 
 
-def srgb_to_linear_channel(c: float) -> float:
-    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
-
-def roof_color_linear(palette: str):
-    r, g, b = ROOF_COLORS_SRGB[palette]
-    return (
-        srgb_to_linear_channel(r),
-        srgb_to_linear_channel(g),
-        srgb_to_linear_channel(b),
-        1.0,
-    )
-
-
-def apply_roof_paint(house_objects, palette: str):
-    """Paint upward-facing roof slabs a solid saturated color; skip solar/dark caps."""
-    color = roof_color_linear(palette)
-    mat = bpy.data.materials.new(f"Roof_{palette}_{len(bpy.data.materials)}")
-    mat.use_nodes = True
-    nt = mat.node_tree
-    nt.nodes.clear()
-    out = nt.nodes.new("ShaderNodeOutputMaterial")
-    bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
-    bsdf.inputs["Base Color"].default_value = color
-    bsdf.inputs["Roughness"].default_value = 0.45
-    if "Specular IOR Level" in bsdf.inputs:
-        bsdf.inputs["Specular IOR Level"].default_value = 0.4
-    nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
-
-    cmap = bpy.data.images.load(str(COLORMAPS / f"{palette}.png"), check_existing=True)
-    pixels = list(cmap.pixels)
-    w, h = cmap.size
-
-    total = 0
-    for o in house_objects:
-        mesh = o.data
-        roof_polys = []
-        for poly in mesh.polygons:
-            n = o.matrix_world.to_3x3() @ poly.normal
-            if n.z < 0.55:
-                continue
-            rgb = sample_face_color(o, poly, pixels, w, h)
-            lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
-            if lum < 0.15:
-                continue
-            roof_polys.append(poly.index)
-        if roof_polys:
-            assign_poly_material(o, roof_polys, mat)
-            total += len(roof_polys)
-            print(f"roof paint {palette}: {o.name} {len(roof_polys)} faces")
-    if total == 0:
-        print(f"roof paint {palette}: WARNING no faces")
-
+def holdout_material():
+    """EEVEE ignores Object.is_holdout; a Holdout shader node works in both engines.
+    Looked up by name each time: clear_scene() purges materials between frames,
+    so a cached Python reference would dangle."""
+    mat = bpy.data.materials.get("PortraitHoldout")
+    if mat is None:
+        mat = bpy.data.materials.new("PortraitHoldout")
+        mat.use_nodes = True
+        nt = mat.node_tree
+        nt.nodes.clear()
+        out = nt.nodes.new("ShaderNodeOutputMaterial")
+        hold = nt.nodes.new("ShaderNodeHoldout")
+        nt.links.new(hold.outputs["Holdout"], out.inputs["Surface"])
+    return mat
 
 
 def set_holdout(objects, enabled=True):
+    """Replace every material on the objects with the holdout material.
+    Faces that must stay visible are re-assigned afterwards with assign_poly_material."""
+    if not enabled:
+        return
+    mat = holdout_material()
     for o in objects:
-        o.is_holdout = enabled
+        mesh = o.data
+        mesh.materials.clear()
+        mesh.materials.append(mat)
+        for poly in mesh.polygons:
+            poly.material_index = 0
 
 
 def hide_collection(col, hide=True):
@@ -689,13 +692,12 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
     clear_scene()
     configure_cycles(samples)
     phase = "night" if layer == "night" else "day"
-    setup_world(phase, strength=0.18 if phase == "night" else 0.22)
+    setup_world(phase, strength=0.18 if phase == "night" else 0.5)
     setup_lights("night" if layer == "night" else "day")
 
     house_col, house_objs = import_glb(KIT_ROOT / f"building-type-{kit_type}.glb", "House")
     house_meshes = mesh_objects(house_col)
     apply_clay_colormap(house_meshes, palette)
-    apply_roof_paint(house_meshes, palette)
 
     props_col, prop_objs = place_props(entry)
     prop_meshes = [o for o in prop_objs if o.type == "MESH"]
@@ -704,7 +706,7 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
     tree_objs = [o for o in prop_meshes if "tree" in o.name.lower()]
     non_tree_props = [o for o in prop_meshes if o not in tree_objs]
 
-    cam = setup_camera(house_meshes)
+    cam = setup_camera(house_meshes, house_meshes + non_tree_props)
     glass, foliage, door, _ = classify_faces(house_meshes, palette)
     clusters = cluster_windows(glass)
     windows = refine_window_rects(cam, clusters)
@@ -737,26 +739,36 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
         for o in tree_objs:
             o.hide_render = True
     elif layer == "lit":
-        # Emission only on glass; everything else holdout.
-        set_holdout(house_meshes + prop_meshes, True)
-        em = make_emission_material("WindowLit", strength=12.0)
+        # Emission on glass only; everything else holdout; no lights so nothing
+        # but the emission reaches the film.
+        for o in prop_meshes:
+            o.hide_render = True
+        set_holdout(house_meshes, True)
+        em = make_emission_material("WindowLit", strength=6.0)
         by_obj = defaultdict(list)
         for o, pi in glass:
             by_obj[o].append(pi)
         for o, polys in by_obj.items():
-            o.is_holdout = False
             assign_poly_material(o, polys, em)
-        for o in prop_meshes:
-            o.hide_render = True
+        for light in bpy.data.lights:
+            light.energy = 0.0
+        bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.0
     elif layer == "shadow":
-        # Shadow catcher plane; house holdout.
-        set_holdout(house_meshes + prop_meshes, True)
+        # EEVEE has no shadow catcher: render a white ground plane with the house
+        # and props held out, then scripts/prepare-portraits.mjs turns the plane's
+        # darkening into a shadow alpha (black, alpha = 1 - L/L_ref).
         for o in tree_objs:
             o.hide_render = True
-        bpy.ops.mesh.primitive_plane_add(size=20, location=(0, 0, 0.001))
+        set_holdout(house_meshes + [o for o in prop_meshes if o not in tree_objs], True)
+        bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, -0.002))
         plane = bpy.context.active_object
-        plane.is_shadow_catcher = True
-        # Ensure sun casts shadows.
+        ground = bpy.data.materials.new("ShadowGround")
+        ground.use_nodes = True
+        gnt = ground.node_tree
+        gb = next(n for n in gnt.nodes if n.type == "BSDF_PRINCIPLED")
+        gb.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+        gb.inputs["Roughness"].default_value = 1.0
+        plane.data.materials.append(ground)
         for light in bpy.data.lights:
             if light.type == "SUN":
                 light.energy = max(light.energy, 3.0)
@@ -783,45 +795,11 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
                             if bc[1] > bc[0] and bc[1] > bc[2]:
                                 n.inputs["Base Color"].default_value = color
     elif layer == "snow":
-        set_holdout(house_meshes, True)
-        # Un-holdout and paint snow faces — actually snow layer is white caps with house holdout.
-        # Spec: white cap on faces with normal z>0.7, house holdout.
-        # So we need a duplicate: holdout original, show only snow faces.
+        # White caps on upward faces; every other face held out.
         for o in prop_meshes:
             o.hide_render = True
-        # Duplicate meshes for snow caps without holdout.
-        snow_objs = []
-        for o in house_meshes:
-            dup = o.copy()
-            dup.data = o.data.copy()
-            bpy.context.collection.objects.link(dup)
-            dup.is_holdout = False
-            snow_objs.append(dup)
-        add_snow_caps(snow_objs)
-        # Hide non-snow by making default material transparent on dups — heavy-handed:
-        # add_snow_caps only assigns snow faces; other faces keep holdout parent look.
-        # Simpler path: don't holdout dups; transparent non-snow faces.
-        tr = bpy.data.materials.new("Clear")
-        tr.use_nodes = True
-        nt = tr.node_tree
-        nt.nodes.clear()
-        out = nt.nodes.new("ShaderNodeOutputMaterial")
-        tnode = nt.nodes.new("ShaderNodeBsdfTransparent")
-        nt.links.new(tnode.outputs["BSDF"], out.inputs["Surface"])
-        tr.blend_method = "HASHED"
-        for o in snow_objs:
-            mesh = o.data
-            if tr.name not in mesh.materials:
-                mesh.materials.append(tr)
-            clear_idx = list(mesh.materials).index(tr)
-            snow_mat_idx = None
-            for i, m in enumerate(mesh.materials):
-                if m and m.name.startswith("SnowCap"):
-                    snow_mat_idx = i
-            for poly in mesh.polygons:
-                if snow_mat_idx is not None and poly.material_index == snow_mat_idx:
-                    continue
-                poly.material_index = clear_idx
+        set_holdout(house_meshes, True)
+        add_snow_caps(house_meshes)
 
     render_to(out_path)
     print("wrote", out_path)

@@ -69,14 +69,51 @@ if (fs.existsSync(MANIFEST)) {
 let totalBytes = 0;
 const sizes = [];
 
+/**
+ * The shadow layer is rendered as a white ground plane with the house held out
+ * (EEVEE has no shadow catcher). Convert it to a soft black shadow whose alpha is
+ * the plane's darkening relative to its unshadowed brightness, sampled along the
+ * bottom edge. Pixels the house occupied stay fully transparent.
+ */
+function shadowToAlpha(data, info) {
+  const { width, height, channels } = info;
+  const lum = (i) => 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+  const refs = [];
+  for (let x = 0; x < width; x += 4) {
+    const i = ((height - 3) * width + x) * channels;
+    if (data[i + 3] > 200) refs.push(lum(i));
+  }
+  refs.sort((p, q) => p - q);
+  const ref = refs.length ? refs[Math.floor(refs.length * 0.9)] : 255;
+  const out = Buffer.alloc(width * height * 4);
+  for (let p = 0; p < width * height; p++) {
+    const i = p * channels;
+    const o = p * 4;
+    const covered = data[i + 3] > 200;
+    const dark = covered ? Math.max(0, 1 - lum(i) / ref) : 0;
+    const alpha = Math.min(1, dark * 1.3) * 0.6;
+    out[o] = 42;
+    out[o + 1] = 36;
+    out[o + 2] = 30;
+    out[o + 3] = Math.round(alpha * 255);
+  }
+  return out;
+}
+
 async function convertOne(file) {
   const src = path.join(PNG_ROOT, file);
   const destName = file.replace(/\.png$/, ".webp");
   const dest = path.join(OUT_ROOT, destName);
   const img = sharp(src);
-  const { data, info } = await img.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let { data, info } = await img.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let source = sharp(src);
+  if (/-shadow\.png$/.test(file)) {
+    data = shadowToAlpha(data, info);
+    info = { ...info, channels: 4 };
+    source = sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } });
+  }
   warnHalo(data, info.width, info.height, destName);
-  let buf = await sharp(src).webp({ quality }).toBuffer();
+  let buf = await source.webp({ quality }).toBuffer();
   fs.writeFileSync(dest, buf);
   totalBytes += buf.length;
   sizes.push({ name: destName, bytes: buf.length, w: info.width, h: info.height });
@@ -129,7 +166,7 @@ async function contactSheet() {
   async function compositeStack(kitType) {
     const layers = [
       path.join(OUT_ROOT, `${kitType}-shadow.webp`),
-      path.join(OUT_ROOT, `${kitType}-classic-day.webp`),
+      path.join(OUT_ROOT, `${kitType}-terracotta-day.webp`),
       path.join(OUT_ROOT, `${kitType}-lit.webp`),
       path.join(OUT_ROOT, `${kitType}-summer.webp`),
     ].filter((p) => fs.existsSync(p));
