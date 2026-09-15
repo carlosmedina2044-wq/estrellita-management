@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { AttentionTiles } from "@/components/today/attention-tiles";
 import { ClosingStats } from "@/components/today/closing-ceremony";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
+import { PortraitScene } from "@/components/today/portrait-scene";
 import { RunStrip } from "@/components/today/run-strip";
 import { TodayHero } from "@/components/today/today-hero";
 import { TodayNoticeCard, type TodayNotice } from "@/components/today/today-notice-card";
@@ -472,8 +473,8 @@ export function TodayView({
     if (result === "failed") toast.error(t("share.failedList"));
   }
 
-  // PortraitScene wires in P2; keep sheet/scroll/ambient scaffolding inactive until then.
-  const sceneMode = false;
+  // Momentum scene: layered portrait; plain/cleaner keeps the M7-09-r2 hero card.
+  const sceneMode = momentumOn;
   const sceneWx = sceneWeather(forecast, todayIso);
   const sceneTimes =
     household.location.lat != null && household.location.lng != null
@@ -534,14 +535,17 @@ export function TodayView({
       <ParticleLayer ref={particlesRef} />
       {sceneMode ? (
         <div className="relative">
-          {/* PortraitScene replaces this branch in P2 */}
-          <div
-            data-scene-blur
-            className="pointer-events-none absolute inset-0"
-            style={{
-              WebkitMaskImage: "linear-gradient(black, transparent)",
-              maskImage: "linear-gradient(black, transparent)",
-            }}
+          <PortraitScene
+            household={household}
+            arc={arc}
+            phase={scenePhase.phase}
+            phaseT={scenePhase.t}
+            weather={sceneWx}
+            ceremony={ceremonyActive}
+            greeting={greeting}
+            secondaryLine={secondaryLine}
+            onOpenSettings={onOpenSettings}
+            onOpenCalendar={() => setCalendarOpen(true)}
           />
         </div>
       ) : (
