@@ -495,9 +495,14 @@ export function TodayView({
     const onScroll = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        const y = pane.scrollTop;
-        const scene = rootRef.current?.querySelector("[data-home-scene]");
-        if (scene instanceof HTMLElement) scene.style.transform = `translateY(${-0.4 * y}px)`;
+        // Clamp against iOS rubber-band overscroll: .app-keep-alive can report a
+        // momentary negative scrollTop while it elastically bounces at the top,
+        // which previously fed straight into the scene's transform and made the
+        // art visibly bounce. The scene itself no longer transforms on scroll —
+        // it is `position: sticky` (see the wrapper below) so the browser pins it
+        // natively and the sheet slides up to cover it with no seam, instead of
+        // two independently JS-driven layers racing at different speeds.
+        const y = Math.max(0, pane.scrollTop);
         const blur = rootRef.current?.querySelector("[data-scene-blur]");
         if (blur instanceof HTMLElement) {
           const amount = Math.min(y / 120, 1) * 12;
@@ -534,7 +539,7 @@ export function TodayView({
     >
       <ParticleLayer ref={particlesRef} />
       {sceneMode ? (
-        <div className="relative">
+        <div className="sticky top-0 z-0">
           <PortraitScene
             household={household}
             arc={arc}
@@ -600,6 +605,21 @@ export function TodayView({
             : undefined
         }
       >
+      {sceneMode ? (
+        // The sky's dominant color bleeds a short way into the sheet, the way
+        // Music/Photos let artwork color wash into the chrome below it — a
+        // real, visible link between the scene and the rest of the app instead
+        // of the 1px inset highlight above, which reads as no relationship at
+        // all against a saturated sky.
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-24 rounded-t-[28px]"
+          style={{
+            background:
+              "linear-gradient(color-mix(in oklab, var(--ambient) 20%, var(--background)), transparent)",
+          }}
+        />
+      ) : null}
       {sceneMode ? (
         <div className="flex min-h-14 items-start justify-between gap-3">
           {arc.state === "closed" ? (
