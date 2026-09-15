@@ -129,7 +129,7 @@ async function contactSheet() {
   async function compositeStack(kitType) {
     const layers = [
       path.join(OUT_ROOT, `${kitType}-shadow.webp`),
-      path.join(OUT_ROOT, `${kitType}-terracotta-day.webp`),
+      path.join(OUT_ROOT, `${kitType}-classic-day.webp`),
       path.join(OUT_ROOT, `${kitType}-lit.webp`),
       path.join(OUT_ROOT, `${kitType}-summer.webp`),
     ].filter((p) => fs.existsSync(p));
@@ -137,10 +137,15 @@ async function contactSheet() {
     let base = sharp(layers[0]).resize(cellW, cellH, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } });
     const comps = [];
     for (let i = 1; i < layers.length; i++) {
-      const buf = await sharp(layers[i])
-        .resize(cellW, cellH, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-        .toBuffer();
-      comps.push({ input: buf, blend: i === 2 ? "add" : "over" });
+      const isLit = layers[i].includes("-lit");
+      let layer = sharp(layers[i]).resize(cellW, cellH, {
+        fit: "contain",
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      });
+      // Full 'add' blows pale roofs white on the contact sheet; keep a soft glow.
+      if (isLit) layer = layer.ensureAlpha(0.45);
+      const buf = await layer.toBuffer();
+      comps.push({ input: buf, blend: isLit ? "screen" : "over" });
     }
     if (comps.length) base = base.composite(comps);
     return base.png().toBuffer();

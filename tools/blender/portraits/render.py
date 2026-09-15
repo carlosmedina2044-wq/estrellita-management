@@ -111,8 +111,13 @@ def configure_cycles(samples: int):
     scene.render.film_transparent = True
     scene.render.image_settings.file_format = "PNG"
     scene.render.image_settings.color_mode = "RGBA"
-    scene.view_settings.view_transform = "AgX"
+    scene.view_settings.view_transform = "Standard"
     scene.view_settings.look = "None"
+    # Keep Standard; slight positive exposure so sat boost doesn't crush midtones.
+    if hasattr(scene.view_settings, "exposure"):
+        scene.view_settings.exposure = 0.0
+    if hasattr(scene.view_settings, "gamma"):
+        scene.view_settings.gamma = 1.0
     # Soft shadows / AO if available on EEVEE Next.
     eevee = getattr(scene, "eevee", None)
     if eevee is not None:
@@ -147,7 +152,7 @@ def setup_lights(phase: str):
     if phase == "night":
         sun_data.energy = 0.0
     else:
-        sun_data.energy = 3.0
+        sun_data.energy = 1.75
     sun = bpy.data.objects.new("KeySun", sun_data)
     bpy.context.collection.objects.link(sun)
     # elevation 35°, azimuth ~ camera-left of three-quarter.
@@ -164,7 +169,7 @@ def setup_lights(phase: str):
 
     # Soft fill from camera-right.
     area = bpy.data.lights.new("Fill", "AREA")
-    area.energy = 0.4 if phase == "day" else 0.15
+    area.energy = 0.25 if phase == "day" else 0.12
     area.size = 6.0
     area.color = hex_rgb("#fff8ee")
     ao = bpy.data.objects.new("Fill", area)
@@ -217,17 +222,36 @@ def apply_clay_colormap(objects, palette: str):
             if not mat or not mat.use_nodes:
                 continue
             nt = mat.node_tree
-            # Find image texture nodes; replace image with palette.
             principled = None
+            tex = None
             for n in nt.nodes:
                 if n.type == "TEX_IMAGE":
                     n.image = img
                     n.interpolation = "Closest"
+                    tex = n
                 if n.type == "BSDF_PRINCIPLED":
                     principled = n
             if principled:
-                principled.inputs["Roughness"].default_value = 0.7
-                # Light noise bump via existing Normal if free; skip if complex.
+                principled.inputs["Roughness"].default_value = 0.65
+            # Punch Kenney chroma — EEVEE + pastel cells otherwise read faded.
+            if tex and principled:
+                sat = None
+                for n in nt.nodes:
+                    if n.type == "HUE_SAT" and n.label == "PortraitSat":
+                        sat = n
+                        break
+                if sat is None:
+                    sat = nt.nodes.new("ShaderNodeHueSaturation")
+                    sat.label = "PortraitSat"
+                    sat.location = (tex.location.x + 180, tex.location.y)
+                sat.inputs["Saturation"].default_value = 1.35
+                sat.inputs["Value"].default_value = 1.05
+                # Rewire tex → sat → principled Base Color
+                for link in list(nt.links):
+                    if link.to_node == principled and link.to_socket.name == "Base Color":
+                        nt.links.remove(link)
+                nt.links.new(tex.outputs["Color"], sat.inputs["Color"])
+                nt.links.new(sat.outputs["Color"], principled.inputs["Base Color"])
 
 
 # Kenney variation glass cells (linear 0..1), plus near neighbours.
@@ -602,7 +626,7 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
     clear_scene()
     configure_cycles(samples)
     phase = "night" if layer == "night" else "day"
-    setup_world(phase, strength=0.35 if phase == "night" else 0.6)
+    setup_world(phase, strength=0.18 if phase == "night" else 0.22)
     setup_lights("night" if layer == "night" else "day")
 
     house_col, house_objs = import_glb(KIT_ROOT / f"building-type-{kit_type}.glb", "House")
