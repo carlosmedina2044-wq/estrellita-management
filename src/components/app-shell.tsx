@@ -725,7 +725,7 @@ export function AppShell() {
         <div
           hidden={!todayActive}
           inert={!todayActive}
-          className="app-keep-alive"
+          className="app-keep-alive app-pane-bleed"
           ref={(node) => {
             tabPaneRefs.current.today = node;
           }}

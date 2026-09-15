@@ -328,6 +328,19 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/*
+ * Lets a pane's content run edge to edge. The shell pads its panes with px-4,
+ * and `.app-keep-alive` clips overflow-x, so a child's negative margin could
+ * not actually reach the screen edge — the Today sky sat inset with a strip of
+ * page background down both sides instead of being full-bleed. Shifting the
+ * padding from the shell onto the pane itself widens the clipping box to the
+ * full screen while keeping the same inset for ordinary content.
+ */
+.app-pane-bleed {
+  margin-inline: -1rem;
+  padding-inline: 1rem;
+}
+
 /* Hide scrollbar chrome; keep overflow scrolling. */
 .app-keep-alive,
 .app-shell-push,
@@ -597,6 +610,18 @@ html.keyboard-open [data-slot="sheet-footer"] {
   animation-iteration-count: infinite;
 }
 
+/*
+ * Evening look for Today. This must stay a complete mirror of `.dark`, not a
+ * subset: any token left out keeps its light-theme value against a dark
+ * surface. The first version omitted the status and brand colours, so due /
+ * overdue / done badges kept their light-mode inks on dark cards.
+ *
+ * `color` is re-declared deliberately. `color` is an inherited property that
+ * body resolves once from the light `--foreground`; descendants then inherit
+ * that literal colour, so overriding `--foreground` further down the tree does
+ * nothing on its own. Without this line every inherited label rendered near
+ * black on a near-black card — measured 1.02:1 against WCAG's 4.5:1 floor.
+ */
 .today-night {
   --background: #1f1a16;
   --foreground: #f7f3ec;
@@ -606,13 +631,31 @@ html.keyboard-open [data-slot="sheet-footer"] {
   --popover-foreground: #f7f3ec;
   --primary: #d4a574;
   --primary-foreground: #231812;
+  --brand: #d4a574;
+  --brand-cream: #f4e6c8;
+  --brand-cream-foreground: #231812;
+  --signal: #f08a4b;
+  --signal-soft: #3d2818;
+  --overdue: #d75a3c;
+  --overdue-soft: #3a221c;
+  --soon: #d09a3e;
+  --soon-soft: #3a2e18;
+  --done: #7fae5c;
+  --done-soft: #24301e;
   --secondary: #3b3129;
   --secondary-foreground: #f7f3ec;
   --muted: #3b3129;
   --muted-foreground: #b8b0a8;
   --accent: #3d2c1f;
   --accent-foreground: #dba876;
+  --destructive: #d75a3c;
+  --success: #7fae5c;
+  --warning: #d09a3e;
   --border: rgb(255 245 230 / 12%);
+  --input: rgb(255 245 230 / 14%);
+  --ring: #d4a574;
+
+  color: var(--foreground);
 }
 
 .ui-group[data-animating] {

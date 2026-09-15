@@ -487,6 +487,26 @@ export function TodayView({
     household.momentum.nightFollowsSky !== false &&
     (scenePhase.phase === "dusk" || scenePhase.phase === "night");
 
+  // The evening look has to sit on the document, not on the Today root. Scoped
+  // to Today it produced a dark panel floating in a cream shell: the tab bar and
+  // the space reserved for it stayed light, which is the "light bottom" the
+  // scene appeared to be cut out of. Tokens are a full mirror of `.dark`
+  // (see `.today-night` in globals.css), so promoting it themes the whole app
+  // coherently. This deviates from the handoff's "do not toggle the global
+  // theme" line deliberately — that instruction is what produced the two-tone
+  // screen. The class is separate from next-themes' `.dark` and only ever
+  // added while the user's `nightFollowsSky` setting is on and the sky is
+  // actually dusk or night.
+  useEffect(() => {
+    const el = document.documentElement;
+    if (!nightFollows) {
+      el.classList.remove("today-night");
+      return;
+    }
+    el.classList.add("today-night");
+    return () => el.classList.remove("today-night");
+  }, [nightFollows]);
+
   useEffect(() => {
     if (!sceneMode) return;
     const pane = rootRef.current?.closest(".app-keep-alive");
@@ -526,7 +546,6 @@ export function TodayView({
         sceneMode
           ? "today-scene-root -mx-4 -mt-[max(0.75rem,env(safe-area-inset-top))]"
           : "flex flex-col gap-5",
-        nightFollows && "today-night",
       )}
       style={
         sceneMode

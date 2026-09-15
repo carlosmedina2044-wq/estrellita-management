@@ -15,6 +15,7 @@ import {
   dayOpacityForPhase,
   gradeOpacityForPhase,
   portraitKit,
+  portraitLayerUrls,
   resolveHomeSpec,
 } from "@/lib/scene/portrait";
 import { seasonFor, type Season } from "@/lib/scene/season";
@@ -168,6 +169,24 @@ export function PortraitScene({
   const door = kit.door;
   const stackWidthPct = 62;
 
+  // The phase grading has to be masked to the artwork. Painted as a plain
+  // rectangle it tints the portrait's whole bounding box — including all the
+  // transparent sky around the house — which rendered as a hard-edged dark
+  // box over the sky at dusk and night. Masking with the night layer (the
+  // house silhouette) plus the current foliage layer (the trees) means the
+  // grade lands only where there are actually pixels to grade.
+  const layerUrls = portraitLayerUrls(homeSpec.kitType, homeSpec.palette, season);
+  const artMask: React.CSSProperties = {
+    WebkitMaskImage: `url("${layerUrls.night}"), url("${layerUrls.foliage}")`,
+    maskImage: `url("${layerUrls.night}"), url("${layerUrls.foliage}")`,
+    WebkitMaskSize: "100% 100%, 100% 100%",
+    maskSize: "100% 100%, 100% 100%",
+    WebkitMaskRepeat: "no-repeat, no-repeat",
+    maskRepeat: "no-repeat, no-repeat",
+    WebkitMaskComposite: "source-over",
+    maskComposite: "add",
+  };
+
   return (
     <section
       role="img"
@@ -211,7 +230,12 @@ export function PortraitScene({
         className="pointer-events-none absolute left-1/2"
         style={{
           width: `${stackWidthPct}%`,
-          bottom: "8%",
+          // The sheet overlaps the bottom of the scene by 28px and starts ~40px
+          // above the scene's bottom edge. At 8% the portrait's base sat inside
+          // that band and the house and fence were sliced off by the sheet's
+          // top edge. 16% clears it, leaving only the soft ground shadow to
+          // tuck under, which grounds the house instead of cutting it.
+          bottom: "16%",
           x: gyro.x,
           y: gyro.y,
           translateX: "-50%",
@@ -233,6 +257,7 @@ export function PortraitScene({
           style={{
             background: "var(--sky-mid)",
             opacity: gradeOpacity,
+            ...artMask,
           }}
         />
         {(phase === "golden" || (phase === "dusk" && phaseT < 0.4)) && (
@@ -242,6 +267,7 @@ export function PortraitScene({
             style={{
               background: "#ffb872",
               opacity: phase === "golden" ? 0.1 + phaseT * 0.15 : 0.12,
+              ...artMask,
             }}
           />
         )}
