@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "motion/react";
-import { CalendarDays, ChevronDown, Package, Share2, UserRound } from "lucide-react";
+import { CalendarDays, ChevronDown, Package, Settings, Share2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { DayCalendar } from "@/components/day-calendar";
@@ -16,7 +16,9 @@ import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { AttentionTiles } from "@/components/today/attention-tiles";
+import { ClosingStats } from "@/components/today/closing-ceremony";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
+import { RunStrip } from "@/components/today/run-strip";
 import { TodayHero } from "@/components/today/today-hero";
 import { TodayNoticeCard, type TodayNotice } from "@/components/today/today-notice-card";
 import { WholeHouseCard } from "@/components/today/whole-house-card";
@@ -46,7 +48,11 @@ import {
   type DoneEntry,
   type OutstandingScope,
 } from "@/lib/duties";
-import { closedDayRun, dayArc, dismissWeekWrapped, roomsTouchedInRange, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
+import { closedDayRun, dayArc, dismissWeekWrapped, roomsTouchedInRange, runStripDays, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
+import { sceneCssVars } from "@/lib/scene/css";
+import { skyGradient } from "@/lib/scene/sky";
+import { skyPhase, sunTimes } from "@/lib/scene/sun";
+import { sceneWeather } from "@/lib/scene/weather";
 import { tDutyTitle } from "@/i18n/content";
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
@@ -55,6 +61,7 @@ import type { WeatherAttribution } from "@/lib/native/weatherkit";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowHandlers } from "@/lib/restock";
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
+import type { WeatherForecast } from "@/lib/weather/provider";
 import { cn } from "@/lib/utils";
 import { SPRING_SETTLE, scrollBehavior } from "@/lib/motion";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
@@ -64,6 +71,7 @@ import { useNow } from "@/hooks/use-now";
 export function TodayView({
   household,
   weatherAttribution,
+  forecast = null,
   weatherLine,
   needsZip,
   weatherLoading,
@@ -87,6 +95,7 @@ export function TodayView({
 }: {
   household: Household;
   weatherAttribution?: WeatherAttribution | null;
+  forecast?: WeatherForecast | null;
   weatherLine?: string;
   needsZip?: boolean;
   weatherLoading?: boolean;
@@ -140,6 +149,8 @@ export function TodayView({
   const [payoffDuty, setPayoffDuty] = useState<Duty | null>(null);
   const [dismissedCareKeys, setDismissedCareKeys] = useState<Set<string>>(() => new Set());
   const [showWholeHouseCard, setShowWholeHouseCard] = useState(false);
+  const [compactBar, setCompactBar] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [prevFocus, setPrevFocus] = useState(focus);
   if (focus !== prevFocus) {
     setPrevFocus(focus);
@@ -461,26 +472,148 @@ export function TodayView({
     if (result === "failed") toast.error(t("share.failedList"));
   }
 
+  // PortraitScene wires in P2; keep sheet/scroll/ambient scaffolding inactive until then.
+  const sceneMode = false;
+  const sceneWx = sceneWeather(forecast, todayIso);
+  const sceneTimes =
+    household.location.lat != null && household.location.lng != null
+      ? sunTimes(household.location.lat, household.location.lng, now)
+      : null;
+  const scenePhase = skyPhase(now, sceneTimes);
+  const sceneStops = skyGradient(scenePhase.phase, scenePhase.t, sceneWx.kind, sceneWx.cloudCover);
+  const nightFollows =
+    sceneMode &&
+    household.momentum.nightFollowsSky !== false &&
+    (scenePhase.phase === "dusk" || scenePhase.phase === "night");
+
+  useEffect(() => {
+    if (!sceneMode) return;
+    const pane = rootRef.current?.closest(".app-keep-alive");
+    if (!(pane instanceof HTMLElement)) return;
+    let frame = 0;
+    const onScroll = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const y = pane.scrollTop;
+        const scene = rootRef.current?.querySelector("[data-home-scene]");
+        if (scene instanceof HTMLElement) scene.style.transform = `translateY(${-0.4 * y}px)`;
+        const blur = rootRef.current?.querySelector("[data-scene-blur]");
+        if (blur instanceof HTMLElement) {
+          const amount = Math.min(y / 120, 1) * 12;
+          blur.style.backdropFilter = `blur(${amount}px)`;
+          blur.style.setProperty("-webkit-backdrop-filter", `blur(${amount}px)`);
+        }
+        setCompactBar(y > 120);
+      });
+    };
+    pane.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      pane.removeEventListener("scroll", onScroll);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [sceneMode]);
+
   return (
-    <div className="flex flex-col gap-5">
+    <div
+      ref={rootRef}
+      className={cn(
+        sceneMode
+          ? "today-scene-root -mx-4 -mt-[max(0.75rem,env(safe-area-inset-top))]"
+          : "flex flex-col gap-5",
+        nightFollows && "today-night",
+      )}
+      style={
+        sceneMode
+          ? {
+              ...sceneCssVars(sceneStops),
+              background: "color-mix(in oklab, var(--background) 96%, var(--ambient))",
+            }
+          : undefined
+      }
+    >
       <ParticleLayer ref={particlesRef} />
-      <TodayHero
-        household={household}
-        now={now}
-        arc={arc}
-        greeting={greeting}
-        secondaryLine={secondaryLine}
-        variant={momentumOn ? "momentum" : "plain"}
-        careState={household.momentum.care}
-        ceremony={ceremonyActive}
-        ceremonyStats={ceremonyStats}
-        ledgerLine={monthLedgerLine}
-        onOpenSettings={onOpenSettings}
-        onOpenCalendar={() => setCalendarOpen(true)}
-        onShareClosed={() => {
-          void shareClosedDay();
-        }}
-      />
+      {sceneMode ? (
+        <div className="relative">
+          {/* PortraitScene replaces this branch in P2 */}
+          <div
+            data-scene-blur
+            className="pointer-events-none absolute inset-0"
+            style={{
+              WebkitMaskImage: "linear-gradient(black, transparent)",
+              maskImage: "linear-gradient(black, transparent)",
+            }}
+          />
+        </div>
+      ) : (
+        <TodayHero
+          household={household}
+          now={now}
+          arc={arc}
+          greeting={greeting}
+          secondaryLine={secondaryLine}
+          variant={momentumOn ? "momentum" : "plain"}
+          careState={household.momentum.care}
+          ceremony={ceremonyActive}
+          ceremonyStats={ceremonyStats}
+          ledgerLine={monthLedgerLine}
+          onOpenSettings={onOpenSettings}
+          onOpenCalendar={() => setCalendarOpen(true)}
+          onShareClosed={() => {
+            void shareClosedDay();
+          }}
+        />
+      )}
+
+      {sceneMode && compactBar ? (
+        <div className="sticky top-0 z-30 flex h-[calc(env(safe-area-inset-top)+44px)] items-end justify-between bg-background/90 px-5 pb-2 backdrop-blur-md">
+          <p className="ui-caption font-medium">
+            {arc.state === "closed"
+              ? t("today.compactClosed")
+              : t("today.compactTitle", { count: arc.open })}
+          </p>
+          {onOpenSettings ? (
+            <button
+              type="button"
+              aria-label={t("common.settings")}
+              onClick={onOpenSettings}
+              className="flex size-11 items-center justify-center rounded-full bg-secondary"
+            >
+              <Settings className="size-5" />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div
+        className={
+          sceneMode
+            ? "today-sheet relative z-10 -mt-7 flex flex-col gap-5 rounded-t-[28px] bg-background px-5 pt-4"
+            : "contents"
+        }
+        style={
+          sceneMode
+            ? { boxShadow: "inset 0 1px 0 color-mix(in oklab, var(--ambient) 18%, transparent)" }
+            : undefined
+        }
+      >
+      {sceneMode ? (
+        <div className="flex min-h-14 items-start justify-between gap-3">
+          {arc.state === "closed" ? (
+            <ClosingStats stats={ceremonyStats} instant />
+          ) : (
+            <p className="ui-body font-medium num">
+              {t("today.minutesLeft", { minutes: String(arc.minutesLeft) })}
+            </p>
+          )}
+          <RunStrip
+            household={household}
+            now={now}
+            days={runStripDays(household, now)}
+            celebrate={arc.state === "closed"}
+            onOpenCalendar={() => setCalendarOpen(true)}
+          />
+        </div>
+      ) : null}
 
       {momentumOn ? <TodayNoticeCard notice={activeNotice} onDismiss={dismissNotice} /> : null}
       {zipBannerVisible ? (
@@ -946,6 +1079,7 @@ export function TodayView({
         onSave={onSaveDuty}
         {...restockHandlers}
       />
+      </div>
     </div>
   );
 }

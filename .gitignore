@@ -62,4 +62,5 @@ tools/blender/out/
 tools/blender/preview/png/
 tools/blender/reference/png/
 tools/blender/reference/showcase/png/
+tools/blender/vendor/kenney-city-kit-suburban/
 *.blend1

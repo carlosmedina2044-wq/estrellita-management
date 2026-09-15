@@ -733,6 +733,7 @@ export function AppShell() {
           <TodayView
             household={household}
             weatherAttribution={weatherAttribution}
+            forecast={forecast}
             weatherLine={weather.text}
             needsZip={weather.needsZip}
             weatherLoading={weatherLoading}

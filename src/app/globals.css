@@ -492,6 +492,7 @@
   backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--ambient, transparent) 18%, transparent);
 }
 
 html.keyboard-open .app-shell-main {
@@ -578,6 +579,25 @@ html.keyboard-open [data-slot="sheet-footer"] {
   border-radius: var(--r-container);
   background: var(--card);
   border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--ambient, transparent) 18%, transparent);
+}
+
+.today-night {
+  --background: #1f1a16;
+  --foreground: #f7f3ec;
+  --card: #2c2420;
+  --card-foreground: #f7f3ec;
+  --popover: #2c2420;
+  --popover-foreground: #f7f3ec;
+  --primary: #d4a574;
+  --primary-foreground: #231812;
+  --secondary: #3b3129;
+  --secondary-foreground: #f7f3ec;
+  --muted: #3b3129;
+  --muted-foreground: #b8b0a8;
+  --accent: #3d2c1f;
+  --accent-foreground: #dba876;
+  --border: rgb(255 245 230 / 12%);
 }
 
 .ui-group[data-animating] {
