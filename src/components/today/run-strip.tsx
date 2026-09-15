@@ -50,8 +50,12 @@ export function RunStrip({
             className={cn(
               "size-2 rounded-full",
               day.outcome === "closed" && "bg-done",
-              day.outcome === "rest" && "bg-transparent ring-1 ring-done/40",
-              day.outcome === "open" && "bg-border",
+              // A 1px ring on an 8px dot read as an empty bubble rather than a
+              // day. Filled at low opacity it reads as "a day, nothing asked".
+              day.outcome === "rest" && "bg-done/45",
+              // `bg-border` is 12% cream in the evening look, which left the
+              // unfilled days as barely-there ghosts next to the minutes line.
+              day.outcome === "open" && "bg-foreground/25",
               day.outcome === "grace" && "bg-soon/60",
               day.isToday && day.outcome === "open" && "animate-pulse",
             )}

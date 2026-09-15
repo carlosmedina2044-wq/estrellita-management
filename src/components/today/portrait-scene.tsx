@@ -168,6 +168,13 @@ export function PortraitScene({
 
   const door = kit.door;
   const stackWidthPct = 62;
+  // Transparent padding beneath the house inside its own render, as a fraction
+  // of the image box, converted to viewport width so it can offset the box.
+  const houseBelowFrac = Math.max(
+    0,
+    1 - (kit.houseBounds.y + kit.houseBounds.h) / kit.frame.h,
+  );
+  const belowVw = houseBelowFrac * stackWidthPct * (kit.frame.h / kit.frame.w);
 
   // The phase grading has to be masked to the artwork. Painted as a plain
   // rectangle it tints the portrait's whole bounding box — including all the
@@ -198,9 +205,10 @@ export function PortraitScene({
       )}
       style={{
         // 300px put the first chore 611px down a 716px pane — one visible task
-        // row. Trimmed so more of the list clears the fold without shrinking the
-        // house itself, which reads at the same size against a shorter sky.
-        height: "calc(env(safe-area-inset-top) + 256px)",
+        // row. 256px freed the fold but left nothing between the header, the
+        // sky and the roof. 272px keeps three chores above the fold and gives
+        // the composition room to breathe.
+        height: "calc(env(safe-area-inset-top) + 272px)",
         background:
           "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}
@@ -233,11 +241,16 @@ export function PortraitScene({
         className="pointer-events-none absolute left-1/2"
         style={{
           width: `${stackWidthPct}%`,
-          // Fixed offset, not a percentage: the sheet always covers a ~40px
-          // band at the bottom of the scene, so a percentage re-clips the house
-          // whenever the scene height changes. 48px clears that band with room
-          // to spare and leaves only the soft ground shadow tucked under.
-          bottom: "48px",
+          // Anchored by the house's visible bounds rather than its image box.
+          // Each render carries transparent padding below the house for the
+          // shadow, and that padding differs by house type (16%-24% of the
+          // box). Positioning the box left the house floating well above where
+          // it should sit and crowding the greeting — and by a different amount
+          // for every home. `belowVw` is that padding expressed in viewport
+          // width, so the visible base of the house lands a consistent 44px
+          // above the scene's bottom edge whatever the home or screen size,
+          // just clear of the 40px the sheet covers.
+          bottom: `calc(44px - ${belowVw.toFixed(2)}vw)`,
           x: gyro.x,
           y: gyro.y,
           translateX: "-50%",

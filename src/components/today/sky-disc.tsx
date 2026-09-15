@@ -42,11 +42,13 @@ function discStyle(
           ? 0.55
           : 0.45;
 
-  // Keep the disc's arc clear of the calendar and settings buttons in the top
-  // right. The original band started at 8% and ran the disc straight through
-  // them, so the moon sat behind the calendar chip at night.
+  // The disc travels a narrow band of open sky: below the greeting and the
+  // calendar / settings buttons, above the roofline. A percentage of the scene
+  // height does not work here — the scene grows by the safe-area inset, which
+  // pushed the disc down into the house on a notched phone. Measuring in px
+  // from the inset keeps the same gap on every device.
   const x = `${8 + progress * 72}%`;
-  const y = `${24 + (1 - altitude) * 30}%`;
+  const y = `calc(env(safe-area-inset-top) + ${Math.round(62 + (1 - altitude) * 30)}px)`;
 
   const isMoon = phase === "night" || (phase === "dusk" && t > 0.7);
   const size = isMoon ? 28 : phase === "golden" ? 42 : 36;

@@ -316,7 +316,7 @@
   flex: 1 1 auto;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: calc(7.25rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
 }
 
 .app-keep-alive {
@@ -420,7 +420,7 @@
   background: var(--background);
   padding-inline: 1rem;
   padding-top: max(0.75rem, env(safe-area-inset-top));
-  padding-bottom: calc(7.25rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
   animation: app-shell-push-in 350ms cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 

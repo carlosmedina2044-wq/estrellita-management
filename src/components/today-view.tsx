@@ -558,7 +558,17 @@ export function TodayView({
     >
       <ParticleLayer ref={particlesRef} />
       {sceneMode ? (
-        <div className="sticky top-0 z-0">
+        <div
+          // `top` cancels the negative margin this root uses to bleed the scene
+          // under the status bar. The scroll container's content starts below
+          // its own top padding, so a plain `top: 0` made sticky clamp the scene
+          // down by exactly the safe-area inset while the sheet below stayed at
+          // its flow position — the sheet then covered 90px of the scene on a
+          // notched phone instead of 28px, burying the house. Offsetting by the
+          // same amount pins the scene exactly at its flow position.
+          className="sticky z-0"
+          style={{ top: "calc(-1 * max(0.75rem, env(safe-area-inset-top)))" }}
+        >
           <PortraitScene
             household={household}
             arc={arc}
