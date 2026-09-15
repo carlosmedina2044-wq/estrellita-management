@@ -593,7 +593,7 @@ export function TodayView({
       )}
 
       {sceneMode && compactBar ? (
-        <div className="sticky top-0 z-30 flex h-[calc(env(safe-area-inset-top)+44px)] items-end justify-between bg-background/90 px-5 pb-2 backdrop-blur-md">
+        <div className="sticky top-0 z-30 flex h-[calc(env(safe-area-inset-top)+52px)] items-end justify-between bg-background/90 px-5 pb-1 backdrop-blur-md">
           <p className="ui-caption font-medium">
             {arc.state === "closed"
               ? t("today.compactClosed")

@@ -42,8 +42,11 @@ function discStyle(
           ? 0.55
           : 0.45;
 
+  // Keep the disc's arc clear of the calendar and settings buttons in the top
+  // right. The original band started at 8% and ran the disc straight through
+  // them, so the moon sat behind the calendar chip at night.
   const x = `${8 + progress * 72}%`;
-  const y = `${8 + (1 - altitude) * 28}%`;
+  const y = `${24 + (1 - altitude) * 30}%`;
 
   const isMoon = phase === "night" || (phase === "dusk" && t > 0.7);
   const size = isMoon ? 28 : phase === "golden" ? 42 : 36;

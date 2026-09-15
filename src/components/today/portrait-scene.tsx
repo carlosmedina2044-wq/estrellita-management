@@ -197,7 +197,10 @@ export function PortraitScene({
         className,
       )}
       style={{
-        height: "calc(env(safe-area-inset-top) + 300px)",
+        // 300px put the first chore 611px down a 716px pane — one visible task
+        // row. Trimmed so more of the list clears the fold without shrinking the
+        // house itself, which reads at the same size against a shorter sky.
+        height: "calc(env(safe-area-inset-top) + 256px)",
         background:
           "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}
@@ -230,12 +233,11 @@ export function PortraitScene({
         className="pointer-events-none absolute left-1/2"
         style={{
           width: `${stackWidthPct}%`,
-          // The sheet overlaps the bottom of the scene by 28px and starts ~40px
-          // above the scene's bottom edge. At 8% the portrait's base sat inside
-          // that band and the house and fence were sliced off by the sheet's
-          // top edge. 16% clears it, leaving only the soft ground shadow to
-          // tuck under, which grounds the house instead of cutting it.
-          bottom: "16%",
+          // Fixed offset, not a percentage: the sheet always covers a ~40px
+          // band at the bottom of the scene, so a percentage re-clips the house
+          // whenever the scene height changes. 48px clears that band with room
+          // to spare and leaves only the soft ground shadow tucked under.
+          bottom: "48px",
           x: gyro.x,
           y: gyro.y,
           translateX: "-50%",
@@ -289,7 +291,7 @@ export function PortraitScene({
       <div data-rive-layer aria-hidden className="pointer-events-none absolute inset-0" />
 
       <WeatherLayer kind={weather.kind} intensity={precip} />
-      <StatusGlyphs weather={weather} phase={phase} careLevel={household.momentum.care?.level} />
+      <StatusGlyphs weather={weather} careLevel={household.momentum.care?.level} />
 
       {/* Top scrim + text overlay */}
       <div

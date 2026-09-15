@@ -5,23 +5,19 @@ import {
   CloudRain,
   CloudSnow,
   Heart,
-  MoonStars,
   Plant,
-  SunDim,
 } from "@phosphor-icons/react";
 import type { SceneWeather } from "@/lib/scene/weather";
-import type { SkyPhase } from "@/lib/scene/sun";
 import type { CareLevelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type StatusGlyphsProps = {
   weather: SceneWeather;
-  phase: SkyPhase;
   careLevel?: CareLevelId;
   className?: string;
 };
 
-export function StatusGlyphs({ weather, phase, careLevel, className }: StatusGlyphsProps) {
+export function StatusGlyphs({ weather, careLevel, className }: StatusGlyphsProps) {
   const glyphs: { key: string; node: React.ReactNode }[] = [];
 
   if (weather.kind === "rain") {
@@ -41,17 +37,10 @@ export function StatusGlyphs({ weather, phase, careLevel, className }: StatusGly
     });
   }
 
-  if (phase === "night") {
-    glyphs.push({
-      key: "night",
-      node: <MoonStars weight="duotone" className="size-5" aria-hidden />,
-    });
-  } else if (phase === "golden" || phase === "dusk") {
-    glyphs.push({
-      key: "golden",
-      node: <SunDim weight="duotone" className="size-5 text-amber-500" aria-hidden />,
-    });
-  }
+  // No phase glyph here on purpose. `SkyDisc` already draws the sun or moon in
+  // the sky, positioned by the real solar angle; adding an icon for the same
+  // thing put two moons on screen at night, and the chip overlapped the disc at
+  // dusk. This row is for what the art cannot show: weather and care.
 
   if (careLevel === "loved" || careLevel === "cared-for") {
     glyphs.push({
