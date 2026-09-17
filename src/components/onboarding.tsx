@@ -6,6 +6,7 @@ import { BrandLockup } from "@/components/brand-logo";
 import { CircleCheck } from "@/components/circle-check";
 import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
 import { PortraitScene } from "@/components/today/portrait-scene";
+import { SceneBoundary } from "@/components/scene-boundary";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { Button } from "@/components/ui/button";
@@ -670,18 +671,20 @@ function WelcomeScene() {
 
   return (
     <div aria-hidden className="pointer-events-none select-none overflow-hidden rounded-2xl">
-      <PortraitScene
-        household={household}
-        arc={arc}
-        phase={scenePhase.phase}
-        phaseT={scenePhase.t}
-        weather={weather}
-        ceremony={false}
-        greeting=""
-        secondaryLine=""
-        insetTop={false}
-        overrides={{ windowsLit: lit }}
-      />
+      <SceneBoundary>
+        <PortraitScene
+          household={household}
+          arc={arc}
+          phase={scenePhase.phase}
+          phaseT={scenePhase.t}
+          weather={weather}
+          ceremony={false}
+          greeting=""
+          secondaryLine=""
+          insetTop={false}
+          overrides={{ windowsLit: lit }}
+        />
+      </SceneBoundary>
     </div>
   );
 }

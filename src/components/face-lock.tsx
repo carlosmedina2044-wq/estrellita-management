@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BrandMark } from "@/components/brand-logo";
+import { SceneBoundary } from "@/components/scene-boundary";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { Button } from "@/components/ui/button";
 import { TeachingTip } from "@/components/teaching-tip";
@@ -96,16 +97,18 @@ export function FaceLock({
         // entirely, matching the "no chore details on a locked screen"
         // stance `privateNotifications` already takes elsewhere.
         <div aria-hidden className="opacity-90 blur-[1.5px] brightness-[0.6]">
-          <PortraitScene
-            household={household}
-            arc={sceneArc}
-            phase={scenePhase.phase}
-            phaseT={scenePhase.t}
-            weather={sceneWx}
-            ceremony={false}
-            greeting=""
-            secondaryLine=""
-          />
+          <SceneBoundary>
+            <PortraitScene
+              household={household}
+              arc={sceneArc}
+              phase={scenePhase.phase}
+              phaseT={scenePhase.t}
+              weather={sceneWx}
+              ceremony={false}
+              greeting=""
+              secondaryLine=""
+            />
+          </SceneBoundary>
         </div>
       ) : null}
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-8 pb-12 text-center">

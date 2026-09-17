@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { motion } from "motion/react";
+import { SceneBoundary } from "@/components/scene-boundary";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { useLocale } from "@/i18n/locale-provider";
 import { toISODate } from "@/lib/dates";
@@ -50,18 +51,22 @@ export function HouseLookPicker({
   return (
     <div className="flex flex-col gap-4">
       <div className="overflow-hidden rounded-2xl">
-        <PortraitScene
-          household={household}
-          arc={arc}
-          phase={scenePhase.phase}
-          phaseT={scenePhase.t}
-          weather={weather}
-          ceremony={false}
-          greeting=""
-          secondaryLine=""
-          insetTop={false}
-          overrides={{ kitType, palette, windowsLit: 0 }}
-        />
+        {/* The thumbnails and swatches below still work without the preview,
+            so a broken render costs the picture, not the step. */}
+        <SceneBoundary fallback={<div aria-hidden className="h-[272px] bg-secondary" />}>
+          <PortraitScene
+            household={household}
+            arc={arc}
+            phase={scenePhase.phase}
+            phaseT={scenePhase.t}
+            weather={weather}
+            ceremony={false}
+            greeting=""
+            secondaryLine=""
+            insetTop={false}
+            overrides={{ kitType, palette, windowsLit: 0 }}
+          />
+        </SceneBoundary>
       </div>
 
       <div className="app-h-scroll -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1">

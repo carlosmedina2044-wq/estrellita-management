@@ -10,7 +10,9 @@ import { SkyDisc } from "@/components/today/sky-disc";
 import { StatusGlyphs } from "@/components/today/status-glyphs";
 import { WeatherLayer } from "@/components/today/weather-layer";
 import { useLocale } from "@/i18n/locale-provider";
+import { sceneCssVars } from "@/lib/scene/css";
 import { houseLight } from "@/lib/scene/light";
+import { skyGradient } from "@/lib/scene/sky";
 import {
   dayOpacityForPhase,
   gradeOpacityForPhase,
@@ -187,6 +189,17 @@ export function PortraitScene({
     (ceremony ? windowCount : arrivalReveal.litNow ? light.windowsLit : 0);
   const staggerWindows = ceremony || arrivalReveal.staggering;
 
+  // The scene owns its sky. Today's root sets the same variables so the sky
+  // colour can bleed into the sheet below it, but the welcome screen, the
+  // house-look picker and the lock screen render this component on a plain
+  // page where nothing defines `--sky-*`, and the gradient below painted as
+  // `none`: a house floating on the page background with a sun over it.
+  const skyStops = useMemo(
+    () => skyGradient(phase, phaseT, weather.kind, weather.cloudCover),
+    [phase, phaseT, weather.kind, weather.cloudCover],
+  );
+  const skyVars = sceneCssVars(skyStops);
+
   const dayOpacity = dayOpacityForPhase(phase, phaseT);
   const gradeOpacity = gradeOpacityForPhase(phase, phaseT);
   const showSnow = weather.kind === "snow";
@@ -245,6 +258,7 @@ export function PortraitScene({
         className,
       )}
       style={{
+        ...skyVars,
         // 300px put the first chore 611px down a 716px pane — one visible task
         // row. 256px freed the fold but left nothing between the header, the
         // sky and the roof. 272px keeps three chores above the fold and gives

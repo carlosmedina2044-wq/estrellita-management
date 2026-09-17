@@ -21,6 +21,7 @@ import { AttentionTiles } from "@/components/today/attention-tiles";
 import { ClosingReward, ClosingStats } from "@/components/today/closing-ceremony";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
 import { PortraitScene } from "@/components/today/portrait-scene";
+import { SceneBoundary } from "@/components/scene-boundary";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { RunStrip } from "@/components/today/run-strip";
 import { TodayHero } from "@/components/today/today-hero";
@@ -96,6 +97,7 @@ export function TodayView({
   onOpenRestock,
   onNavigate,
   onChangeTree,
+  onUpdateTree,
   focus,
   onFocusHandled,
   ...restockHandlers
@@ -119,6 +121,10 @@ export function TodayView({
   onOpenDigest?: () => void;
   onReorderRooms?: (rooms: Household["rooms"]) => void;
   onChangeTree?: (next: Household) => void;
+  /** Preferred over `onChangeTree` for writes that happen later than the
+   * render they were scheduled in (timers), so they apply to the household
+   * as it is then, not as it was. */
+  onUpdateTree?: (updater: (current: Household) => Household) => void;
   onOpenRestock?: () => void;
   onNavigate?: (target: AppNavigateTarget) => void;
   focus?: AppNavigateTarget | null;
@@ -447,7 +453,14 @@ export function TodayView({
     void hapticComplete();
     const timer = window.setTimeout(() => {
       setHouseReveal(false);
-      onChangeTree?.(markTipSeen(household, TIP_HOUSE_REVEAL));
+      // A functional update, never the household this effect closed over: the
+      // shell applies `onChangeTree` as a whole-tree replacement, so writing
+      // back a 1.2s-old snapshot here discarded anything persisted meanwhile.
+      // On a fresh install that window is exactly when the first forecast
+      // lands and the weather triggers add their duties.
+      const mark = (current: Household) => markTipSeen(current, TIP_HOUSE_REVEAL);
+      if (onUpdateTree) onUpdateTree(mark);
+      else onChangeTree?.(mark(household));
     }, CEREMONY_MS);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -663,18 +676,24 @@ export function TodayView({
           className="sticky z-0"
           style={{ top: "calc(-1 * max(0.75rem, env(safe-area-inset-top)))" }}
         >
-          <PortraitScene
-            household={household}
-            arc={arc}
-            phase={scenePhaseEffective.phase}
-            phaseT={scenePhaseEffective.t}
-            weather={sceneWx}
-            ceremony={ceremonyActive || houseReveal}
-            arrival={playArrival}
-            greeting={greeting}
-            secondaryLine={secondaryLine}
-            onOpenSettings={onOpenSettings}
-          />
+          <SceneBoundary
+            // Same box the scene would have filled, so the sheet's negative
+            // margin and the compact bar keep their geometry if the art fails.
+            fallback={<div aria-hidden style={{ height: "calc(env(safe-area-inset-top) + 272px)" }} />}
+          >
+            <PortraitScene
+              household={household}
+              arc={arc}
+              phase={scenePhaseEffective.phase}
+              phaseT={scenePhaseEffective.t}
+              weather={sceneWx}
+              ceremony={ceremonyActive || houseReveal}
+              arrival={playArrival}
+              greeting={greeting}
+              secondaryLine={secondaryLine}
+              onOpenSettings={onOpenSettings}
+            />
+          </SceneBoundary>
         </div>
       ) : (
         <TodayHero
