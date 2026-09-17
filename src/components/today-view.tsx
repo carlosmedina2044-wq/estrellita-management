@@ -22,6 +22,7 @@ import { ClosingReward, ClosingStats } from "@/components/today/closing-ceremony
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
+import { GetAheadCard } from "@/components/today/get-ahead-card";
 import { HouseSheet } from "@/components/today/house-sheet";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { RunStrip } from "@/components/today/run-strip";
@@ -35,6 +36,7 @@ import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfDa
 import { keptRooms, wholeHouseKept } from "@/lib/kept-rooms";
 import { payoffKeyFor } from "@/lib/payoff-lines";
 import { hasSeenTip, markTipSeen, TIP_HOUSE_REVEAL } from "@/lib/teaching";
+import { dismissGetAhead, getAheadCandidate, isGetAheadDismissed } from "@/lib/get-ahead";
 import { houseLine } from "@/lib/house-line";
 import { dayOfYear, heroCopyKey, nextUpDayLabel } from "@/lib/today-copy";
 import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
@@ -422,6 +424,16 @@ export function TodayView({
     [momentumOn, household, forecast, now],
   );
   const dayLineText = dayLine ? t(dayLine.key, dayLine.params) : null;
+  // A clear day's optional win (E2-02): one quick chore from later this week,
+  // offered once a day, only on Today's own list.
+  const quietDay = arc.state === "clear" || arc.state === "rest";
+  const getAhead = useMemo(
+    () =>
+      momentumOn && quietDay && scope === "daily" && !viewingCalendar && !isGetAheadDismissed(household, now)
+        ? getAheadCandidate(household, now, filter)
+        : null,
+    [momentumOn, quietDay, scope, viewingCalendar, household, now, filter],
+  );
   const doneIds = new Set(doneEntries.map((entry) => entry.duty.id));
   const leftoverCostPrompts = costPrompts.filter(
     (item) => !doneIds.has(item.dutyId) && !open.some((duty) => duty.id === item.dutyId),
@@ -847,6 +859,18 @@ export function TodayView({
           transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: playArrival ? STAGGER_CHILD : 0 }}
         >
       {momentumOn ? <TodayNoticeCard notice={activeNotice} onDismiss={dismissNotice} /> : null}
+      {getAhead ? (
+        <GetAheadCard
+          duty={getAhead}
+          household={household}
+          now={now}
+          onDo={() => completion.complete(getAhead)}
+          onNotToday={() => {
+            if (onUpdateTree) onUpdateTree((current) => dismissGetAhead(current, now));
+            else onChangeTree?.(dismissGetAhead(household, now));
+          }}
+        />
+      ) : null}
       {zipBannerVisible ? (
         <button
           type="button"
