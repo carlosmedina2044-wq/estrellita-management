@@ -24,6 +24,7 @@ import { PortraitScene } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { GetAheadCard } from "@/components/today/get-ahead-card";
 import { HouseSheet } from "@/components/today/house-sheet";
+import { ShareCardSheet } from "@/components/today/share-card-sheet";
 import { YearIntroSheet } from "@/components/today/year-intro-sheet";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { RunStrip } from "@/components/today/run-strip";
@@ -39,6 +40,11 @@ import { payoffKeyFor } from "@/lib/payoff-lines";
 import { hasSeenTip, markTipSeen, shouldShowYearIntro, TIP_HOUSE_REVEAL, TIP_YEAR_INTRO } from "@/lib/teaching";
 import { dismissGetAhead, getAheadCandidate, isGetAheadDismissed } from "@/lib/get-ahead";
 import { houseLine } from "@/lib/house-line";
+import { currentCareState } from "@/lib/care-level";
+import { dayOpacityForPhase, portraitLayerUrls, resolveHomeSpec } from "@/lib/scene/portrait";
+import { seasonFor } from "@/lib/scene/season";
+import { closedDayCardModel, yearCardModel, type ShareCardModel, type ShareCardScene } from "@/lib/share-card";
+import type { MessageKey } from "@/i18n";
 import { dayOfYear, heroCopyKey, nextUpDayLabel } from "@/lib/today-copy";
 import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
 import {
@@ -175,6 +181,12 @@ export function TodayView({
   const [dutyMenu, setDutyMenu] = useState<{ duty: Duty; x: number; y: number } | null>(null);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
   const [houseOpen, setHouseOpen] = useState(false);
+  const [shareCard, setShareCard] = useState<{
+    model: ShareCardModel;
+    scene: ShareCardScene;
+    filename: string;
+    fallback: string;
+  } | null>(null);
   const [yearIntroOpen, setYearIntroOpen] = useState(false);
   const particlesRef = useRef<ParticleLayerHandle>(null);
   const celebratedDays = useRef<Set<string>>(new Set());
@@ -439,21 +451,6 @@ export function TodayView({
       ? t("ledger.hours", { hours: wrap.hours })
       : t("today.effort", { minutes: wrap.minutes })
     : "";
-  async function shareYearWrapped() {
-    if (!wrap) return;
-    const result = await nativeShare(
-      t("share.yearWrappedTitle", { name: household.householdName, year: wrap.year }),
-      t("share.yearWrappedText", {
-        year: wrap.year,
-        name: household.householdName,
-        closed: wrap.closedDays,
-        best: wrap.bestRun,
-        hours: wrapHoursText,
-      }),
-    );
-    if (result === "copied") toast.success(t("share.copiedDone"));
-    if (result === "failed") toast.error(t("share.failedList"));
-  }
   function dismissYearWrap() {
     if (onUpdateTree) onUpdateTree((current) => dismissYearWrapped(current, now));
     else onChangeTree?.(dismissYearWrapped(household, now));
@@ -619,20 +616,6 @@ export function TodayView({
     }
   }
 
-  async function shareClosedDay() {
-    const run = closedDayRun(household, now).current;
-    const result = await nativeShare(
-      t("share.dayClosedTitle", { name: household.householdName }),
-      t("share.dayClosedText", {
-        done: ceremonyStats.done,
-        minutes: ceremonyStats.minutes,
-        rooms: ceremonyStats.rooms,
-        run,
-      }),
-    );
-    if (result === "copied") toast.success(t("share.copiedDone"));
-    if (result === "failed") toast.error(t("share.failedList"));
-  }
 
   // Momentum scene: layered portrait; plain/cleaner keeps the M7-09-r2 hero card.
   //
@@ -665,6 +648,79 @@ export function TodayView({
     () => skyGradient(scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover),
     [scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover],
   );
+
+  // The house in its current sky, every window warm, for a share card (E3-03).
+  // Captured when the card is requested so the preview does not re-render on
+  // every tick of the scene.
+  function cardScene(): ShareCardScene {
+    const spec = resolveHomeSpec(household);
+    const layers = portraitLayerUrls(spec.kitType, spec.palette, seasonFor(now, lat ?? null));
+    return {
+      layers,
+      sky: sceneStops,
+      dayOpacity: dayOpacityForPhase(scenePhaseEffective.phase, scenePhaseEffective.t),
+      windowStates: layers.windows.map(() => "lit" as const),
+      snow: sceneWx.kind === "snow",
+    };
+  }
+  const careLine = t(`care.level.${currentCareState(household, now).level}` as MessageKey);
+  const privateMode = household.restockDigest.privateNotifications === true;
+
+  function shareClosedDay() {
+    const run = closedDayRun(household, now).current;
+    setShareCard({
+      model: closedDayCardModel({
+        home: household.householdName,
+        headline: t("share.dayClosedHeadline"),
+        done: ceremonyStats.done,
+        minutes: ceremonyStats.minutes,
+        rooms: ceremonyStats.rooms,
+        labels: {
+          done: t("today.ceremonyThings"),
+          minutes: t("today.ceremonyMinutes"),
+          rooms: t("today.ceremonyRooms"),
+        },
+        runLine: run >= 2 ? t("today.runDay", { count: run }) : null,
+        careLine,
+        brand: t("opening.brand"),
+        privateMode,
+      }),
+      scene: cardScene(),
+      filename: `cuidala-${toISODate(now)}.png`,
+      fallback: t("share.dayClosedText", {
+        done: ceremonyStats.done,
+        minutes: ceremonyStats.minutes,
+        rooms: ceremonyStats.rooms,
+        run,
+      }),
+    });
+  }
+
+  function shareYearWrapped() {
+    if (!wrap) return;
+    setShareCard({
+      model: yearCardModel({
+        home: household.householdName,
+        headline: t("today.yearWrappedTitle", { year: wrap.year }),
+        closedDays: wrap.closedDays,
+        bestRun: wrap.bestRun,
+        hoursText: wrapHoursText,
+        labels: { closed: t("year.closedDays"), best: t("year.bestRun"), hours: t("year.hoursGiven") },
+        careLine,
+        brand: t("opening.brand"),
+        privateMode,
+      }),
+      scene: cardScene(),
+      filename: `cuidala-${wrap.year}.png`,
+      fallback: t("share.yearWrappedText", {
+        year: wrap.year,
+        name: household.householdName,
+        closed: wrap.closedDays,
+        best: wrap.bestRun,
+        hours: wrapHoursText,
+      }),
+    });
+  }
   const nightFollows =
     sceneMode &&
     household.momentum.nightFollowsSky !== false &&
@@ -812,7 +868,7 @@ export function TodayView({
           onOpenSettings={onOpenSettings}
           onOpenCalendar={() => setCalendarOpen(true)}
           onShareClosed={() => {
-            void shareClosedDay();
+            shareClosedDay();
           }}
         />
       )}
@@ -893,7 +949,7 @@ export function TodayView({
           {arc.state === "closed" ? (
             <ClosingReward
               onShare={() => {
-                void shareClosedDay();
+                shareClosedDay();
               }}
               instant={!ceremonyActive}
             />
@@ -1228,7 +1284,7 @@ export function TodayView({
                 <Button variant="outline" className="h-11 px-3" onClick={() => onNavigate?.({ tab: "year" })}>
                   {t("season.seeYear")}
                 </Button>
-                <Button variant="ghost" className="h-11 px-3" onClick={() => void shareYearWrapped()}>
+                <Button variant="ghost" className="h-11 px-3" onClick={() => shareYearWrapped()}>
                   <Share2 className="size-4" />
                   {t("today.ceremonyShare")}
                 </Button>
@@ -1391,6 +1447,17 @@ export function TodayView({
       ) : null}
 
       <YearIntroSheet open={yearIntroOpen} household={household} now={now} onStart={finishYearIntro} />
+
+      <ShareCardSheet
+        open={Boolean(shareCard)}
+        onOpenChange={(openSheet) => {
+          if (!openSheet) setShareCard(null);
+        }}
+        scene={shareCard?.scene ?? null}
+        model={shareCard?.model ?? null}
+        filename={shareCard?.filename ?? "cuidala.png"}
+        fallbackText={shareCard?.fallback ?? ""}
+      />
 
       <HouseSheet
         open={houseOpen}

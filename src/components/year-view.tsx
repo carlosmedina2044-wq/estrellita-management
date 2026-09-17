@@ -1,8 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Share2 } from "lucide-react";
 import { DayCalendar } from "@/components/day-calendar";
 import { PageHeader } from "@/components/page-header";
+import { ShareCardSheet } from "@/components/today/share-card-sheet";
+import { useClock } from "@/hooks/use-clock";
+import { currentCareState } from "@/lib/care-level";
+import { toISODate } from "@/lib/dates";
+import { dayOpacityForPhase, portraitLayerUrls, resolveHomeSpec } from "@/lib/scene/portrait";
+import { seasonFor } from "@/lib/scene/season";
+import { skyGradient } from "@/lib/scene/sky";
+import { skyPhase, sunTimes } from "@/lib/scene/sun";
+import { sceneWeather } from "@/lib/scene/weather";
+import { yearCardModel, type ShareCardModel, type ShareCardScene } from "@/lib/share-card";
 import type { MessageKey } from "@/i18n";
 import { tPlaybookName } from "@/i18n/content";
 import { useLocale } from "@/i18n/locale-provider";
@@ -139,6 +150,50 @@ export function YearView({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [household, yearStart, now]);
   const care = careEntriesForYear(household, year);
+  const hoursText =
+    ledger.hours >= 1
+      ? t("ledger.hours", { hours: ledger.hours })
+      : ledger.minutes > 0
+        ? t("today.effort", { minutes: ledger.minutes })
+        : "–";
+  const clock = useClock();
+  const [shareCard, setShareCard] = useState<{ model: ShareCardModel; scene: ShareCardScene; fallback: string } | null>(null);
+  function shareYear() {
+    const { lat, lng } = household.location;
+    const phase = skyPhase(clock, lat != null && lng != null ? sunTimes(lat, lng, clock) : null);
+    const weather = sceneWeather(null, toISODate(now));
+    const spec = resolveHomeSpec(household);
+    const layers = portraitLayerUrls(spec.kitType, spec.palette, seasonFor(now, lat ?? null));
+    const careLine = t(`care.level.${currentCareState(household, now).level}` as MessageKey);
+    const privateMode = household.restockDigest.privateNotifications === true;
+    setShareCard({
+      model: yearCardModel({
+        home: household.householdName,
+        headline: t("today.yearWrappedTitle", { year }),
+        closedDays,
+        bestRun,
+        hoursText,
+        labels: { closed: t("year.closedDays"), best: t("year.bestRun"), hours: t("year.hoursGiven") },
+        careLine,
+        brand: t("opening.brand"),
+        privateMode,
+      }),
+      scene: {
+        layers,
+        sky: skyGradient(phase.phase, phase.t, weather.kind, weather.cloudCover),
+        dayOpacity: dayOpacityForPhase(phase.phase, phase.t),
+        windowStates: layers.windows.map(() => "lit" as const),
+        snow: weather.kind === "snow",
+      },
+      fallback: t("share.yearWrappedText", {
+        year,
+        name: household.householdName,
+        closed: closedDays,
+        best: bestRun,
+        hours: hoursText,
+      }),
+    });
+  }
   const calendarMarks = useMemo(
     () => (openMonth == null ? undefined : completionDays(household, new Date(year, openMonth, 1), new Date(year, openMonth + 1, 0))),
     [household, year, openMonth],
@@ -151,6 +206,26 @@ export function YearView({
         subtitle={t("year.subtitle", { year, name: household.householdName })}
         onBack={onBack}
         backLabel={backLabel}
+        action={
+          <button
+            type="button"
+            aria-label={t("share.cardShare")}
+            onClick={shareYear}
+            className="flex size-11 items-center justify-center rounded-full bg-secondary"
+          >
+            <Share2 className="size-5" />
+          </button>
+        }
+      />
+      <ShareCardSheet
+        open={Boolean(shareCard)}
+        onOpenChange={(openSheet) => {
+          if (!openSheet) setShareCard(null);
+        }}
+        scene={shareCard?.scene ?? null}
+        model={shareCard?.model ?? null}
+        filename={`cuidala-${year}.png`}
+        fallbackText={shareCard?.fallback ?? ""}
       />
 
       <section aria-label={t("year.gridAria", { closed: closedDays, year })}>
@@ -190,16 +265,7 @@ export function YearView({
       <section className="grid grid-cols-2 gap-2">
         <Tile value={String(closedDays)} label={t("year.closedDays")} />
         <Tile value={bestRun > 0 ? t("today.runDay", { count: bestRun }) : "–"} label={t("year.bestRun")} />
-        <Tile
-          value={
-            ledger.hours >= 1
-              ? t("ledger.hours", { hours: ledger.hours })
-              : ledger.minutes > 0
-                ? t("today.effort", { minutes: ledger.minutes })
-                : "–"
-          }
-          label={t("year.hoursGiven")}
-        />
+        <Tile value={hoursText} label={t("year.hoursGiven")} />
         {ledger.showAmount ? (
           <Tile value={formatMoney(Math.round(ledger.amount))} label={t("year.handled")} />
         ) : (
