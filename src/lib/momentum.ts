@@ -135,21 +135,28 @@ export type RunDay = {
 
 export type YearDay = {
   date: Date;
-  outcome: DayOutcome | "grace" | "future";
+  /** `before` is a day earlier than the home's first duty or completion:
+   * nothing was asked and nothing was done, so it is painted like the
+   * future rather than as an earned rest day. */
+  outcome: DayOutcome | "grace" | "future" | "before";
   isToday: boolean;
 };
 
 /** Every day of `year`, 1 January to 31 December, painted like the run strip;
- * days after `now` are `future`. The current run's forgiven days show as grace. */
+ * days after `now` are `future`, days before the home's history are `before`.
+ * The current run's forgiven days show as grace. */
 export function yearDays(household: Household, year: number, now = new Date()): YearDay[] {
   const walked = walkRun(household, now);
   const today = startOfDay(now);
+  const floor = historyFloor(household, now);
   const days: YearDay[] = [];
   for (let date = new Date(year, 0, 1); date.getFullYear() === year; date = addDays(date, 1)) {
     const stamp = startOfDay(date);
     let outcome: YearDay["outcome"];
     if (stamp > today) {
       outcome = "future";
+    } else if (stamp < floor) {
+      outcome = "before";
     } else {
       const raw = dayOutcome(household, date);
       outcome = raw === "open" && walked.graceDays.has(stamp) ? "grace" : raw;

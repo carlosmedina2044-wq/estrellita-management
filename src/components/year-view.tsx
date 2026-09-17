@@ -22,6 +22,7 @@ const DOT: Record<YearDay["outcome"], string> = {
   open: "bg-foreground/25",
   grace: "bg-soon/60",
   future: "bg-foreground/8",
+  before: "bg-foreground/8",
 };
 
 function Tile({ value, label }: { value: string; label: string }) {
@@ -190,7 +191,13 @@ export function YearView({
         <Tile value={String(closedDays)} label={t("year.closedDays")} />
         <Tile value={bestRun > 0 ? t("today.runDay", { count: bestRun }) : "–"} label={t("year.bestRun")} />
         <Tile
-          value={ledger.hours >= 1 ? t("ledger.hours", { hours: ledger.hours }) : t("today.effort", { minutes: ledger.minutes })}
+          value={
+            ledger.hours >= 1
+              ? t("ledger.hours", { hours: ledger.hours })
+              : ledger.minutes > 0
+                ? t("today.effort", { minutes: ledger.minutes })
+                : "–"
+          }
           label={t("year.hoursGiven")}
         />
         {ledger.showAmount ? (

@@ -129,6 +129,11 @@ export function useHousehold() {
   useEffect(() => {
     if (!hydrated || !sessionUnlocked || pendingUnlock) return;
     const current = getHousehold();
+    // The placeholder the store hands out before it has hydrated is never
+    // reconciled or written back: in the web shell a hot reload can reset the
+    // store's module state under live React state, and writing here would
+    // persist an empty household over the real one.
+    if (current === EMPTY_HOUSEHOLD) return;
     const next = reconcileCareLevel(current, now);
     if (next !== current) updateHousehold(() => next);
   }, [hydrated, sessionUnlocked, pendingUnlock, now]);

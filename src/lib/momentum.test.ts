@@ -380,5 +380,7 @@ test("yearDays paints every day of the year and marks the future", () => {
   assert.equal(days.filter((day) => day.outcome === "future").length, 365 - 260);
   const yesterday = days[259 - 1];
   assert.equal(yesterday.outcome, "closed");
+  // Days before the home's first duty are neither rest nor closed.
+  assert.equal(days[0].outcome, "before");
 });
 

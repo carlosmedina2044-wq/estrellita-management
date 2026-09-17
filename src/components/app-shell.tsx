@@ -52,6 +52,7 @@ import { lockMethodLabel } from "@/lib/native/lock-labels";
 import { isRootTab, type AppNavigateTarget, type RootTab } from "@/lib/types";
 import { hapticPress, hapticTab } from "@/lib/native/haptics";
 import { hasCheckedInToday, recordCheckIn } from "@/lib/check-ins";
+import { EMPTY_HOUSEHOLD } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -310,6 +311,7 @@ export function AppShell() {
   // owner's own "days you opened the house" number on the year view.
   useEffect(() => {
     if (!hydrated || !sessionUnlocked || pendingUnlock || !onboarded) return;
+    if (household === EMPTY_HOUSEHOLD) return; // never write the pre-hydrate placeholder
     if (hasCheckedInToday(household, now)) return;
     updateTree((current) => recordCheckIn(current, now));
   }, [hydrated, sessionUnlocked, pendingUnlock, onboarded, household, now, updateTree]);
