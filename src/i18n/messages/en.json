@@ -1225,6 +1225,8 @@
   "today.dayArcAria": "{done} of {total} done today",
   "today.runStripAria": "Last 7 days: {closed} closed, {open} open",
   "today.runBest": "Best {count}",
+  "today.runDay": "Day {count}",
+  "today.runGrace": "Grace day used",
   "today.roomsKeptAria": "{fresh} of {total} rooms kept",
   "today.roomFresh": "Fresh",
   "today.roomDue": "Due",

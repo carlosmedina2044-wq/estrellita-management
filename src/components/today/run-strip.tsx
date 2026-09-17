@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { RollingNumber } from "@/components/today/rolling-number";
 import { DUR_SCREEN, STAGGER_CHILD } from "@/lib/motion";
 import { useLocale } from "@/i18n/locale-provider";
 import type { RunDay } from "@/lib/momentum";
@@ -25,14 +26,33 @@ export function RunStrip({
   const run = closedDayRun(household, now);
   const closed = days.filter((day) => day.outcome === "closed" || day.outcome === "rest").length;
   const open = days.filter((day) => day.outcome === "open" || day.outcome === "grace").length;
+  // The run count never appeared on Today; only the lock-screen widget said
+  // "Day 12". Shown from the second day so a single closed day is not
+  // announced as a streak, and rolled by the odometer when the ceremony
+  // closes a new day.
+  const showRun = run.current >= 2;
+  const runParts = t("today.runDay", { count: "%%" }).split("%%");
+  const graceUsed = days.some((day) => day.outcome === "grace");
 
   return (
     <button
       type="button"
       onClick={onOpenCalendar}
-      aria-label={t("today.runStripAria", { closed, open })}
-      className="flex items-center gap-2 rounded-full py-1 text-left"
+      aria-label={
+        showRun
+          ? `${t("today.runDay", { count: run.current })} · ${t("today.runStripAria", { closed, open })}`
+          : t("today.runStripAria", { closed, open })
+      }
+      className="flex flex-col items-end gap-1 rounded-full py-1 text-left"
     >
+      <span className="flex items-center gap-2">
+      {showRun ? (
+        <span className="ui-caption font-medium num">
+          {runParts[0]}
+          <RollingNumber value={run.current} />
+          {runParts[1] ?? null}
+        </span>
+      ) : null}
       <motion.span
         className="flex items-center gap-1.5"
         variants={{
@@ -67,6 +87,12 @@ export function RunStrip({
         <span className="ui-caption text-muted-foreground/60">
           {t("today.runBest", { count: run.best })}
         </span>
+      ) : null}
+      </span>
+      {graceUsed ? (
+        // The one forgiven day in seven was real in `walkRun` and invisible in
+        // the UI; naming it is what makes a missed day feel fair, not fatal.
+        <span className="ui-caption text-soon">{t("today.runGrace")}</span>
       ) : null}
     </button>
   );
