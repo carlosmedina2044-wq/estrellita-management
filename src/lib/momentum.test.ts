@@ -4,6 +4,10 @@ import { addDays } from "@/lib/dates";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import {
   yearDays,
+  yearWrap,
+  yearWrappedYear,
+  shouldShowYearWrapped,
+  dismissYearWrapped,
   applyMomentumOnComplete,
   closedDayRun,
   dayArc,
@@ -382,5 +386,26 @@ test("yearDays paints every day of the year and marks the future", () => {
   assert.equal(yesterday.outcome, "closed");
   // Days before the home's first duty are neither rest nor closed.
   assert.equal(days[0].outcome, "before");
+});
+
+test("year wrapped shows between 26 December and 7 January, once, only with something done", () => {
+  assert.equal(yearWrappedYear(new Date(2026, 11, 25)), null);
+  assert.equal(yearWrappedYear(new Date(2026, 11, 26)), 2026);
+  assert.equal(yearWrappedYear(new Date(2027, 0, 7)), 2026);
+  assert.equal(yearWrappedYear(new Date(2027, 0, 8)), null);
+  const wipe = duty({ id: "wipe", title: "Wipe", createdAt: "2026-01-01T00:00:00.000Z", estimatedMinutes: 10 });
+  const empty = household({ duties: [wipe] });
+  assert.equal(shouldShowYearWrapped(empty, new Date(2026, 11, 28)), false);
+  const busy = household({
+    duties: [wipe],
+    completions: [completion({ dutyId: "wipe", completedAt: new Date(2026, 5, 1, 12).toISOString() })],
+  });
+  assert.equal(shouldShowYearWrapped(busy, new Date(2026, 11, 28)), true);
+  const dismissed = dismissYearWrapped(busy, new Date(2026, 11, 28));
+  assert.equal(shouldShowYearWrapped(dismissed, new Date(2027, 0, 3)), false);
+  const wrap = yearWrap(busy, 2026, new Date(2026, 11, 28));
+  assert.equal(wrap.year, 2026);
+  assert.equal(wrap.closedDays, 1);
+  assert.equal(wrap.minutes, 10);
 });
 

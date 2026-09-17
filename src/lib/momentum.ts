@@ -343,6 +343,67 @@ export function dismissWeekWrapped(household: Household, now = new Date()): Hous
   return { ...household, seenTips: [...kept, key] };
 }
 
+export const YEAR_WRAPPED_PREFIX = "year-wrapped-";
+
+/** The year a wrap-up card between 26 December and 7 January is about. */
+export function yearWrappedYear(now: Date): number | null {
+  const month = now.getMonth();
+  const day = now.getDate();
+  if (month === 11 && day >= 26) return now.getFullYear();
+  if (month === 0 && day <= 7) return now.getFullYear() - 1;
+  return null;
+}
+
+export function yearWrappedTipKey(year: number): string {
+  return `${YEAR_WRAPPED_PREFIX}${year}`;
+}
+
+export type YearWrap = {
+  year: number;
+  closedDays: number;
+  bestRun: number;
+  minutes: number;
+  hours: number;
+  roomsTouched: number;
+};
+
+export function yearWrap(household: Household, year: number, now = new Date()): YearWrap {
+  const start = new Date(year, 0, 1);
+  const end = new Date(year, 11, 31, 23, 59, 59);
+  const closedDays = yearDays(household, year, now).filter((day) => day.outcome === "closed").length;
+  const items = completionsInRange(household.completions, start, end);
+  let minutes = 0;
+  for (const item of items) {
+    const duty = household.duties.find((entry) => entry.id === item.dutyId);
+    minutes += effortMinutes(duty ?? {});
+  }
+  const run = closedDayRun(household, now);
+  return {
+    year,
+    closedDays,
+    bestRun: Math.max(run.best, run.current),
+    minutes,
+    hours: Math.round((minutes / 60) * 2) / 2,
+    roomsTouched: roomsTouchedInRange(household, start, end < now ? end : now),
+  };
+}
+
+/** Once a year, in the last week of December or the first of January, when anything was done that year. */
+export function shouldShowYearWrapped(household: Household, now = new Date()): boolean {
+  const year = yearWrappedYear(now);
+  if (year == null) return false;
+  if (household.seenTips.includes(yearWrappedTipKey(year))) return false;
+  const start = new Date(year, 0, 1);
+  const end = new Date(year, 11, 31, 23, 59, 59);
+  return completionsInRange(household.completions, start, end).length > 0;
+}
+
+export function dismissYearWrapped(household: Household, now = new Date()): Household {
+  const year = yearWrappedYear(now) ?? now.getFullYear();
+  const kept = household.seenTips.filter((tip) => !tip.startsWith(YEAR_WRAPPED_PREFIX));
+  return { ...household, seenTips: [...kept, yearWrappedTipKey(year)] };
+}
+
 function hasClosedDay(household: Household, now: Date): boolean {
   const floor = historyFloor(household, now);
   let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());

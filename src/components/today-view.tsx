@@ -59,7 +59,7 @@ import {
   type DoneEntry,
   type OutstandingScope,
 } from "@/lib/duties";
-import { closedDayRun, dayArc, dismissWeekWrapped, roomsTouchedInRange, runStripDays, shouldShowWeekWrapped, todayEffort, weekProgress } from "@/lib/momentum";
+import { closedDayRun, dayArc, dismissWeekWrapped, dismissYearWrapped, roomsTouchedInRange, runStripDays, shouldShowWeekWrapped, shouldShowYearWrapped, todayEffort, weekProgress, yearWrap, yearWrappedYear } from "@/lib/momentum";
 import { sceneCssVars } from "@/lib/scene/css";
 import { skyGradient } from "@/lib/scene/sky";
 import { skyPhase, sunTimes } from "@/lib/scene/sun";
@@ -426,6 +426,38 @@ export function TodayView({
     [momentumOn, household, forecast, now],
   );
   const dayLineText = dayLine ? t(dayLine.key, dayLine.params) : null;
+  // Year wrapped (E2-06): once, in the last week of December or the first of
+  // January, when anything was done that year.
+  const wrapYear = yearWrappedYear(now);
+  const showYearWrapped = momentumOn && wrapYear != null && shouldShowYearWrapped(household, now);
+  const wrap = useMemo(
+    () => (showYearWrapped && wrapYear != null ? yearWrap(household, wrapYear, now) : null),
+    [showYearWrapped, wrapYear, household, now],
+  );
+  const wrapHoursText = wrap
+    ? wrap.hours >= 1
+      ? t("ledger.hours", { hours: wrap.hours })
+      : t("today.effort", { minutes: wrap.minutes })
+    : "";
+  async function shareYearWrapped() {
+    if (!wrap) return;
+    const result = await nativeShare(
+      t("share.yearWrappedTitle", { name: household.householdName, year: wrap.year }),
+      t("share.yearWrappedText", {
+        year: wrap.year,
+        name: household.householdName,
+        closed: wrap.closedDays,
+        best: wrap.bestRun,
+        hours: wrapHoursText,
+      }),
+    );
+    if (result === "copied") toast.success(t("share.copiedDone"));
+    if (result === "failed") toast.error(t("share.failedList"));
+  }
+  function dismissYearWrap() {
+    if (onUpdateTree) onUpdateTree((current) => dismissYearWrapped(current, now));
+    else onChangeTree?.(dismissYearWrapped(household, now));
+  }
   // A clear day's optional win (E2-02): one quick chore from later this week,
   // offered once a day, only on Today's own list.
   const quietDay = arc.state === "clear" || arc.state === "rest";
@@ -1181,6 +1213,32 @@ export function TodayView({
           </span>
           <span className="ui-caption font-medium text-primary">{t("tabs.restock")}</span>
         </button>
+      ) : null}
+
+      {wrap ? (
+        <section className="rounded-2xl bg-brand-cream px-4 py-4 text-brand-cream-foreground ring-1 ring-primary/20">
+          <div className="flex items-start gap-3">
+            <BrandMark size="sm" className="mt-0.5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="ui-body font-medium">{t("today.yearWrappedTitle", { year: wrap.year })}</p>
+              <p className="mt-0.5 ui-caption opacity-80 num">
+                {t("today.yearWrappedBody", { closed: wrap.closedDays, best: wrap.bestRun, hours: wrapHoursText })}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button variant="outline" className="h-11 px-3" onClick={() => onNavigate?.({ tab: "year" })}>
+                  {t("season.seeYear")}
+                </Button>
+                <Button variant="ghost" className="h-11 px-3" onClick={() => void shareYearWrapped()}>
+                  <Share2 className="size-4" />
+                  {t("today.ceremonyShare")}
+                </Button>
+                <Button variant="ghost" className="h-11 px-2" onClick={dismissYearWrap}>
+                  {t("common.gotIt")}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {showWeekWrapped ? (
