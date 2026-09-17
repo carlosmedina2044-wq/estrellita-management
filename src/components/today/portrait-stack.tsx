@@ -148,17 +148,33 @@ export function PortraitStack({
       )}
 
       <AnimatePresence mode="wait">
-        <motion.img
+        <motion.div
           key={season}
-          src={layers.foliage}
-          alt=""
-          draggable={false}
-          className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+          className="pointer-events-none absolute inset-0"
           initial={reduce ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={reduce ? undefined : { opacity: 0 }}
           transition={{ duration: reduce ? 0 : 0.6 }}
-        />
+        >
+          {/* Night foliage underneath, day crossfaded over it on the same
+              dayOpacity as the house layers — otherwise the trees stay lit for
+              noon while the house goes dark. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={layers.foliageNight}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={layers.foliageDay}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-contain"
+            style={{ opacity: dayOpacity }}
+          />
+        </motion.div>
       </AnimatePresence>
 
       {/* eslint-disable-next-line @next/next/no-img-element */}

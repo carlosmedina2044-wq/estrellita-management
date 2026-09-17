@@ -42,7 +42,7 @@ function warnHalo(raw, width, height, label) {
 function layerKey(basename) {
   // a-classic-day.webp → files.day.classic
   // a-lit.webp → files.lit
-  // a-summer.webp → files.foliage.summer
+  // a-summer-day.webp → files.foliage.summer.day
   const name = basename.replace(/\.webp$/, "");
   const parts = name.split("-");
   const type = parts[0];
@@ -50,7 +50,8 @@ function layerKey(basename) {
     return { type, path: ["files", parts[1]] };
   }
   if (["spring", "summer", "autumn", "winter"].includes(parts[1])) {
-    return { type, path: ["files", "foliage", parts[1]] };
+    // parts[2] is the phase: foliage is lit per phase, not shared.
+    return { type, path: ["files", "foliage", parts[1], parts[2]] };
   }
   // type-palette-phase
   return { type, path: ["files", parts[2], parts[1]] };
@@ -172,7 +173,7 @@ async function contactSheet() {
       path.join(OUT_ROOT, `${kitType}-shadow.webp`),
       path.join(OUT_ROOT, `${kitType}-terracotta-day.webp`),
       path.join(OUT_ROOT, `${kitType}-lit.webp`),
-      path.join(OUT_ROOT, `${kitType}-summer.webp`),
+      path.join(OUT_ROOT, `${kitType}-summer-day.webp`),
     ].filter((p) => fs.existsSync(p));
     if (!layers.length) return null;
     let base = sharp(layers[0]).resize(cellW, cellH, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } });

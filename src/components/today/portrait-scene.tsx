@@ -184,8 +184,8 @@ export function PortraitScene({
   // grade lands only where there are actually pixels to grade.
   const layerUrls = portraitLayerUrls(homeSpec.kitType, homeSpec.palette, season);
   const artMask: React.CSSProperties = {
-    WebkitMaskImage: `url("${layerUrls.night}"), url("${layerUrls.foliage}")`,
-    maskImage: `url("${layerUrls.night}"), url("${layerUrls.foliage}")`,
+    WebkitMaskImage: `url("${layerUrls.night}"), url("${layerUrls.foliageDay}")`,
+    maskImage: `url("${layerUrls.night}"), url("${layerUrls.foliageDay}")`,
     WebkitMaskSize: "100% 100%, 100% 100%",
     maskSize: "100% 100%, 100% 100%",
     WebkitMaskRepeat: "no-repeat, no-repeat",

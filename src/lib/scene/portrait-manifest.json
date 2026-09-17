@@ -53,10 +53,22 @@
     "windowCount": 3,
     "files": {
       "foliage": {
-        "autumn": "/portraits/a-autumn.webp",
-        "spring": "/portraits/a-spring.webp",
-        "summer": "/portraits/a-summer.webp",
-        "winter": "/portraits/a-winter.webp"
+        "autumn": {
+          "day": "/portraits/a-autumn-day.webp",
+          "night": "/portraits/a-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/a-spring-day.webp",
+          "night": "/portraits/a-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/a-summer-day.webp",
+          "night": "/portraits/a-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/a-winter-day.webp",
+          "night": "/portraits/a-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/a-classic-day.webp",
@@ -127,10 +139,22 @@
     "windowCount": 3,
     "files": {
       "foliage": {
-        "autumn": "/portraits/b-autumn.webp",
-        "spring": "/portraits/b-spring.webp",
-        "summer": "/portraits/b-summer.webp",
-        "winter": "/portraits/b-winter.webp"
+        "autumn": {
+          "day": "/portraits/b-autumn-day.webp",
+          "night": "/portraits/b-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/b-spring-day.webp",
+          "night": "/portraits/b-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/b-summer-day.webp",
+          "night": "/portraits/b-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/b-winter-day.webp",
+          "night": "/portraits/b-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/b-classic-day.webp",
@@ -194,10 +218,22 @@
     "windowCount": 2,
     "files": {
       "foliage": {
-        "autumn": "/portraits/c-autumn.webp",
-        "spring": "/portraits/c-spring.webp",
-        "summer": "/portraits/c-summer.webp",
-        "winter": "/portraits/c-winter.webp"
+        "autumn": {
+          "day": "/portraits/c-autumn-day.webp",
+          "night": "/portraits/c-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/c-spring-day.webp",
+          "night": "/portraits/c-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/c-summer-day.webp",
+          "night": "/portraits/c-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/c-winter-day.webp",
+          "night": "/portraits/c-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/c-classic-day.webp",
@@ -275,10 +311,22 @@
     "windowCount": 4,
     "files": {
       "foliage": {
-        "autumn": "/portraits/d-autumn.webp",
-        "spring": "/portraits/d-spring.webp",
-        "summer": "/portraits/d-summer.webp",
-        "winter": "/portraits/d-winter.webp"
+        "autumn": {
+          "day": "/portraits/d-autumn-day.webp",
+          "night": "/portraits/d-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/d-spring-day.webp",
+          "night": "/portraits/d-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/d-summer-day.webp",
+          "night": "/portraits/d-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/d-winter-day.webp",
+          "night": "/portraits/d-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/d-classic-day.webp",
@@ -363,10 +411,22 @@
     "windowCount": 5,
     "files": {
       "foliage": {
-        "autumn": "/portraits/e-autumn.webp",
-        "spring": "/portraits/e-spring.webp",
-        "summer": "/portraits/e-summer.webp",
-        "winter": "/portraits/e-winter.webp"
+        "autumn": {
+          "day": "/portraits/e-autumn-day.webp",
+          "night": "/portraits/e-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/e-spring-day.webp",
+          "night": "/portraits/e-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/e-summer-day.webp",
+          "night": "/portraits/e-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/e-winter-day.webp",
+          "night": "/portraits/e-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/e-classic-day.webp",
@@ -430,10 +490,22 @@
     "windowCount": 2,
     "files": {
       "foliage": {
-        "autumn": "/portraits/l-autumn.webp",
-        "spring": "/portraits/l-spring.webp",
-        "summer": "/portraits/l-summer.webp",
-        "winter": "/portraits/l-winter.webp"
+        "autumn": {
+          "day": "/portraits/l-autumn-day.webp",
+          "night": "/portraits/l-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/l-spring-day.webp",
+          "night": "/portraits/l-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/l-summer-day.webp",
+          "night": "/portraits/l-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/l-winter-day.webp",
+          "night": "/portraits/l-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/l-classic-day.webp",
@@ -497,10 +569,22 @@
     "windowCount": 2,
     "files": {
       "foliage": {
-        "autumn": "/portraits/m-autumn.webp",
-        "spring": "/portraits/m-spring.webp",
-        "summer": "/portraits/m-summer.webp",
-        "winter": "/portraits/m-winter.webp"
+        "autumn": {
+          "day": "/portraits/m-autumn-day.webp",
+          "night": "/portraits/m-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/m-spring-day.webp",
+          "night": "/portraits/m-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/m-summer-day.webp",
+          "night": "/portraits/m-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/m-winter-day.webp",
+          "night": "/portraits/m-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/m-classic-day.webp",
@@ -578,10 +662,22 @@
     "windowCount": 4,
     "files": {
       "foliage": {
-        "autumn": "/portraits/n-autumn.webp",
-        "spring": "/portraits/n-spring.webp",
-        "summer": "/portraits/n-summer.webp",
-        "winter": "/portraits/n-winter.webp"
+        "autumn": {
+          "day": "/portraits/n-autumn-day.webp",
+          "night": "/portraits/n-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/n-spring-day.webp",
+          "night": "/portraits/n-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/n-summer-day.webp",
+          "night": "/portraits/n-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/n-winter-day.webp",
+          "night": "/portraits/n-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/n-classic-day.webp",
@@ -638,10 +734,22 @@
     "windowCount": 1,
     "files": {
       "foliage": {
-        "autumn": "/portraits/o-autumn.webp",
-        "spring": "/portraits/o-spring.webp",
-        "summer": "/portraits/o-summer.webp",
-        "winter": "/portraits/o-winter.webp"
+        "autumn": {
+          "day": "/portraits/o-autumn-day.webp",
+          "night": "/portraits/o-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/o-spring-day.webp",
+          "night": "/portraits/o-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/o-summer-day.webp",
+          "night": "/portraits/o-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/o-winter-day.webp",
+          "night": "/portraits/o-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/o-classic-day.webp",
@@ -712,10 +820,22 @@
     "windowCount": 3,
     "files": {
       "foliage": {
-        "autumn": "/portraits/p-autumn.webp",
-        "spring": "/portraits/p-spring.webp",
-        "summer": "/portraits/p-summer.webp",
-        "winter": "/portraits/p-winter.webp"
+        "autumn": {
+          "day": "/portraits/p-autumn-day.webp",
+          "night": "/portraits/p-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/p-spring-day.webp",
+          "night": "/portraits/p-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/p-summer-day.webp",
+          "night": "/portraits/p-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/p-winter-day.webp",
+          "night": "/portraits/p-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/p-classic-day.webp",
@@ -779,10 +899,22 @@
     "windowCount": 2,
     "files": {
       "foliage": {
-        "autumn": "/portraits/q-autumn.webp",
-        "spring": "/portraits/q-spring.webp",
-        "summer": "/portraits/q-summer.webp",
-        "winter": "/portraits/q-winter.webp"
+        "autumn": {
+          "day": "/portraits/q-autumn-day.webp",
+          "night": "/portraits/q-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/q-spring-day.webp",
+          "night": "/portraits/q-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/q-summer-day.webp",
+          "night": "/portraits/q-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/q-winter-day.webp",
+          "night": "/portraits/q-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/q-classic-day.webp",
@@ -839,10 +971,22 @@
     "windowCount": 1,
     "files": {
       "foliage": {
-        "autumn": "/portraits/r-autumn.webp",
-        "spring": "/portraits/r-spring.webp",
-        "summer": "/portraits/r-summer.webp",
-        "winter": "/portraits/r-winter.webp"
+        "autumn": {
+          "day": "/portraits/r-autumn-day.webp",
+          "night": "/portraits/r-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/r-spring-day.webp",
+          "night": "/portraits/r-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/r-summer-day.webp",
+          "night": "/portraits/r-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/r-winter-day.webp",
+          "night": "/portraits/r-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/r-classic-day.webp",
@@ -906,10 +1050,22 @@
     "windowCount": 2,
     "files": {
       "foliage": {
-        "autumn": "/portraits/s-autumn.webp",
-        "spring": "/portraits/s-spring.webp",
-        "summer": "/portraits/s-summer.webp",
-        "winter": "/portraits/s-winter.webp"
+        "autumn": {
+          "day": "/portraits/s-autumn-day.webp",
+          "night": "/portraits/s-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/s-spring-day.webp",
+          "night": "/portraits/s-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/s-summer-day.webp",
+          "night": "/portraits/s-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/s-winter-day.webp",
+          "night": "/portraits/s-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/s-classic-day.webp",
@@ -1001,10 +1157,22 @@
     "windowCount": 6,
     "files": {
       "foliage": {
-        "autumn": "/portraits/t-autumn.webp",
-        "spring": "/portraits/t-spring.webp",
-        "summer": "/portraits/t-summer.webp",
-        "winter": "/portraits/t-winter.webp"
+        "autumn": {
+          "day": "/portraits/t-autumn-day.webp",
+          "night": "/portraits/t-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/t-spring-day.webp",
+          "night": "/portraits/t-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/t-summer-day.webp",
+          "night": "/portraits/t-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/t-winter-day.webp",
+          "night": "/portraits/t-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/t-classic-day.webp",
@@ -1068,10 +1236,22 @@
     "windowCount": 2,
     "files": {
       "foliage": {
-        "autumn": "/portraits/u-autumn.webp",
-        "spring": "/portraits/u-spring.webp",
-        "summer": "/portraits/u-summer.webp",
-        "winter": "/portraits/u-winter.webp"
+        "autumn": {
+          "day": "/portraits/u-autumn-day.webp",
+          "night": "/portraits/u-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/u-spring-day.webp",
+          "night": "/portraits/u-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/u-summer-day.webp",
+          "night": "/portraits/u-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/u-winter-day.webp",
+          "night": "/portraits/u-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/u-classic-day.webp",
@@ -1156,10 +1336,22 @@
     "windowCount": 5,
     "files": {
       "foliage": {
-        "autumn": "/portraits/f-autumn.webp",
-        "spring": "/portraits/f-spring.webp",
-        "summer": "/portraits/f-summer.webp",
-        "winter": "/portraits/f-winter.webp"
+        "autumn": {
+          "day": "/portraits/f-autumn-day.webp",
+          "night": "/portraits/f-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/f-spring-day.webp",
+          "night": "/portraits/f-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/f-summer-day.webp",
+          "night": "/portraits/f-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/f-winter-day.webp",
+          "night": "/portraits/f-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/f-classic-day.webp",
@@ -1223,10 +1415,22 @@
     "windowCount": 2,
     "files": {
       "foliage": {
-        "autumn": "/portraits/g-autumn.webp",
-        "spring": "/portraits/g-spring.webp",
-        "summer": "/portraits/g-summer.webp",
-        "winter": "/portraits/g-winter.webp"
+        "autumn": {
+          "day": "/portraits/g-autumn-day.webp",
+          "night": "/portraits/g-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/g-spring-day.webp",
+          "night": "/portraits/g-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/g-summer-day.webp",
+          "night": "/portraits/g-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/g-winter-day.webp",
+          "night": "/portraits/g-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/g-classic-day.webp",
@@ -1290,10 +1494,22 @@
     "windowCount": 2,
     "files": {
       "foliage": {
-        "autumn": "/portraits/h-autumn.webp",
-        "spring": "/portraits/h-spring.webp",
-        "summer": "/portraits/h-summer.webp",
-        "winter": "/portraits/h-winter.webp"
+        "autumn": {
+          "day": "/portraits/h-autumn-day.webp",
+          "night": "/portraits/h-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/h-spring-day.webp",
+          "night": "/portraits/h-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/h-summer-day.webp",
+          "night": "/portraits/h-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/h-winter-day.webp",
+          "night": "/portraits/h-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/h-classic-day.webp",
@@ -1350,10 +1566,22 @@
     "windowCount": 1,
     "files": {
       "foliage": {
-        "autumn": "/portraits/i-autumn.webp",
-        "spring": "/portraits/i-spring.webp",
-        "summer": "/portraits/i-summer.webp",
-        "winter": "/portraits/i-winter.webp"
+        "autumn": {
+          "day": "/portraits/i-autumn-day.webp",
+          "night": "/portraits/i-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/i-spring-day.webp",
+          "night": "/portraits/i-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/i-summer-day.webp",
+          "night": "/portraits/i-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/i-winter-day.webp",
+          "night": "/portraits/i-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/i-classic-day.webp",
@@ -1410,10 +1638,22 @@
     "windowCount": 1,
     "files": {
       "foliage": {
-        "autumn": "/portraits/j-autumn.webp",
-        "spring": "/portraits/j-spring.webp",
-        "summer": "/portraits/j-summer.webp",
-        "winter": "/portraits/j-winter.webp"
+        "autumn": {
+          "day": "/portraits/j-autumn-day.webp",
+          "night": "/portraits/j-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/j-spring-day.webp",
+          "night": "/portraits/j-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/j-summer-day.webp",
+          "night": "/portraits/j-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/j-winter-day.webp",
+          "night": "/portraits/j-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/j-classic-day.webp",
@@ -1470,10 +1710,22 @@
     "windowCount": 1,
     "files": {
       "foliage": {
-        "autumn": "/portraits/k-autumn.webp",
-        "spring": "/portraits/k-spring.webp",
-        "summer": "/portraits/k-summer.webp",
-        "winter": "/portraits/k-winter.webp"
+        "autumn": {
+          "day": "/portraits/k-autumn-day.webp",
+          "night": "/portraits/k-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/k-spring-day.webp",
+          "night": "/portraits/k-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/k-summer-day.webp",
+          "night": "/portraits/k-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/k-winter-day.webp",
+          "night": "/portraits/k-winter-night.webp"
+        }
       },
       "day": {
         "classic": "/portraits/k-classic-day.webp",

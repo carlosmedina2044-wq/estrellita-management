@@ -31,7 +31,9 @@ export type PortraitKitEntry = {
     lit: string;
     shadow: string;
     snow: string;
-    foliage: Record<string, string>;
+    /** season -> phase -> url. Foliage is lit per phase; legacy manifests stored
+     * one shared url per season, which portraitLayerUrls still tolerates. */
+    foliage: Record<string, { day: string; night: string } | string>;
   };
 };
 
@@ -99,6 +101,16 @@ export function gradeOpacityForPhase(phase: string, t: number): number {
   }
 }
 
+/** Foliage used to be one shared, day-lit image per season, which made the trees
+ * read as daylight cutouts against the night sky. It is now rendered per phase and
+ * crossfaded on the same dayOpacity as the house. A string here means a manifest
+ * from before that change. */
+function foliageUrls(kit: PortraitKitEntry, season: string) {
+  const entry = kit.files.foliage[season] ?? kit.files.foliage.summer;
+  if (typeof entry === "string") return { foliageDay: entry, foliageNight: entry };
+  return { foliageDay: entry.day, foliageNight: entry.night ?? entry.day };
+}
+
 export function portraitLayerUrls(
   kitType: KitType,
   palette: PaletteId,
@@ -111,7 +123,7 @@ export function portraitLayerUrls(
     lit: kit.files.lit,
     shadow: kit.files.shadow,
     snow: kit.files.snow,
-    foliage: kit.files.foliage[season] ?? kit.files.foliage.summer,
+    ...foliageUrls(kit, season),
     frame: kit.frame,
     windows: kit.windows,
     door: kit.door,

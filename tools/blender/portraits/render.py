@@ -827,12 +827,16 @@ def find_chimney_top(house_objects):
     return best
 
 
-def build_and_render(kit_type: str, palette: str, layer: str, season: str, samples: int, only_missing: bool):
+def build_and_render(
+    kit_type: str, palette: str, layer: str, season: str, samples: int, only_missing: bool, phase: str = "day"
+):
     kit = load_kit()
     entry = kit[kit_type]
 
     if layer == "foliage":
-        out_name = f"{kit_type}-{season}.png"
+        # Foliage is rendered once per phase. Sharing one day-lit tree across both
+        # left the trees reading as daylight cutouts pasted on the night sky.
+        out_name = f"{kit_type}-{season}-{phase}.png"
     elif layer in ("lit", "shadow", "snow"):
         out_name = f"{kit_type}-{layer}.png"
     else:
@@ -844,9 +848,14 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
 
     clear_scene()
     configure_cycles(samples, DEVICE)
-    phase = "night" if layer == "night" else "day"
-    setup_world(phase, strength=0.26 if phase == "night" else 0.38)
-    setup_lights("night" if layer == "night" else "day")
+    if layer == "night":
+        sky_phase = "night"
+    elif layer == "foliage":
+        sky_phase = phase
+    else:
+        sky_phase = "day"
+    setup_world(sky_phase, strength=0.26 if sky_phase == "night" else 0.38)
+    setup_lights(sky_phase)
 
     house_col, house_objs = import_glb(KIT_ROOT / f"building-type-{kit_type}.glb", "House")
     house_meshes = mesh_objects(house_col)
@@ -1056,9 +1065,10 @@ def main():
                         meta = m
             elif layer == "foliage":
                 for season in seasons:
-                    m = build_and_render(kt, "terracotta", layer, season, args.samples, only_missing)
-                    if m:
-                        meta = m or meta
+                    for ph in ("day", "night"):
+                        m = build_and_render(kt, "terracotta", layer, season, args.samples, only_missing, ph)
+                        if m:
+                            meta = m or meta
             else:
                 m = build_and_render(kt, "terracotta", layer, "summer", args.samples, only_missing)
                 if m:
