@@ -35,6 +35,7 @@ import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfDa
 import { keptRooms, wholeHouseKept } from "@/lib/kept-rooms";
 import { payoffKeyFor } from "@/lib/payoff-lines";
 import { hasSeenTip, markTipSeen, TIP_HOUSE_REVEAL } from "@/lib/teaching";
+import { houseLine } from "@/lib/house-line";
 import { dayOfYear, heroCopyKey, nextUpDayLabel } from "@/lib/today-copy";
 import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
 import {
@@ -413,6 +414,14 @@ export function TodayView({
   const showTeachingCard = Boolean(showTeaching && !teachingHidden && !zipBannerVisible && summary.overdue === 0);
   const arc = dayArc(household, viewDate, filter);
   const momentumOn = household.momentum.enabled && household.mode === "owner";
+  // One sentence a day from the house (E2-01): the forecast, a seasonal
+  // window opening, what was done a year ago, the month's ledger, or a
+  // seasonal fact. Deterministic per day, never the same two days running.
+  const dayLine = useMemo(
+    () => (momentumOn ? houseLine(household, forecast ?? null, now) : null),
+    [momentumOn, household, forecast, now],
+  );
+  const dayLineText = dayLine ? t(dayLine.key, dayLine.params) : null;
   const doneIds = new Set(doneEntries.map((entry) => entry.duty.id));
   const leftoverCostPrompts = costPrompts.filter(
     (item) => !doneIds.has(item.dutyId) && !open.some((duty) => duty.id === item.dutyId),
@@ -438,7 +447,12 @@ export function TodayView({
     return parts.join(" · ");
   }
 
-  const secondaryLine = [headingDate, !needsZip ? weatherLine : null]
+  // On an open day the weather line, when it has one, replaces the bare
+  // temperature under the greeting: "Rain Thursday. The gutters you cleared
+  // in May are earning it." says more than "72°F".
+  const weatherSentence =
+    arc.state === "open" && dayLine?.source === "weather" && dayLineText ? dayLineText : null;
+  const secondaryLine = [headingDate, weatherSentence ?? (!needsZip ? weatherLine : null)]
     .filter(Boolean)
     .join(" · ");
 
@@ -475,10 +489,10 @@ export function TodayView({
   };
   const sceneMinutesParts = t("today.minutesLeft", { minutes: "%%" }).split("%%");
   // A clear or rest day has no minutes to count down, and "0 min left" read
-  // as a bug. The hero copy pools ("All clear. Next up Friday.", "A rest day.
-  // The house is fine.") already exist for exactly these states; they only
-  // ever rendered in the unreachable TodayHero branch. Rotates by day.
-  const sceneQuietLine =
+  // as a bug. The house line fills that row when it has something specific
+  // to say; a plain fact yields to "All clear. Next up Friday." while there
+  // is something on the horizon, and speaks on true rest days.
+  const heroQuietLine =
     arc.state === "clear" || arc.state === "rest"
       ? t(
           heroCopyKey(arc.state, dayOfYear(now), {
@@ -488,6 +502,12 @@ export function TodayView({
           }),
           { count: 0, minutes: 0, day: nextUpDayLabel(arc.nextUp), name: household.ownerName.trim() },
         )
+      : null;
+  const sceneQuietLine =
+    arc.state === "clear" || arc.state === "rest"
+      ? dayLineText && (dayLine?.source !== "fact" || arc.state === "rest")
+        ? dayLineText
+        : heroQuietLine
       : null;
   const monthLedgerLine = useMemo(() => formatLedgerLine(monthLedger(household, now), t), [household, now, t]);
   const kept = useMemo(() => keptRooms(household, now), [household, now]);
