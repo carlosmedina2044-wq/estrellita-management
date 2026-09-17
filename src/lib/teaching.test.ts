@@ -9,6 +9,7 @@ import {
   TIP_ARRIVAL,
   withTeaching,
 } from "@/lib/teaching";
+import { shouldShowYearIntro, TIP_YEAR_INTRO } from "@/lib/teaching";
 import type { Household } from "@/lib/types";
 
 function home(partial: Partial<Household> = {}): Household {
@@ -52,3 +53,30 @@ test("walk-after-day-one is false on the start day", () => {
   assert.equal(isAfterFirstDay(start, new Date(2026, 7, 24, 18, 0, 0)), false);
   assert.equal(isAfterFirstDay(start, new Date(2026, 7, 25, 8, 0, 0)), true);
 });
+
+test("the year intro plays once, only for a home set up within the last day", () => {
+  const base = withHouseholdDefaults({
+    version: 8,
+    householdName: "Casa",
+    ownerName: "",
+    cleanerName: "",
+    onboarded: true,
+    mode: "owner",
+    activeVisitId: null,
+    homeId: "home",
+    floors: [],
+    rooms: [],
+    assets: [],
+    duties: [],
+    completions: [],
+    visits: [],
+    supplyAutomations: [],
+    teaching: { startedAt: "2026-09-17", checkedChore: false, openedRestock: false, setDigestOrZip: false },
+  });
+  assert.equal(shouldShowYearIntro(base, new Date(2026, 8, 17, 9)), true);
+  assert.equal(shouldShowYearIntro(base, new Date(2026, 8, 18, 9)), true);
+  assert.equal(shouldShowYearIntro(base, new Date(2026, 8, 20, 9)), false);
+  assert.equal(shouldShowYearIntro({ ...base, seenTips: [TIP_YEAR_INTRO] }, new Date(2026, 8, 17, 9)), false);
+  assert.equal(shouldShowYearIntro({ ...base, onboarded: false }, new Date(2026, 8, 17, 9)), false);
+});
+
