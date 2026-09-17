@@ -748,6 +748,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       .filter((item): item is string => typeof item === "string" && item.length > 0 && item.length < 64)
       .slice(0, 32),
     milestones: migrateMilestones(raw.milestones),
+    ...migrateCheckIns(raw.checkIns),
     momentum: isPlainObject(raw.momentum)
       ? {
           enabled: raw.momentum.enabled !== false,
@@ -758,6 +759,14 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
         }
       : { ...DEFAULT_MOMENTUM },
   });
+}
+
+function migrateCheckIns(raw: unknown): { checkIns?: string[] } {
+  const days = asArray(raw)
+    .filter((item): item is string => typeof item === "string" && /^\d{4}-\d{2}-\d{2}$/.test(item))
+    .sort()
+    .slice(-400);
+  return days.length > 0 ? { checkIns: [...new Set(days)] } : {};
 }
 
 function careStateFrom(raw: unknown): CareState | null {

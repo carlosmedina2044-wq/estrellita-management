@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { addDays } from "@/lib/dates";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import {
+  yearDays,
   applyMomentumOnComplete,
   closedDayRun,
   dayArc,
@@ -362,3 +363,22 @@ test("runStripDays marks grace and today", () => {
   assert.equal(days[6]?.isToday, true);
   assert.equal(days[6]?.outcome, "open");
 });
+
+test("yearDays paints every day of the year and marks the future", () => {
+  const now = new Date(2026, 8, 17);
+  const wipe = duty({ id: "wipe", title: "Wipe" });
+  const home = household({
+    duties: [wipe],
+    completions: [completion({ dutyId: "wipe", completedAt: new Date(2026, 8, 16, 12).toISOString() })],
+  });
+  const days = yearDays(home, 2026, now);
+  assert.equal(days.length, 365);
+  assert.equal(days[0].date.getMonth(), 0);
+  assert.equal(days[days.length - 1].date.getMonth(), 11);
+  const today = days.find((day) => day.isToday);
+  assert.ok(today);
+  assert.equal(days.filter((day) => day.outcome === "future").length, 365 - 260);
+  const yesterday = days[259 - 1];
+  assert.equal(yesterday.outcome, "closed");
+});
+

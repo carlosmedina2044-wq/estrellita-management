@@ -35,7 +35,6 @@ import { notifyPermission, plannedNotifications, requestNotifyPermission, type N
 import { KIT_TYPES } from "@/lib/types";
 import type { Household, MomentumSettings, MorningBriefSettings, RestockDigestSettings } from "@/lib/types";
 import { buildHomeSpec, resolveHomeSpec } from "@/lib/scene/portrait";
-import { relativeDayLabel } from "@/lib/duties";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
@@ -90,6 +89,7 @@ export function HomeView({
   focusAssetId,
   onFocusHandled,
   onBack,
+  onOpenYear,
   backLabel = "Back to Home",
 }: {
   household: Household;
@@ -114,6 +114,8 @@ export function HomeView({
   focusAssetId?: string;
   onFocusHandled?: () => void;
   onBack?: () => void;
+  /** Opens the year screen (closed days, runs, milestones, seasonal jobs). */
+  onOpenYear?: () => void;
   backLabel?: string;
 }) {
   const { t, preference, setPreference, dateLocale } = useLocale();
@@ -663,27 +665,25 @@ export function HomeView({
         </div>
       ) : null}
 
-      <section>
-        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.milestonesHeader")}</h2>
-        <div className="ui-group">
-          {household.milestones.length === 0 ? (
-            <div className="ui-group-row px-4 py-3">
-              <p className="ui-caption text-muted-foreground">{t("settings.milestonesEmpty")}</p>
-            </div>
-          ) : (
-            [...household.milestones]
-              .sort((a, b) => b.earnedAt.localeCompare(a.earnedAt))
-              .map((item) => (
-                <div key={item.id} className="ui-group-row px-4 py-3">
-                  <p className="ui-body font-medium">{t(`milestone.${item.id}.title`)}</p>
-                  <p className="mt-0.5 ui-caption text-muted-foreground">
-                    {relativeDayLabel(new Date(item.earnedAt))}
-                  </p>
-                </div>
-              ))
-          )}
-        </div>
-      </section>
+      {onOpenYear ? (
+        <section>
+          <div className="ui-group">
+            <button
+              type="button"
+              className="ui-group-row flex w-full items-center justify-between gap-3 px-4 py-3 text-left active:bg-foreground/6"
+              onClick={onOpenYear}
+            >
+              <span className="min-w-0">
+                <span className="block ui-body font-medium">{t("settings.yourYear")}</span>
+                <span className="mt-0.5 block ui-caption text-muted-foreground">{t("settings.yourYearHelp")}</span>
+              </span>
+              <span className="shrink-0 ui-caption font-medium text-muted-foreground num">
+                {t("today.milestonesEarned", { count: household.milestones.length })}
+              </span>
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       {onChangeTree ? (
         <HomeEditor

@@ -16,6 +16,7 @@ import { Onboarding } from "@/components/onboarding";
 import { RestockView } from "@/components/restock-view";
 import { SeasonalView } from "@/components/seasonal-view";
 import { TodayView } from "@/components/today-view";
+import { YearView } from "@/components/year-view";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -50,6 +51,7 @@ import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_KEEP_PRIVATE, TI
 import { lockMethodLabel } from "@/lib/native/lock-labels";
 import { isRootTab, type AppNavigateTarget, type RootTab } from "@/lib/types";
 import { hapticPress, hapticTab } from "@/lib/native/haptics";
+import { hasCheckedInToday, recordCheckIn } from "@/lib/check-ins";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -304,6 +306,13 @@ export function AppShell() {
   const [confirmErase, setConfirmErase] = useState(false);
   const now = useNow();
   const nowMs = now.getTime();
+  // Once a day, note that the house was opened. On device only; it is the
+  // owner's own "days you opened the house" number on the year view.
+  useEffect(() => {
+    if (!hydrated || !sessionUnlocked || pendingUnlock || !onboarded) return;
+    if (hasCheckedInToday(household, now)) return;
+    updateTree((current) => recordCheckIn(current, now));
+  }, [hydrated, sessionUnlocked, pendingUnlock, onboarded, household, now, updateTree]);
   const tRef = useRef(t);
 
   useEffect(() => {
@@ -930,9 +939,13 @@ export function AppShell() {
                 onUpdateMomentum={updateMomentum}
                 focusAssetId={nav?.assetId}
                 onFocusHandled={handleFocusHandled}
+                onOpenYear={() => navigate({ tab: "year" })}
                 onBack={popStack}
                 backLabel={pushBackLabel}
               />
+            ) : null}
+            {pushScreen.tab === "year" ? (
+              <YearView household={household} now={now} onBack={popStack} backLabel={pushBackLabel} />
             ) : null}
           </div>
         ) : null}

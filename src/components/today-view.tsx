@@ -837,7 +837,7 @@ export function TodayView({
               now={now}
               days={runStripDays(household, now)}
               celebrate={arc.state === "closed"}
-              onOpenCalendar={() => setCalendarOpen(true)}
+              onOpenCalendar={() => (onNavigate ? onNavigate({ tab: "year" }) : setCalendarOpen(true))}
             />
           </div>
           {arc.state === "closed" ? (
@@ -1321,9 +1321,11 @@ export function TodayView({
         now={now}
         arc={arc}
         onSeeYear={() => {
-          // Until the year screen (E2-03) lands, "See the year" opens the
-          // month calendar under the scope tabs, once the sheet has closed.
           setHouseOpen(false);
+          if (onNavigate) {
+            window.setTimeout(() => onNavigate({ tab: "year" }), 350);
+            return;
+          }
           window.setTimeout(() => {
             setCalendarOpen(true);
             listRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });

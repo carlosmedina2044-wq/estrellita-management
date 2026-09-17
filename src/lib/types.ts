@@ -435,6 +435,9 @@ export type Household = {
   seenTips: string[];
   milestones: Milestone[];
   momentum: MomentumSettings;
+  /** ISO dates the app was opened, oldest first, capped at 400. On-device
+   * only; it feeds the "days you opened the house" tile on the year view. */
+  checkIns?: string[];
 };
 
 export type TeachingProgress = {
@@ -450,7 +453,7 @@ export type DutyDraft = Omit<Duty, "id" | "createdAt" | "archived"> & {
 };
 
 export type RootTab = "today" | "home" | "restock";
-export type PushTab = "budget" | "seasonal" | "settings";
+export type PushTab = "budget" | "seasonal" | "settings" | "year";
 export type Tab = RootTab | PushTab;
 
 export function isRootTab(tab: Tab): tab is RootTab {

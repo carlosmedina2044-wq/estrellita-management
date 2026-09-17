@@ -133,6 +133,32 @@ export type RunDay = {
   isToday: boolean;
 };
 
+export type YearDay = {
+  date: Date;
+  outcome: DayOutcome | "grace" | "future";
+  isToday: boolean;
+};
+
+/** Every day of `year`, 1 January to 31 December, painted like the run strip;
+ * days after `now` are `future`. The current run's forgiven days show as grace. */
+export function yearDays(household: Household, year: number, now = new Date()): YearDay[] {
+  const walked = walkRun(household, now);
+  const today = startOfDay(now);
+  const days: YearDay[] = [];
+  for (let date = new Date(year, 0, 1); date.getFullYear() === year; date = addDays(date, 1)) {
+    const stamp = startOfDay(date);
+    let outcome: YearDay["outcome"];
+    if (stamp > today) {
+      outcome = "future";
+    } else {
+      const raw = dayOutcome(household, date);
+      outcome = raw === "open" && walked.graceDays.has(stamp) ? "grace" : raw;
+    }
+    days.push({ date, outcome, isToday: stamp === today });
+  }
+  return days;
+}
+
 export function runStripDays(household: Household, now = new Date()): RunDay[] {
   const walked = walkRun(household, now);
   const days: RunDay[] = [];
