@@ -1194,6 +1194,7 @@
   "today.compactTitle": "Hoy · faltan {count}",
   "today.compactClosed": "Hoy · cerrado",
   "scene.label": "{phase}, {weather}. {lit} de {windows} ventanas encendidas, faltan {count}.",
+  "scene.window": "{room}, {state}",
   "scene.phase.night": "Noche",
   "scene.phase.dawn": "Amanecer",
   "scene.phase.day": "Día",

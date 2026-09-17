@@ -1,5 +1,6 @@
 import type { HomeSpec, Household, KitType, PaletteId } from "@/lib/types";
 import portraitManifest from "@/lib/scene/portrait-manifest.json";
+import { assignWindowRooms, needsReassignment } from "@/lib/scene/window-rooms";
 
 export type PortraitWindowRect = {
   id: string;
@@ -69,10 +70,22 @@ export function buildHomeSpec(pick: { kitType: KitType; palette: PaletteId }, se
 }
 
 /** Households from before the house-look picker shipped never set `homeSpec`;
- * they fall back to kit `a` / classic here rather than at every call site. */
-export function resolveHomeSpec(household: Household): HomeSpec {
-  if (household.homeSpec?.version === 2) return household.homeSpec;
-  return buildHomeSpec({ kitType: "a", palette: "classic" }, household.householdName || household.homeId);
+ * they fall back to kit `a` / classic here rather than at every call site.
+ * The window-to-room map is reconciled here too: a stored assignment that no
+ * longer fits (nothing assigned, a deleted room, a different kit) is redone
+ * from the current rooms and duties, so the persisted spec is a cache and
+ * never a source of stale windows. */
+export function resolveHomeSpec(
+  household: Pick<Household, "homeSpec" | "householdName" | "homeId" | "rooms" | "duties">,
+): HomeSpec {
+  const base =
+    household.homeSpec?.version === 2
+      ? household.homeSpec
+      : buildHomeSpec({ kitType: "a", palette: "classic" }, household.householdName || household.homeId);
+  const kit = portraitKit(base.kitType);
+  return needsReassignment(base, household.rooms, kit)
+    ? assignWindowRooms(base, household.rooms, household.duties, kit)
+    : base;
 }
 
 export function dayOpacityForPhase(phase: string, t: number): number {

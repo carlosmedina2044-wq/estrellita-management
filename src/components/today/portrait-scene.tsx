@@ -10,7 +10,9 @@ import { SkyDisc } from "@/components/today/sky-disc";
 import { StatusGlyphs } from "@/components/today/status-glyphs";
 import { WeatherLayer } from "@/components/today/weather-layer";
 import { useLocale } from "@/i18n/locale-provider";
+import { keptRooms } from "@/lib/kept-rooms";
 import { sceneCssVars } from "@/lib/scene/css";
+import { assignWindowRooms, litWindowCount, windowStates, type WindowState } from "@/lib/scene/window-rooms";
 import { houseLight } from "@/lib/scene/light";
 import { skyGradient } from "@/lib/scene/sky";
 import {
@@ -68,6 +70,8 @@ type PortraitSceneProps = {
    * sheet on Today). Left out for the decorative uses: the welcome loop,
    * the house-look picker and the lock screen stay pictures. */
   onOpenHouse?: () => void;
+  /** When given, each window with a room becomes a button into that room. */
+  onOpenRoom?: (roomId: string) => void;
   overrides?: PortraitSceneOverrides;
   className?: string;
   /** Default true: Today and the lock screen sit flush at the true top of
@@ -163,6 +167,7 @@ export function PortraitScene({
   secondaryLine,
   onOpenSettings,
   onOpenHouse,
+  onOpenRoom,
   overrides,
   className,
   insetTop = true,
@@ -173,11 +178,12 @@ export function PortraitScene({
   const minuteNow = useMinuteTicker(true);
   const homeSpec = useMemo(() => {
     const base = resolveHomeSpec(household);
-    return {
-      ...base,
-      kitType: overrides?.kitType ?? base.kitType,
-      palette: overrides?.palette ?? base.palette,
-    };
+    const kitType = overrides?.kitType ?? base.kitType;
+    const palette = overrides?.palette ?? base.palette;
+    if (kitType === base.kitType) return { ...base, palette };
+    // A previewed kit has its own windows; map the rooms onto those instead
+    // of carrying ids from a kit that is no longer on screen.
+    return assignWindowRooms({ ...base, kitType, palette }, household.rooms, household.duties, portraitKit(kitType));
   }, [household, overrides?.kitType, overrides?.palette]);
 
   const phase = overrides?.phase ?? phaseProp;
@@ -192,9 +198,25 @@ export function PortraitScene({
   const careLevel = household.momentum.care?.level ?? "settling-in";
   const gardenLevel = CARE_TO_GARDEN[careLevel];
   const light = houseLight(arc, phase, closedToday, season, gardenLevel, windowCount);
-  const litCount =
-    overrides?.windowsLit ??
-    (ceremony ? windowCount : arrivalReveal.litNow ? light.windowsLit : 0);
+  // Windows follow rooms (E1-02): a fresh room lit, a due room dark, a room
+  // nobody has touched within its cadence dim. A closed day and the ceremony
+  // still light every window; the arrival reveal still starts from none.
+  const kept = useMemo(() => keptRooms(household, minuteNow), [household, minuteNow]);
+  const roomStates = useMemo(
+    () => windowStates(homeSpec, kit, kept, light.windowsLit),
+    [homeSpec, kit, kept, light.windowsLit],
+  );
+  const allLit = kit.windows.map((): WindowState => "lit");
+  const allOff = kit.windows.map((): WindowState => "off");
+  const states: WindowState[] | undefined =
+    overrides?.windowsLit != null
+      ? undefined
+      : ceremony || closedToday
+        ? allLit
+        : arrivalReveal.litNow
+          ? roomStates
+          : allOff;
+  const litCount = overrides?.windowsLit ?? litWindowCount(states ?? allOff);
   const staggerWindows = ceremony || arrivalReveal.staggering;
 
   // The scene owns its sky. Today's root sets the same variables so the sky
@@ -338,6 +360,7 @@ export function PortraitScene({
               season={season}
               dayOpacity={dayOpacity}
               litCount={litCount}
+              windowStates={states}
               showSnow={showSnow}
               stagger={staggerWindows}
               className="w-full"
@@ -350,11 +373,47 @@ export function PortraitScene({
             season={season}
             dayOpacity={dayOpacity}
             litCount={litCount}
+            windowStates={states}
             showSnow={showSnow}
             stagger={staggerWindows}
             className="w-full"
           />
         )}
+        {onOpenRoom
+          ? kit.windows.map((w) => {
+              const roomId = homeSpec.windows.find((entry) => entry.id === w.id)?.roomId ?? null;
+              const room = roomId ? household.rooms.find((entry) => entry.id === roomId) : undefined;
+              if (!room) return null;
+              const keptState = kept.find((entry) => entry.room.id === room.id)?.state ?? "waiting";
+              const stateLabel =
+                keptState === "fresh"
+                  ? t("today.roomFresh")
+                  : keptState === "due"
+                    ? t("today.roomDue")
+                    : t("today.roomWaiting");
+              // Siblings of the house button, never children: a button inside
+              // a button is invalid, and these need to sit above it. At least
+              // 44pt each way even for a small window.
+              return (
+                <button
+                  key={w.id}
+                  type="button"
+                  aria-label={t("scene.window", { room: room.name, state: stateLabel })}
+                  onClick={() => {
+                    void hapticTab();
+                    onOpenRoom(room.id);
+                  }}
+                  className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-lg"
+                  style={{
+                    left: `${(((w.x + w.w / 2) / kit.frame.w) * 100).toFixed(2)}%`,
+                    top: `${(((w.y + w.h / 2) / kit.frame.h) * 100).toFixed(2)}%`,
+                    width: `max(44px, ${((w.w / kit.frame.w) * 100).toFixed(2)}%)`,
+                    height: `max(44px, ${((w.h / kit.frame.h) * 100).toFixed(2)}%)`,
+                  }}
+                />
+              );
+            })
+          : null}
         {/* Grade overlays */}
         <div
           aria-hidden

@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { PaletteId } from "@/lib/types";
 import type { Season } from "@/lib/scene/season";
 import { portraitLayerUrls, type PortraitWindowRect } from "@/lib/scene/portrait";
+import type { WindowState } from "@/lib/scene/window-rooms";
 import { DUR_AMBIENT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,10 @@ type PortraitStackProps = {
   season: Season;
   dayOpacity: number;
   litCount: number;
+  /** Per-window paint in the kit's window order (see `windowStates`). When
+   * given, it wins over `litCount`, which stays the rule for the dev pages,
+   * the picker preview and kits without window rects. */
+  windowStates?: WindowState[];
   showSnow: boolean;
   /** True only for a live "just closed" or "just arrived" moment (not a
    * persisted closed day on reload, nor ordinary re-renders) — see
@@ -69,6 +74,7 @@ export function PortraitStack({
   season,
   dayOpacity,
   litCount,
+  windowStates,
   showSnow,
   stagger,
   className,
@@ -131,7 +137,12 @@ export function PortraitStack({
         </>
       ) : (
         windows.map((w, i) => {
-          const on = i < litCount;
+          const state: WindowState = windowStates?.[i] ?? (i < litCount ? "lit" : "off");
+          const on = state !== "off";
+          // A "dim" window is a room nobody has touched within its cadence:
+          // a low, steady glow rather than dark, so the house never reads as
+          // empty just because nothing is due.
+          const glow = state === "dim" ? 0.35 : on ? 1 : 0;
           const clip = windowClipPaths([w], on ? 1 : 0, frame.w, frame.h);
           // Staggered only during a live ceremony or arrival — otherwise
           // every window that's already lit would carry a delay on ordinary
@@ -146,7 +157,7 @@ export function PortraitStack({
                 alt=""
                 draggable={false}
                 className="pointer-events-none absolute inset-0 h-full w-full object-contain mix-blend-screen transition-opacity duration-500"
-                style={{ clipPath: clip, opacity: on ? 1 : 0, transitionDelay: delay }}
+                style={{ clipPath: clip, opacity: glow, transitionDelay: delay }}
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -154,7 +165,7 @@ export function PortraitStack({
                 alt=""
                 draggable={false}
                 className="pointer-events-none absolute inset-0 h-full w-full object-contain mix-blend-screen blur-[6px] transition-opacity duration-500"
-                style={{ clipPath: clip, opacity: on ? 0.6 : 0, transitionDelay: delay }}
+                style={{ clipPath: clip, opacity: glow * 0.6, transitionDelay: delay }}
               />
             </span>
           );

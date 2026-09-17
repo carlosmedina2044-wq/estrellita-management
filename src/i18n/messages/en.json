@@ -1194,6 +1194,7 @@
   "today.compactTitle": "Today · {count} left",
   "today.compactClosed": "Today · closed",
   "scene.label": "{phase}, {weather}. {lit} of {windows} windows lit, {count} left.",
+  "scene.window": "{room}, {state}",
   "scene.phase.night": "Night",
   "scene.phase.dawn": "Dawn",
   "scene.phase.day": "Daytime",

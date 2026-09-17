@@ -104,6 +104,7 @@ export function AppShell() {
   const [rootTab, setRootTab] = useState<RootTab>(() => initialTab());
   const [stack, setStack] = useState<AppNavigateTarget[]>([]);
   const [nav, setNav] = useState<AppNavigateTarget | null>(null);
+  const [roomOpen, setRoomOpen] = useState<string | null>(null);
   const top = stack[stack.length - 1] ?? null;
   const backLabel = rootTab === "today" ? t("tabs.today") : rootTab === "restock" ? t("tabs.restock") : t("tabs.home");
   const reduceMotion = prefersReducedMotion();
@@ -137,6 +138,8 @@ export function AppShell() {
     setNav(target);
     if (isRootTab(target.tab)) {
       setRootTab(target.tab);
+      // A window tap on Today lands on Home with that room's sheet open.
+      if (target.tab === "home" && target.roomId) setRoomOpen(target.roomId);
       setStack((current) => {
         const leaving = current[current.length - 1];
         if (leaving) window.setTimeout(() => beginPushExit(leaving), 0);
@@ -298,7 +301,6 @@ export function AppShell() {
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [weatherAttribution, setWeatherAttribution] = useState<WeatherAttribution | null>(null);
-  const [roomOpen, setRoomOpen] = useState<string | null>(null);
   const [confirmErase, setConfirmErase] = useState(false);
   const now = useNow();
   const nowMs = now.getTime();

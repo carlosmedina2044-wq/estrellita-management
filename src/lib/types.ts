@@ -462,4 +462,6 @@ export type AppNavigateTarget = {
   assetId?: string;
   dutyId?: string;
   playbookId?: string;
+  /** Home tab: open this room's sheet on arrival (a window tap on Today). */
+  roomId?: string;
 };

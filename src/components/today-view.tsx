@@ -711,6 +711,7 @@ export function TodayView({
               secondaryLine={secondaryLine}
               onOpenSettings={onOpenSettings}
               onOpenHouse={() => setHouseOpen(true)}
+              onOpenRoom={onNavigate ? (roomId) => onNavigate({ tab: "home", roomId }) : undefined}
             />
           </SceneBoundary>
         </div>
