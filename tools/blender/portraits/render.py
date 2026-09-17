@@ -1,10 +1,20 @@
 """
 Render layered 2D home portraits from the Kenney suburban kit.
 
+Renders with Cycles on the GPU (Metal/OPTIX/CUDA/HIP), falling back to CPU.
+
 Usage:
-  /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/blender/portraits/render.py -- \\
+  /Applications/Blender.app/Contents/MacOS/Blender -b -noaudio -P tools/blender/portraits/render.py -- \\
     --type a|all --palette classic|terracotta|slate|all --layer day|night|lit|shadow|foliage|snow|all \\
-    --season spring|summer|autumn|winter --only-missing 1 --samples 192
+    --season spring|summer|autumn|winter --only-missing 1 --samples 192 --scale 1.2 --device GPU
+
+Full set (273 frames, ~15 min on an M2 Pro; the first frame pays a one-off
+Metal kernel compile of ~40s):
+  ... -- --type all --palette all --layer all --season all --samples 160 --scale 1.2
+
+Then `node scripts/prepare-portraits.mjs` to convert to webp, rebuild the
+manifest and write the contact sheets. Changing --scale requires re-rendering
+every layer of a type together, since the manifest's pixel anchors are per frame.
 """
 from __future__ import annotations
 
@@ -26,8 +36,15 @@ PNG_OUT = REPO / "tools/blender/out/portraits"
 MANIFEST_PATH = REPO / "src/lib/scene/portrait-manifest.json"
 CONTACT_OUT = REPO / "tools/blender/portraits"
 
-FRAME_W = 780
-FRAME_H = 560  # ~house.webp aspect-ish with ground room
+BASE_W = 780
+BASE_H = 560  # ~house.webp aspect-ish with ground room
+# --scale multiplies these. 1.0 is 780x560, which is under the 800 device px a
+# 6.9" screen needs for the 62%-width stack on Today at 3x; 1.2 clears every
+# current iPhone with headroom. The manifest stores frame w/h and the app works
+# in fractions of it, so changing this does not move anything in the layout.
+FRAME_W = BASE_W
+FRAME_H = BASE_H
+DEVICE = "GPU"
 SEASONS = {
     "spring": (0x7f / 255, 0xae / 255, 0x4f / 255, 1.0),
     "summer": (0x4f / 255, 0x8a / 255, 0x3b / 255, 1.0),
@@ -100,86 +117,188 @@ def world_bounds(objects):
     return minc, maxc
 
 
-def configure_cycles(samples: int):
-    # Judgment call: EEVEE for the 273-frame batch (Cycles hung under a stale GPU process).
-    # Clay look still reads; samples arg kept for CLI compatibility.
+def enable_gpu():
+    """Turn on the first available Cycles GPU backend; fall back to CPU."""
+    try:
+        prefs = bpy.context.preferences.addons["cycles"].preferences
+    except (KeyError, AttributeError):
+        return "CPU"
+    for backend in ("METAL", "OPTIX", "CUDA", "HIP", "ONEAPI"):
+        try:
+            prefs.compute_device_type = backend
+        except TypeError:
+            continue
+        try:
+            prefs.get_devices()
+        except Exception:
+            continue
+        if any(d.type == backend for d in prefs.devices):
+            for d in prefs.devices:
+                d.use = d.type == backend
+            print(f"cycles: {backend} GPU")
+            return "GPU"
+    print("cycles: CPU")
+    return "CPU"
+
+
+def set_input(node, names, value):
+    """Set the first input that exists. Principled input names moved in 4.x
+    (Specular -> Specular IOR Level), and this script has to run on either."""
+    for name in names:
+        if name in node.inputs:
+            node.inputs[name].default_value = value
+            return True
+    return False
+
+
+def configure_cycles(samples: int, device: str = "GPU"):
+    """Cycles, not EEVEE.
+
+    The earlier EEVEE fallback (Cycles hung under a stale GPU process) is most of
+    why the portraits read flat: EEVEE has no Bevel node, no real GI bounce, and
+    on EEVEE Next `use_gtao` no longer exists -- so the ambient occlusion this
+    function used to set was silently skipped. Cycles buys rounded edge
+    highlights, warm bounce into the shaded wall, and a sun shadow with a
+    penumbra.
+    """
     scene = bpy.context.scene
-    scene.render.engine = "BLENDER_EEVEE"
+    scene.render.engine = "CYCLES"
     scene.render.resolution_x = FRAME_W
     scene.render.resolution_percentage = 100
     scene.render.resolution_y = FRAME_H
     scene.render.film_transparent = True
     scene.render.image_settings.file_format = "PNG"
     scene.render.image_settings.color_mode = "RGBA"
+
+    cy = scene.cycles
+    cy.device = enable_gpu() if device.upper() == "GPU" else "CPU"
+    cy.samples = samples
+    cy.use_adaptive_sampling = True
+    cy.adaptive_threshold = 0.01
+    cy.use_denoising = True
+    try:
+        cy.denoiser = "OPENIMAGEDENOISE"
+    except (AttributeError, TypeError):
+        pass
+    # Clay and foliage need diffuse bounce; caustics only buy fireflies here.
+    cy.max_bounces = 8
+    cy.diffuse_bounces = 4
+    cy.glossy_bounces = 4
+    cy.transmission_bounces = 8
+    cy.transparent_max_bounces = 8
+    cy.caustics_reflective = False
+    cy.caustics_refractive = False
+    cy.blur_glossy = 1.0
+
     # AgX keeps sunlit roofs from clipping to white (Standard did). Palette colour
     # comes from the colormap cells (scripts/portrait-palettes.mjs), never from
-    # saturation boosts or painted materials.
+    # saturation boosts or painted materials; the contrast look only puts back
+    # the bite AgX takes out of terracotta.
     scene.view_settings.view_transform = "AgX"
-    scene.view_settings.look = "None"
+    for look in ("AgX - Medium High Contrast", "Medium High Contrast", "None"):
+        try:
+            scene.view_settings.look = look
+            break
+        except TypeError:
+            continue
     if hasattr(scene.view_settings, "exposure"):
         scene.view_settings.exposure = 0.0
     if hasattr(scene.view_settings, "gamma"):
         scene.view_settings.gamma = 1.0
-    # Soft shadows / AO if available on EEVEE Next.
-    eevee = getattr(scene, "eevee", None)
-    if eevee is not None:
-        if hasattr(eevee, "taa_render_samples"):
-            eevee.taa_render_samples = max(16, min(64, samples // 2))
-        if hasattr(eevee, "use_gtao"):
-            eevee.use_gtao = True
-        if hasattr(eevee, "gtao_distance"):
-            eevee.gtao_distance = 1.0
+
+
+def aim_at(obj, target):
+    """Point a light or camera down -Z at a world-space target."""
+    obj.rotation_euler = (target - obj.location).to_track_quat("-Z", "Y").to_euler()
 
 
 def setup_world(phase: str, strength=0.6):
+    """Vertical sky gradient used purely as an ambient source.
+
+    film_transparent hides the sky itself, so none of this is ever seen -- it is
+    light only. Cool overhead and warm near the ground is what puts a blue cast
+    in the shade and a warm edge on the lit side, instead of the single uniform
+    grey the flat Background colour gave.
+    """
     world = bpy.data.worlds.new("PortraitWorld")
     bpy.context.scene.world = world
     world.use_nodes = True
     nt = world.node_tree
     nt.nodes.clear()
     out = nt.nodes.new("ShaderNodeOutputWorld")
+    # Name stays "Background": the lit layer mutes the world by node name.
     bg = nt.nodes.new("ShaderNodeBackground")
     top, mid, horizon = [hex_rgb(c) for c in SKY[phase]]
-    # Single mid colour is enough for transparent-film stills; keeps noise down.
-    bg.inputs["Color"].default_value = (*mid, 1.0)
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    ramp = nt.nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.interpolation = "EASE"
+    ramp.color_ramp.elements[0].position = 0.42
+    ramp.color_ramp.elements[0].color = (*horizon, 1.0)
+    ramp.color_ramp.elements[1].position = 0.80
+    ramp.color_ramp.elements[1].color = (*top, 1.0)
+    midstop = ramp.color_ramp.elements.new(0.58)
+    midstop.color = (*mid, 1.0)
     bg.inputs["Strength"].default_value = strength
+    nt.links.new(coord.outputs["Generated"], sep.inputs["Vector"])
+    nt.links.new(sep.outputs["Z"], ramp.inputs["Fac"])
+    nt.links.new(ramp.outputs["Color"], bg.inputs["Color"])
     nt.links.new(bg.outputs["Background"], out.inputs["Surface"])
 
 
 def setup_lights(phase: str):
-    # Key sun from camera-left.
+    """Warm key, warm ground bounce, cool rim.
+
+    Energies are Cycles watts / irradiance, not the EEVEE numbers they replace,
+    so they look wildly larger for the same result.
+    """
+    aim = Vector((0.0, 0.0, 0.55))
+
+    # Key sun from camera-left. ~5 degree disc: a penumbra soft enough to read as
+    # illustration, tight enough that the shadow layer keeps the silhouette.
     sun_data = bpy.data.lights.new("KeySun", "SUN")
-    sun_data.color = hex_rgb("#fff1dc")
-    sun_data.angle = math.radians(3)
-    if phase == "night":
-        sun_data.energy = 0.0
-    else:
-        sun_data.energy = 2.5
+    sun_data.color = hex_rgb("#fff0d6")
+    sun_data.angle = math.radians(5)
+    sun_data.energy = 0.0 if phase == "night" else 4.4
     sun = bpy.data.objects.new("KeySun", sun_data)
     bpy.context.collection.objects.link(sun)
-    # elevation 35°, azimuth ~ camera-left of three-quarter.
-    sun.rotation_euler = (math.radians(55), 0, math.radians(40))
+    # Elevation 37 degrees. Higher than this and the cast shadow tucks under the
+    # footprint, which reads as a house floating on the page; lower and the roof
+    # plane loses the light it needs to separate from the walls.
+    sun.rotation_euler = (math.radians(90 - 37), 0, math.radians(38))
 
     if phase == "night":
         moon = bpy.data.lights.new("Moon", "SUN")
-        moon.color = hex_rgb("#8fa3ff")
-        moon.energy = 0.3
-        moon.angle = math.radians(2)
+        moon.color = hex_rgb("#9fb4ff")
+        moon.energy = 0.45
+        moon.angle = math.radians(4)
         mo = bpy.data.objects.new("Moon", moon)
         bpy.context.collection.objects.link(mo)
-        mo.rotation_euler = (math.radians(70), 0, math.radians(-20))
+        mo.rotation_euler = (math.radians(90 - 55), 0, math.radians(-25))
 
-    # Soft fill from camera-right.
-    area = bpy.data.lights.new("Fill", "AREA")
-    area.energy = 0.25 if phase == "day" else 0.12
-    area.size = 6.0
-    area.color = hex_rgb("#fff8ee")
-    ao = bpy.data.objects.new("Fill", area)
-    bpy.context.collection.objects.link(ao)
-    ao.location = (2.5, -2.0, 2.2)
-    ao.rotation_euler = (math.radians(60), 0, math.radians(-35))
+    # Warm bounce from low and in front, standing in for sunlit ground. This is
+    # the light that keeps the shaded wall from going to mud.
+    bounce_data = bpy.data.lights.new("Bounce", "AREA")
+    bounce_data.shape = "RECTANGLE"
+    bounce_data.size = 9.0
+    bounce_data.size_y = 4.5
+    bounce_data.color = hex_rgb("#ffd9ae" if phase == "day" else "#8fa6d8")
+    bounce_data.energy = 26.0 if phase == "day" else 5.0
+    bounce = bpy.data.objects.new("Bounce", bounce_data)
+    bpy.context.collection.objects.link(bounce)
+    bounce.location = (1.7, -3.6, 0.5)
+    aim_at(bounce, aim)
 
-    # AO via world — Cycles uses scene.eevee AO not applicable; rely on soft fill.
+    # Cool rim from behind camera-right: separates roof and gable from a light
+    # page, which a transparent film otherwise leaves to chance.
+    rim_data = bpy.data.lights.new("Rim", "AREA")
+    rim_data.size = 5.5
+    rim_data.color = hex_rgb("#cfe0ff")
+    rim_data.energy = 30.0 if phase == "day" else 16.0
+    rim = bpy.data.objects.new("Rim", rim_data)
+    bpy.context.collection.objects.link(rim)
+    rim.location = (-2.9, 2.7, 2.9)
+    aim_at(rim, aim)
 
 
 def setup_camera(house_objects, frame_objects=None):
@@ -221,6 +340,41 @@ def setup_camera(house_objects, frame_objects=None):
     return cam
 
 
+BEVEL_RADIUS = 0.014  # ~1% of a house span
+
+
+def bevel_normal(nt):
+    """Shader-only rounded edges (Cycles). Safer than a bevel modifier on kit
+    topology, and it is most of what separates a moulded-toy read from flat
+    facets meeting at a hard CG line."""
+    bev = nt.nodes.new("ShaderNodeBevel")
+    bev.inputs["Radius"].default_value = BEVEL_RADIUS
+    bev.samples = 8
+    return bev.outputs["Normal"]
+
+
+def make_glass_material(phase: str):
+    """Dark, glossy panes.
+
+    The colormap paints windows as one flat pale-blue cell, which at portrait
+    size reads as a sticker. Real roughness plus the sky gradient gives each pane
+    a highlight and a dark interior instead."""
+    mat = bpy.data.materials.new("WindowGlass")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
+    dark = (0.030, 0.038, 0.060, 1.0) if phase == "night" else (0.055, 0.075, 0.105, 1.0)
+    bsdf.inputs["Base Color"].default_value = dark
+    bsdf.inputs["Roughness"].default_value = 0.13
+    set_input(bsdf, ("Specular IOR Level", "Specular"), 0.7)
+    set_input(bsdf, ("Coat Weight",), 0.3)
+    nt.links.new(bevel_normal(nt), bsdf.inputs["Normal"])
+    nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
+    return mat
+
+
 def apply_clay_colormap(objects, palette: str):
     cmap_path = COLORMAPS / f"{palette}.png"
     img = bpy.data.images.load(str(cmap_path), check_existing=True)
@@ -242,16 +396,13 @@ def apply_clay_colormap(objects, palette: str):
                 if n.type == "BSDF_PRINCIPLED":
                     principled = n
             if principled:
-                principled.inputs["Roughness"].default_value = 0.65
-            # Base Color stays tex → Principled: the colormap cells carry the palette.
-
-
-# Kenney variation glass cells (linear 0..1), plus near neighbours.
-GLASS_SWATCHES = [
-    (103 / 255, 148 / 255, 217 / 255),  # #6794d9
-    (208 / 255, 232 / 255, 255 / 255),  # #d0e8ff
-    (142 / 255, 149 / 255, 179 / 255),  # #8e95b3 cool trim sometimes used on glass edge
-]
+                # Painted-plaster clay: matte, with just enough sheen that the key
+                # reads as light falling on a surface rather than as a flat fill.
+                principled.inputs["Roughness"].default_value = 0.52
+                set_input(principled, ("Specular IOR Level", "Specular"), 0.35)
+                set_input(principled, ("Sheen Weight",), 0.05)
+                nt.links.new(bevel_normal(nt), principled.inputs["Normal"])
+            # Base Color stays tex -> Principled: the colormap cells carry the palette.
 
 
 def color_dist(a, b):
@@ -580,7 +731,9 @@ def retint_foliage(foliage_faces, season: str):
     out = nt.nodes.new("ShaderNodeOutputMaterial")
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
     bsdf.inputs["Base Color"].default_value = color
-    bsdf.inputs["Roughness"].default_value = 0.85
+    bsdf.inputs["Roughness"].default_value = 0.72
+    set_input(bsdf, ("Sheen Weight",), 0.18)
+    nt.links.new(bevel_normal(nt), bsdf.inputs["Normal"])
     nt.links.new(bsdf.outputs["BSDF"], out.inputs["Surface"])
     by_obj = defaultdict(list)
     for o, pi in foliage_faces:
@@ -690,9 +843,9 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
         return None
 
     clear_scene()
-    configure_cycles(samples)
+    configure_cycles(samples, DEVICE)
     phase = "night" if layer == "night" else "day"
-    setup_world(phase, strength=0.18 if phase == "night" else 0.5)
+    setup_world(phase, strength=0.26 if phase == "night" else 0.38)
     setup_lights("night" if layer == "night" else "day")
 
     house_col, house_objs = import_glb(KIT_ROOT / f"building-type-{kit_type}.glb", "House")
@@ -732,12 +885,15 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
         chimney_anchor = {"x": round(co.x * FRAME_W, 1), "y": round((1 - co.y) * FRAME_H, 1)}
 
     # Layer-specific visibility / materials.
-    if layer == "day":
+    if layer in ("day", "night"):
         for o in tree_objs:
             o.hide_render = True
-    elif layer == "night":
-        for o in tree_objs:
-            o.hide_render = True
+        glass_mat = make_glass_material(layer)
+        by_obj = defaultdict(list)
+        for o, pi in glass:
+            by_obj[o].append(pi)
+        for o, polys in by_obj.items():
+            assign_poly_material(o, polys, glass_mat)
     elif layer == "lit":
         # Emission on glass only; everything else holdout; no lights so nothing
         # but the emission reaches the film.
@@ -754,9 +910,10 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
             light.energy = 0.0
         bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.0
     elif layer == "shadow":
-        # EEVEE has no shadow catcher: render a white ground plane with the house
-        # and props held out, then scripts/prepare-portraits.mjs turns the plane's
-        # darkening into a shadow alpha (black, alpha = 1 - L/L_ref).
+        # Render a white ground plane with the house and props held out, then
+        # scripts/prepare-portraits.mjs turns the plane's darkening into a shadow
+        # alpha (black, alpha = 1 - L/L_ref). Cycles does have a real shadow
+        # catcher now, but this keeps the contract prepare-portraits.mjs reads.
         for o in tree_objs:
             o.hide_render = True
         set_holdout(house_meshes + [o for o in prop_meshes if o not in tree_objs], True)
@@ -772,6 +929,13 @@ def build_and_render(kit_type: str, palette: str, layer: str, season: str, sampl
         for light in bpy.data.lights:
             if light.type == "SUN":
                 light.energy = max(light.energy, 3.0)
+            else:
+                # prepare-portraits.mjs measures the plane's darkening against an
+                # unshadowed reference along the bottom edge. Fill and rim would
+                # lift the shadowed pixels and wash the result out.
+                light.energy = 0.0
+        # Same reason: sky ambient is the floor on how dark the shadow can get.
+        bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.18
     elif layer == "foliage":
         for o in house_meshes + non_tree_props:
             o.hide_render = True
@@ -864,7 +1028,15 @@ def main():
     parser.add_argument("--season", default="summer")
     parser.add_argument("--only-missing", default="0")
     parser.add_argument("--samples", type=int, default=192)
+    parser.add_argument("--scale", type=float, default=1.2)
+    parser.add_argument("--device", default="GPU", choices=["GPU", "CPU", "gpu", "cpu"])
     args = parser.parse_args(argv_after_double_dash())
+
+    global FRAME_W, FRAME_H, DEVICE
+    # Even dimensions keep the webp encoder off half-pixel chroma edges.
+    FRAME_W = int(round(BASE_W * args.scale / 2) * 2)
+    FRAME_H = int(round(BASE_H * args.scale / 2) * 2)
+    DEVICE = args.device.upper()
 
     types = list("abcdefghijklmnopqrstu") if args.type == "all" else [args.type]
     palettes = ["classic", "terracotta", "slate"] if args.palette == "all" else [args.palette]

@@ -70,8 +70,8 @@ let totalBytes = 0;
 const sizes = [];
 
 /**
- * The shadow layer is rendered as a white ground plane with the house held out
- * (EEVEE has no shadow catcher). Convert it to a soft black shadow whose alpha is
+ * The shadow layer is rendered as a white ground plane with the house held out.
+ * Convert it to a soft black shadow whose alpha is
  * the plane's darkening relative to its unshadowed brightness, sampled along the
  * bottom edge. Pixels the house occupied stay fully transparent.
  */
@@ -89,9 +89,13 @@ function shadowToAlpha(data, info) {
   for (let p = 0; p < width * height; p++) {
     const i = p * channels;
     const o = p * 4;
-    const covered = data[i + 3] > 200;
-    const dark = covered ? Math.max(0, 1 - lum(i) / ref) : 0;
-    const alpha = Math.min(1, dark * 1.3) * 0.6;
+    // Feather by the plane's own coverage rather than a hard alpha > 200 cut.
+    // The house is held out of this layer, so its antialiased silhouette lands
+    // between 0 and 200, and the hard cut left a light 1px halo tracing the
+    // house and planter wherever the shadow should have met them.
+    const coverage = data[i + 3] / 255;
+    const dark = coverage > 0 ? Math.max(0, 1 - lum(i) / ref) : 0;
+    const alpha = Math.min(1, dark * 1.3) * 0.6 * coverage;
     out[o] = 42;
     out[o + 1] = 36;
     out[o + 2] = 30;
