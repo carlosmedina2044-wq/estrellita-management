@@ -162,3 +162,12 @@ test("accepting every playbook on the sample home leaves one live duty per topic
   assert.equal(counts.get("hvac-service-cooling"), 1);
   assert.equal(counts.get("hvac-service-heating"), 1);
 });
+
+test("a tagged task yields to a live duty that carries its exact title under another topic", () => {
+  const renamed = duty({ id: "x", title: "Clean gutters before freeze" });
+  const tasks = [{ title: "Clean gutters before freeze", topic: "some-other-topic" }];
+  assert.deepEqual(dedupePlaybookTasks(tasks, [renamed]), []);
+  // Walk duties are in the catalog map, so a playbook filter task sees them.
+  assert.equal(dutyTopic({ title: "Replace smoke detector batteries" }), "detector-batteries");
+});
+

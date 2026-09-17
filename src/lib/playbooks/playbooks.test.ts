@@ -542,3 +542,44 @@ test("seasonSectionModel done and total match playbookProgress", () => {
   assert.equal(entry.done, 2);
   assert.equal(entry.total, 5);
 });
+
+test("every month of the year has at least one seasonal window, for a house and for an apartment", async () => {
+  const { generateHomeFromAnswers, sampleHomeAnswers, seedDutiesForHome } = await import("@/lib/onboarding/generate");
+  const now = new Date(2026, 8, 17);
+  const fixtures = [
+    sampleHomeAnswers(),
+    { homeType: "apartment" as const, location: {}, nickname: "Flat", ages: {} },
+  ];
+  for (const answers of fixtures) {
+    const generated = generateHomeFromAnswers(answers, now);
+    const household = home({
+      homeType: generated.homeType,
+      tenure: generated.tenure,
+      location: generated.location,
+      attributes: generated.attributes,
+      rooms: generated.rooms,
+      assets: generated.assets,
+      duties: seedDutiesForHome(generated, now),
+    });
+    const months = seasonalTimeline(household, now);
+    assert.equal(months.length, 12);
+    const empty = months.filter((month) => month.entries.length === 0).map((month) => month.label);
+    assert.deepEqual(empty, [], `${answers.homeType}: empty months ${empty.join(", ")}`);
+  }
+});
+
+test("asset-gated playbooks apply only when the home lists that asset", () => {
+  const dishwasher = PLAYBOOKS.find((playbook) => playbook.id === "asset-dishwasher")!;
+  const base = home({ location: {}, attributes: { ...DEFAULT_ATTRIBUTES } });
+  assert.equal(playbookApplies(dishwasher, { ...base, assets: [] }), false);
+  assert.equal(
+    playbookApplies(dishwasher, {
+      ...base,
+      assets: [{ id: "dw", roomId: "kitchen", name: "Dishwasher", type: "dishwasher" }],
+    }),
+    true,
+  );
+  // Callers that cannot supply assets never see asset-gated playbooks.
+  assert.equal(playbookApplies(dishwasher, { location: {}, attributes: { ...DEFAULT_ATTRIBUTES } }), false);
+});
+

@@ -1,5 +1,5 @@
 {
-  "contentVersion": "2026.09.12",
+  "contentVersion": "2026.09.17",
   "playbooks": [
     {
       "id": "all-safety",
@@ -744,7 +744,7 @@
         {
           "title": "Walk the exterior after thaw: grading, downspout extensions, foundation cracks",
           "nodeType": "exterior",
-          "topic": "exterior-thaw-walk",
+          "topic": "exterior-walk",
           "estimatedMinutes": 30,
           "isDiy": true
         }
@@ -947,6 +947,403 @@
           "topic": "exterior-wood-seal",
           "estimatedMinutes": 120,
           "estimatedCost": 80,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-jan-home-file",
+      "name": "Update the home file",
+      "season": "winter",
+      "climateZones": "all",
+      "triggerMonth": 1,
+      "why": "January is when warranties lapse and insurance renews. An hour with the home file finds the gaps before a claim does.",
+      "tasks": [
+        {
+          "title": "Review appliance warranties and manuals",
+          "description": "Check the warranty end dates on the big appliances and file the manuals where you can find them.",
+          "nodeType": "home",
+          "topic": "warranties-review",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        },
+        {
+          "title": "Photograph every room for the insurance file",
+          "description": "One wide photo per room plus the serial plates on the big appliances, stored somewhere other than this phone.",
+          "nodeType": "home",
+          "topic": "home-records-photos",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "asset-water-heater-check",
+      "name": "Water heater check",
+      "season": "winter",
+      "climateZones": "all",
+      "triggerMonth": 1,
+      "requiresAsset": ["water_heater"],
+      "why": "A water heater fails at the age most owners have stopped thinking about it. Check the temperature and the relief valve each winter.",
+      "tasks": [
+        {
+          "title": "Check the water heater temperature and test the relief valve",
+          "description": "Set it to 120°F. Lift the relief lever for a second; water should flow, then stop cleanly.",
+          "nodeType": "assetType",
+          "target": "water_heater",
+          "topic": "water-heater-check",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-feb-indoor-air",
+      "name": "Winter indoor air",
+      "season": "winter",
+      "climateZones": "all",
+      "triggerMonth": 2,
+      "why": "Windows stay shut for months. Vents and bath fans carry everything the house breathes.",
+      "tasks": [
+        {
+          "title": "Vacuum heating vents and bath exhaust fan covers",
+          "description": "Pop the covers, vacuum the grilles and the first reach of duct, and wash the bath fan cover.",
+          "nodeType": "home",
+          "topic": "vents-clean",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        },
+        {
+          "title": "Wipe down door handles, switches and remotes",
+          "description": "Cold-season touch points. One disinfecting wipe on each.",
+          "nodeType": "home",
+          "topic": "touchpoints-clean",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "asset-laundry-deep",
+      "name": "Laundry deep clean",
+      "season": "winter",
+      "climateZones": "all",
+      "triggerMonth": 2,
+      "requiresAsset": ["washer","dryer"],
+      "why": "Detergent residue and lint build all year. A February clean keeps the washer fresh and the dryer safe.",
+      "tasks": [
+        {
+          "title": "Clean the washer drum, gasket and detergent drawer",
+          "description": "Run a hot cleaning cycle, wipe the door gasket dry, and pull and wash the detergent drawer.",
+          "nodeType": "assetType",
+          "target": "washer",
+          "topic": "washer-clean",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        },
+        {
+          "title": "Vacuum behind and under the dryer",
+          "description": "Pull the dryer out and vacuum the lint from the floor, the back panel and the exhaust connection.",
+          "nodeType": "assetType",
+          "target": "dryer",
+          "topic": "dryer-behind-clean",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-mar-spring-refresh",
+      "name": "Spring refresh",
+      "season": "spring",
+      "climateZones": "all",
+      "triggerMonth": 3,
+      "why": "Winter grime shows in the first bright light. Glass and filters are where it shows most.",
+      "tasks": [
+        {
+          "title": "Wash windows inside and out",
+          "description": "A squeegee and a bucket. Do the inside on a cloudy day so streaks show.",
+          "nodeType": "home",
+          "topic": "windows-wash",
+          "estimatedMinutes": 60,
+          "isDiy": true
+        },
+        {
+          "title": "Clean the range hood filter",
+          "description": "Soak a metal mesh filter in hot soapy water; replace a charcoal one.",
+          "nodeType": "roomType",
+          "target": "kitchen",
+          "topic": "range-hood-filter",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "asset-irrigation-startup",
+      "name": "Irrigation startup",
+      "season": "spring",
+      "climateZones": "all",
+      "triggerMonth": 4,
+      "requiresAsset": ["irrigation_system"],
+      "why": "The first run of the season finds cracked heads and winter leaks before the water bill does.",
+      "tasks": [
+        {
+          "title": "Run each irrigation zone and fix heads and leaks",
+          "description": "Walk each zone while it runs. Straighten tilted heads, clear clogged ones, and mark any wet spot between heads.",
+          "nodeType": "assetType",
+          "target": "irrigation_system",
+          "topic": "irrigation-startup",
+          "estimatedMinutes": 30,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-may-exterior-walk",
+      "name": "Exterior walk",
+      "season": "spring",
+      "climateZones": "all",
+      "triggerMonth": 5,
+      "why": "Twenty minutes around the outside catches peeling paint, pooled water and cracks while they are small.",
+      "tasks": [
+        {
+          "title": "Walk the exterior for cracks, peeling paint and pooled water",
+          "description": "Siding, foundation, window sills and the ground at each downspout. Photograph anything that changed since last time.",
+          "nodeType": "exterior",
+          "topic": "exterior-walk",
+          "estimatedMinutes": 25,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-jun-fans",
+      "name": "Fans and filters",
+      "season": "summer",
+      "climateZones": "all",
+      "triggerMonth": 6,
+      "why": "Ceiling fans move dust as much as air. Clean the blades before the fans run all summer.",
+      "tasks": [
+        {
+          "title": "Clean ceiling fan blades and bath exhaust fans",
+          "description": "A pillowcase over each blade catches the dust. Vacuum the bath fan grille.",
+          "nodeType": "home",
+          "topic": "fans-clean",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-jul-water-check",
+      "name": "Mid-year water check",
+      "season": "summer",
+      "climateZones": "all",
+      "triggerMonth": 7,
+      "why": "Small leaks under sinks and behind toilets run for months unseen. July is the quiet month to look.",
+      "tasks": [
+        {
+          "title": "Check under sinks and around toilets for leaks",
+          "description": "A dry paper towel under each trap and supply line. Any damp spot is worth a closer look.",
+          "nodeType": "roomType",
+          "target": "bathroom",
+          "topic": "leak-check",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        },
+        {
+          "title": "Test toilet fill valves and flappers for running water",
+          "description": "Drop food colouring in the tank. Colour in the bowl after ten minutes means a worn flapper.",
+          "nodeType": "roomType",
+          "target": "bathroom",
+          "topic": "toilet-check",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-aug-bins",
+      "name": "Bins and drains",
+      "season": "summer",
+      "climateZones": "all",
+      "triggerMonth": 8,
+      "why": "Heat turns bins and drains into the smell you cannot find. A wash-out and a flush fix it for the season.",
+      "tasks": [
+        {
+          "title": "Wash out trash and recycling bins",
+          "description": "Hose, dish soap and a stiff brush. Dry in the sun before the lids go back on.",
+          "nodeType": "exterior",
+          "topic": "bins-wash",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        },
+        {
+          "title": "Flush slow drains with hot water and baking soda",
+          "description": "Half a cup of baking soda, a cup of vinegar, wait ten minutes, then a kettle of hot water.",
+          "nodeType": "home",
+          "topic": "drains-flush",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "asset-dishwasher",
+      "name": "Dishwasher clean",
+      "season": "summer",
+      "climateZones": "all",
+      "triggerMonth": 8,
+      "requiresAsset": ["dishwasher"],
+      "why": "A clogged filter is why dishes come out gritty. Cleaning it beats a service call.",
+      "tasks": [
+        {
+          "title": "Clean the dishwasher filter and run a cleaning cycle",
+          "description": "Twist out the filter under the lower rack, rinse it clean, then run the hottest empty cycle.",
+          "nodeType": "assetType",
+          "target": "dishwasher",
+          "topic": "dishwasher-clean",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "asset-disposal",
+      "name": "Disposal refresh",
+      "season": "summer",
+      "climateZones": "all",
+      "triggerMonth": 8,
+      "requiresAsset": ["garbage_disposal"],
+      "why": "Ice, salt and citrus peel scour the blades. It is the monthly habit most homes skip.",
+      "tasks": [
+        {
+          "title": "Clean the garbage disposal with ice and citrus",
+          "description": "A tray of ice and a handful of salt, then a few citrus peels with the water running.",
+          "nodeType": "assetType",
+          "target": "garbage_disposal",
+          "topic": "disposal-clean",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-sep-lights-locks",
+      "name": "Lights and locks",
+      "season": "fall",
+      "climateZones": "all",
+      "triggerMonth": 9,
+      "why": "Evenings get dark earlier. Working lights and smooth locks are what you notice at the door.",
+      "tasks": [
+        {
+          "title": "Check exterior lights and replace bulbs",
+          "description": "Porch, path and motion lights. Wipe the fixtures while the ladder is out.",
+          "nodeType": "exterior",
+          "topic": "exterior-lights",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        },
+        {
+          "title": "Lubricate door locks and hinges",
+          "description": "Graphite or a dry lubricant in each lock, a drop of oil on each hinge pin.",
+          "nodeType": "home",
+          "topic": "locks-lubricate",
+          "estimatedMinutes": 15,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-sep-garage-door",
+      "name": "Garage door safety check",
+      "season": "fall",
+      "climateZones": "all",
+      "triggerMonth": 9,
+      "requires": {
+        "hasGarage": true
+      },
+      "why": "The auto-reverse is the safety feature families rely on and never test.",
+      "tasks": [
+        {
+          "title": "Test the garage door auto-reverse and lubricate the rails",
+          "description": "Lay a board in the door's path; it must reverse on contact. Then a silicone spray on the rollers and hinges.",
+          "nodeType": "roomType",
+          "target": "garage",
+          "topic": "garage-door-service",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-oct-fire",
+      "name": "Fire safety check",
+      "season": "fall",
+      "climateZones": "all",
+      "triggerMonth": 10,
+      "why": "Heating season is fire season. Extinguishers expire and detectors age out.",
+      "tasks": [
+        {
+          "title": "Check the fire extinguisher gauge and expiry date",
+          "description": "Needle in the green, pin in place, date on the label still good.",
+          "nodeType": "home",
+          "topic": "extinguisher-check",
+          "estimatedMinutes": 5,
+          "isDiy": true
+        },
+        {
+          "title": "Check detector manufacture dates; replace any over ten years old",
+          "description": "The date is printed on the back. Sensors fail quietly after a decade.",
+          "nodeType": "assetType",
+          "target": "smoke_detector",
+          "topic": "detector-age-check",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-nov-drafts",
+      "name": "Draft check",
+      "season": "fall",
+      "climateZones": "all",
+      "triggerMonth": 11,
+      "why": "Drafts are the cheapest heating loss to fix. Feel for them on the first cold evening.",
+      "tasks": [
+        {
+          "title": "Check for drafts at windows and doors",
+          "description": "Move a lit candle or a damp hand along each frame on a cold evening. Mark the spots that flicker.",
+          "nodeType": "home",
+          "topic": "weatherstrip-check",
+          "estimatedMinutes": 20,
+          "isDiy": true
+        }
+      ]
+    },
+    {
+      "id": "all-dec-holiday",
+      "name": "Holiday safety",
+      "season": "winter",
+      "climateZones": "all",
+      "triggerMonth": 12,
+      "why": "December adds cords, lights and heaters to every room. Ten minutes keeps them from adding a claim.",
+      "tasks": [
+        {
+          "title": "Check extension cords, outlet loads and light strings",
+          "description": "No daisy-chained strips, no cords under rugs, and one heater per circuit.",
+          "nodeType": "home",
+          "topic": "cords-check",
+          "estimatedMinutes": 10,
+          "isDiy": true
+        },
+        {
+          "title": "Check space heaters for damaged cords and tip-over shutoff",
+          "description": "Tip it gently; it should switch off. Retire any heater with a frayed or warm cord.",
+          "nodeType": "home",
+          "topic": "space-heater-check",
+          "estimatedMinutes": 10,
           "isDiy": true
         }
       ]

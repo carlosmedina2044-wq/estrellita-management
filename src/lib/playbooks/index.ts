@@ -7,8 +7,10 @@ import { lastCompletion } from "@/lib/duties";
 import { EXTERIOR_ID, WHOLE_HOME_ID } from "@/lib/home-model";
 import { normalizeAssetType } from "@/lib/asset-catalog";
 import type {
+  AssetType,
   Duty,
   DutyCaution,
+  HomeAsset,
   HomeAttributes,
   Household,
   NodeType,
@@ -37,6 +39,10 @@ export type Playbook = {
   climateZones: string[] | "all";
   tenure?: Tenure;
   requires?: Partial<HomeAttributes>;
+  /** Applies only when the home lists at least one asset of these types.
+   * Callers that cannot supply assets (the climate payoff preview) never see
+   * asset-gated playbooks, which is the safe reading. */
+  requiresAsset?: AssetType[];
   triggerMonth?: number;
   /** First month the playbook is worth starting (1-12). Defaults to triggerMonth - 1. */
   earlyMonth?: number;
@@ -69,14 +75,20 @@ export function attributesMatch(requires: Partial<HomeAttributes> | undefined, a
   );
 }
 
-export function playbookApplies(
-  playbook: Playbook,
-  household: Pick<Household, "location" | "attributes" | "tenure">,
-): boolean {
+export type PlaybookHome = Pick<Household, "location" | "attributes" | "tenure"> & {
+  assets?: HomeAsset[];
+};
+
+export function playbookApplies(playbook: Playbook, household: PlaybookHome): boolean {
   const zone = deriveClimate(household.location);
   const climateOk = playbook.climateZones === "all" || playbook.climateZones.includes(zone);
   const tenureOk = !playbook.tenure || playbook.tenure === household.tenure;
-  return climateOk && attributesMatch(playbook.requires, household.attributes) && tenureOk;
+  const assetsOk =
+    !playbook.requiresAsset ||
+    (household.assets ?? []).some((asset) =>
+      playbook.requiresAsset!.includes(normalizeAssetType(asset.type) as AssetType),
+    );
+  return climateOk && attributesMatch(playbook.requires, household.attributes) && tenureOk && assetsOk;
 }
 
 /** Maps any integer onto 1–12 (0→12, 13→1). */
@@ -136,7 +148,7 @@ export function seasonYearFor(playbook: Playbook, now: Date = new Date()): numbe
 const WINDOW_SORT: Record<WindowState, number> = { late: 0, ideal: 1, get_ahead: 2, closed: 3 };
 
 export function matchingPlaybooks(
-  household: Pick<Household, "location" | "attributes" | "playbookDecisions" | "tenure">,
+  household: PlaybookHome & Pick<Household, "playbookDecisions">,
   now: Date = new Date(),
 ): Array<{ playbook: Playbook; state: WindowState; decided: boolean }> {
   const month = now.getMonth() + 1;

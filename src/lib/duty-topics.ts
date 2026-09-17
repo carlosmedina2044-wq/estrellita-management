@@ -24,9 +24,29 @@ function triggerSeedTasks(): SeedTask[] {
   return (triggerSeed as { tasks: SeedTask[] }[]).flatMap((entry) => entry.tasks);
 }
 
+/** Restock-walk duties, by the title `restock-walk.ts` gives them. They are
+ * not playbook tasks, but they are live duties a playbook task can collide
+ * with ("Replace HVAC filter" most of all). */
+const WALK_TOPICS: Record<string, string> = {
+  "Replace fridge water filter": "fridge-water-filter",
+  "Replace drinking water filter": "drinking-water-filter",
+  "Restock dishwasher detergent": "dishwasher-detergent",
+  "Restock laundry detergent": "laundry-detergent",
+  "Replace vacuum bag or filter": "vacuum-filter",
+  "Replace air purifier filter": "air-purifier-filter",
+  "Replace HVAC filter": "hvac-filter",
+  "Replace smoke detector batteries": "detector-batteries",
+  "Restock water softener salt": "softener-salt",
+  "Replace evaporative cooler pads": "evap-cooler-pads",
+  "Replace well sediment filter": "well-filter",
+  "Replace garage remote battery": "garage-remote-battery",
+  "Restock pool chlorine": "pool-chlorine",
+  "Restock pool test strips": "pool-test-strips",
+};
+
 /**
- * Catalog title -> topic across starters, seasonal playbooks and weather
- * triggers. Titles are already the stable English keys the catalog uses for
+ * Catalog title -> topic across starters, seasonal playbooks, weather
+ * triggers and restock-walk duties. Titles are already the stable English keys the catalog uses for
  * translation (`tDutyTitle`), so a duty created from any seed resolves to its
  * topic by title alone, without storing anything extra on the duty.
  */
@@ -35,6 +55,7 @@ export const CATALOG_TOPICS: Record<string, string> = Object.fromEntries(
     ...(starterSeed as SeedTask[]),
     ...playbookSeedTasks(),
     ...triggerSeedTasks(),
+    ...Object.entries(WALK_TOPICS).map(([title, topic]) => ({ title, topic })),
   ]
     .filter((task) => Boolean(task.topic))
     .map((task) => [task.title, task.topic as string]),
@@ -114,16 +135,21 @@ export function splitPlaybookTasks<T extends TopicSource>(
   const dropped: T[] = [];
   for (const task of tasks) {
     const topic = dutyTopic({ title: task.title ?? "" }, task);
+    const key = normalizeTitle(task.title ?? "");
+    // A tagged task still yields to a live duty that carries its exact title
+    // under another topic (a user-renamed chore, a walk duty from before
+    // topics existed): the same words on the list twice is the thing people
+    // notice, whatever the tags say.
     if (topic) {
-      if (taken.has(topic)) {
+      if (taken.has(topic) || (key && takenTitles.has(key))) {
         dropped.push(task);
         continue;
       }
       taken.add(topic);
+      if (key) takenTitles.add(key);
       keep.push(task);
       continue;
     }
-    const key = normalizeTitle(task.title ?? "");
     if (!key || takenTitles.has(key)) {
       dropped.push(task);
       continue;

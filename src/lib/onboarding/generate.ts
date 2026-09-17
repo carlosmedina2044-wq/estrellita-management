@@ -429,7 +429,7 @@ export function generateHomeFromAnswers(
     consumables,
     duties,
     seasonalSuggestions: matchingPlaybooks(
-      { location, attributes, playbookDecisions: [], tenure: answers.tenure },
+      { location, attributes, assets, playbookDecisions: [], tenure: answers.tenure },
       now,
     ),
   };
