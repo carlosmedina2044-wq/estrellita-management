@@ -34,6 +34,7 @@ import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfDa
 import { keptRooms, wholeHouseKept } from "@/lib/kept-rooms";
 import { payoffKeyFor } from "@/lib/payoff-lines";
 import { hasSeenTip, markTipSeen, TIP_HOUSE_REVEAL } from "@/lib/teaching";
+import { dayOfYear, heroCopyKey, nextUpDayLabel } from "@/lib/today-copy";
 import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
 import {
   completionDays,
@@ -471,6 +472,21 @@ export function TodayView({
     rooms: roomsTouchedInRange(household, new Date(startOfDay(now)), now),
   };
   const sceneMinutesParts = t("today.minutesLeft", { minutes: "%%" }).split("%%");
+  // A clear or rest day has no minutes to count down, and "0 min left" read
+  // as a bug. The hero copy pools ("All clear. Next up Friday.", "A rest day.
+  // The house is fine.") already exist for exactly these states; they only
+  // ever rendered in the unreachable TodayHero branch. Rotates by day.
+  const sceneQuietLine =
+    arc.state === "clear" || arc.state === "rest"
+      ? t(
+          heroCopyKey(arc.state, dayOfYear(now), {
+            hasName: Boolean(household.ownerName.trim()),
+            count: 0,
+            nextUp: arc.nextUp,
+          }),
+          { count: 0, minutes: 0, day: nextUpDayLabel(arc.nextUp), name: household.ownerName.trim() },
+        )
+      : null;
   const monthLedgerLine = useMemo(() => formatLedgerLine(monthLedger(household, now), t), [household, now, t]);
   const kept = useMemo(() => keptRooms(household, now), [household, now]);
   const houseKept = useMemo(() => wholeHouseKept(kept, household, now), [kept, household, now]);
@@ -771,6 +787,8 @@ export function TodayView({
           <div className="flex min-h-14 items-start justify-between gap-3">
             {arc.state === "closed" ? (
               <ClosingStats stats={ceremonyStats} instant={!ceremonyActive} />
+            ) : sceneQuietLine ? (
+              <p className="ui-body font-medium">{sceneQuietLine}</p>
             ) : (
               <p className="ui-body font-medium num">
                 {sceneMinutesParts[0]}
