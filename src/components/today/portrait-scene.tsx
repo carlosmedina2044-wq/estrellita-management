@@ -21,6 +21,8 @@ import {
   resolveHomeSpec,
 } from "@/lib/scene/portrait";
 import { DUR_QUICK } from "@/lib/motion";
+import { hapticTab } from "@/lib/native/haptics";
+import type { MessageKey } from "@/i18n";
 import { seasonFor, type Season } from "@/lib/scene/season";
 import type { SkyPhase } from "@/lib/scene/sun";
 import { sunPosition } from "@/lib/scene/sun";
@@ -62,6 +64,10 @@ type PortraitSceneProps = {
   greeting: string;
   secondaryLine: string;
   onOpenSettings?: () => void;
+  /** When given, the house itself is a button (the "state of the house"
+   * sheet on Today). Left out for the decorative uses: the welcome loop,
+   * the house-look picker and the lock screen stay pictures. */
+  onOpenHouse?: () => void;
   overrides?: PortraitSceneOverrides;
   className?: string;
   /** Default true: Today and the lock screen sit flush at the true top of
@@ -156,6 +162,7 @@ export function PortraitScene({
   greeting,
   secondaryLine,
   onOpenSettings,
+  onOpenHouse,
   overrides,
   className,
   insetTop = true,
@@ -182,7 +189,8 @@ export function PortraitScene({
   const kit = portraitKit(homeSpec.kitType);
   const windowCount = kit.windowCount || kit.windows.length || 1;
   const closedToday = overrides?.closedToday ?? arc.state === "closed";
-  const gardenLevel = CARE_TO_GARDEN[household.momentum.care?.level ?? "settling-in"];
+  const careLevel = household.momentum.care?.level ?? "settling-in";
+  const gardenLevel = CARE_TO_GARDEN[careLevel];
   const light = houseLight(arc, phase, closedToday, season, gardenLevel, windowCount);
   const litCount =
     overrides?.windowsLit ??
@@ -250,7 +258,10 @@ export function PortraitScene({
 
   return (
     <section
-      role="img"
+      // A `role="img"` makes its children presentational, which would hide
+      // the house button from assistive tech; with a tappable house the
+      // section is a labelled region and the button carries its own label.
+      role={onOpenHouse ? undefined : "img"}
       aria-label={ariaLabel}
       data-home-scene
       className={cn(
@@ -311,16 +322,39 @@ export function PortraitScene({
           translateX: "-50%",
         }}
       >
-        <PortraitStack
-          kitType={homeSpec.kitType}
-          palette={homeSpec.palette}
-          season={season}
-          dayOpacity={dayOpacity}
-          litCount={litCount}
-          showSnow={showSnow}
-          stagger={staggerWindows}
-          className="w-full"
-        />
+        {onOpenHouse ? (
+          <button
+            type="button"
+            aria-label={t("today.houseAria", { level: t(`care.level.${careLevel}` as MessageKey) })}
+            onClick={() => {
+              void hapticTab();
+              onOpenHouse();
+            }}
+            className="pointer-events-auto block w-full rounded-3xl transition-transform duration-75 active:scale-[0.98]"
+          >
+            <PortraitStack
+              kitType={homeSpec.kitType}
+              palette={homeSpec.palette}
+              season={season}
+              dayOpacity={dayOpacity}
+              litCount={litCount}
+              showSnow={showSnow}
+              stagger={staggerWindows}
+              className="w-full"
+            />
+          </button>
+        ) : (
+          <PortraitStack
+            kitType={homeSpec.kitType}
+            palette={homeSpec.palette}
+            season={season}
+            dayOpacity={dayOpacity}
+            litCount={litCount}
+            showSnow={showSnow}
+            stagger={staggerWindows}
+            className="w-full"
+          />
+        )}
         {/* Grade overlays */}
         <div
           aria-hidden

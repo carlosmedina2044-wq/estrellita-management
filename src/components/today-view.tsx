@@ -22,6 +22,7 @@ import { ClosingReward, ClosingStats } from "@/components/today/closing-ceremony
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
+import { HouseSheet } from "@/components/today/house-sheet";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { RunStrip } from "@/components/today/run-strip";
 import { TodayHero } from "@/components/today/today-hero";
@@ -169,6 +170,7 @@ export function TodayView({
   const [orderItemId, setOrderItemId] = useState<string | null>(null);
   const [dutyMenu, setDutyMenu] = useState<{ duty: Duty; x: number; y: number } | null>(null);
   const [moreOptionsOpen, setMoreOptionsOpen] = useState(false);
+  const [houseOpen, setHouseOpen] = useState(false);
   const particlesRef = useRef<ParticleLayerHandle>(null);
   const celebratedDays = useRef<Set<string>>(new Set());
   const wholeHouseShownWeeks = useRef<Set<string>>(new Set());
@@ -708,6 +710,7 @@ export function TodayView({
               greeting={greeting}
               secondaryLine={secondaryLine}
               onOpenSettings={onOpenSettings}
+              onOpenHouse={() => setHouseOpen(true)}
             />
           </SceneBoundary>
         </div>
@@ -1265,6 +1268,23 @@ export function TodayView({
           onSave={onSavePostalCode}
         />
       ) : null}
+
+      <HouseSheet
+        open={houseOpen}
+        onOpenChange={setHouseOpen}
+        household={household}
+        now={now}
+        arc={arc}
+        onSeeYear={() => {
+          // Until the year screen (E2-03) lands, "See the year" opens the
+          // month calendar under the scope tabs, once the sheet has closed.
+          setHouseOpen(false);
+          window.setTimeout(() => {
+            setCalendarOpen(true);
+            listRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+          }, 350);
+        }}
+      />
 
       <DutyDetailSheet
         open={Boolean(detail)}
