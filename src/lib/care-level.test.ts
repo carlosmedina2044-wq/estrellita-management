@@ -146,3 +146,30 @@ test("loved fixture signals", () => {
   assert.ok(signals.windowDays >= 7);
   assert.equal(rawCareLevel(signals), "loved");
 });
+
+test("reconcileCareLevel files each replaced state in careHistory, oldest first", () => {
+  const now = new Date(2026, 8, 13);
+  const strong = closedFixture(now, 30, true);
+  const start: Household = {
+    ...strong,
+    momentum: { ...strong.momentum, care: { level: "kept", since: toISODate(addDays(now, -14)) } },
+  };
+  const first = reconcileCareLevel(start, now);
+  assert.equal(first.momentum.care?.level, "well-kept");
+  assert.deepEqual(first.momentum.careHistory, [{ level: "kept", since: toISODate(addDays(now, -14)) }]);
+
+  // Cooldown holds: a same-level pass changes nothing and files nothing.
+  assert.equal(reconcileCareLevel(first, now), first);
+
+  const aged: Household = {
+    ...first,
+    momentum: { ...first.momentum, care: { ...first.momentum.care!, since: toISODate(addDays(now, -14)) } },
+  };
+  const second = reconcileCareLevel(aged, now);
+  assert.equal(second.momentum.care?.level, "cared-for");
+  assert.deepEqual(
+    second.momentum.careHistory?.map((entry) => entry.level),
+    ["kept", "well-kept"],
+  );
+});
+

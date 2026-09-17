@@ -754,23 +754,38 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
           bestRun: asInt(raw.momentum.bestRun, 0, 0, 10_000),
           nightFollowsSky: raw.momentum.nightFollowsSky !== false,
           ...migrateCare(raw.momentum.care),
+          ...migrateCareHistory(raw.momentum.careHistory),
         }
       : { ...DEFAULT_MOMENTUM },
   });
 }
 
-function migrateCare(raw: unknown): { care?: CareState } {
-  if (!isPlainObject(raw)) return {};
+function careStateFrom(raw: unknown): CareState | null {
+  if (!isPlainObject(raw)) return null;
   const level =
     typeof raw.level === "string" && (CARE_LEVELS as readonly string[]).includes(raw.level)
       ? (raw.level as CareLevelId)
       : null;
   const since =
     typeof raw.since === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.since) ? raw.since : null;
-  if (!level || !since) return {};
+  if (!level || !since) return null;
   const direction =
     raw.direction === "up" || raw.direction === "down" ? raw.direction : undefined;
-  return { care: { level, since, ...(direction ? { direction } : {}) } };
+  return { level, since, ...(direction ? { direction } : {}) };
+}
+
+function migrateCare(raw: unknown): { care?: CareState } {
+  const care = careStateFrom(raw);
+  return care ? { care } : {};
+}
+
+/** Malformed entries are dropped one by one; the list is capped like the writer caps it. */
+function migrateCareHistory(raw: unknown): { careHistory?: CareState[] } {
+  const entries = asArray(raw)
+    .map((item) => careStateFrom(item))
+    .filter((item): item is CareState => item !== null)
+    .slice(-24);
+  return entries.length > 0 ? { careHistory: entries } : {};
 }
 
 function migrateHomeSpec(raw: unknown): HomeSpec | undefined {

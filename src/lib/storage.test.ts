@@ -392,3 +392,28 @@ test("momentum care round-trips and drops invalid since", () => {
   );
   assert.equal(dropped.momentum.care, undefined);
 });
+
+test("momentum careHistory round-trips and drops malformed entries", () => {
+  const parsed = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      momentum: {
+        enabled: true,
+        bestRun: 3,
+        care: { level: "well-kept", since: "2026-09-01", direction: "up" },
+        careHistory: [
+          { level: "settling-in", since: "2026-06-01" },
+          { level: "bogus", since: "2026-07-01" },
+          { level: "kept", since: "not-a-date" },
+          { level: "kept", since: "2026-07-15", direction: "up" },
+        ],
+      },
+    }),
+  );
+  assert.deepEqual(parsed.momentum.careHistory, [
+    { level: "settling-in", since: "2026-06-01" },
+    { level: "kept", since: "2026-07-15", direction: "up" },
+  ]);
+  const none = parseStored(JSON.stringify({ onboarded: true, momentum: { enabled: true, bestRun: 0 } }));
+  assert.equal(none.momentum.careHistory, undefined);
+});

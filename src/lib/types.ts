@@ -340,6 +340,9 @@ export type MomentumSettings = {
   enabled: boolean;
   bestRun: number;
   care?: CareState;
+  /** Previous care states, oldest first, appended whenever the level changes.
+   * Capped at 24 entries. Feeds the year view's care line. */
+  careHistory?: CareState[];
   nightFollowsSky?: boolean;
 };
 

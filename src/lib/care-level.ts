@@ -3,6 +3,8 @@ import { doneOnDay, todaysOpenDuties, dutiesDueOnDate } from "@/lib/duties";
 import { CARE_LEVELS, type CareLevelId, type CareState, type Household } from "@/lib/types";
 
 export const CARE_CHANGE_COOLDOWN_DAYS = 14;
+/** How many past care states are kept for the year view. */
+export const CARE_HISTORY_LIMIT = 24;
 
 export type CareSignals = {
   windowDays: number;
@@ -149,14 +151,19 @@ export function reconcileCareLevel(household: Household, now = new Date()): Hous
   ) {
     return household;
   }
-  if (!prev && next.level === rawCareLevel(careSignals(household, now)) && !next.direction) {
-    // first write still changes the object
-  }
+  // A level change files the state it replaces, oldest first, so the year
+  // view can draw the line. A same-level rewrite (a refreshed `since`) is not
+  // a change worth remembering.
+  const history =
+    prev && prev.level !== next.level
+      ? [...(household.momentum.careHistory ?? []), prev].slice(-CARE_HISTORY_LIMIT)
+      : household.momentum.careHistory;
   return {
     ...household,
     momentum: {
       ...household.momentum,
       care: next,
+      ...(history ? { careHistory: history } : {}),
     },
   };
 }
