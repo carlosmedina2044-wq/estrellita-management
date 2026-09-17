@@ -545,6 +545,15 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
 export function updateHousehold(updater: (current: Household) => Household) {
   didHydrate = true;
   if (!sessionUnlocked) return;
+  if (memory == null && lastLoad === null) {
+    // This module instance has never read the store: in the web shell a hot
+    // reload resets module state under live React state, and applying the
+    // updater to an empty household here persisted it over the real one.
+    // Refuse; the next hydrate reads the stored copy back. A failed load
+    // (`lastLoad.ok === false`) is different and still writes, so "start
+    // over" and the sample home can quarantine an unreadable vault.
+    return;
+  }
   write(updater(memory ?? cloneEmpty()));
 }
 

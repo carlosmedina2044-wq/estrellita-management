@@ -377,6 +377,11 @@ test("S1e: persist reuses a device key that can open the existing vault", async 
     },
   });
 
+  // A write before any read is refused (see the test below), so read first,
+  // the way the app always does: hydrate, then persist.
+  const loaded = await hydrateHousehold();
+  assert.equal(loaded.ok, true);
+  assert.equal(getHousehold().householdName, "Kept");
   updateHousehold((current) => ({ ...current, householdName: "Updated", onboarded: true }));
   await flushHousehold();
 
@@ -385,6 +390,40 @@ test("S1e: persist reuses a device key that can open the existing vault", async 
   const envelope = parseEnvelopeJson(store.get(VAULT_STORAGE_KEY) ?? "");
   assert.ok(envelope);
   assert.match(await decryptJson(key, envelope), /"householdName":"Updated"/);
+  assert.equal(getHousehold().householdName, "Updated");
+  resetVaultForTests();
+});
+
+test("S1f: a write before any read is refused and leaves the stored vault untouched", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const stored = JSON.stringify(await encryptJson(key, JSON.stringify({ householdName: "Kept", onboarded: true })));
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, stored]]);
+  installVaultIOForTests({
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+  });
+
+  // Nothing has been loaded in this module instance: the updater must not run
+  // against an empty household and overwrite the real one.
+  updateHousehold((current) => ({ ...current, householdName: "Clobbered", onboarded: true }));
+  await flushHousehold();
+  assert.equal(store.get(VAULT_STORAGE_KEY), stored);
+
+  // Once read, the same write goes through.
+  const loaded = await hydrateHousehold();
+  assert.equal(loaded.ok, true);
+  updateHousehold((current) => ({ ...current, householdName: "Updated" }));
+  await flushHousehold();
   assert.equal(getHousehold().householdName, "Updated");
   resetVaultForTests();
 });
