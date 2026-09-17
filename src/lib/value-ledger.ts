@@ -25,16 +25,20 @@ export function handledYourselfAmount(duty: Duty, completion: Completion): numbe
     return duty.estimatedCost;
   }
   const topic = dutyTopic(duty);
-  if (topic === "water-heater" || /water heater/i.test(duty.title)) {
+  if (topic === "water-heater-flush" || /water heater/i.test(duty.title)) {
     return typicalCostFor("water_heater_flush").typical;
   }
   if (
     topic === "hvac-filter" ||
+    topic === "hvac-service-cooling" ||
+    topic === "hvac-service-heating" ||
     /furnace|hvac service|a\/?c service/i.test(duty.title)
   ) {
     return typicalCostFor("furnace_service").typical;
   }
-  if (/gutter/i.test(duty.title)) return typicalCostFor("gutter_cleaning").typical;
+  if (topic === "gutters-clear" || /gutter/i.test(duty.title)) {
+    return typicalCostFor("gutter_cleaning").typical;
+  }
   if (topic === "dryer-vent" || /dryer vent/i.test(duty.title)) return 100;
   return 0;
 }

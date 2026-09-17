@@ -45,7 +45,7 @@ import { fetchForecastFor } from "@/lib/weather/client";
 import { generateHomeFromAnswers, seedDutiesForHome } from "@/lib/onboarding/generate";
 import { applyRestockPicks, type RestockPick } from "@/lib/onboarding/restock-walk";
 import { dutyFromPlaybookTask, PLAYBOOKS, seasonYearFor } from "@/lib/playbooks";
-import { dedupePlaybookTasks } from "@/lib/duty-topics";
+import { splitPlaybookTasks } from "@/lib/duty-topics";
 import { addDays, toISODate } from "@/lib/dates";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import { DEFAULT_MORNING_BRIEF } from "@/lib/morning-brief";
@@ -166,11 +166,15 @@ export function useHousehold() {
           completions: [],
           visits: [],
           supplyAutomations: [],
+          // Every playbook `seedDutiesForHome` seeded (the climate-agnostic
+          // ones) is recorded as accepted for this season. Only "new-home"
+          // was before, so "Whole-home safety" sat in Do now as an undecided
+          // card offering the five duties the home already had.
           playbookDecisions: generated.seasonalSuggestions
-            .filter((item) => item.playbook.id === "new-home")
+            .filter((item) => item.playbook.climateZones === "all")
             .map((item) => ({
               playbookId: item.playbook.id,
-              year: new Date().getFullYear(),
+              year: seasonYearFor(item.playbook, now),
               declinedTaskKeys: [],
             })),
           restockDigest: { ...DEFAULT_RESTOCK_DIGEST },
@@ -602,21 +606,29 @@ export function useHousehold() {
         const year = seasonYearFor(def, now);
         const titles = new Set(taskTitles ?? def.tasks.map((task) => task.title));
         const dueDate = toISODate(addDays(now, 14));
-        const duties = dedupePlaybookTasks(
-          def.tasks.filter((task) => titles.has(task.title)),
-          current.duties,
-        ).map((task) => ({
+        const chosen = def.tasks.filter((task) => titles.has(task.title));
+        const { keep, dropped } = splitPlaybookTasks(chosen, current.duties, current.completions);
+        const duties = keep.map((task) => ({
           id: uid(),
           createdAt: now.toISOString(),
           ...dutyFromPlaybookTask(current, def, task, dueDate),
         }));
-        const declined = def.tasks.filter((task) => !titles.has(task.title)).map((task) => task.title);
+        // Tasks the home already covers are recorded beside the ones the user
+        // unticked, so this year's progress counts only what was actually
+        // added. When nothing was, the playbook is closed for the year rather
+        // than left "planned" over zero duties.
+        const declined = [
+          ...def.tasks.filter((task) => !titles.has(task.title)).map((task) => task.title),
+          ...dropped.map((task) => task.title),
+        ];
         return {
           ...current,
           duties: [...current.duties, ...duties],
           playbookDecisions: [
             ...current.playbookDecisions.filter((item) => !(item.playbookId === playbookId && item.year === year)),
-            { playbookId, year, declinedTaskKeys: declined },
+            duties.length === 0
+              ? { playbookId, year, declinedTaskKeys: declined, disabled: true }
+              : { playbookId, year, declinedTaskKeys: declined },
           ],
         };
       });

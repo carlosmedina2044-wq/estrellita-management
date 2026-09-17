@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getActiveAppLocale, localeDateTag, tActive, type MessageKey } from "@/i18n";
 import { tDutyTitle, tPlaybookName, tPlaybookWhy, tTriggerName } from "@/i18n/content";
 import { useLocale } from "@/i18n/locale-provider";
+import { splitPlaybookTasks } from "@/lib/duty-topics";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -357,6 +358,12 @@ function DoNowCard({
   const chip = stateChip(state);
   const progress = playbookProgress(household, playbook.id, seasonYearFor(playbook, now));
   const fraction = progress.total > 0 ? progress.done / progress.total : 0;
+  // What Add would actually add. A task another list already covers (a
+  // starter chore, an earlier playbook this season) is shown, but marked, so
+  // the card never promises five things and delivers three.
+  const coverage = splitPlaybookTasks(playbook.tasks, household.duties, household.completions);
+  const covered = new Set(coverage.dropped.map((task) => task.title));
+  const nothingToAdd = coverage.keep.length === 0;
 
   return (
     <li id={`seasonal-playbook-${playbook.id}`} className="rounded-2xl bg-card px-4 py-4">
@@ -392,17 +399,27 @@ function DoNowCard({
         <>
           <ul className="mt-2 grid gap-1 ui-body text-muted-foreground">
             {playbook.tasks.map((task) => (
-              <li key={task.title}>{tDutyTitle(task.title)}</li>
+              <li key={task.title} className={covered.has(task.title) ? "text-muted-foreground/60" : undefined}>
+                {tDutyTitle(task.title)}
+                {covered.has(task.title) ? (
+                  <span className="ml-1.5 ui-caption text-done">{t("seasonal.alreadyCovered")}</span>
+                ) : null}
+              </li>
             ))}
           </ul>
+          {nothingToAdd ? (
+            <p className="mt-2 ui-caption text-muted-foreground">{t("seasonal.allCovered")}</p>
+          ) : null}
           <div className="mt-3 flex items-center gap-2">
-            <Button
-              className="h-9 flex-1 rounded-full bg-primary/12 text-primary shadow-none hover:bg-primary/18"
-              variant="secondary"
-              onClick={() => onAccept(playbook.id)}
-            >
-              {t("seasonal.addCompact")}
-            </Button>
+            {nothingToAdd ? null : (
+              <Button
+                className="h-9 flex-1 rounded-full bg-primary/12 text-primary shadow-none hover:bg-primary/18"
+                variant="secondary"
+                onClick={() => onAccept(playbook.id)}
+              >
+                {t("seasonal.addCompact")}
+              </Button>
+            )}
             <button
               type="button"
               className="inline-flex h-9 min-w-11 items-center justify-center rounded-full px-3 ui-caption font-medium text-muted-foreground active:bg-foreground/6"

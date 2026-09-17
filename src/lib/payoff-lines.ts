@@ -13,11 +13,15 @@ export function payoffKeyFor(
   if (topic === "smoke-detectors") return "payoff.smokeDetectors";
   if (topic === "fridge-coils") return "payoff.fridgeCoils";
   if (topic === "caulk") return "payoff.caulk";
-  if (/water heater/i.test(duty.title)) return "payoff.waterHeater";
-  if (/gutter/i.test(duty.title)) return "payoff.gutters";
-  if (/irrigation|sprinkler/i.test(duty.title)) return "payoff.irrigation";
-  if (/furnace|hvac|a\/?c\b/i.test(duty.title)) return "payoff.hvacService";
-  if (/lock/i.test(duty.title)) return "payoff.locks";
+  if (topic === "water-heater-flush" || /water heater/i.test(duty.title)) return "payoff.waterHeater";
+  if (topic === "gutters-clear" || /gutter/i.test(duty.title)) return "payoff.gutters";
+  if (topic?.startsWith("irrigation-") || /irrigation|sprinkler/i.test(duty.title)) {
+    return "payoff.irrigation";
+  }
+  if (topic?.startsWith("hvac-service-") || /furnace|hvac|a\/?c\b/i.test(duty.title)) {
+    return "payoff.hvacService";
+  }
+  if (topic === "locks-rekey" || /lock/i.test(duty.title)) return "payoff.locks";
   return "payoff.generic";
 }
 

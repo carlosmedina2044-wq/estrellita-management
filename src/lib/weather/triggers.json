@@ -21,6 +21,7 @@
         "title": "Cover faucets and drip outdoor taps",
         "description": "Insulate hose bibs and let a trickle run on the most exposed line.",
         "nodeType": "exterior",
+        "topic": "freeze-faucets",
         "estimatedMinutes": 20,
         "isDiy": true
       },
@@ -28,6 +29,7 @@
         "title": "Bring in plants",
         "description": "Move pots inside or cover them before overnight freeze.",
         "nodeType": "exterior",
+        "topic": "freeze-plants",
         "estimatedMinutes": 15,
         "isDiy": true
       },
@@ -35,6 +37,7 @@
         "title": "Set pool and irrigation freeze mode",
         "description": "Run freeze protect if you have a pool or irrigation controller.",
         "nodeType": "exterior",
+        "topic": "freeze-pool-irrigation",
         "estimatedMinutes": 10,
         "isDiy": true
       }
@@ -59,6 +62,7 @@
         "title": "Drip faucets on exterior walls overnight",
         "description": "A trickle keeps pipes from freezing when the deep freeze hits.",
         "nodeType": "home",
+        "topic": "freeze-faucets-drip",
         "estimatedMinutes": 5,
         "isDiy": true
       },
@@ -66,6 +70,7 @@
         "title": "Open cabinet doors under sinks on outside walls",
         "description": "Let warm air reach the pipes overnight.",
         "nodeType": "home",
+        "topic": "freeze-cabinets",
         "estimatedMinutes": 5,
         "isDiy": true
       },
@@ -73,6 +78,7 @@
         "title": "Keep the thermostat at 55°F or above, even if away",
         "description": "Do not set back heat all the way while pipes are at risk.",
         "nodeType": "home",
+        "topic": "freeze-thermostat",
         "estimatedMinutes": 5,
         "isDiy": true
       }
@@ -101,6 +107,7 @@
         "description": "A dirty filter during a heat wave is how compressors fail.",
         "nodeType": "assetType",
         "target": "hvac_system",
+        "topic": "hvac-filter-check",
         "estimatedMinutes": 10,
         "isDiy": true,
         "consumables": ["HVAC filter"]
@@ -109,6 +116,7 @@
         "title": "Close shades on the sunny side",
         "description": "Blackout or close west/south blinds before peak heat.",
         "nodeType": "home",
+        "topic": "heat-shades",
         "estimatedMinutes": 10,
         "isDiy": true
       },
@@ -116,6 +124,7 @@
         "title": "Set out extra pet water",
         "description": "Fresh water in the shade, indoors and out.",
         "nodeType": "home",
+        "topic": "heat-pet-water",
         "estimatedMinutes": 5,
         "isDiy": true
       }
@@ -143,6 +152,7 @@
         "title": "Secure patio furniture",
         "description": "Stack chairs, close umbrellas, and tie down anything that can fly.",
         "nodeType": "exterior",
+        "topic": "wind-patio",
         "estimatedMinutes": 15,
         "isDiy": true
       }
@@ -170,6 +180,7 @@
         "title": "Clear drains and gutters",
         "description": "Walk the yard and pull debris from scuppers before the rain hits.",
         "nodeType": "exterior",
+        "topic": "rain-drains",
         "estimatedMinutes": 20,
         "isDiy": true
       },
@@ -178,6 +189,7 @@
         "description": "Confirm the pump is plugged in and the pit is clear.",
         "nodeType": "assetType",
         "target": "sump_pump",
+        "topic": "sump-pump-test",
         "estimatedMinutes": 10,
         "isDiy": true
       }

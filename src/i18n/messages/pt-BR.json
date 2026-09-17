@@ -875,6 +875,8 @@
   "seasonal.doneOf": "{done} de {total}",
   "seasonal.doneOfDone": "{done} de {total} feitas",
   "seasonal.skippedYear": "Ignorado este ano.",
+  "seasonal.alreadyCovered": "Já está na sua lista",
+  "seasonal.allCovered": "Tudo isto já está na sua lista.",
   "seasonal.reconsider": "Reconsiderar",
   "seasonal.addToYear": "Adicionar ao meu ano",
   "seasonal.skipYear": "Pular este ano",

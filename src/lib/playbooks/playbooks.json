@@ -31,6 +31,7 @@
           "description": "Drain a few gallons to clear sediment. Hire a pro if the valve is stuck.",
           "nodeType": "assetType",
           "target": "water_heater",
+          "topic": "water-heater-flush",
           "estimatedMinutes": 45,
           "estimatedCost": 150,
           "isDiy": true
@@ -48,6 +49,7 @@
           "title": "Test GFCI outlets",
           "description": "Press test/reset on kitchen, bath, garage, and exterior GFCIs.",
           "nodeType": "home",
+          "topic": "gfci-outlets",
           "estimatedMinutes": 10,
           "isDiy": true,
           "caution": "electrical"
@@ -66,12 +68,14 @@
           "title": "Find and label the main water shutoff.",
           "description": "You want to know this before a pipe bursts, not during.",
           "nodeType": "home",
+          "topic": "water-shutoff-label",
           "estimatedMinutes": 15,
           "isDiy": true
         },
         {
           "title": "Label the breaker panel.",
           "nodeType": "home",
+          "topic": "breaker-panel-label",
           "estimatedMinutes": 30,
           "isDiy": true
         },
@@ -79,6 +83,7 @@
           "title": "Change or rekey the exterior locks.",
           "description": "About $80, or a DIY rekey kit.",
           "nodeType": "home",
+          "topic": "locks-rekey",
           "estimatedMinutes": 40,
           "estimatedCost": 80,
           "isDiy": true
@@ -104,6 +109,7 @@
           "title": "Find the water heater and note its age from the serial plate.",
           "nodeType": "assetType",
           "target": "water_heater",
+          "topic": "water-heater-age",
           "estimatedMinutes": 10,
           "isDiy": true
         },
@@ -111,6 +117,7 @@
           "title": "Photograph the electrical panel, shutoffs, and appliance nameplates.",
           "description": "Parked in Notes for now.",
           "nodeType": "home",
+          "topic": "home-records-photos",
           "estimatedMinutes": 20,
           "isDiy": true
         }
@@ -133,6 +140,7 @@
           "description": "Book a tune-up before first 100° days. Swap the filter now.",
           "nodeType": "assetType",
           "target": "hvac_system",
+          "topic": "hvac-service-cooling",
           "estimatedMinutes": 20,
           "estimatedCost": 180,
           "isDiy": false,
@@ -159,6 +167,7 @@
           "description": "Clear scuppers and look for cracked mastic before the first storm.",
           "nodeType": "assetType",
           "target": "roof",
+          "topic": "roof-drainage-check",
           "estimatedMinutes": 40,
           "isDiy": true,
           "caution": "roof"
@@ -167,6 +176,7 @@
           "title": "Stage patio furniture and flashlights",
           "description": "Tie down or store furniture. Put flashlights and a charged battery pack by the door.",
           "nodeType": "exterior",
+          "topic": "storm-kit",
           "estimatedMinutes": 25,
           "isDiy": true
         }
@@ -191,6 +201,7 @@
           "title": "Inspect roof and gutters after monsoon",
           "description": "Look for displaced gravel, clogged downspouts, and stained ceilings.",
           "nodeType": "exterior",
+          "topic": "gutters-clear",
           "estimatedMinutes": 35,
           "isDiy": true
         }
@@ -216,6 +227,7 @@
           "description": "Replace pads, flush the reservoir, and confirm the pump primes.",
           "nodeType": "assetType",
           "target": "evaporative_cooler",
+          "topic": "evap-cooler-startup",
           "estimatedMinutes": 45,
           "isDiy": true,
           "consumables": [
@@ -244,6 +256,7 @@
           "description": "Drain the reservoir, disconnect the water line, and cover the unit.",
           "nodeType": "assetType",
           "target": "evaporative_cooler",
+          "topic": "evap-cooler-winterize",
           "estimatedMinutes": 30,
           "isDiy": true
         }
@@ -269,6 +282,7 @@
           "description": "Increase runtime before heat, then check for broken heads after the first cycle.",
           "nodeType": "assetType",
           "target": "irrigation_system",
+          "topic": "irrigation-schedule",
           "estimatedMinutes": 20,
           "isDiy": true
         },
@@ -277,6 +291,7 @@
           "description": "Look for clogged emitters, chewed tubing, and dry spots. Flush the filter.",
           "nodeType": "assetType",
           "target": "irrigation_system",
+          "topic": "irrigation-inspect",
           "estimatedMinutes": 25,
           "isDiy": true
         }
@@ -299,6 +314,7 @@
           "description": "Swap the filter and set a reminder for 30 days. Recirculate if the air is brown.",
           "nodeType": "assetType",
           "target": "hvac_system",
+          "topic": "hvac-filter",
           "estimatedMinutes": 10,
           "isDiy": true,
           "consumables": [
@@ -323,6 +339,7 @@
           "title": "Inspect exterior caulk and paint for UV damage",
           "description": "Walk south and west walls. Recaulk cracked joints around windows.",
           "nodeType": "exterior",
+          "topic": "exterior-caulk-paint",
           "estimatedMinutes": 40,
           "estimatedCost": 40,
           "isDiy": true
@@ -344,6 +361,7 @@
           "description": "Book service before the first 90°F week; swap the filter now.",
           "nodeType": "assetType",
           "target": "hvac_system",
+          "topic": "hvac-service-cooling",
           "estimatedMinutes": 60,
           "estimatedCost": 120,
           "isDiy": false,
@@ -366,6 +384,7 @@
           "description": "Have heat checked before the first freeze; swap the filter.",
           "nodeType": "assetType",
           "target": "hvac_system",
+          "topic": "hvac-service-heating",
           "estimatedMinutes": 60,
           "estimatedCost": 120,
           "isDiy": false,
@@ -387,6 +406,7 @@
         {
           "title": "Clear gutters and downspouts after leaf drop",
           "nodeType": "exterior",
+          "topic": "gutters-clear",
           "estimatedMinutes": 60,
           "isDiy": true,
           "caution": "ladder"
@@ -407,6 +427,7 @@
         {
           "title": "Disconnect hoses, drain and cover exterior spigots",
           "nodeType": "exterior",
+          "topic": "hose-bibs-winterize",
           "estimatedMinutes": 20,
           "isDiy": true
         }
@@ -425,6 +446,7 @@
         {
           "title": "Check basement or crawlspace humidity; run dehumidifier under 50%",
           "nodeType": "home",
+          "topic": "humidity-check",
           "estimatedMinutes": 10,
           "isDiy": true
         }
@@ -444,6 +466,7 @@
         {
           "title": "Test sump pump by pouring a bucket in the pit",
           "nodeType": "home",
+          "topic": "sump-pump-test",
           "estimatedMinutes": 10,
           "isDiy": true
         }
@@ -462,6 +485,7 @@
         {
           "title": "Walk the foundation for mud tubes; note any wood-to-soil contact",
           "nodeType": "exterior",
+          "topic": "termite-check",
           "estimatedMinutes": 20,
           "isDiy": true,
           "caution": "pest"
@@ -481,6 +505,7 @@
         {
           "title": "Check tree limbs over roof and lines; trim or call an arborist",
           "nodeType": "exterior",
+          "topic": "tree-limbs",
           "estimatedMinutes": 30,
           "isDiy": true,
           "caution": "ladder"
@@ -504,6 +529,7 @@
           "description": "Replace the filter and book a combustion check before first freeze.",
           "nodeType": "assetType",
           "target": "furnace",
+          "topic": "hvac-service-heating",
           "estimatedMinutes": 20,
           "estimatedCost": 160,
           "isDiy": false,
@@ -529,6 +555,7 @@
           "title": "Winterize outdoor faucets",
           "description": "Shut interior valves, open hose bibs, and store hoses.",
           "nodeType": "exterior",
+          "topic": "hose-bibs-winterize",
           "estimatedMinutes": 20,
           "isDiy": true
         },
@@ -537,6 +564,7 @@
           "description": "Have the system blown out, or close the backflow and drain the lines.",
           "nodeType": "assetType",
           "target": "irrigation_system",
+          "topic": "irrigation-winterize",
           "estimatedMinutes": 30,
           "estimatedCost": 120,
           "isDiy": false
@@ -562,6 +590,7 @@
           "title": "Clean gutters before freeze",
           "description": "Clear leaves so ice dams do not form.",
           "nodeType": "exterior",
+          "topic": "gutters-clear",
           "estimatedMinutes": 60,
           "estimatedCost": 200,
           "isDiy": true
@@ -587,6 +616,7 @@
           "title": "Inspect the chimney",
           "description": "Have a sweep check the flue before the first fire.",
           "nodeType": "home",
+          "topic": "chimney-inspect",
           "estimatedMinutes": 15,
           "estimatedCost": 180,
           "isDiy": false
@@ -609,6 +639,7 @@
           "title": "Prep snow equipment",
           "description": "Fuel the blower, find shovels, and stage ice melt by the door.",
           "nodeType": "exterior",
+          "topic": "snow-equipment",
           "estimatedMinutes": 20,
           "isDiy": true
         }
@@ -634,6 +665,7 @@
           "description": "Pour a bucket of water into the pit and confirm it kicks on.",
           "nodeType": "assetType",
           "target": "sump_pump",
+          "topic": "sump-pump-test",
           "estimatedMinutes": 15,
           "isDiy": true
         }
@@ -653,6 +685,7 @@
         {
           "title": "Drain and shut off exterior spigots; store hoses",
           "nodeType": "exterior",
+          "topic": "hose-bibs-winterize",
           "estimatedMinutes": 20,
           "isDiy": true
         }
@@ -672,6 +705,7 @@
         {
           "title": "Check attic insulation depth and ventilation before snow",
           "nodeType": "home",
+          "topic": "attic-check",
           "estimatedMinutes": 30,
           "isDiy": true,
           "caution": "ladder"
@@ -691,6 +725,7 @@
         {
           "title": "Clean whole-house or portable humidifier pads; set for winter",
           "nodeType": "home",
+          "topic": "humidifier-service",
           "estimatedMinutes": 20,
           "isDiy": true
         }
@@ -709,6 +744,7 @@
         {
           "title": "Walk the exterior after thaw: grading, downspout extensions, foundation cracks",
           "nodeType": "exterior",
+          "topic": "exterior-thaw-walk",
           "estimatedMinutes": 30,
           "isDiy": true
         }
@@ -728,6 +764,7 @@
           "title": "Clear debris from the AC condenser; run it once before the first hot day",
           "nodeType": "assetType",
           "target": "hvac_system",
+          "topic": "hvac-service-cooling",
           "estimatedMinutes": 20,
           "isDiy": true
         }
@@ -746,6 +783,7 @@
         {
           "title": "Check weatherstripping and caulk on windows and doors",
           "nodeType": "home",
+          "topic": "weatherstrip-check",
           "estimatedMinutes": 40,
           "isDiy": true
         }
@@ -767,6 +805,7 @@
           "title": "Stage hurricane supplies",
           "description": "Water, flashlights, charged batteries, and a go-bag before storm season.",
           "nodeType": "home",
+          "topic": "storm-kit",
           "estimatedMinutes": 40,
           "isDiy": true
         }
@@ -788,6 +827,7 @@
           "title": "Check humidity and hidden mold",
           "description": "Look under sinks and around the AC closet. Empty dehumidifier tanks.",
           "nodeType": "home",
+          "topic": "humidity-check",
           "estimatedMinutes": 25,
           "isDiy": true
         }
@@ -809,6 +849,7 @@
           "title": "Schedule a termite inspection",
           "description": "Have the perimeter and attic checked before swarm season.",
           "nodeType": "home",
+          "topic": "termite-check",
           "estimatedMinutes": 10,
           "estimatedCost": 120,
           "isDiy": false
@@ -832,6 +873,7 @@
           "description": "Pour vinegar through the drain to prevent a backup.",
           "nodeType": "assetType",
           "target": "hvac_system",
+          "topic": "ac-condensate-drain",
           "estimatedMinutes": 15,
           "isDiy": true
         }
@@ -856,6 +898,7 @@
           "title": "Clear moss and gutters",
           "description": "Clean gutters and treat moss on the north roof face.",
           "nodeType": "exterior",
+          "topic": "gutters-clear",
           "estimatedMinutes": 60,
           "estimatedCost": 180,
           "isDiy": true
@@ -879,6 +922,7 @@
           "description": "Look for lifted shingles and stained sheathing.",
           "nodeType": "assetType",
           "target": "roof",
+          "topic": "roof-inspect",
           "estimatedMinutes": 30,
           "isDiy": true
         }
@@ -900,6 +944,7 @@
           "title": "Seal exterior wood",
           "description": "Recoat decks and trim while the weather is dry.",
           "nodeType": "exterior",
+          "topic": "exterior-wood-seal",
           "estimatedMinutes": 120,
           "estimatedCost": 80,
           "isDiy": true
