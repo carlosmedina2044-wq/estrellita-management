@@ -52,6 +52,7 @@ import { lockMethodLabel } from "@/lib/native/lock-labels";
 import { isRootTab, type AppNavigateTarget, type RootTab } from "@/lib/types";
 import { hapticPress, hapticTab } from "@/lib/native/haptics";
 import { hasCheckedInToday, recordCheckIn } from "@/lib/check-ins";
+import { eveningNudgeSettings } from "@/lib/evening-nudge";
 import { EMPTY_HOUSEHOLD } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -77,6 +78,7 @@ export function AppShell() {
     applySupplyLeadTime,
     updateRestockDigest,
     updateMorningBrief,
+    updateEveningNudge,
     updateMomentum,
     deleteDuty,
     completeDuty,
@@ -938,6 +940,8 @@ export function AppShell() {
                 onUpdateDigest={updateRestockDigest}
                 morningBrief={household.morningBrief}
                 onUpdateMorningBrief={updateMorningBrief}
+                eveningNudge={eveningNudgeSettings(household)}
+                onUpdateEveningNudge={updateEveningNudge}
                 onUpdateMomentum={updateMomentum}
                 focusAssetId={nav?.assetId}
                 onFocusHandled={handleFocusHandled}

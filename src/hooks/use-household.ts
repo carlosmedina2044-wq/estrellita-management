@@ -30,6 +30,7 @@ import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { buildHomeSpec } from "@/lib/scene/portrait";
 import { applyDutySave } from "@/lib/household-update";
 import type {
+  EveningNudgeSettings,
   DutyDraft,
   Household,
   Completion,
@@ -49,6 +50,7 @@ import { splitPlaybookTasks } from "@/lib/duty-topics";
 import { addDays, toISODate } from "@/lib/dates";
 import { DEFAULT_RESTOCK_DIGEST } from "@/lib/digest";
 import { DEFAULT_MORNING_BRIEF } from "@/lib/morning-brief";
+import { eveningNudgeSettings } from "@/lib/evening-nudge";
 import { requestNotifyPermission } from "@/lib/notifications";
 import { rememberRetailerLink } from "@/lib/retailer";
 import {
@@ -394,6 +396,16 @@ export function useHousehold() {
       update((current) => ({
         ...current,
         morningBrief: { ...current.morningBrief, ...patch },
+      }));
+    },
+    [update],
+  );
+
+  const updateEveningNudge = useCallback(
+    (patch: Partial<EveningNudgeSettings>) => {
+      update((current) => ({
+        ...current,
+        eveningNudge: { ...eveningNudgeSettings(current), ...patch },
       }));
     },
     [update],
@@ -817,6 +829,7 @@ export function useHousehold() {
     attachSharedLink,
     updateRestockDigest,
     updateMorningBrief,
+    updateEveningNudge,
     updateMomentum,
     deleteDuty,
     completeDuty,

@@ -191,6 +191,12 @@ export type MorningBriefSettings = {
   weekdaysOnly: boolean;
 };
 
+/** One evening note when a chore or two would close the day and keep a run. Off by default. */
+export type EveningNudgeSettings = {
+  enabled: boolean;
+  hour: number;
+};
+
 export type SavedRetailerLink = {
   url: string;
   lastUsedAt: string;
@@ -429,6 +435,7 @@ export type Household = {
   householdRole: HouseholdMemberRole;
   restockDigest: RestockDigestSettings;
   morningBrief: MorningBriefSettings;
+  eveningNudge?: EveningNudgeSettings;
   /** Days of slack added to lead time before an item surfaces in Order now. Default 7. */
   restockSafetyBufferDays?: number;
   teaching: TeachingProgress;

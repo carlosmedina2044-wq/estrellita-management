@@ -5,6 +5,7 @@ import { itemNameWithSize } from "@/lib/item-label";
 import { digestCandidates, linkedDutyIdsFor, restockPlacement } from "@/lib/restock";
 import { digestCopy } from "@/lib/digest";
 import { BRIEF_DAYS, BRIEF_ID_BASE, morningBriefNotifications } from "@/lib/morning-brief";
+import { eveningNudgeNotifications, NUDGE_DAYS, NUDGE_ID_BASE } from "@/lib/evening-nudge";
 import { isNative } from "@/lib/native/platform";
 import { warrantyNotificationsFor } from "@/lib/warranty";
 import type { Household, SupplyAutomation } from "@/lib/types";
@@ -138,6 +139,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   const notifications: PlannedNotification[] = [];
   const used = new Set<number>([DIGEST_ID]);
   for (let offset = 0; offset < BRIEF_DAYS; offset += 1) used.add(BRIEF_ID_BASE + offset);
+  for (let offset = 0; offset < NUDGE_DAYS; offset += 1) used.add(NUDGE_ID_BASE + offset);
 
   if (household.restockDigest.enabled) {
     const items = digestCandidates(household.supplyAutomations, household, now);
@@ -162,6 +164,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   }
 
   notifications.push(...morningBriefNotifications(household, now));
+  notifications.push(...eveningNudgeNotifications(household, now));
 
   const arrivals = household.supplyAutomations
     .map((item) => arrivalNotice(item, household, now, used))

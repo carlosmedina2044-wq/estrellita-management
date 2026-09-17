@@ -749,6 +749,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       .slice(0, 32),
     milestones: migrateMilestones(raw.milestones),
     ...migrateCheckIns(raw.checkIns),
+    ...migrateEveningNudge(raw.eveningNudge),
     momentum: isPlainObject(raw.momentum)
       ? {
           enabled: raw.momentum.enabled !== false,
@@ -759,6 +760,11 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
         }
       : { ...DEFAULT_MOMENTUM },
   });
+}
+
+function migrateEveningNudge(raw: unknown): { eveningNudge?: { enabled: boolean; hour: number } } {
+  if (!isPlainObject(raw)) return {};
+  return { eveningNudge: { enabled: raw.enabled === true, hour: asInt(raw.hour, 19, 0, 23) } };
 }
 
 function migrateCheckIns(raw: unknown): { checkIns?: string[] } {

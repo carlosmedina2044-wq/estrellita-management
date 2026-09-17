@@ -33,7 +33,7 @@ import { hapticDestructive } from "@/lib/native/haptics";
 import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
 import { notifyPermission, plannedNotifications, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
 import { KIT_TYPES } from "@/lib/types";
-import type { Household, MomentumSettings, MorningBriefSettings, RestockDigestSettings } from "@/lib/types";
+import type { EveningNudgeSettings, Household, MomentumSettings, MorningBriefSettings, RestockDigestSettings } from "@/lib/types";
 import { buildHomeSpec, resolveHomeSpec } from "@/lib/scene/portrait";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -85,6 +85,8 @@ export function HomeView({
   onUpdateDigest,
   morningBrief,
   onUpdateMorningBrief,
+  eveningNudge,
+  onUpdateEveningNudge,
   onUpdateMomentum,
   focusAssetId,
   onFocusHandled,
@@ -110,6 +112,8 @@ export function HomeView({
   onUpdateDigest?: (patch: Partial<RestockDigestSettings>) => void;
   morningBrief?: MorningBriefSettings;
   onUpdateMorningBrief?: (patch: Partial<MorningBriefSettings>) => void;
+  eveningNudge?: EveningNudgeSettings;
+  onUpdateEveningNudge?: (patch: Partial<EveningNudgeSettings>) => void;
   onUpdateMomentum?: (patch: Partial<MomentumSettings>) => void;
   focusAssetId?: string;
   onFocusHandled?: () => void;
@@ -139,7 +143,7 @@ export function HomeView({
   const [permission, setPermission] = useState<NotifyPermission>("prompt");
   const { theme, setTheme } = useTheme();
   const [hourSheet, setHourSheet] = useState(false);
-  const [hourSheetTarget, setHourSheetTarget] = useState<"digest" | "brief">("digest");
+  const [hourSheetTarget, setHourSheetTarget] = useState<"digest" | "brief" | "evening">("digest");
   const persistTimer = useRef<number | null>(null);
 
   const HOUR_PRESETS = [
@@ -148,12 +152,12 @@ export function HomeView({
     { id: "evening", label: t("settings.evening"), hour: 19 },
   ] as const;
 
-  function openHourSheet(target: "digest" | "brief") {
+  function openHourSheet(target: "digest" | "brief" | "evening") {
     setHourSheetTarget(target);
     setHourSheet(true);
   }
 
-  function hourPresets(hour: number, onHour: (next: number) => void, target: "digest" | "brief") {
+  function hourPresets(hour: number, onHour: (next: number) => void, target: "digest" | "brief" | "evening") {
     return (
       <div className="flex flex-wrap gap-2">
         {HOUR_PRESETS.map((preset) => (
@@ -514,7 +518,41 @@ export function HomeView({
                   ) : null}
                 </>
               ) : null}
-              <div className={cn("flex items-start justify-between gap-3", morningBrief && onUpdateMorningBrief && "mt-3")}>
+              {eveningNudge && onUpdateEveningNudge ? (
+                <div className={cn(morningBrief && onUpdateMorningBrief && "mt-3")}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p id="evening-switch-label" className="ui-body font-medium">
+                        {t("settings.eveningTitle")}
+                      </p>
+                      <p className="mt-0.5 ui-caption text-muted-foreground">
+                        {t("settings.eveningHelp")}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={eveningNudge.enabled && permission === "granted"}
+                      aria-labelledby="evening-switch-label"
+                      onCheckedChange={(enabled) => {
+                        void (async () => {
+                          if (!enabled) {
+                            onUpdateEveningNudge({ enabled: false });
+                            return;
+                          }
+                          const next = await requestNotifyPermission();
+                          setPermission(next);
+                          onUpdateEveningNudge({ enabled: next === "granted" });
+                        })();
+                      }}
+                    />
+                  </div>
+                  {eveningNudge.enabled && permission === "granted" ? (
+                    <div className="mt-3">
+                      {hourPresets(eveningNudge.hour, (hour) => onUpdateEveningNudge({ hour }), "evening")}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className={cn("flex items-start justify-between gap-3", (morningBrief && onUpdateMorningBrief) || (eveningNudge && onUpdateEveningNudge) ? "mt-3" : undefined)}>
                 <div className="min-w-0">
                   <p id="digest-switch-label" className="ui-body font-medium">
                     {t("settings.digestTitle")}
@@ -838,23 +876,36 @@ export function HomeView({
         <SheetContent side="bottom" size="form" className="gap-0">
           <SheetHeader>
             <SheetTitle>
-              {hourSheetTarget === "brief" ? t("settings.briefTime") : t("settings.digestTime")}
+              {hourSheetTarget === "brief"
+                ? t("settings.briefTime")
+                : hourSheetTarget === "evening"
+                  ? t("settings.eveningTime")
+                  : t("settings.digestTime")}
             </SheetTitle>
           </SheetHeader>
           <div className="grid gap-3 px-4 pb-4">
             <Label htmlFor="notify-hour" className="ui-caption text-muted-foreground">
-              {hourSheetTarget === "brief" ? t("settings.briefHour") : t("settings.digestHour")}
+              {hourSheetTarget === "brief"
+                ? t("settings.briefHour")
+                : hourSheetTarget === "evening"
+                  ? t("settings.eveningHour")
+                  : t("settings.digestHour")}
             </Label>
             <Input
               id="notify-hour"
               type="time"
               value={`${String(
-                (hourSheetTarget === "brief" ? morningBrief?.hour : restockDigest?.hour) ?? 8,
+                (hourSheetTarget === "brief"
+                  ? morningBrief?.hour
+                  : hourSheetTarget === "evening"
+                    ? eveningNudge?.hour
+                    : restockDigest?.hour) ?? 8,
               ).padStart(2, "0")}:00`}
               onChange={(event) => {
                 const hour = Number(event.target.value.split(":")[0]);
                 if (!Number.isFinite(hour) || hour < 0 || hour > 23) return;
                 if (hourSheetTarget === "brief") onUpdateMorningBrief?.({ hour });
+                else if (hourSheetTarget === "evening") onUpdateEveningNudge?.({ hour });
                 else onUpdateDigest?.({ hour });
               }}
               className="h-12"
