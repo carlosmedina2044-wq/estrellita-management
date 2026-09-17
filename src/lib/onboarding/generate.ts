@@ -439,8 +439,13 @@ export function seedDutiesForHome(
   generated: ReturnType<typeof generateHomeFromAnswers>,
   now: Date,
 ): Duty[] {
+  // Only the year-round ("any" season) playbooks are seeded: whole-home
+  // safety and, for a new home, the new-home list. Monthly windows, even
+  // universal ones, are offered in Do now and the year, never dumped on day
+  // one — a September home would otherwise start with eleven one-offs all
+  // due on the same day two weeks in.
   const seasonal = generated.seasonalSuggestions
-    .filter((item) => item.playbook.climateZones === "all")
+    .filter((item) => item.playbook.climateZones === "all" && item.playbook.season === "any")
     .flatMap((item) =>
       dedupePlaybookTasks(item.playbook.tasks, generated.duties).map((task) => ({
         id: uid(),

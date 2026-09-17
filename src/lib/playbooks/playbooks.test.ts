@@ -583,3 +583,16 @@ test("asset-gated playbooks apply only when the home lists that asset", () => {
   assert.equal(playbookApplies(dishwasher, { location: {}, attributes: { ...DEFAULT_ATTRIBUTES } }), false);
 });
 
+test("a window already late when the home joined is not offered as running late", () => {
+  const september = new Date(2026, 8, 17);
+  const base = home({ location: {}, attributes: { ...DEFAULT_ATTRIBUTES } });
+  const joinedInSeptember = { ...base, teaching: { ...base.teaching, startedAt: "2026-09-10" } };
+  const joinedInJune = { ...base, teaching: { ...base.teaching, startedAt: "2026-06-10" } };
+  const ids = (household: Household) => matchingPlaybooks(household, september).map((item) => item.playbook.id);
+  assert.ok(!ids(joinedInSeptember).includes("all-jul-water-check"));
+  assert.ok(ids(joinedInJune).includes("all-jul-water-check"));
+  // Ideal and get-ahead windows are unaffected by the join date.
+  assert.ok(ids(joinedInSeptember).includes("all-sep-lights-locks"));
+  assert.ok(ids(joinedInSeptember).includes("all-oct-fire"));
+});
+

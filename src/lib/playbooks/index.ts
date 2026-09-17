@@ -147,16 +147,34 @@ export function seasonYearFor(playbook: Playbook, now: Date = new Date()): numbe
 
 const WINDOW_SORT: Record<WindowState, number> = { late: 0, ideal: 1, get_ahead: 2, closed: 3 };
 
+/** The first day of the month `ideal` fell in for the window that is open at `now`. */
+function idealMonthStart(playbook: Playbook, now: Date): Date | null {
+  const window = windowFor(playbook);
+  if (!window) return null;
+  const month = now.getMonth() + 1;
+  // If the ideal month is later in the calendar than now, this occurrence
+  // began last year (a window wrapping the year end); otherwise this year.
+  const year = window.ideal > month ? now.getFullYear() - 1 : now.getFullYear();
+  return new Date(year, window.ideal - 1, 1);
+}
+
 export function matchingPlaybooks(
-  household: PlaybookHome & Pick<Household, "playbookDecisions">,
+  household: PlaybookHome & Pick<Household, "playbookDecisions"> & Partial<Pick<Household, "teaching">>,
   now: Date = new Date(),
 ): Array<{ playbook: Playbook; state: WindowState; decided: boolean }> {
   const month = now.getMonth() + 1;
+  const joined = household.teaching?.startedAt ? new Date(`${household.teaching.startedAt}T12:00:00`) : null;
   const matched: Array<{ playbook: Playbook; state: WindowState; decided: boolean }> = [];
   for (const playbook of PLAYBOOKS) {
     if (!playbookApplies(playbook, household)) continue;
     const state = windowState(playbook, month);
     if (state === "closed") continue;
+    // "Running late" is only fair when the home was here for the ideal month.
+    // A home that joined in September is not late on July's water check.
+    if (state === "late" && joined) {
+      const ideal = idealMonthStart(playbook, now);
+      if (ideal && ideal.getTime() < new Date(joined.getFullYear(), joined.getMonth(), 1).getTime()) continue;
+    }
     const year = seasonYearFor(playbook, now);
     const decision = household.playbookDecisions.find(
       (item) => item.playbookId === playbook.id && item.year === year,

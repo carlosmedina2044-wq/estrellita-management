@@ -171,7 +171,7 @@ export function useHousehold() {
           // was before, so "Whole-home safety" sat in Do now as an undecided
           // card offering the five duties the home already had.
           playbookDecisions: generated.seasonalSuggestions
-            .filter((item) => item.playbook.climateZones === "all")
+            .filter((item) => item.playbook.climateZones === "all" && item.playbook.season === "any")
             .map((item) => ({
               playbookId: item.playbook.id,
               year: seasonYearFor(item.playbook, now),

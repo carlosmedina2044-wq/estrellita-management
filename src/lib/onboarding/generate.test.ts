@@ -6,6 +6,7 @@ import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { dutyTopic } from "@/lib/duty-topics";
 import { generateHomeFromAnswers, sampleHomeAnswers, seedDutiesForHome, sizeDefaults } from "@/lib/onboarding/generate";
 import { roomTemplateFor } from "@/lib/onboarding/rooms";
+import { PLAYBOOKS } from "@/lib/playbooks";
 import starterSeed from "@/lib/onboarding/starter-chores.json";
 import type { Household } from "@/lib/types";
 
@@ -197,3 +198,17 @@ test("sample home has no duplicate topics or titles on day one", () => {
   assert.ok(duties.some((duty) => duty.title === "Flush the water heater"));
   assert.ok(duties.some((duty) => duty.title === "Test GFCI outlets"));
 });
+
+test("onboarding seeds only the year-round playbooks, never monthly windows", () => {
+  const now = new Date(2026, 8, 17);
+  const generated = generateHomeFromAnswers(sampleHomeAnswers(), now);
+  const duties = seedDutiesForHome(generated, now);
+  const seededPlaybooks = new Set(duties.map((duty) => duty.playbookId).filter(Boolean));
+  for (const id of seededPlaybooks) {
+    const playbook = PLAYBOOKS.find((item) => item.id === id);
+    assert.ok(playbook, `unknown playbook ${id}`);
+    assert.equal(playbook?.season, "any", `${id} was seeded but has a monthly window`);
+  }
+  assert.ok(seededPlaybooks.has("all-safety"));
+});
+
