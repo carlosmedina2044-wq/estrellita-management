@@ -54,17 +54,25 @@ function hashSeed(text: string): number {
   return h >>> 0;
 }
 
-/** Temporary until P3 inference; uses stored spec or kit `a` / classic. */
-export function resolveHomeSpec(household: Household): HomeSpec {
-  if (household.homeSpec?.version === 2) return household.homeSpec;
-  const kit = portraitKit("a");
+/** Builds a stored `HomeSpec` from a chosen kit/palette — used both to persist
+ * an onboarding pick and to fall back a pre-existing household that never
+ * made one (see `resolveHomeSpec`). */
+export function buildHomeSpec(pick: { kitType: KitType; palette: PaletteId }, seedText: string): HomeSpec {
+  const kit = portraitKit(pick.kitType);
   return {
     version: 2,
-    kitType: "a",
-    palette: "classic",
+    kitType: pick.kitType,
+    palette: pick.palette,
     windows: kit.windows.map((w) => ({ id: w.id, roomId: null })),
-    seed: hashSeed(household.householdName || household.homeId),
+    seed: hashSeed(seedText),
   };
+}
+
+/** Households from before the house-look picker shipped never set `homeSpec`;
+ * they fall back to kit `a` / classic here rather than at every call site. */
+export function resolveHomeSpec(household: Household): HomeSpec {
+  if (household.homeSpec?.version === 2) return household.homeSpec;
+  return buildHomeSpec({ kitType: "a", palette: "classic" }, household.householdName || household.homeId);
 }
 
 export function dayOpacityForPhase(phase: string, t: number): number {

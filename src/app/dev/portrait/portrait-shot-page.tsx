@@ -220,7 +220,6 @@ function PortraitShotInner() {
           greeting={greeting}
           secondaryLine={secondaryLine}
           onOpenSettings={() => undefined}
-          onOpenCalendar={() => undefined}
           overrides={{
             kitType,
             palette,

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { hapticTab } from "@/lib/native/haptics";
 
 export function Switch({
   checked,
@@ -26,7 +27,10 @@ export function Switch({
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}
       disabled={disabled}
-      onClick={() => onCheckedChange(!checked)}
+      onClick={() => {
+        void hapticTab();
+        onCheckedChange(!checked);
+      }}
       className={cn(
         "relative inline-flex h-11 w-14 shrink-0 items-center justify-center rounded-full",
         "focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",

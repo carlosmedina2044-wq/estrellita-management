@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { DUR_SCREEN, STAGGER_CHILD } from "@/lib/motion";
 import { useLocale } from "@/i18n/locale-provider";
 import type { RunDay } from "@/lib/momentum";
 import { closedDayRun } from "@/lib/momentum";
@@ -35,7 +36,7 @@ export function RunStrip({
       <motion.span
         className="flex items-center gap-1.5"
         variants={{
-          show: { transition: { staggerChildren: 0.07, delayChildren: 0.4 } },
+          show: { transition: { staggerChildren: STAGGER_CHILD, delayChildren: DUR_SCREEN } },
         }}
         initial={celebrate ? "hidden" : false}
         animate={celebrate ? "show" : undefined}
@@ -57,7 +58,7 @@ export function RunStrip({
               // unfilled days as barely-there ghosts next to the minutes line.
               day.outcome === "open" && "bg-foreground/25",
               day.outcome === "grace" && "bg-soon/60",
-              day.isToday && day.outcome === "open" && "animate-pulse",
+              day.isToday && day.outcome === "open" && "today-dot-open",
             )}
           />
         ))}

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { HomeEditor } from "@/components/home-editor";
+import { HouseLookSheet } from "@/components/house-look-sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,7 +32,9 @@ import { verifyDeviceOwner } from "@/lib/native/biometrics";
 import { hapticDestructive } from "@/lib/native/haptics";
 import { climateLabel, CLIMATE_ZONES, deriveClimate } from "@/lib/climate";
 import { notifyPermission, plannedNotifications, requestNotifyPermission, type NotifyPermission } from "@/lib/notifications";
+import { KIT_TYPES } from "@/lib/types";
 import type { Household, MomentumSettings, MorningBriefSettings, RestockDigestSettings } from "@/lib/types";
+import { buildHomeSpec, resolveHomeSpec } from "@/lib/scene/portrait";
 import { relativeDayLabel } from "@/lib/duties";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
@@ -128,8 +132,10 @@ export function HomeView({
   const [cleaner, setCleaner] = useState(household.cleanerName);
   const [confirmErase, setConfirmErase] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
+  const [houseLookOpen, setHouseLookOpen] = useState(false);
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
   const [permission, setPermission] = useState<NotifyPermission>("prompt");
+  const { theme, setTheme } = useTheme();
   const [hourSheet, setHourSheet] = useState(false);
   const [hourSheetTarget, setHourSheetTarget] = useState<"digest" | "brief">("digest");
   const persistTimer = useRef<number | null>(null);
@@ -230,6 +236,41 @@ export function HomeView({
           ? t("settings.languagePtBr")
           : t("settings.languageEn");
 
+  // Appearance folds two stores into one choice: next-themes owns light/dark,
+  // and `nightFollowsSky` owns the evening look the living house applies. They
+  // used to be a hidden switch under the momentum group, so a user whose iPhone
+  // was in Light Mode had no way to understand why the app went dark at dusk.
+  const skyAppearanceAvailable = Boolean(onUpdateMomentum) && household.momentum.enabled;
+  // `theme` is undefined until next-themes reads storage; "system" is both the
+  // library default and the right answer in that gap, so no mount guard needed.
+  const appearance =
+    skyAppearanceAvailable && household.momentum.nightFollowsSky !== false
+      ? "sky"
+      : theme === "light" || theme === "dark"
+        ? theme
+        : "system";
+  const appearanceLabel =
+    appearance === "sky"
+      ? t("settings.appearanceSky")
+      : appearance === "light"
+        ? t("settings.appearanceLight")
+        : appearance === "dark"
+          ? t("settings.appearanceDark")
+          : t("settings.appearanceSystem");
+
+  const currentHomeSpec = resolveHomeSpec(household);
+
+  function applyAppearance(value: string) {
+    if (value === "sky") {
+      onUpdateMomentum?.({ nightFollowsSky: true });
+      setTheme("system");
+      return;
+    }
+    if (value !== "system" && value !== "light" && value !== "dark") return;
+    onUpdateMomentum?.({ nightFollowsSky: false });
+    setTheme(value);
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-[32rem] flex-col gap-5 pb-8">
       <PageHeader
@@ -262,6 +303,46 @@ export function HomeView({
               </SelectContent>
             </Select>
           </div>
+        </div>
+      </section>
+      <section>
+        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.appearance")}</h2>
+        <div className="ui-group">
+          <div className="ui-group-row px-4 py-3">
+            <p className="mb-2 ui-caption text-muted-foreground">{t("settings.appearanceHelp")}</p>
+            <Select value={appearance} onValueChange={applyAppearance}>
+              <SelectTrigger className="h-12 w-full" aria-label={t("settings.appearance")}>
+                <SelectValue placeholder={appearanceLabel}>{appearanceLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {skyAppearanceAvailable ? (
+                  <SelectItem value="sky">{t("settings.appearanceSky")}</SelectItem>
+                ) : null}
+                <SelectItem value="system">{t("settings.appearanceSystem")}</SelectItem>
+                <SelectItem value="light">{t("settings.appearanceLight")}</SelectItem>
+                <SelectItem value="dark">{t("settings.appearanceDark")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </section>
+      <section>
+        <div className="ui-group">
+          <button
+            type="button"
+            className="ui-group-row flex w-full items-center justify-between gap-3 px-4 py-3 text-left active:bg-foreground/6"
+            onClick={() => setHouseLookOpen(true)}
+          >
+            <span className="min-w-0">
+              <span className="block ui-body font-medium">{t("settings.houseLook")}</span>
+              <span className="mt-0.5 block ui-caption text-muted-foreground">
+                {t("settings.houseLookHelp")}
+              </span>
+            </span>
+            <span className="shrink-0 ui-caption font-medium text-muted-foreground">
+              {t(`portrait.palette.${currentHomeSpec.palette}` as "portrait.palette.classic")}
+            </span>
+          </button>
         </div>
       </section>
       <section>
@@ -579,23 +660,6 @@ export function HomeView({
               />
             </div>
           </div>
-          <div className="ui-group-row px-4 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p id="night-sky-switch-label" className="ui-body font-medium">
-                  {t("settings.nightFollowsSky")}
-                </p>
-                <p className="mt-0.5 ui-caption text-muted-foreground">
-                  {t("settings.nightFollowsSkyHelp")}
-                </p>
-              </div>
-              <Switch
-                checked={household.momentum.nightFollowsSky !== false}
-                aria-labelledby="night-sky-switch-label"
-                onCheckedChange={(nightFollowsSky) => onUpdateMomentum({ nightFollowsSky })}
-              />
-            </div>
-          </div>
         </div>
       ) : null}
 
@@ -802,6 +866,18 @@ export function HomeView({
         </SheetContent>
       </Sheet>
       <LegalDocSheet doc={legalDoc} onOpenChange={(open) => !open && setLegalDoc(null)} />
+      <HouseLookSheet
+        open={houseLookOpen}
+        kitType={currentHomeSpec.kitType}
+        palette={currentHomeSpec.palette}
+        order={[...KIT_TYPES]}
+        lat={household.location.lat}
+        lng={household.location.lng}
+        onOpenChange={setHouseLookOpen}
+        onChange={(next) =>
+          onChangeTree?.({ ...household, homeSpec: buildHomeSpec(next, household.householdName) })
+        }
+      />
       <div className="mt-6 flex flex-col items-center gap-1 pb-2">
         <BrandMark size="sm" />
         <p className="ui-caption text-muted-foreground">{t("brand.name")}</p>

@@ -81,7 +81,7 @@ export function HomeMapView({
   );
 }
 
-function roomCaption(
+export function roomCaption(
   status: NodeStatus,
   nearReplacement: boolean,
   lastDone: Completion | null,

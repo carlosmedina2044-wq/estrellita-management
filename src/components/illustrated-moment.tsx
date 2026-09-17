@@ -9,7 +9,29 @@ import {
 import { useReducedMotion } from "motion/react";
 import { Illustration } from "@/components/illustration";
 import { MOMENTS, type MomentId } from "@/lib/illustrations";
+import { prefersReducedMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+
+let sparklePreloaded = false;
+
+/**
+ * Warms the Lottie player module and the sparkle-burst JSON so the first
+ * chore completion of a session has them already fetched and parsed. Without
+ * this, the first completion's `DelayedSparkle` (duty-row.tsx) starts both
+ * downloads cold and the sparkle can arrive well after the checkmark and
+ * strikethrough have already finished, landing as a disconnected afterthought
+ * instead of part of the same gesture. A dynamic `import()` of the same
+ * specifier resolves from the bundler's module cache on the second call, so
+ * calling this once at idle time is enough to pay that cost early.
+ *
+ * Call once, from idle time after first paint — never from a render path.
+ */
+export function preloadSparkleBurst(): void {
+  if (sparklePreloaded || typeof window === "undefined" || prefersReducedMotion()) return;
+  sparklePreloaded = true;
+  void import("lottie-web/build/player/lottie_light").catch(() => {});
+  void fetch(MOMENTS["sparkle-burst"].path).catch(() => {});
+}
 
 type LottieAnimation = {
   play: () => void;

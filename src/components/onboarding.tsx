@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { BrandLockup } from "@/components/brand-logo";
 import { CircleCheck } from "@/components/circle-check";
-import { Gauge } from "@/components/gauge";
 import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
+import { PortraitScene } from "@/components/today/portrait-scene";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Circle } from "lucide-react";
 import { useLocale } from "@/i18n/locale-provider";
 import type { MessageKey } from "@/i18n";
+import { useClock } from "@/hooks/use-clock";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
+import { toISODate } from "@/lib/dates";
+import { DUR_INSTANT, DUR_QUICK, EASE_OUT } from "@/lib/motion";
+import { dayArc } from "@/lib/momentum";
+import { portraitKit } from "@/lib/scene/portrait";
+import { previewHousehold } from "@/lib/scene/preview-household";
+import { skyPhase } from "@/lib/scene/sun";
+import { sceneWeather } from "@/lib/scene/weather";
 import {
   generateHomeFromAnswers,
   sampleHomeAnswers,
@@ -32,7 +40,9 @@ import { RETAILER_CHIPS } from "@/lib/retailer";
 import { geocodeUsZip } from "@/lib/weather/client";
 import { isNative } from "@/lib/native/platform";
 import { weatherKitReverseGeocode } from "@/lib/native/weatherkit";
-import type { HomeLocation, HomeType, RetailerId, Tenure } from "@/lib/types";
+import type { HomeLocation, HomeType, KitType, PaletteId, RetailerId, Tenure } from "@/lib/types";
+import { HouseLookPicker } from "@/components/house-look-picker";
+import { rankKits } from "@/lib/scene/infer-kit";
 import { cn } from "@/lib/utils";
 
 const EXTRA_HOME_FEATURES: { id: FeatureKey; labelKey: MessageKey }[] = [
@@ -70,6 +80,7 @@ export function Onboarding({
   const [locationDeniedHint, setLocationDeniedHint] = useState(false);
   const [ownerName, setOwnerName] = useState("");
   const [walkRoomKeys, setWalkRoomKeys] = useState<string | null>(null);
+  const [homeLook, setHomeLook] = useState<{ kitType: KitType; palette: PaletteId } | undefined>();
 
   const location: HomeLocation = {
     postalCode: postalCode || undefined,
@@ -87,8 +98,19 @@ export function Onboarding({
     features: extraFeatures,
     restockPicks,
     preferredRetailers,
+    homeLook,
   };
-  const lastStep = 4;
+  // Best guess first, computed from what's known by the time this step is
+  // reachable (home type only — onboarding never asks floors/bedrooms
+  // directly, see `rankKits`). Recomputed only when those inputs change, not
+  // on every render, so picking a kit doesn't reshuffle the strip under the
+  // user's thumb.
+  const kitOrder = useMemo(() => rankKits({ homeType }), [homeType]);
+  const selectedLook: { kitType: KitType; palette: PaletteId } = homeLook ?? {
+    kitType: kitOrder[0] ?? "a",
+    palette: "classic",
+  };
+  const lastStep = 5;
   const progress = step / lastStep;
 
   function go(next: number) {
@@ -151,12 +173,12 @@ export function Onboarding({
     }
     setWalkPhase("items");
     setSizeBanner(false);
-    go(4);
+    go(5);
   }
 
   function afterLocation(nextLocation: HomeLocation) {
     const resolvedLocation = { ...nextLocation, climateZone: deriveClimate(nextLocation) };
-    enterWalk(resolvedLocation);
+    go(4);
     return {
       ...answers,
       location: resolvedLocation,
@@ -274,9 +296,18 @@ export function Onboarding({
           <BrandLockup size={step === 0 ? "md" : "sm"} />
         </div>
 
+        <AnimatePresence mode="wait">
+        <motion.div
+          key={`${step}-${walkPhase}`}
+          className="flex flex-1 flex-col"
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -12, transition: { duration: DUR_INSTANT } }}
+          transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
+        >
         {step === 0 ? (
           <Screen title={t("onboarding.welcomeTitle")} copy={t("onboarding.welcomeCopy")}>
-            <WelcomeHero />
+            <WelcomeScene />
             <Button className="mt-6 h-14 w-full text-base" disabled={busy} onClick={() => go(1)}>
               {t("onboarding.setupCta")}
             </Button>
@@ -460,7 +491,29 @@ export function Onboarding({
           </Screen>
         ) : null}
 
-        {step === 4 && walkPhase === "items" ? (
+        {step === 4 ? (
+          <Screen title={t("onboarding.houseTitle")} copy={t("onboarding.houseCopy")}>
+            <HouseLookPicker
+              kitType={selectedLook.kitType}
+              palette={selectedLook.palette}
+              order={kitOrder}
+              now={new Date()}
+              lat={lat}
+              lng={lng}
+              onChange={setHomeLook}
+            />
+            <div className="mt-auto flex gap-3 pt-6">
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(3)}>
+                {t("common.back")}
+              </Button>
+              <Button className="h-14 flex-1" disabled={busy} onClick={() => enterWalk()}>
+                {t("common.continue")}
+              </Button>
+            </div>
+          </Screen>
+        ) : null}
+
+        {step === 5 && walkPhase === "items" ? (
           <Screen
             title={t("onboarding.walkTitle")}
             copy={t("onboarding.walkCopy")}
@@ -510,7 +563,7 @@ export function Onboarding({
               }}
             />
             <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(3)}>
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(4)}>
                 {t("common.back")}
               </Button>
               <Button className="h-14 flex-1" disabled={busy} onClick={continueFromWalk}>
@@ -520,7 +573,7 @@ export function Onboarding({
           </Screen>
         ) : null}
 
-        {step === 4 && walkPhase === "stores" ? (
+        {step === 5 && walkPhase === "stores" ? (
           <Screen
             title={t("onboarding.storesTitle")}
             copy={t("onboarding.storesCopy")}
@@ -572,35 +625,63 @@ export function Onboarding({
             </div>
           </Screen>
         ) : null}
+        </motion.div>
+        </AnimatePresence>
       </div>
       <LegalDocSheet doc={legalDoc} onOpenChange={(open) => !open && setLegalDoc(null)} />
     </div>
   );
 }
 
-function WelcomeHero() {
-  const { t } = useLocale();
+/**
+ * The house, alive, before there's a real household to show — a sample
+ * home with its windows lighting one by one on a slow loop, so the welcome
+ * screen is the signature illustration instead of a mocked-up chore row.
+ * Nothing here is interactive (`aria-hidden`; the loop is decorative).
+ */
+function WelcomeScene() {
+  const reduce = useReducedMotion();
+  const clock = useClock();
+  const clockMs = clock.getTime();
+  const household = useMemo(() => previewHousehold("Casa"), []);
+  const scenePhase = useMemo(() => skyPhase(new Date(clockMs), null), [clockMs]);
+  const arc = useMemo(() => dayArc(household, clock, "all"), [household, clock]);
+  const weather = useMemo(() => sceneWeather(null, toISODate(clock)), [clock]);
+  const windowCount = useMemo(() => {
+    const kit = portraitKit("a");
+    return kit.windowCount || kit.windows.length || 1;
+  }, []);
+  const [lit, setLit] = useState(() => (reduce ? windowCount : 0));
+
+  useEffect(() => {
+    if (reduce) return;
+    // A step every 700ms (not a per-frame tween — the per-window fade this
+    // drives is already a CSS transition, and animating a whole scene at
+    // 60fps for a decorative loop is exactly the kind of waste the app's
+    // other motion work has been quantizing away) counting 0..windowCount
+    // then resetting, so lights come on one at a time and start over.
+    let count = 0;
+    const id = window.setInterval(() => {
+      count = count >= windowCount ? 0 : count + 1;
+      setLit(count);
+    }, 700);
+    return () => window.clearInterval(id);
+  }, [reduce, windowCount]);
+
   return (
-    <div className="ui-group pointer-events-none select-none" aria-hidden>
-      <div className="ui-group-row flex items-center gap-3 px-3">
-        <Circle className="size-6 stroke-[2.2] text-overdue" />
-        <span className="min-w-0 flex-1">
-          <span className="block ui-body font-medium">{t("onboarding.welcomeHeroChore")}</span>
-          <span className="mt-0.5 block ui-caption text-overdue">{t("chore.overdue")}</span>
-        </span>
-      </div>
-      <div className="ui-group-row flex items-center gap-3 px-3 py-2.5">
-        <span className="min-w-0 flex-1">
-          <span className="block ui-body font-medium">{t("onboarding.welcomeHeroItem")}</span>
-          <span className="mt-0.5 block ui-caption text-muted-foreground">{t("onboarding.welcomeHeroMeta")}</span>
-        </span>
-        <div className="w-[120px] shrink-0">
-          <Gauge fraction={0.35} runwayDays={5} showCaption={false} />
-        </div>
-        <span className="inline-flex h-8 items-center rounded-full bg-primary px-3 ui-caption font-medium text-primary-foreground">
-          {t("common.order")}
-        </span>
-      </div>
+    <div aria-hidden className="pointer-events-none select-none overflow-hidden rounded-2xl">
+      <PortraitScene
+        household={household}
+        arc={arc}
+        phase={scenePhase.phase}
+        phaseT={scenePhase.t}
+        weather={weather}
+        ceremony={false}
+        greeting=""
+        secondaryLine=""
+        insetTop={false}
+        overrides={{ windowsLit: lit }}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { prefersReducedMotion } from "@/lib/motion"
+import { hapticPress } from "@/lib/native/haptics"
 import { Button } from "@/components/ui/button"
 import { useLocale } from "@/i18n/locale-provider"
 
@@ -126,6 +127,7 @@ function SheetContent({
     dragging.current = false
     dragStartY.current = null
     if (shouldDismiss) {
+      void hapticPress()
       setTranslateY(height, true)
       closeRef.current?.click()
       return

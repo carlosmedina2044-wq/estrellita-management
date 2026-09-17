@@ -4,8 +4,11 @@ import { useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { DutyDetailSheet } from "@/components/duty-detail-sheet";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
+import { Illustration } from "@/components/illustration";
+import { roomCaption } from "@/components/home-map-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,14 +27,46 @@ import {
   todaysOpenDuties,
   wasCompletedToday,
 } from "@/lib/duties";
+import { addDays, toISODate } from "@/lib/dates";
 import { ASSET_TYPES, roomById } from "@/lib/home-model";
 import { assetLabel, catalogLabel } from "@/lib/asset-catalog";
+import { lastDoneInRoom } from "@/lib/duties";
+import type { IllustrationName } from "@/lib/illustrations";
+import { nodeStatus } from "@/lib/node-status";
 import { warrantyBadgeLabel } from "@/lib/warranty";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { ItemName } from "@/components/item-name";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { restockPlacement, type RestockFlowHandlers } from "@/lib/restock";
-import type { AssetType, Audience, Duty, DutyDraft, Household } from "@/lib/types";
+import type { AssetType, Audience, Duty, DutyDraft, HomeRoom, Household, RoomType } from "@/lib/types";
+
+const ROOM_TYPE_TO_ILLUSTRATION: Record<RoomType, IllustrationName> = {
+  kitchen: "room-kitchen",
+  living: "room-living",
+  dining: "room-living",
+  office: "room-living",
+  primary_bedroom: "room-bedroom",
+  bedroom: "room-bedroom",
+  closet: "room-bedroom",
+  bathroom: "room-bath",
+  laundry: "room-laundry",
+  garage: "room-outdoors",
+  hallway: "room-living",
+  basement: "room-living",
+  attic: "room-living",
+  patio: "room-outdoors",
+  other: "room-living",
+};
+
+/** Not shared with `room-type-icon.tsx`'s glyph mapping — that one has a
+ * "systems" bucket for the line icon, but there's no matching illustration,
+ * so garage/hallway/basement/attic/other fall back to the neutral "living"
+ * scene here instead. */
+function roomIllustration(room: HomeRoom): IllustrationName {
+  if (room.system === "exterior") return "room-outdoors";
+  if (room.system === "whole-home") return "house";
+  return ROOM_TYPE_TO_ILLUSTRATION[room.type] ?? "room-living";
+}
 
 export function HouseMapSheet({
   open,
@@ -61,6 +96,7 @@ export function HouseMapSheet({
   const { t } = useLocale();
   const selected = roomId;
   const [editing, setEditing] = useState<Duty | null>(null);
+  const [detail, setDetail] = useState<Duty | null>(null);
   const [creating, setCreating] = useState(false);
   const [formRoom, setFormRoom] = useState<string | null>(null);
   const [assetName, setAssetName] = useState("");
@@ -73,6 +109,23 @@ export function HouseMapSheet({
       onOpenChange(false);
       next();
     });
+  }
+
+  function openDutyDetail(duty: Duty) {
+    createGuard.tryOpen(() => {
+      onOpenChange(false);
+      setDetail(duty);
+    });
+  }
+
+  function editFromDetail(duty: Duty) {
+    setDetail(null);
+    window.setTimeout(() => openDutyEditor(() => setEditing(duty)), 350);
+  }
+
+  function snoozeDuty(duty: Duty) {
+    onSaveDuty({ ...duty, snoozedUntil: toISODate(addDays(now, 7)) });
+    toast(t("chore.snoozedToast"));
   }
 
   const openDuties = todaysOpenDuties(household, now, filter);
@@ -131,16 +184,28 @@ export function HouseMapSheet({
           className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
           <SheetHeader className="shrink-0 pb-2">
-            <SheetTitle>{selectedRoom?.name ?? t("map.roomFallback")}</SheetTitle>
+            {/* The visible title is the h2 below, paired with the room's
+                illustration — this one stays for the dialog's accessible
+                name only, so the name isn't announced or shown twice. */}
+            <SheetTitle className="sr-only">{selectedRoom?.name ?? t("map.roomFallback")}</SheetTitle>
           </SheetHeader>
           <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-5 px-4 pb-4">
             {selectedRoom ? (
               <div className="flex flex-col gap-4">
-                <div>
-                  <h2 className="ui-heading ui-display font-semibold">{selectedRoom.name}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {roomOpen.length === 0 ? t("home.allClear") : t("common.openCount", { count: roomOpen.length })}
-                  </p>
+                <div className="flex items-center gap-3">
+                  <Illustration name={roomIllustration(selectedRoom)} size={56} />
+                  <div className="min-w-0">
+                    <h2 className="ui-heading ui-display font-semibold">{selectedRoom.name}</h2>
+                    {(() => {
+                      const caption = roomCaption(
+                        nodeStatus(household, selectedRoom.id, "room", now),
+                        false,
+                        lastDoneInRoom(household, selectedRoom.id),
+                        now,
+                      );
+                      return <p className={`mt-1 text-sm ${caption.className}`}>{caption.text}</p>;
+                    })()}
+                  </div>
                 </div>
                 {roomOpen.length === 0 && roomDone.length === 0 && roomUpcoming.length === 0 ? (
                   <p className="px-1 py-6 text-center text-sm text-muted-foreground">
@@ -156,7 +221,7 @@ export function HouseMapSheet({
                           now={now}
                           overdue={isOverdueFor(duty, household, now)}
                           onToggle={() => onToggle(duty, false)}
-                          onOpen={() => openDutyEditor(() => setEditing(duty))}
+                          onOpen={() => openDutyDetail(duty)}
                         />
                       </div>
                     ))}
@@ -168,7 +233,7 @@ export function HouseMapSheet({
                           now={now}
                           upcoming
                           onToggle={() => onToggle(duty, false)}
-                          onOpen={() => openDutyEditor(() => setEditing(duty))}
+                          onOpen={() => openDutyDetail(duty)}
                         />
                       </div>
                     ))}
@@ -180,7 +245,7 @@ export function HouseMapSheet({
                           now={now}
                           done
                           onToggle={() => onToggle(duty, true)}
-                          onOpen={() => openDutyEditor(() => setEditing(duty))}
+                          onOpen={() => openDutyDetail(duty)}
                         />
                       </div>
                     ))}
@@ -318,6 +383,29 @@ export function HouseMapSheet({
         onSave={onSaveDuty}
         onDelete={onDeleteDuty}
         {...restock}
+      />
+
+      <DutyDetailSheet
+        open={Boolean(detail)}
+        duty={detail}
+        household={household}
+        now={now}
+        onOpenChange={(openSheet) => {
+          if (!openSheet) setDetail(null);
+        }}
+        onComplete={(target) => {
+          onToggle(target, true);
+          setDetail(null);
+        }}
+        onUndo={(target) => {
+          onToggle(target, false);
+          setDetail(null);
+        }}
+        onSnooze={(target) => {
+          snoozeDuty(target);
+          setDetail(null);
+        }}
+        onEdit={editFromDetail}
       />
     </>
   );

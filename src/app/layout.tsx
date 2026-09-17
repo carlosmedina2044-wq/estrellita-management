@@ -55,11 +55,22 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
+// Applies the evening "today-night" look before first paint, from a plain
+// (non-vault) localStorage cache written by `today-view.tsx`'s real decision
+// after hydration. `today-night` is a UI-only hint, not the encrypted
+// household data, so a synchronous `window.localStorage` read here is safe —
+// unlike the vault, it deliberately does not go through `lib/native/kv.ts`
+// (Capacitor Preferences is async and unavailable this early). Worst case on
+// a cache miss is today's status quo: one frame of cream before the real sky
+// phase resolves.
+const NIGHT_BOOTSTRAP_SCRIPT = `(function(){try{if(localStorage.getItem("cuidala-today-night")==="1"){document.documentElement.classList.add("today-night");}}catch(e){}})();`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="h-full antialiased">
       <head>
         <meta httpEquiv="Content-Security-Policy" content={CSP} />
+        <script dangerouslySetInnerHTML={{ __html: NIGHT_BOOTSTRAP_SCRIPT }} />
       </head>
       <body className="min-h-full bg-background font-sans text-foreground antialiased">
         <Providers>{children}</Providers>

@@ -22,6 +22,8 @@ import type {
   HomeRoom,
   HomeType,
   Household,
+  KitType,
+  PaletteId,
   RoomType,
   RetailerId,
   Tenure,
@@ -86,6 +88,7 @@ export type OnboardingAnswers = {
   restockPicks?: RestockPick[];
   preferredRetailers?: RetailerId[];
   notificationsAllowed?: boolean;
+  homeLook?: { kitType: KitType; palette: PaletteId };
 };
 
 const AGE_YEARS: Record<AgeBucket, number | null> = {

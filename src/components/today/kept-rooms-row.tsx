@@ -1,11 +1,22 @@
 "use client";
 
 import { motion } from "motion/react";
+import { DUR_BASE } from "@/lib/motion";
 import { RoomTypeIcon } from "@/components/room-type-icon";
 import { useLocale } from "@/i18n/locale-provider";
 import { keptRooms, wholeHouseKept, type KeptRoom } from "@/lib/kept-rooms";
 import type { Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+// Hoisted so the reference is stable across renders. `KeptRoomsRow` re-renders
+// on every tick of the app's clock, and an inline `[1, 1.06, 1]` array literal
+// passed to `animate` is a new object each time — motion/react's diffing can
+// read that as a new animation target and restart the pulse mid-flight rather
+// than letting an in-progress one finish.
+// Not `as const` — motion/react's keyframe arrays need to be mutable number[],
+// not a readonly tuple.
+const FRESH_PULSE = { scale: [1, 1.06, 1] };
+const RESTING = { scale: 1 } as const;
 
 function RoomGlyph({ entry }: { entry: KeptRoom }) {
   const { t } = useLocale();
@@ -17,9 +28,9 @@ function RoomGlyph({ entry }: { entry: KeptRoom }) {
         : t("today.roomWaiting");
   return (
     <motion.span
-      initial={entry.state === "fresh" ? { scale: 1 } : false}
-      animate={entry.state === "fresh" ? { scale: [1, 1.06, 1] } : { scale: 1 }}
-      transition={{ duration: 0.3 }}
+      initial={entry.state === "fresh" ? RESTING : false}
+      animate={entry.state === "fresh" ? FRESH_PULSE : RESTING}
+      transition={{ duration: DUR_BASE }}
       title={label}
       className={cn(
         "flex size-7 items-center justify-center rounded-full",

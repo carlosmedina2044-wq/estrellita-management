@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion, useSpring } from "motion/react";
-import { CalendarDays, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { Clouds } from "@/components/today/clouds";
 import { PortraitStack } from "@/components/today/portrait-stack";
@@ -18,6 +18,7 @@ import {
   portraitLayerUrls,
   resolveHomeSpec,
 } from "@/lib/scene/portrait";
+import { DUR_QUICK } from "@/lib/motion";
 import { seasonFor, type Season } from "@/lib/scene/season";
 import type { SkyPhase } from "@/lib/scene/sun";
 import { sunPosition } from "@/lib/scene/sun";
@@ -52,13 +53,49 @@ type PortraitSceneProps = {
   phaseT: number;
   weather: SceneWeather;
   ceremony: boolean;
+  /** True only for Today's very first reveal this app launch (see
+   * `useSessionArrival`) — plays the windows-warming-on stagger once, from
+   * zero, instead of painting already at today's real lit count. */
+  arrival?: boolean;
   greeting: string;
   secondaryLine: string;
   onOpenSettings?: () => void;
-  onOpenCalendar?: () => void;
   overrides?: PortraitSceneOverrides;
   className?: string;
+  /** Default true: Today and the lock screen sit flush at the true top of
+   * the screen, so the scene reserves `env(safe-area-inset-top)` itself.
+   * Pass false for a scene placed lower in an already-padded layout (the
+   * onboarding welcome screen, the house-look picker) — reserving the inset
+   * there would double-count the safe area and leave a dead gap. */
+  insetTop?: boolean;
 };
+
+/** Arrival reveal: paint unlit → (two frames later, so the "unlit" paint is
+ * real, not coalesced away) → the staggered warm-on → settle. Distinct from
+ * `arrival` itself, which stays true for the rest of the session once set —
+ * without this, ordinary daytime relighting later in the day would inherit
+ * the stagger too. */
+function useArrivalReveal(play: boolean): { litNow: boolean; staggering: boolean } {
+  const [phase, setPhase] = useState<"pending" | "revealing" | "done">(play ? "pending" : "done");
+  useEffect(() => {
+    if (phase !== "pending") return;
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setPhase("revealing"));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [phase]);
+  useEffect(() => {
+    if (phase !== "revealing") return;
+    // Longest per-window stagger delay plus its own fade, with headroom.
+    const timer = window.setTimeout(() => setPhase("done"), 1200);
+    return () => window.clearTimeout(timer);
+  }, [phase]);
+  return { litNow: phase !== "pending", staggering: phase === "revealing" };
+}
 
 function useMinuteTicker(enabled: boolean): Date {
   const [now, setNow] = useState(() => new Date());
@@ -113,15 +150,17 @@ export function PortraitScene({
   phaseT: phaseTProp,
   weather: weatherProp,
   ceremony,
+  arrival,
   greeting,
   secondaryLine,
   onOpenSettings,
-  onOpenCalendar,
   overrides,
   className,
+  insetTop = true,
 }: PortraitSceneProps) {
   const { t } = useLocale();
   const reduce = useReducedMotion();
+  const arrivalReveal = useArrivalReveal(Boolean(arrival) && !reduce);
   const minuteNow = useMinuteTicker(true);
   const homeSpec = useMemo(() => {
     const base = resolveHomeSpec(household);
@@ -144,7 +183,9 @@ export function PortraitScene({
   const gardenLevel = CARE_TO_GARDEN[household.momentum.care?.level ?? "settling-in"];
   const light = houseLight(arc, phase, closedToday, season, gardenLevel, windowCount);
   const litCount =
-    overrides?.windowsLit ?? (ceremony ? windowCount : light.windowsLit);
+    overrides?.windowsLit ??
+    (ceremony ? windowCount : arrivalReveal.litNow ? light.windowsLit : 0);
+  const staggerWindows = ceremony || arrivalReveal.staggering;
 
   const dayOpacity = dayOpacityForPhase(phase, phaseT);
   const gradeOpacity = gradeOpacityForPhase(phase, phaseT);
@@ -208,7 +249,7 @@ export function PortraitScene({
         // row. 256px freed the fold but left nothing between the header, the
         // sky and the roof. 272px keeps three chores above the fold and gives
         // the composition room to breathe.
-        height: "calc(env(safe-area-inset-top) + 272px)",
+        height: insetTop ? "calc(env(safe-area-inset-top) + 272px)" : "272px",
         background:
           "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}
@@ -263,6 +304,7 @@ export function PortraitScene({
           dayOpacity={dayOpacity}
           litCount={litCount}
           showSnow={showSnow}
+          stagger={staggerWindows}
           className="w-full"
         />
         {/* Grade overlays */}
@@ -287,16 +329,24 @@ export function PortraitScene({
           />
         )}
         {ceremony && door ? (
-          <div
+          <motion.div
             className="pointer-events-none absolute"
             style={{
               left: `${(door.x / kit.frame.w) * 100}%`,
               top: `${(door.y / kit.frame.h) * 100}%`,
               transform: "translate(-50%, -50%)",
             }}
+            // Lands after the windows warm on (their own 500ms fade, staggered
+            // up to ~350ms past that in PortraitStack) instead of firing the
+            // instant the day closes — one beat in a sequence, not everything
+            // happening at once. Matches the delay TodayHero's momentum
+            // variant already uses for the same beat.
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: reduce ? 0 : 0.5, duration: DUR_QUICK }}
           >
             <IllustratedMoment kind="sparkle-burst" size={72} autoplay />
-          </div>
+          </motion.div>
         ) : null}
       </motion.div>
 
@@ -327,7 +377,7 @@ export function PortraitScene({
       <div
         className="relative z-10 flex items-start justify-between gap-3 px-5"
         style={{
-          paddingTop: "calc(env(safe-area-inset-top) + 12px)",
+          paddingTop: insetTop ? "calc(env(safe-area-inset-top) + 12px)" : "12px",
           color: "var(--scene-text)",
         }}
       >
@@ -336,16 +386,6 @@ export function PortraitScene({
           <p className="ui-caption mt-0.5 opacity-80">{secondaryLine}</p>
         </div>
         <div className="flex shrink-0 gap-2">
-          {onOpenCalendar ? (
-            <button
-              type="button"
-              aria-label={t("today.pickDay")}
-              onClick={onOpenCalendar}
-              className="flex size-11 items-center justify-center rounded-full bg-background/25 backdrop-blur-sm"
-            >
-              <CalendarDays className="size-5" />
-            </button>
-          ) : null}
           {onOpenSettings ? (
             <button
               type="button"

@@ -12,7 +12,7 @@ import { KeptRoomsRow } from "@/components/today/kept-rooms-row";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { RunStrip } from "@/components/today/run-strip";
 import { useLocale } from "@/i18n/locale-provider";
-import { CEREMONY_MS, EASE_OUT } from "@/lib/motion";
+import { CEREMONY_MS, DUR_QUICK, EASE_OUT } from "@/lib/motion";
 import { hapticClose, hapticSuccess } from "@/lib/native/haptics";
 import type { CareState, Household } from "@/lib/types";
 import type { DayArc, RunDay } from "@/lib/momentum";
@@ -146,7 +146,7 @@ export function TodayHero({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -8, opacity: 0 }}
           transition={{
-            duration: 0.25,
+            duration: DUR_QUICK,
             ease: EASE_OUT,
             delay: ceremonyOn && !settled ? 0.15 : 0,
           }}
@@ -180,7 +180,7 @@ export function TodayHero({
                   className="pointer-events-none absolute left-1/2 top-[52px] -translate-x-1/2 -translate-y-1/2"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5, duration: 0.2 }}
+                  transition={{ delay: 0.5, duration: DUR_QUICK }}
                 >
                   <IllustratedMoment kind="sparkle-burst" size={140} autoplay />
                 </motion.div>

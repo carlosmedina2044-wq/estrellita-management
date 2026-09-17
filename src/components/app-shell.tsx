@@ -11,6 +11,7 @@ import { FaceLock } from "@/components/face-lock";
 import { HomeMapView } from "@/components/home-map-view";
 import { HomeView } from "@/components/home-view";
 import { HouseMapSheet } from "@/components/house-map-sheet";
+import { preloadSparkleBurst } from "@/components/illustrated-moment";
 import { Onboarding } from "@/components/onboarding";
 import { RestockView } from "@/components/restock-view";
 import { SeasonalView } from "@/components/seasonal-view";
@@ -48,6 +49,7 @@ import { forCleanerSession, PERSIST_FAILED_EVENT, resyncNotifications } from "@/
 import { hasSeenTip, markTipSeen, teachingCardVisible, TIP_LOCK_KEEP_PRIVATE, TIP_LOCK_REENGAGE, withTeaching } from "@/lib/teaching";
 import { lockMethodLabel } from "@/lib/native/lock-labels";
 import { isRootTab, type AppNavigateTarget, type RootTab } from "@/lib/types";
+import { hapticPress, hapticTab } from "@/lib/native/haptics";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -252,6 +254,7 @@ export function AppShell() {
     const progress = Math.max(0, event.clientX - drag.startX) / drag.width;
     const shouldPop = progress > EDGE_DISMISS || drag.velocity > EDGE_VELOCITY;
     if (shouldPop) {
+      void hapticPress();
       applyEdgeProgress(1, true);
       window.setTimeout(() => {
         clearEdgeStyles();
@@ -308,6 +311,23 @@ export function AppShell() {
   useEffect(() => {
     if (!hydrated) return;
     void hideLaunchSplash();
+  }, [hydrated]);
+
+  useEffect(() => {
+    // Idle, not immediate: this competes with first paint for the main
+    // thread, and the sparkle it warms up is not needed until the user
+    // completes their first chore.
+    if (!hydrated) return;
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    if (win.requestIdleCallback) {
+      const handle = win.requestIdleCallback(() => preloadSparkleBurst());
+      return () => win.cancelIdleCallback?.(handle);
+    }
+    const timer = window.setTimeout(() => preloadSparkleBurst(), 1);
+    return () => window.clearTimeout(timer);
   }, [hydrated]);
 
   useEffect(() => {
@@ -606,6 +626,7 @@ export function AppShell() {
     return (
       <FaceLock
         method={lockMethod ?? "passcode"}
+        household={household}
         performUnlock={() => unlockSession(t("biometrics.unlockCuidala"))}
         onUnlocked={() => {
           setLocked(false);
@@ -1074,7 +1095,10 @@ function NavButton({
       role="tab"
       aria-selected={active}
       aria-label={ariaLabel}
-      onClick={onClick}
+      onClick={() => {
+        if (!active) void hapticTab();
+        onClick();
+      }}
       className={cn(
         "mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 ui-caption font-medium transition-colors duration-75 active:scale-[0.98]",
         active ? "text-primary" : "text-muted-foreground",

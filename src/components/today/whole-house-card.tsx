@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { Illustration } from "@/components/illustration";
 import { CUTAWAY_ROOMS } from "@/lib/illustrations";
 import type { KeptRoom } from "@/lib/kept-rooms";
-import { EASE_OUT } from "@/lib/motion";
+import { DUR_BASE, EASE_OUT } from "@/lib/motion";
 import type { RoomType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +66,7 @@ export function WholeHouseCard({
               initial={false}
               animate={{ opacity: lifted ? 0 : 0.55 }}
               transition={{
-                duration: reduceMotion ? 0 : 0.3,
+                duration: reduceMotion ? 0 : DUR_BASE,
                 delay: reduceMotion || !lifted ? 0 : index * 0.08,
                 ease: EASE_OUT,
               }}

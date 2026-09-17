@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
-import { EASE_OUT } from "@/lib/motion";
+import { DUR_QUICK, DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 import type { DayArc } from "@/lib/momentum";
 import type { CareLevelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -72,7 +72,7 @@ export function HouseOrbit({
           background: "radial-gradient(closest-side, var(--brand-cream), transparent)",
         }}
         animate={{ opacity: creamOpacity }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: DUR_SCREEN }}
       />
       <div className="absolute inset-0 flex items-center justify-center">
         <IllustratedMoment
@@ -111,7 +111,7 @@ export function HouseOrbit({
             pathLength={1}
             initial={{ pathLength: ceremony ? 0 : 1 }}
             animate={{ pathLength: 1 }}
-            transition={{ duration: 0.5, ease: EASE_OUT }}
+            transition={{ duration: DUR_SCREEN, ease: EASE_OUT }}
             transform={`rotate(-90 ${cx} ${cy})`}
             style={{ strokeDasharray: "1 1" }}
           />
@@ -130,7 +130,7 @@ export function HouseOrbit({
                 pathLength={1}
                 initial={{ pathLength: 0 }}
                 animate={{ pathLength: 1 }}
-                transition={{ duration: 0.26, ease: EASE_OUT }}
+                transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
               />
             );
           })

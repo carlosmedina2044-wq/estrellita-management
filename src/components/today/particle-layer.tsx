@@ -29,6 +29,7 @@ export const ParticleLayer = forwardRef<ParticleLayerHandle>(function ParticleLa
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const rafRef = useRef<number | null>(null);
+  const lastRef = useRef(0);
 
   useImperativeHandle(ref, () => ({
     burst({ x, y, count }) {
@@ -81,13 +82,20 @@ export const ParticleLayer = forwardRef<ParticleLayerHandle>(function ParticleLa
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       }
       ctx.clearRect(0, 0, w, h);
+      // Delta-timed, not a fixed 16ms-per-frame assumption: a ProMotion
+      // display fires requestAnimationFrame at ~8ms, which previously moved
+      // every particle roughly twice as far as intended and turned a tight
+      // pop into a wide scatter. Clamped so a stalled frame (e.g. a tab
+      // switch) doesn't teleport a particle across the screen on return.
+      const dt = Math.min(1 / 20, (now - lastRef.current) / 1000);
+      lastRef.current = now;
       const next: Particle[] = [];
       for (const p of particlesRef.current) {
         const age = now - p.born;
         if (age >= p.life) continue;
         const t = age / p.life;
-        p.x += (p.vx * 16) / 1000;
-        p.y += (p.vy * 16) / 1000;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
         ctx.globalAlpha = 1 - t;
         ctx.fillStyle = p.color;
         ctx.beginPath();
@@ -100,6 +108,7 @@ export const ParticleLayer = forwardRef<ParticleLayerHandle>(function ParticleLa
       if (next.length > 0) rafRef.current = window.requestAnimationFrame(tick);
       else rafRef.current = null;
     };
+    lastRef.current = performance.now();
     rafRef.current = window.requestAnimationFrame(tick);
   }
 

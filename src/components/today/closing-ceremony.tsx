@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { CountUp } from "@/components/today/count-up";
 import { useLocale } from "@/i18n/locale-provider";
-import { EASE_OUT } from "@/lib/motion";
+import { DUR_BASE, DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 
 export function ClosingStats({
   stats,
@@ -14,7 +14,7 @@ export function ClosingStats({
   instant: boolean;
 }) {
   const { t } = useLocale();
-  const duration = instant ? 0 : 0.5;
+  const duration = instant ? 0 : DUR_SCREEN;
   const delay = instant ? 0 : 0.3;
 
   return (
@@ -55,7 +55,7 @@ export function ClosingReward({
       className="flex items-center gap-[12px] rounded-2xl bg-secondary/60 px-[12px] py-[8px]"
       initial={instant ? false : { opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.25, delay: instant ? 0 : 0.7, ease: EASE_OUT }}
+      transition={{ duration: DUR_BASE, delay: instant ? 0 : 0.7, ease: EASE_OUT }}
     >
       <div
         className="flex size-[88px] shrink-0 items-center justify-center"

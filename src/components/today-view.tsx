@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, LayoutGroup, motion } from "motion/react";
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { CalendarDays, ChevronDown, Package, Settings, Share2, UserRound } from "lucide-react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { BrandMark } from "@/components/brand-logo";
 import { DayCalendar } from "@/components/day-calendar";
@@ -10,15 +11,17 @@ import { SeasonSection } from "@/components/season-section";
 import { CostPrompt } from "@/components/cost-prompt";
 import { ConsumableForm } from "@/components/consumable-form";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
+import { DutyDetailSheet } from "@/components/duty-detail-sheet";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-menu";
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { AttentionTiles } from "@/components/today/attention-tiles";
-import { ClosingStats } from "@/components/today/closing-ceremony";
+import { ClosingReward, ClosingStats } from "@/components/today/closing-ceremony";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
 import { PortraitScene } from "@/components/today/portrait-scene";
+import { RollingNumber } from "@/components/today/rolling-number";
 import { RunStrip } from "@/components/today/run-strip";
 import { TodayHero } from "@/components/today/today-hero";
 import { TodayNoticeCard, type TodayNotice } from "@/components/today/today-notice-card";
@@ -29,7 +32,7 @@ import { IllustratedMoment } from "@/components/illustrated-moment";
 import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
 import { keptRooms, wholeHouseKept } from "@/lib/kept-rooms";
 import { payoffKeyFor } from "@/lib/payoff-lines";
-import { hasSeenTip, markTipSeen } from "@/lib/teaching";
+import { hasSeenTip, markTipSeen, TIP_HOUSE_REVEAL } from "@/lib/teaching";
 import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
 import {
   completionDays,
@@ -64,10 +67,13 @@ import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowH
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import type { WeatherForecast } from "@/lib/weather/provider";
 import { cn } from "@/lib/utils";
-import { SPRING_SETTLE, scrollBehavior } from "@/lib/motion";
+import { CEREMONY_MS, DUR_QUICK, EASE_OUT, SPRING_SETTLE, STAGGER_CHILD, scrollBehavior } from "@/lib/motion";
+import { hapticComplete, hapticTab } from "@/lib/native/haptics";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { useLocale } from "@/i18n/locale-provider";
+import { useClock } from "@/hooks/use-clock";
 import { useNow } from "@/hooks/use-now";
+import { useSessionArrival } from "@/hooks/use-session-arrival";
 
 export function TodayView({
   household,
@@ -129,12 +135,25 @@ export function TodayView({
     [t],
   );
   const now = useNow();
+  // Calendar day (`now`) and wall clock (`clock`) are separate on purpose:
+  // `now` stays pinned to local midnight so date maths and the duty list are
+  // stable, while anything that tracks the hour reads `clock`.
+  const clock = useClock();
+  const clockMs = clock.getTime();
+  // True only for the very first paint of Today this app launch — never on a
+  // tab switch back to it (the pane stays mounted, just hidden). Reduce
+  // Motion still gets the flag (so nothing downstream needs to know why),
+  // it just skips animating from it.
+  const isArrival = useSessionArrival();
+  const reduceMotion = useReducedMotion();
+  const playArrival = isArrival && !reduceMotion;
   const [filter, setFilter] = useState<Audience | "all">("all");
   const [scope, setScope] = useState<OutstandingScope>("daily");
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarDay, setCalendarDay] = useState<Date | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1));
   const [editing, setEditing] = useState<Duty | null>(null);
+  const [detail, setDetail] = useState<Duty | null>(null);
   const [creating, setCreating] = useState(false);
   const [creatingRule, setCreatingRule] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
@@ -157,7 +176,7 @@ export function TodayView({
     setPrevFocus(focus);
     if (focus?.dutyId) {
       const duty = household.duties.find((entry) => entry.id === focus.dutyId);
-      if (duty) setEditing(duty);
+      if (duty) setDetail(duty);
     }
   }
   const listRef = useRef<HTMLDivElement>(null);
@@ -196,6 +215,12 @@ export function TodayView({
     : openDutiesInScope(household, scope, now, filter);
 
   const doneTodayEntries = !viewingCalendar && scope === "daily" ? doneToday(household, now, filter) : [];
+  // Unscoped, unlike `doneTodayEntries` above: the ceremony stats must reflect
+  // today's real totals regardless of which segmented-control tab (Today/This
+  // week/This month) happens to be selected. Reusing `doneTodayEntries` here
+  // made the closing-ceremony numbers read "0 things done" the moment someone
+  // switched to This week, even minutes after closing the day.
+  const todayDoneForCeremony = doneToday(household, now, filter);
   const doneWeek = !viewingCalendar && scope === "weekly" ? doneThisWeek(household, now, filter) : [];
   const calendarDone = viewingCalendar ? doneOnDay(household, viewDate, filter) : [];
   const doneEntries: DoneEntry[] = viewingCalendar
@@ -240,6 +265,7 @@ export function TodayView({
   });
 
   function selectScope(next: OutstandingScope) {
+    if (next !== scope) void hapticTab();
     setOnlyOverdue(false);
     setScope(next);
     setCalendarDay(null);
@@ -249,6 +275,12 @@ export function TodayView({
   function selectCalendarDay(date: Date) {
     setCalendarDay(date);
     setCalendarMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+  }
+
+  function snoozeDuty(target: Duty) {
+    const until = toISODate(addDays(now, 7));
+    onSaveDuty({ ...target, snoozedUntil: until });
+    toast(t("chore.snoozedToast"));
   }
 
   function handleDutyMenu(action: DutyMenuAction) {
@@ -267,9 +299,7 @@ export function TodayView({
       return;
     }
     if (action === "snooze") {
-      const until = toISODate(addDays(now, 7));
-      onSaveDuty({ ...target, snoozedUntil: until });
-      toast(t("chore.snoozedToast"));
+      snoozeDuty(target);
     }
   }
 
@@ -332,7 +362,7 @@ export function TodayView({
             ? completion.undo(duty)
             : completion.complete(duty)
         }
-        onOpen={() => setEditing(duty)}
+        onOpen={() => setDetail(duty)}
         onSparkleError={(point) => particlesRef.current?.burst({ ...point, count: 12 })}
       />
     );
@@ -368,7 +398,7 @@ export function TodayView({
         return match ? shouldPromptCost(item, match, now, household) : false;
       })
     : [];
-  const greeting = todayGreeting(household.ownerName);
+  const greeting = todayGreeting(household.ownerName, clock.getHours());
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
   const zipBannerVisible = Boolean(needsZip && onSavePostalCode);
   const showTeachingCard = Boolean(showTeaching && !teachingHidden && !zipBannerVisible && summary.overdue === 0);
@@ -405,11 +435,29 @@ export function TodayView({
 
   const todayIso = toISODate(now);
   const ceremonyActive = ceremonyDay === todayIso;
+  // Plays once, the first time Today ever renders with a chosen house look —
+  // never again after (existing households with no `homeSpec` never had a
+  // "your house" moment to begin with, so they're excluded rather than
+  // getting a surprise reveal on an unrelated day).
+  const [houseReveal, setHouseReveal] = useState(
+    () => Boolean(household.homeSpec) && !hasSeenTip(household, TIP_HOUSE_REVEAL),
+  );
+  useEffect(() => {
+    if (!houseReveal) return;
+    void hapticComplete();
+    const timer = window.setTimeout(() => {
+      setHouseReveal(false);
+      onChangeTree?.(markTipSeen(household, TIP_HOUSE_REVEAL));
+    }, CEREMONY_MS);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [houseReveal]);
   const ceremonyStats = {
-    done: doneTodayEntries.length,
-    minutes: todayEffort(doneTodayEntries.map((entry) => entry.duty)),
+    done: todayDoneForCeremony.length,
+    minutes: todayEffort(todayDoneForCeremony.map((entry) => entry.duty)),
     rooms: roomsTouchedInRange(household, new Date(startOfDay(now)), now),
   };
+  const sceneMinutesParts = t("today.minutesLeft", { minutes: "%%" }).split("%%");
   const monthLedgerLine = useMemo(() => formatLedgerLine(monthLedger(household, now), t), [household, now, t]);
   const kept = useMemo(() => keptRooms(household, now), [household, now]);
   const houseKept = useMemo(() => wholeHouseKept(kept, household, now), [kept, household, now]);
@@ -474,14 +522,36 @@ export function TodayView({
   }
 
   // Momentum scene: layered portrait; plain/cleaner keeps the M7-09-r2 hero card.
+  //
+  // The sky reads `clock`, never `now`. `now` is local midnight by design (see
+  // `useNow`), and `skyPhase` reads `getHours()` — feeding it `now` pinned every
+  // user's sky to "night" at every hour of the day.
   const sceneMode = momentumOn;
   const sceneWx = sceneWeather(forecast, todayIso);
-  const sceneTimes =
-    household.location.lat != null && household.location.lng != null
-      ? sunTimes(household.location.lat, household.location.lng, now)
-      : null;
-  const scenePhase = skyPhase(now, sceneTimes);
-  const sceneStops = skyGradient(scenePhase.phase, scenePhase.t, sceneWx.kind, sceneWx.cloudCover);
+  const { lat, lng } = household.location;
+  const sceneTimes = useMemo(
+    () => (lat != null && lng != null ? sunTimes(lat, lng, new Date(clockMs)) : null),
+    [lat, lng, clockMs],
+  );
+  const scenePhase = useMemo(() => skyPhase(new Date(clockMs), sceneTimes), [clockMs, sceneTimes]);
+  // Settings promises a fixed appearance "stays put" (Always light / Always
+  // dark / Match iPhone). `nightFollowsSky === false` means the user picked
+  // one of those, so the scene itself — not just the chrome — has to stop
+  // reading the real sun position. Without this, the sky/moon kept following
+  // real dusk/night under "Always light," producing a lit cream sheet under a
+  // night sky with no way to tell the setting was doing anything at all.
+  const { resolvedTheme } = useTheme();
+  const scenePhaseEffective = useMemo(
+    () =>
+      household.momentum.nightFollowsSky === false
+        ? { phase: (resolvedTheme === "dark" ? "night" : "day") as typeof scenePhase.phase, t: 0.5 }
+        : scenePhase,
+    [household.momentum.nightFollowsSky, resolvedTheme, scenePhase],
+  );
+  const sceneStops = useMemo(
+    () => skyGradient(scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover),
+    [scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover],
+  );
   const nightFollows =
     sceneMode &&
     household.momentum.nightFollowsSky !== false &&
@@ -499,6 +569,14 @@ export function TodayView({
   // actually dusk or night.
   useEffect(() => {
     const el = document.documentElement;
+    // Best-effort cache for `layout.tsx`'s pre-hydration bootstrap script —
+    // see the comment there. Never throws: a full or disabled localStorage
+    // just means the next launch falls back to today's status quo.
+    try {
+      window.localStorage.setItem("cuidala-today-night", nightFollows ? "1" : "0");
+    } catch {
+      // ignore
+    }
     if (!nightFollows) {
       el.classList.remove("today-night");
       return;
@@ -511,7 +589,20 @@ export function TodayView({
     if (!sceneMode) return;
     const pane = rootRef.current?.closest(".app-keep-alive");
     if (!(pane instanceof HTMLElement)) return;
+    // Queried once per mount, not once per scroll frame: the node this
+    // selector finds does not change while the scene is up.
+    const blur = rootRef.current?.querySelector("[data-scene-blur]");
+    const blurEl = blur instanceof HTMLElement ? blur : null;
     let frame = 0;
+    // `backdrop-filter` is the most expensive property in this scroll: every
+    // distinct blur radius forces the browser to re-sample and re-composite
+    // whatever sits behind the scene, every frame, for the whole first 120px
+    // of scroll — exactly the moment someone is judging how the app feels.
+    // Snapping to a handful of steps reads as continuous (a new level every
+    // 24px of scroll) while cutting DOM writes by well over 90%.
+    const BLUR_STEPS = 5;
+    const MAX_BLUR_PX = 12;
+    let lastStep = -1;
     const onScroll = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
@@ -523,11 +614,14 @@ export function TodayView({
         // natively and the sheet slides up to cover it with no seam, instead of
         // two independently JS-driven layers racing at different speeds.
         const y = Math.max(0, pane.scrollTop);
-        const blur = rootRef.current?.querySelector("[data-scene-blur]");
-        if (blur instanceof HTMLElement) {
-          const amount = Math.min(y / 120, 1) * 12;
-          blur.style.backdropFilter = `blur(${amount}px)`;
-          blur.style.setProperty("-webkit-backdrop-filter", `blur(${amount}px)`);
+        const step = Math.round(Math.min(y / 120, 1) * BLUR_STEPS);
+        if (step !== lastStep) {
+          lastStep = step;
+          if (blurEl) {
+            const amount = (step / BLUR_STEPS) * MAX_BLUR_PX;
+            blurEl.style.backdropFilter = `blur(${amount}px)`;
+            blurEl.style.setProperty("-webkit-backdrop-filter", `blur(${amount}px)`);
+          }
         }
         setCompactBar(y > 120);
       });
@@ -572,14 +666,14 @@ export function TodayView({
           <PortraitScene
             household={household}
             arc={arc}
-            phase={scenePhase.phase}
-            phaseT={scenePhase.t}
+            phase={scenePhaseEffective.phase}
+            phaseT={scenePhaseEffective.t}
             weather={sceneWx}
-            ceremony={ceremonyActive}
+            ceremony={ceremonyActive || houseReveal}
+            arrival={playArrival}
             greeting={greeting}
             secondaryLine={secondaryLine}
             onOpenSettings={onOpenSettings}
-            onOpenCalendar={() => setCalendarOpen(true)}
           />
         </div>
       ) : (
@@ -650,24 +744,47 @@ export function TodayView({
         />
       ) : null}
       {sceneMode ? (
-        <div className="flex min-h-14 items-start justify-between gap-3">
+        <motion.div
+          initial={playArrival ? { opacity: 0, y: 8 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
+        >
+          <div className="flex min-h-14 items-start justify-between gap-3">
+            {arc.state === "closed" ? (
+              <ClosingStats stats={ceremonyStats} instant={!ceremonyActive} />
+            ) : (
+              <p className="ui-body font-medium num">
+                {sceneMinutesParts[0]}
+                <RollingNumber value={arc.minutesLeft} />
+                {sceneMinutesParts[1] ?? null}
+              </p>
+            )}
+            <RunStrip
+              household={household}
+              now={now}
+              days={runStripDays(household, now)}
+              celebrate={arc.state === "closed"}
+              onOpenCalendar={() => setCalendarOpen(true)}
+            />
+          </div>
           {arc.state === "closed" ? (
-            <ClosingStats stats={ceremonyStats} instant />
-          ) : (
-            <p className="ui-body font-medium num">
-              {t("today.minutesLeft", { minutes: String(arc.minutesLeft) })}
-            </p>
-          )}
-          <RunStrip
-            household={household}
-            now={now}
-            days={runStripDays(household, now)}
-            celebrate={arc.state === "closed"}
-            onOpenCalendar={() => setCalendarOpen(true)}
-          />
-        </div>
+            <ClosingReward
+              onShare={() => {
+                void shareClosedDay();
+              }}
+              instant={!ceremonyActive}
+            />
+          ) : null}
+        </motion.div>
       ) : null}
 
+      {momentumOn || zipBannerVisible ? (
+        <motion.div
+          className="flex flex-col gap-5"
+          initial={playArrival ? { opacity: 0, y: 8 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: playArrival ? STAGGER_CHILD : 0 }}
+        >
       {momentumOn ? <TodayNoticeCard notice={activeNotice} onDismiss={dismissNotice} /> : null}
       {zipBannerVisible ? (
         <button
@@ -678,11 +795,13 @@ export function TodayView({
           <span className="min-w-0">
             <span className="block ui-body font-medium">{t("today.addZip")}</span>
             <span className="mt-0.5 block ui-caption text-muted-foreground">
-              {t("settings.zipHelp")}
+              {t("zip.addBody")}
             </span>
           </span>
           <span className="shrink-0 ui-caption font-semibold text-primary">{t("today.addZipCta")}</span>
         </button>
+      ) : null}
+        </motion.div>
       ) : null}
 
       {weatherLoading && !needsZip ? (
@@ -693,6 +812,11 @@ export function TodayView({
         </div>
       ) : null}
 
+      <motion.div
+        initial={playArrival ? { opacity: 0, y: 8 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: playArrival ? STAGGER_CHILD * 2 : 0 }}
+      >
       <AttentionTiles
         overdue={summary.overdue}
         dueToday={summary.dueToday}
@@ -726,26 +850,39 @@ export function TodayView({
         onArriving={() => onNavigate?.({ tab: "restock", section: "ordered" })}
         onAllClear={() => onOpenHome?.()}
       />
+      </motion.div>
 
       <div className="flex items-center gap-2">
         <div role="tablist" aria-label={t("today.scopeList")} className="flex min-w-0 flex-1 rounded-full bg-secondary p-1">
-          {scopes.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={scope === item.id && !viewingCalendar}
-              onClick={() => selectScope(item.id)}
-              className={cn(
-                "h-11 flex-1 rounded-full ui-caption font-medium transition-transform duration-75 active:scale-[0.98]",
-                scope === item.id && !viewingCalendar
-                  ? "bg-brand-cream text-brand-cream-foreground shadow-sm ring-1 ring-primary/40"
-                  : "text-secondary-foreground",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
+          {scopes.map((item) => {
+            const active = scope === item.id && !viewingCalendar;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => selectScope(item.id)}
+                className={cn(
+                  "relative h-11 flex-1 rounded-full ui-caption font-medium transition-transform duration-75 active:scale-[0.98]",
+                  active ? "text-brand-cream-foreground" : "text-secondary-foreground",
+                )}
+              >
+                {active ? (
+                  // Shared layoutId: the pill is a single element that moves
+                  // between buttons rather than three that fade in and out, so
+                  // the segmented control slides the way UISegmentedControl
+                  // does instead of teleporting between positions.
+                  <motion.span
+                    layoutId="today-scope-pill"
+                    className="absolute inset-0 rounded-full bg-brand-cream shadow-sm ring-1 ring-primary/40"
+                    transition={SPRING_SETTLE}
+                  />
+                ) : null}
+                <span className="relative">{item.label}</span>
+              </button>
+            );
+          })}
         </div>
         <button
           type="button"
@@ -1091,6 +1228,32 @@ export function TodayView({
           onSave={onSavePostalCode}
         />
       ) : null}
+
+      <DutyDetailSheet
+        open={Boolean(detail)}
+        duty={detail}
+        household={household}
+        now={now}
+        onOpenChange={(openSheet) => {
+          if (!openSheet) setDetail(null);
+        }}
+        onComplete={(target) => {
+          completion.complete(target);
+          setDetail(null);
+        }}
+        onUndo={(target) => {
+          completion.undo(target);
+          setDetail(null);
+        }}
+        onSnooze={(target) => {
+          snoozeDuty(target);
+          setDetail(null);
+        }}
+        onEdit={(target) => {
+          setDetail(null);
+          window.setTimeout(() => setEditing(target), 350);
+        }}
+      />
 
       <DutyForm
         open={creating || Boolean(editing)}

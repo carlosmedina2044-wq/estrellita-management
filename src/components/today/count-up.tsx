@@ -2,11 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { animate, useMotionValue, useMotionValueEvent, useReducedMotion } from "motion/react";
+import { DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export function CountUp({
   to,
-  duration = 0.5,
+  duration = DUR_SCREEN,
   delay = 0,
   className,
 }: {
@@ -28,7 +29,7 @@ export function CountUp({
       if (ref.current) ref.current.textContent = String(Math.round(to));
       return;
     }
-    const controls = animate(value, to, { duration, delay, ease: [0.32, 0.72, 0, 1] });
+    const controls = animate(value, to, { duration, delay, ease: EASE_OUT });
     return () => controls.stop();
   }, [delay, duration, reduceMotion, to, value]);
 

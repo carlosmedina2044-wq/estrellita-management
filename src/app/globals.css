@@ -611,6 +611,31 @@ html.keyboard-open [data-slot="sheet-footer"] {
 }
 
 /*
+ * Today's open dot in the run strip. Replaces Tailwind's stock `animate-pulse`
+ * (an opacity fade on its own generic curve) — the only pulsing element in the
+ * app, and the only one on a stock timing rather than the app's own. A slow
+ * breathing scale reads as "this one's waiting for you" without the
+ * flashing-alert connotation a faster or higher-contrast pulse would carry.
+ * `prefers-reduced-motion` is handled by the blanket rule at the bottom of
+ * this file, same as every other keyframe animation here.
+ */
+@keyframes today-dot-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.7;
+  }
+}
+
+.today-dot-open {
+  animation: today-dot-breathe 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+
+/*
  * Evening look for Today. This must stay a complete mirror of `.dark`, not a
  * subset: any token left out keeps its light-theme value against a dark
  * surface. The first version omitted the status and brand colours, so due /

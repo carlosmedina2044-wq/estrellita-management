@@ -7,7 +7,7 @@ import { tDutyTitle } from "@/i18n/content";
 import { Circle, Ellipsis } from "lucide-react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { dutySubtitle, installedAtFor } from "@/lib/duties";
-import { EASE_OUT, SPRING_PRESS } from "@/lib/motion";
+import { DUR_INSTANT, DUR_QUICK, EASE_OUT, SPRING_PRESS } from "@/lib/motion";
 import { hapticPress } from "@/lib/native/haptics";
 import type { Duty, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -134,6 +134,7 @@ export function DutyRow({
       const origin = longPressOrigin.current;
       longPressTimer.current = null;
       if (!origin) return;
+      void hapticPress();
       onLongPress(origin);
     }, 480);
   }
@@ -179,7 +180,7 @@ export function DutyRow({
                 className="absolute inset-0 rounded-full bg-primary"
                 initial={completing && !done ? { scale: 0 } : false}
                 animate={{ scale: 1 }}
-                transition={{ duration: 0.18, ease: EASE_OUT }}
+                transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
               />
               <svg viewBox="0 0 24 24" className="relative size-3.5 text-primary-foreground" aria-hidden>
                 <motion.path
@@ -191,7 +192,7 @@ export function DutyRow({
                   strokeLinejoin="round"
                   initial={completing && !done ? { pathLength: 0 } : false}
                   animate={{ pathLength: 1 }}
-                  transition={{ duration: 0.2, delay: completing && !done ? 0.18 : 0, ease: EASE_OUT }}
+                  transition={{ duration: DUR_QUICK, delay: completing && !done ? DUR_QUICK : 0, ease: EASE_OUT }}
                 />
                 {completing && !done ? (
                   <>
@@ -203,7 +204,7 @@ export function DutyRow({
                       strokeLinecap="round"
                       initial={{ pathLength: 0, opacity: 1 }}
                       animate={{ pathLength: 1, opacity: 0 }}
-                      transition={{ duration: 0.12, delay: 0.18, ease: EASE_OUT }}
+                      transition={{ duration: DUR_INSTANT, delay: DUR_QUICK, ease: EASE_OUT }}
                     />
                     <motion.path
                       d="M20 7l1.5 1"
@@ -213,7 +214,7 @@ export function DutyRow({
                       strokeLinecap="round"
                       initial={{ pathLength: 0, opacity: 1 }}
                       animate={{ pathLength: 1, opacity: 0 }}
-                      transition={{ duration: 0.12, delay: 0.18, ease: EASE_OUT }}
+                      transition={{ duration: DUR_INSTANT, delay: DUR_QUICK, ease: EASE_OUT }}
                     />
                   </>
                 ) : null}
@@ -260,7 +261,7 @@ export function DutyRow({
                   className="pointer-events-none absolute left-0 top-1/2 h-px w-full origin-left bg-muted-foreground"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.22, delay: 0.22, ease: EASE_OUT }}
+                  transition={{ duration: DUR_QUICK, delay: DUR_QUICK, ease: EASE_OUT }}
                 />
               ) : null}
             </span>

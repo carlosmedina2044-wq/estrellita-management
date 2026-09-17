@@ -27,6 +27,7 @@ import {
 import { applyCompletionCost, applyReceivedPrice } from "@/lib/costs";
 import { applyPostalCode, isValidUsZip, normalizeUsZip } from "@/lib/climate";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
+import { buildHomeSpec } from "@/lib/scene/portrait";
 import { applyDutySave } from "@/lib/household-update";
 import type {
   DutyDraft,
@@ -154,6 +155,9 @@ export function useHousehold() {
           tenure: generated.tenure,
           location: generated.location,
           attributes: generated.attributes,
+          homeSpec: input.answers.homeLook
+            ? buildHomeSpec(input.answers.homeLook, generated.householdName || generated.homeId)
+            : undefined,
           floors: generated.floors,
           rooms: generated.rooms,
           assets: generated.assets,

@@ -39,18 +39,29 @@ export function Clouds({ cover, className }: CloudsProps) {
   return (
     <div aria-hidden className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}>
       {clouds.map((c) => (
+        // Two elements, not one: a CSS `animation` overrides the whole
+        // `transform` property for as long as it runs, so a per-cloud
+        // `scale()` set inline on the same element that drifts was silently
+        // discarded the instant the drift keyframe (which only writes
+        // `translateX`) started — every cloud rendered at 1x regardless of
+        // `c.scale`. Splitting position/animation (outer) from the static
+        // scale (inner) keeps both.
         <div
           key={c.id}
-          className={cn("absolute h-11 w-28 rounded-[50%] bg-white/75 blur-[0.5px]", !reduce && "portrait-cloud")}
+          className={cn("absolute", !reduce && "portrait-cloud")}
           style={{
             top: c.top,
             left: "-30%",
             opacity: c.opacity,
-            transform: `scale(${c.scale})`,
             animationDuration: reduce ? undefined : `${c.duration}s`,
             animationDelay: reduce ? undefined : `${c.delay}s`,
           }}
-        />
+        >
+          <div
+            className="h-11 w-28 rounded-[50%] bg-white/75 blur-[0.5px]"
+            style={{ transform: `scale(${c.scale})` }}
+          />
+        </div>
       ))}
     </div>
   );

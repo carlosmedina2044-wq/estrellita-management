@@ -5,6 +5,7 @@ export const TIP_BUDGET_PRICES = "budget-no-prices";
 export const TIP_LOCK_REENGAGE = "lock-reengage";
 export const TIP_LOCK_KEEP_PRIVATE = "lock-keep-private";
 export const TIP_WALK_AFTER_DAY_ONE = "walk-after-day-one";
+export const TIP_HOUSE_REVEAL = "house-reveal";
 
 const TEACHING_DAYS = 7;
 
