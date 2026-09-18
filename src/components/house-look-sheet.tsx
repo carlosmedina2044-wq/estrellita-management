@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useLocale } from "@/i18n/locale-provider";
 import { useClock } from "@/hooks/use-clock";
-import type { KitType, PaletteId } from "@/lib/types";
+import type { Household, KitType, PaletteId } from "@/lib/types";
 
 export function HouseLookSheet({
   open,
@@ -14,6 +14,7 @@ export function HouseLookSheet({
   order,
   lat,
   lng,
+  home,
   onOpenChange,
   onChange,
 }: {
@@ -23,6 +24,7 @@ export function HouseLookSheet({
   order: KitType[];
   lat?: number;
   lng?: number;
+  home?: Household;
   onOpenChange: (open: boolean) => void;
   onChange: (next: { kitType: KitType; palette: PaletteId }) => void;
 }) {
@@ -43,6 +45,7 @@ export function HouseLookSheet({
             now={now}
             lat={lat}
             lng={lng}
+            home={home}
             onChange={onChange}
           />
         </div>

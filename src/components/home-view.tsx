@@ -924,6 +924,7 @@ export function HomeView({
         order={[...KIT_TYPES]}
         lat={household.location.lat}
         lng={household.location.lng}
+        home={household}
         onOpenChange={setHouseLookOpen}
         onChange={(next) =>
           onChangeTree?.({ ...household, homeSpec: buildHomeSpec(next, household.householdName) })

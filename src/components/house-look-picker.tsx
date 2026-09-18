@@ -1,20 +1,23 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "motion/react";
+import { Lock } from "lucide-react";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { PortraitScene } from "@/components/today/portrait-scene";
+import type { MessageKey } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { toISODate } from "@/lib/dates";
 import { dayArc } from "@/lib/momentum";
 import { SPRING_SETTLE } from "@/lib/motion";
 import { hapticPress } from "@/lib/native/haptics";
 import { PALETTE_LIST } from "@/lib/scene/palettes";
+import { paletteLocks, paletteLocksAtLevel } from "@/lib/scene/unlocks";
 import { portraitKit } from "@/lib/scene/portrait";
 import { previewHousehold } from "@/lib/scene/preview-household";
 import { skyPhase, sunTimes } from "@/lib/scene/sun";
 import { sceneWeather } from "@/lib/scene/weather";
-import type { KitType, PaletteId } from "@/lib/types";
+import type { Household, KitType, PaletteId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -31,6 +34,7 @@ export function HouseLookPicker({
   now,
   lat,
   lng,
+  home,
   onChange,
 }: {
   kitType: KitType;
@@ -39,6 +43,10 @@ export function HouseLookPicker({
   now: Date;
   lat?: number;
   lng?: number;
+  /** The real home, for the colours it has earned. Left out during onboarding,
+   * where nothing has been earned yet — the ladder still shows there, with
+   * every locked colour naming the level that opens it. */
+  home?: Household;
   onChange: (next: { kitType: KitType; palette: PaletteId }) => void;
 }) {
   const { t } = useLocale();
@@ -47,6 +55,17 @@ export function HouseLookPicker({
   const scenePhase = useMemo(() => skyPhase(now, sceneTimes), [now, sceneTimes]);
   const arc = useMemo(() => dayArc(household, now, "all"), [household, now]);
   const weather = useMemo(() => sceneWeather(null, toISODate(now)), [now]);
+  // A colour nobody has earned still shows, named by the level that opens it.
+  // A locked swatch with its requirement on it *is* the ladder — hiding them
+  // would leave the picker looking like three choices, one of which happens
+  // to be missing.
+  const locks = useMemo(
+    () => (home ? paletteLocks(home, now, palette) : paletteLocksAtLevel("settling-in", palette)),
+    [home, now, palette],
+  );
+  const lockFor = (id: PaletteId) => locks.find((entry) => entry.palette === id) ?? null;
+  const [explained, setExplained] = useState<PaletteId | null>(null);
+  const explainedLock = explained ? lockFor(explained) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -100,29 +119,75 @@ export function HouseLookPicker({
         })}
       </div>
 
-      <div className="flex items-center justify-center gap-5">
-        {PALETTE_LIST.map((swatch) => (
-          <button
-            key={swatch.id}
-            type="button"
-            aria-pressed={palette === swatch.id}
-            onClick={() => {
-              void hapticPress();
-              onChange({ kitType, palette: swatch.id });
-            }}
-            className="flex flex-col items-center gap-1.5"
-          >
-            <span
-              aria-hidden
-              className={cn(
-                "block size-10 overflow-hidden rounded-full ring-2 ring-offset-2 ring-offset-background",
-                palette === swatch.id ? "ring-primary" : "ring-transparent",
-              )}
-              style={{ background: `linear-gradient(135deg, ${swatch.wall} 50%, ${swatch.roof} 50%)` }}
-            />
-            <span className="ui-caption text-muted-foreground">{t(swatch.labelKey)}</span>
-          </button>
-        ))}
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex items-center justify-center gap-5">
+          {PALETTE_LIST.map((swatch) => {
+            const lock = lockFor(swatch.id);
+            const locked = Boolean(lock && !lock.unlocked);
+            const label = t(swatch.labelKey);
+            return (
+              <button
+                key={swatch.id}
+                type="button"
+                aria-pressed={palette === swatch.id}
+                aria-label={
+                  locked && lock?.needs
+                    ? t("portrait.paletteLocked", {
+                        palette: label,
+                        level: t(`care.level.${lock.needs}` as MessageKey),
+                      })
+                    : label
+                }
+                onClick={() => {
+                  void hapticPress();
+                  if (locked) {
+                    setExplained(swatch.id);
+                    return;
+                  }
+                  setExplained(null);
+                  onChange({ kitType, palette: swatch.id });
+                }}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <span className="relative block size-10">
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "block size-10 overflow-hidden rounded-full ring-2 ring-offset-2 ring-offset-background",
+                      palette === swatch.id ? "ring-primary" : "ring-transparent",
+                      locked && "opacity-40 saturate-50",
+                    )}
+                    style={{ background: `linear-gradient(135deg, ${swatch.wall} 50%, ${swatch.roof} 50%)` }}
+                  />
+                  {locked ? (
+                    <span
+                      aria-hidden
+                      className="absolute inset-0 flex items-center justify-center text-foreground/70"
+                    >
+                      <Lock className="size-4" />
+                    </span>
+                  ) : null}
+                </span>
+                <span
+                  className={cn(
+                    "ui-caption",
+                    locked ? "text-muted-foreground/60" : "text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {explainedLock?.needs ? (
+          <p className="ui-caption text-center text-muted-foreground">
+            {t("portrait.paletteLocked", {
+              palette: t(`portrait.palette.${explainedLock.palette}` as MessageKey),
+              level: t(`care.level.${explainedLock.needs}` as MessageKey),
+            })}
+          </p>
+        ) : null}
       </div>
     </div>
   );
