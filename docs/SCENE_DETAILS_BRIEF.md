@@ -35,10 +35,24 @@ Losing a level takes its piece back off the house.
 
 | Piece | Earned at | Anchor | Size cap |
 | --- | --- | --- | --- |
-| Planter | Kept | left of the door, ground | 10 KB |
-| Window box | Well kept | under the lowest front window | 10 KB |
-| Bench | Cared for | right side of the house, ground | 12 KB |
-| Door wreath | Loved | on the door face | 8 KB |
+| Planter | Kept | ground, clearest point along the front | 10 KB |
+| Window box | Well kept | on a front sill, clear of the porch | 10 KB |
+| Bench | Cared for | on the lawn past the right corner | 12 KB |
+| Door wreath | Loved | door face, below the lantern | 8 KB |
+
+Anchors are computed per kit, not fixed: the door sits anywhere from a third
+to two thirds across, so the ground positions are found by scanning the front
+for the point furthest from everything already standing there. The first pass
+used constants and put the wreath under the porch lantern on all 21 kits and
+the planter on the sprinkler on 12. `care-decor.test.ts` measures every pair
+on every kit and fails on a regression. The one standing exception is the
+window box: it is pinned to a real sill, so on the six single-storey kits
+whose only low window sits over the porch it lands near whatever is there.
+
+Note for the art pass: several kits' `door` anchors in the manifest sit a
+little off the painted door, which the lantern and string lights already
+inherit. The wreath will look misplaced on those until the anchors are
+corrected.
 
 Static PNG or SVG, not Lottie: nothing here animates, so nothing here competes
 with the living details. Same warm neutral palette as the details so one file

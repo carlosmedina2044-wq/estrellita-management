@@ -1,4 +1,4 @@
-import type { PortraitKitEntry } from "@/lib/scene/portrait";
+import type { PortraitKitEntry, PortraitWindowRect } from "@/lib/scene/portrait";
 import { CARE_LEVELS, type CareLevelId } from "@/lib/types";
 
 /** Earned by holding a care level. */
@@ -54,23 +54,89 @@ function pct(value: number, of: number): number {
 }
 
 /**
- * The lowest window on the front of the house — where a window box belongs.
- * Kits carry between one and six windows, so this never assumes an upper
- * storey exists.
+ * The front window a box belongs under: the lowest one, and among equally low
+ * ones the furthest from the door, so the box is not stacked on whatever the
+ * porch already carries. Kits hold between one and six windows, so this never
+ * assumes an upper storey exists.
  */
-function groundWindow(kit: PortraitKitEntry) {
+function boxWindow(kit: PortraitKitEntry) {
   if (kit.windows.length === 0) return null;
-  return kit.windows.reduce((lowest, window) =>
-    window.y + window.h > lowest.y + lowest.h ? window : lowest,
+  const b = kit.houseBounds;
+  const doorX = kit.door?.x ?? b.x + b.w / 2;
+  const lowest = kit.windows.reduce((best, window) =>
+    window.y + window.h > best.y + best.h ? window : best,
   );
+  const band = b.h * 0.12;
+  const baseY = b.y + b.h * 0.93;
+  const level = kit.windows.filter((window) => window.y + window.h >= lowest.y + lowest.h - band);
+  // A sill sitting right on the porch puts the box among whatever stands
+  // there; prefer one with air under it when the kit offers one.
+  const clearOfGround = level.filter((window) => baseY - (window.y + window.h) > b.h * 0.22);
+  const pool = clearOfGround.length > 0 ? clearOfGround : level;
+  // Furthest from the door and from whatever stands on the ground below it.
+  const crowd = [doorX, b.x + b.w * 0.16, doorX + b.w * 0.09];
+  const clearance = (window: PortraitWindowRect) => {
+    const cx = window.x + window.w / 2;
+    return Math.min(...crowd.map((at) => Math.abs(cx - at)));
+  };
+  return pool.reduce((best, window) => (clearance(window) > clearance(best) ? window : best));
+}
+
+/**
+ * The spot on the ground line furthest from everything already standing there.
+ *
+ * A fixed fraction cannot work. The door sits anywhere from a third to two
+ * thirds across depending on the kit, and the porch the companion stands on
+ * moves with it, so any constant put the planter on the companion on 13 of the
+ * 21 kits. Picking the middle of the widest gap was no better: a narrow gap's
+ * midpoint is close to both of its own edges. Scanning the front and taking
+ * the point of greatest clearance is the only version that holds on every kit.
+ */
+function clearestGroundX(kit: PortraitKitEntry, avoid: number[]): number {
+  const b = kit.houseBounds;
+  // The search runs a little onto the lawn at either end: on a narrow kit the
+  // house front alone has no point that clears everything standing on it.
+  const from = b.x - b.w * 0.08;
+  const to = b.x + b.w * 0.98;
+  const step = b.w / 100;
+  let best = { at: from, clearance: -1 };
+  for (let at = from; at <= to; at += step) {
+    const clearance = Math.min(...avoid.map((other) => Math.abs(at - other)));
+    if (clearance > best.clearance) best = { at, clearance };
+  }
+  return best.at;
+}
+
+/** How far past the house's right edge the bench stands, as a fraction of its width. */
+const BENCH_OFFSET = 1.05;
+
+/** Where `scene/details.ts` already stands things on the ground line. */
+function groundTaken(kit: PortraitKitEntry): number[] {
+  const b = kit.houseBounds;
+  const doorX = kit.door?.x ?? b.x + b.w / 2;
+  return [b.x + b.w * 0.16, doorX + b.w * 0.09];
+}
+
+function planterX(kit: PortraitKitEntry): number {
+  const b = kit.houseBounds;
+  const box = boxWindow(kit);
+  // The box is pinned to a real sill and the bench stands off the right
+  // corner, so the one thing that can move dodges both.
+  const taken = [...groundTaken(kit), b.x + b.w * BENCH_OFFSET];
+  if (box) taken.push(box.x + box.w / 2);
+  return clearestGroundX(kit, taken);
 }
 
 /**
  * Where each decoration lands on this kit, from the geometry the manifest
- * already carries. Kept clear of the anchors `scene/details.ts` uses: the
- * companion sits to the right of the door and the sprinkler to the left of
- * the house, so the planter takes the near-left of the door and the bench
- * the far right.
+ * already carries.
+ *
+ * These share a small house with the seven anchors in `scene/details.ts`. The
+ * first pass put the wreath on top of the porch lantern on all 21 kits and the
+ * planter on the sprinkler on 12 of them, so the crowded places — the ground
+ * line and the roof — are measured per kit rather than guessed at with a
+ * constant. `care-decor.test.ts` checks every pair on every kit and fails if
+ * one is nudged into another.
  */
 export function careDecorAnchor(kind: CareDecorKind, kit: PortraitKitEntry): { x: number; y: number } {
   const { frame, houseBounds: b } = kit;
@@ -78,19 +144,27 @@ export function careDecorAnchor(kind: CareDecorKind, kit: PortraitKitEntry): { x
   const baseY = b.y + b.h * 0.93;
   switch (kind) {
     case "planter":
-      return { x: pct(door.x - b.w * 0.1, frame.w), y: pct(baseY, frame.h) };
+      return { x: pct(planterX(kit), frame.w), y: pct(baseY, frame.h) };
     case "window-box": {
-      const window = groundWindow(kit);
+      const window = boxWindow(kit);
       if (!window) return { x: pct(b.x + b.w * 0.3, frame.w), y: pct(b.y + b.h * 0.6, frame.h) };
       return { x: pct(window.x + window.w / 2, frame.w), y: pct(window.y + window.h, frame.h) };
     }
     case "bench":
-      return { x: pct(b.x + b.w * 0.76, frame.w), y: pct(baseY, frame.h) };
+      // On the lawn beside the house rather than along its front. The front
+      // ground line already carries the sprinkler, the porch companion, the
+      // planter and whatever sill the box takes; on a narrow kit there is
+      // simply no fifth place along it that clears the rest.
+      return { x: pct(b.x + b.w * BENCH_OFFSET, frame.w), y: pct(baseY, frame.h) };
     case "wreath":
-      return { x: pct(door.x, frame.w), y: pct(door.y - b.h * 0.04, frame.h) };
-    case "bunting":
-      // Strung across the front, above the windows and clear of the roofline.
-      return { x: pct(b.x + b.w / 2, frame.w), y: pct(b.y + b.h * 0.34, frame.h) };
+      // On the door face, below the lantern and the string lights above it.
+      return { x: pct(door.x, frame.w), y: pct(door.y + frame.h * 0.045, frame.h) };
+    case "bunting": {
+      // Under the eaves, strung away from the chimney the smoke rises out of.
+      const chimneyX = kit.chimney?.x ?? b.x + b.w * 0.7;
+      const side = chimneyX > b.x + b.w / 2 ? 0.3 : 0.7;
+      return { x: pct(b.x + b.w * side, frame.w), y: pct(b.y + b.h * 0.1, frame.h) };
+    }
   }
 }
 

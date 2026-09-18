@@ -9,6 +9,7 @@ import {
   careDecorKinds,
   levelForDecor,
 } from "@/lib/scene/care-decor";
+import { DETAIL_KINDS, anchorFor } from "@/lib/scene/details";
 import { PORTRAIT_MANIFEST, portraitKit } from "@/lib/scene/portrait";
 import { CARE_LEVELS } from "@/lib/types";
 
@@ -60,4 +61,70 @@ test("a loved house places all four without stacking two on one point", () => {
   assert.equal(placed.length, 4);
   const points = placed.map((item) => `${item.x},${item.y}`);
   assert.equal(new Set(points).size, points.length);
+});
+
+/**
+ * Anchors are percentages of the same box, so "too close" is measured on both
+ * axes: two things conflict when neither axis separates them.
+ */
+const MIN_SEPARATION = 8;
+
+function conflicts(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
+  return Math.abs(a.x - b.x) < MIN_SEPARATION && Math.abs(a.y - b.y) < MIN_SEPARATION;
+}
+
+const KITS = Object.keys(PORTRAIT_MANIFEST) as Array<Parameters<typeof portraitKit>[0]>;
+
+test("no decoration ever lands on another decoration", () => {
+  const clashes: string[] = [];
+  for (const kitType of KITS) {
+    const kit = portraitKit(kitType);
+    for (let i = 0; i < CARE_DECOR_KINDS.length; i += 1) {
+      for (let j = i + 1; j < CARE_DECOR_KINDS.length; j += 1) {
+        const a = careDecorAnchor(CARE_DECOR_KINDS[i], kit);
+        const b = careDecorAnchor(CARE_DECOR_KINDS[j], kit);
+        if (conflicts(a, b)) clashes.push(`${kitType}: ${CARE_DECOR_KINDS[i]} on ${CARE_DECOR_KINDS[j]}`);
+      }
+    }
+  }
+  assert.deepEqual(clashes, []);
+});
+
+test("every decoration the geometry lets us move clears the living details", () => {
+  // The window box is excluded deliberately: it is pinned to a real sill, so
+  // on a kit whose only low window sits over the porch it cannot be moved
+  // without ceasing to be a window box. Everything else is placed by us.
+  const clashes: string[] = [];
+  for (const kitType of KITS) {
+    const kit = portraitKit(kitType);
+    for (const decor of CARE_DECOR_KINDS) {
+      if (decor === "window-box") continue;
+      for (const detail of DETAIL_KINDS) {
+        if (conflicts(careDecorAnchor(decor, kit), anchorFor(detail, kit))) {
+          clashes.push(`${kitType}: ${decor} on ${detail}`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(clashes, []);
+});
+
+/**
+ * Six single-storey kits put their only low window straight over the porch,
+ * so the box lands near whatever stands there. Six is the measured floor with
+ * the current kit geometry, not a target: this guards the number against
+ * creeping up and should be lowered if the placement improves.
+ */
+const MAX_CROWDED_KITS = 6;
+
+test("the pinned window box crowds a detail on no more kits than it has to", () => {
+  const crowded = KITS.filter((kitType) => {
+    const kit = portraitKit(kitType);
+    const box = careDecorAnchor("window-box", kit);
+    return DETAIL_KINDS.some((detail) => conflicts(box, anchorFor(detail, kit)));
+  });
+  assert.ok(
+    crowded.length <= MAX_CROWDED_KITS,
+    `the window box crowds a detail on ${crowded.length} of ${KITS.length} kits: ${crowded.join(", ")}`,
+  );
 });
