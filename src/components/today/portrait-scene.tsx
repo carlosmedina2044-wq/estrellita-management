@@ -606,7 +606,7 @@ export function PortraitScene({
               void hapticTab();
               onOpenHouse();
             }}
-            className="pointer-events-auto block w-full rounded-3xl transition-transform duration-75 active:scale-[0.98]"
+            className="pointer-events-auto block w-full rounded-3xl ui-press"
           >
             <PortraitStack
               kitType={homeSpec.kitType}

@@ -1292,7 +1292,7 @@ export function TodayView({
                 aria-selected={active}
                 onClick={() => selectScope(item.id)}
                 className={cn(
-                  "relative h-11 flex-1 rounded-full ui-caption font-medium transition-transform duration-75 active:scale-[0.98]",
+                  "relative h-11 flex-1 rounded-full ui-caption font-medium ui-press",
                   active ? "text-brand-cream-foreground" : "text-secondary-foreground",
                 )}
               >
@@ -1316,7 +1316,7 @@ export function TodayView({
           type="button"
           onClick={() => setCalendarOpen((current) => !current)}
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-full transition-transform duration-75 active:scale-[0.98]",
+            "flex size-11 shrink-0 items-center justify-center rounded-full ui-press",
             calendarOpen || viewingCalendar
               ? "bg-brand-cream text-brand-cream-foreground ring-1 ring-primary/40"
               : "bg-secondary text-secondary-foreground",
@@ -1349,8 +1349,8 @@ export function TodayView({
             onClick={() => setFilter(item)}
             className={
               filter === item
-                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 ui-caption font-medium text-brand-cream-foreground shadow-sm ring-1 ring-primary/40 transition-transform duration-75 active:scale-[0.98]"
-                : "h-11 shrink-0 rounded-full bg-secondary px-3.5 ui-caption font-medium text-secondary-foreground transition-transform duration-75 active:scale-[0.98]"
+                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 ui-caption font-medium text-brand-cream-foreground shadow-sm ring-1 ring-primary/40 ui-press"
+                : "h-11 shrink-0 rounded-full bg-secondary px-3.5 ui-caption font-medium text-secondary-foreground ui-press"
             }
           >
             {item === "all"
@@ -1516,7 +1516,7 @@ export function TodayView({
         <button
           type="button"
           onClick={onOpenRestock}
-          className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 text-left transition-transform duration-75 active:scale-[0.98]"
+          className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 text-left ui-press"
         >
           <span className="flex items-center gap-2">
             <Package className="size-4 text-primary" aria-hidden />

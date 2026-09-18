@@ -121,7 +121,7 @@ export function RestockView({
           household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
               type="button"
-              className="inline-flex h-11 items-center rounded-full px-3 ui-caption font-medium text-primary transition-transform duration-75 active:scale-[0.98]"
+              className="inline-flex h-11 items-center rounded-full px-3 ui-caption font-medium text-primary ui-press"
               onClick={startWalk}
             >
               {t("restock.walkHouseShort")}

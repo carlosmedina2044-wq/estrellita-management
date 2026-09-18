@@ -90,7 +90,7 @@ function MonthGrid({
       aria-label={`${label}: ${t("today.runStripAria", { closed, open })}`}
       onClick={onSelect}
       className={cn(
-        "flex flex-col gap-1.5 rounded-xl p-1.5 text-left transition-transform duration-75 active:scale-[0.98]",
+        "flex flex-col gap-1.5 rounded-xl p-1.5 text-left ui-press",
         selected && "bg-secondary",
       )}
     >

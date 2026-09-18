@@ -1014,3 +1014,60 @@ html.keyboard-open [data-slot="sheet-footer"] {
     transform: translateX(120%);
   }
 }
+
+/*
+ * One press language for anything card-sized: tiles, chips, cards, the house,
+ * the month buttons. Three treatments were in use before this — a 0.98 scale
+ * over 75ms, a 0.99 scale over 75ms, and a tint with no scale — on elements
+ * that sit next to each other, so nothing said which differences were meant.
+ *
+ * Full-width list rows keep tint only (`active:bg-foreground/6`): a row that
+ * spans the screen shrinking away from its own edges reads as the layout
+ * breaking rather than as a press.
+ */
+.ui-press {
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.ui-press:active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-press:active {
+    transform: none;
+  }
+}
+
+/*
+ * A tab composing itself the first time it is opened in a launch. Marked by
+ * the shell, which is the only thing that knows a tab has actually been looked
+ * at — the root panes stay mounted and merely hidden, so a pane could
+ * otherwise play its entrance to nobody and be flat when it was finally
+ * opened.
+ *
+ * Applied to grandchildren because each pane holds one view component whose
+ * own children are the sections worth staggering. Five is enough: past the
+ * fold nobody sees the difference, and an entrance that runs for a second is
+ * a delay, not a flourish.
+ */
+[data-entering="true"] > * > * {
+  animation: tab-enter var(--dur-quick) var(--ease-out) both;
+}
+
+[data-entering="true"] > * > *:nth-child(1) { animation-delay: 0ms; }
+[data-entering="true"] > * > *:nth-child(2) { animation-delay: 60ms; }
+[data-entering="true"] > * > *:nth-child(3) { animation-delay: 120ms; }
+[data-entering="true"] > * > *:nth-child(4) { animation-delay: 180ms; }
+[data-entering="true"] > * > *:nth-child(n + 5) { animation-delay: 240ms; }
+
+@keyframes tab-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

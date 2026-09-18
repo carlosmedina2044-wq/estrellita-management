@@ -44,6 +44,7 @@ import { isCuidalaTodayUrl } from "@/lib/widget-url";
 import { hideLaunchSplash } from "@/lib/native/splash";
 import { motion } from "motion/react";
 import { DUR_SCREEN, EASE_OUT, prefersReducedMotion, scrollBehavior } from "@/lib/motion";
+import { useFirstReveal } from "@/hooks/use-session-arrival";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
@@ -114,6 +115,18 @@ export function AppShell() {
   const top = stack[stack.length - 1] ?? null;
   const backLabel = rootTab === "today" ? t("tabs.today") : rootTab === "restock" ? t("tabs.restock") : t("tabs.home");
   const reduceMotion = prefersReducedMotion();
+  // The first time a tab is opened in a launch its sections compose themselves
+  // instead of being stamped down all at once. Never on later switches: iOS
+  // tab bars change instantly, and a repeated entrance is the fastest way to
+  // make an app feel slow. Today has its own arrival and the year draws its
+  // own grid, so only these two need it.
+  //
+  // Declared here, above the shell's early returns for the opening screen and
+  // the lock, because hooks cannot be called conditionally — hence recomputing
+  // the two "is this tab showing" conditions rather than reusing the ones
+  // further down.
+  const homeFirstReveal = useFirstReveal("home", stack.length === 0 && rootTab === "home");
+  const restockFirstReveal = useFirstReveal("restock", stack.length === 0 && rootTab === "restock");
   const [leavingPush, setLeavingPush] = useState<AppNavigateTarget | null>(null);
   const leaveTimerRef = useRef<number | null>(null);
 
@@ -802,6 +815,7 @@ export function AppShell() {
           hidden={!homeActive}
           inert={!homeActive}
           className="app-keep-alive"
+          data-entering={homeFirstReveal ? "true" : undefined}
           ref={(node) => {
             tabPaneRefs.current.home = node;
           }}
@@ -815,7 +829,7 @@ export function AppShell() {
                   type="button"
                   aria-label={t("common.settings")}
                   onClick={() => navigate({ tab: "settings" })}
-                  className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-transform duration-75 active:scale-[0.98]"
+                  className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground ui-press"
                 >
                   <Settings className="size-5" />
                 </button>
@@ -866,6 +880,7 @@ export function AppShell() {
           hidden={!restockActive}
           inert={!restockActive}
           className="app-keep-alive"
+          data-entering={restockFirstReveal ? "true" : undefined}
           ref={(node) => {
             tabPaneRefs.current.restock = node;
           }}
@@ -1140,7 +1155,7 @@ function NavButton({
         onClick();
       }}
       className={cn(
-        "mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 ui-caption font-medium transition-colors duration-75 active:scale-[0.98]",
+        "mx-0.5 flex min-h-12 flex-col items-center justify-center gap-0.5 ui-caption font-medium transition-colors ui-press",
         active ? "text-primary" : "text-muted-foreground",
       )}
     >

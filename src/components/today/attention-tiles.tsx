@@ -88,7 +88,7 @@ export function AttentionTiles({
       <button
         type="button"
         onClick={onAllClear}
-        className="flex min-h-11 w-full items-center rounded-full bg-success/10 px-4 text-left transition-transform duration-75 active:scale-[0.98]"
+        className="flex min-h-11 w-full items-center rounded-full bg-success/10 px-4 text-left ui-press"
         aria-label={labels.allClearAria}
       >
         <span className="ui-body font-medium text-success">{labels.allClear}</span>
@@ -106,7 +106,7 @@ export function AttentionTiles({
           onClick={tile.onClick}
           aria-label={`${tile.count} ${tile.label}`}
           className={cn(
-            "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 ring-1 ring-border transition-transform duration-75 active:scale-[0.98]",
+            "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 ring-1 ring-border ui-press",
             "className" in tile ? tile.className : null,
           )}
         >

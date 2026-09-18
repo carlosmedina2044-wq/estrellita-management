@@ -171,7 +171,7 @@ export function DayRunCard({
           type="button"
           onClick={onOpenList}
           aria-label={t("today.runOpenList")}
-          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-transform duration-75 active:scale-[0.99]"
+          className="flex w-full items-center gap-3 px-4 py-3 text-left ui-press"
         >
           <DayRing arc={arc} />
           <span className="min-w-0 flex-1">
@@ -206,7 +206,7 @@ export function DayRunCard({
         aria-label={`${t("year.title")} · ${
           showRun ? `${t("today.runDay", { count: run.current })} · ` : ""
         }${t("today.runStripAria", { closed: closedDays, open: openDays })}`}
-        className="flex w-full items-center gap-3 border-t border-border px-4 py-2.5 text-left transition-transform duration-75 active:scale-[0.99]"
+        className="flex w-full items-center gap-3 border-t border-border px-4 py-2.5 text-left ui-press"
       >
         <span className="min-w-0">
           <span className="block ui-caption text-muted-foreground">{t("year.title")}</span>
