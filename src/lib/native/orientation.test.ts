@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
+// One import is enough: the module keeps no state of its own — it reads
+// `window` and storage at call time — so swapping the fake window between
+// tests is all the isolation these need.
+import { requestTilt, tiltNeedsPermission } from "@/lib/native/orientation";
 
 type Win = {
   DeviceOrientationEvent?: { requestPermission?: () => Promise<string> };
@@ -25,7 +29,6 @@ beforeEach(() => {
 
 test("a platform with no permission gate is treated as already granted", async () => {
   const store = installWindow();
-  const { requestTilt, tiltNeedsPermission } = await import("@/lib/native/orientation?no-gate");
   assert.equal(tiltNeedsPermission(), false);
   assert.equal(await requestTilt(), "granted");
   assert.equal(store.get("cuidala.motionTilt"), "granted");
@@ -37,7 +40,6 @@ test("the system prompt is asked once and the answer is remembered", async () =>
     calls += 1;
     return "granted";
   });
-  const { requestTilt } = await import("@/lib/native/orientation?asks-once");
   assert.equal(await requestTilt(), "granted");
   assert.equal(await requestTilt(), "granted");
   assert.equal(calls, 1, "the prompt was shown more than once");
@@ -50,7 +52,6 @@ test("a refusal is remembered so the prompt never comes back", async () => {
     calls += 1;
     return "denied";
   });
-  const { requestTilt } = await import("@/lib/native/orientation?denied");
   assert.equal(await requestTilt(), "denied");
   assert.equal(await requestTilt(), "denied");
   assert.equal(calls, 1);
@@ -61,7 +62,6 @@ test("a throw (no user gesture) is not remembered, so a later tap can ask again"
   const store = installWindow(async () => {
     throw new Error("not a user gesture");
   });
-  const { requestTilt } = await import("@/lib/native/orientation?throws");
   assert.equal(await requestTilt(), "denied");
   assert.equal(store.get("cuidala.motionTilt"), undefined);
 });

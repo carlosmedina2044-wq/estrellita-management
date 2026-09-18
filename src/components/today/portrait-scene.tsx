@@ -113,8 +113,10 @@ type PortraitSceneProps = {
    * sheet on Today). Left out for the decorative uses: the welcome loop,
    * the house-look picker and the lock screen stay pictures. */
   onOpenHouse?: () => void;
-  /** When given, each window with a room becomes a button into that room. */
-  onOpenRoom?: (roomId: string) => void;
+  /** When given, each window with a room becomes a button into that room.
+   * `from` is the window's own box on screen, so the caller can carry the
+   * transition out of that exact window rather than from nowhere. */
+  onOpenRoom?: (roomId: string, from: DOMRect) => void;
   /** Stills the detail animations (Today passes its compact-bar state). */
   paused?: boolean;
   /** One chore just committed: the house answers at that room's window (or
@@ -651,9 +653,9 @@ export function PortraitScene({
                   key={w.id}
                   type="button"
                   aria-label={t("scene.window", { room: room.name, state: stateLabel })}
-                  onClick={() => {
+                  onClick={(event) => {
                     void hapticTab();
-                    onOpenRoom(room.id);
+                    onOpenRoom(room.id, event.currentTarget.getBoundingClientRect());
                   }}
                   className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-lg"
                   style={{

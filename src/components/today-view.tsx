@@ -21,6 +21,7 @@ import { AttentionTiles } from "@/components/today/attention-tiles";
 import { ClosingReward } from "@/components/today/closing-ceremony";
 import { DayRunCard } from "@/components/today/day-run-card";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
+import { WindowZoomLayer, type WindowZoom } from "@/components/today/window-zoom";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { GetAheadCard } from "@/components/today/get-ahead-card";
@@ -273,6 +274,14 @@ export function TodayView({
   const [houseAnswer, setHouseAnswer] = useState<{ roomId: string | null; key: number } | null>(null);
   const houseAnswerKey = useRef(0);
   const tiltAsked = useRef(false);
+  // The pane of light that carries a window tap into that room's sheet.
+  const [windowZoom, setWindowZoom] = useState<WindowZoom | null>(null);
+  const windowZoomKey = useRef(0);
+  useEffect(() => {
+    if (!windowZoom) return;
+    const timer = window.setTimeout(() => setWindowZoom(null), 520);
+    return () => window.clearTimeout(timer);
+  }, [windowZoom]);
   useEffect(() => {
     if (!houseAnswer) return;
     // Longer than the flare itself (DUR_AMBIENT), so Today never unmounts
@@ -995,6 +1004,7 @@ export function TodayView({
       }
     >
       <ParticleLayer ref={particlesRef} />
+      <WindowZoomLayer zoom={windowZoom} />
       {sceneMode ? (
         // Zero-height, so the bar never takes a slot in the flow. Mounting a
         // real 52px block when the scroll passed 120px pushed the scope pills
@@ -1070,7 +1080,21 @@ export function TodayView({
                 }
                 setHouseOpen(true);
               }}
-              onOpenRoom={onNavigate ? (roomId) => onNavigate({ tab: "home", roomId }) : undefined}
+              onOpenRoom={
+                onNavigate
+                  ? (roomId, from) => {
+                      windowZoomKey.current += 1;
+                      setWindowZoom({
+                        x: from.left,
+                        y: from.top,
+                        w: from.width,
+                        h: from.height,
+                        key: windowZoomKey.current,
+                      });
+                      onNavigate({ tab: "home", roomId });
+                    }
+                  : undefined
+              }
               paused={compactBar || sceneCovered}
               answer={houseAnswer}
               hearth={arc.state === "closed"}
