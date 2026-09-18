@@ -14,7 +14,14 @@ export function Providers({ children }: { children: ReactNode }) {
       <LocaleProvider>
         <MotionConfig reducedMotion="user">
           {children}
-          <Toaster position="bottom-center" className="mb-[max(1rem,env(safe-area-inset-bottom))]" />
+          {/* One at a time: the toast is the house answering a chore, and a
+              stack of the house talking over itself is noise. Ticking three
+              things quickly should read as three answers in turn. */}
+          <Toaster
+            position="bottom-center"
+            visibleToasts={1}
+            className="mb-[max(1rem,env(safe-area-inset-bottom))]"
+          />
         </MotionConfig>
       </LocaleProvider>
     </ThemeProvider>

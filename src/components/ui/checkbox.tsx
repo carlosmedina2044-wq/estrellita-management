@@ -21,7 +21,10 @@ function Checkbox({
     >
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
-        className="grid place-content-center text-current transition-none [&>svg]:size-3.5"
+        // Was `transition-none`, so the tick simply appeared. It now scales
+        // up on the app's own quick step, matching the chore row and
+        // CircleCheck rather than being the one check that snaps.
+        className="grid place-content-center text-current [&>svg]:size-3.5 data-[state=checked]:animate-in data-[state=checked]:zoom-in-50 [animation-duration:var(--dur-quick)]"
       >
         <CheckIcon
         />

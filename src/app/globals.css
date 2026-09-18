@@ -1071,3 +1071,20 @@ html.keyboard-open [data-slot="sheet-footer"] {
     transform: none;
   }
 }
+
+/*
+ * The toast is the house answering a chore ("The kitchen looks better for
+ * that"), so it should arrive on the app's own curve rather than on sonner's
+ * defaults. Exit is quicker than entry, as everywhere else here: a line you
+ * have already read should get out of the way.
+ *
+ * One at a time is set in `providers.tsx`; this is only the travel.
+ */
+[data-sonner-toast] {
+  transition-timing-function: var(--ease-out) !important;
+  transition-duration: var(--dur-base) !important;
+}
+
+[data-sonner-toast][data-removed="true"] {
+  transition-duration: var(--dur-instant) !important;
+}

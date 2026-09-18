@@ -16,7 +16,8 @@ import { Button } from "@/components/ui/button";
 import { TeachingTip } from "@/components/teaching-tip";
 import { formatDueDate } from "@/lib/dates";
 import { roomName } from "@/lib/home-model";
-import { scrollBehavior } from "@/lib/motion";
+import { AnimatePresence, motion } from "motion/react";
+import { DUR_QUICK, EASE_OUT, scrollBehavior } from "@/lib/motion";
 import {
   SAMPLE_RESTOCK_PICKS,
   catalogItemForSupply,
@@ -281,8 +282,17 @@ export function RestockView({
             <ChevronDown className={cn("size-4 transition-transform", stockedOpen && "rotate-180")} />
           </span>
         </button>
+        <AnimatePresence initial={false}>
         {stockedOpen ? (
-          <div className="ui-group">
+          // Grows rather than pops: the list below it used to jump by the
+          // whole height of this section in one frame.
+          <motion.div
+            className="ui-group overflow-hidden"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
+          >
             {groups.stocked.map((item) => (
               <RestockRow
                 key={item.id}
@@ -294,8 +304,9 @@ export function RestockView({
                 {...restock}
               />
             ))}
-          </div>
+          </motion.div>
         ) : null}
+        </AnimatePresence>
       </section>
       ) : null}
 

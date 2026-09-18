@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { motion } from "motion/react";
 import { useLocale } from "@/i18n/locale-provider";
+import { SPRING_SETTLE } from "@/lib/motion";
+import { hapticPress } from "@/lib/native/haptics";
 import { cn } from "@/lib/utils";
 
 export type DutyMenuAction = "complete" | "snooze" | "edit" | "delete";
@@ -29,6 +32,9 @@ export function DutyContextMenu({
     const menuItems = () =>
       Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
     menuItems()[0]?.focus();
+    // The long press already buzzed on the way in; this is the menu itself
+    // arriving, which had been silent and instant.
+    void hapticPress();
     function onPointerDown(event: PointerEvent) {
       if (ref.current?.contains(event.target as Node)) return;
       onClose();
@@ -70,12 +76,18 @@ export function DutyContextMenu({
   const top = Math.min(Math.max(12, y), maxY - 200);
 
   return (
-    <div
+    <motion.div
       ref={ref}
       role="menu"
       aria-label={t("chore.menuAria", { title })}
       className="fixed z-[60] min-w-44 overflow-hidden rounded-xl bg-popover py-1 shadow-lg ring-1 ring-foreground/10"
-      style={{ left, top }}
+      // Grows out of the row it was pressed on rather than appearing. The
+      // origin is the corner nearest the finger, so the menu looks like it
+      // came from the press rather than from the middle of the screen.
+      style={{ left, top, originX: x > left + 90 ? 1 : 0, originY: y > top + 100 ? 1 : 0 }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={SPRING_SETTLE}
     >
       {items.map((item) => (
         <button
@@ -94,6 +106,6 @@ export function DutyContextMenu({
           {item.label}
         </button>
       ))}
-    </div>
+    </motion.div>
   );
 }
