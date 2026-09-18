@@ -23,7 +23,9 @@ export type PortraitKitEntry = {
   frame: { w: number; h: number };
   houseBounds: PortraitWindowRect | { x: number; y: number; w: number; h: number };
   windows: PortraitWindowRect[];
-  door: { x: number; y: number } | null;
+  /** Centre and size of the visible front door; `null` when the camera cannot
+   * see one (kits `p`, `r`, `s` hide theirs). See `doorAnchor`. */
+  door: { x: number; y: number; w?: number; h?: number } | null;
   chimney: { x: number; y: number } | null;
   windowCount: number;
   files: {
@@ -120,6 +122,46 @@ export function gradeOpacityForPhase(phase: string, t: number): number {
     default:
       return 0;
   }
+}
+
+/** The door, in frame pixels, with a fallback for the kits whose entrance the
+ * camera never sees. Everything that hangs off the threshold — the porch light,
+ * the string lights, the wreath, the doormat, the cat, the closing sparkle —
+ * goes through here so the fallback lives in one place rather than being
+ * re-guessed at each call site.
+ *
+ * The fallback comes from the eighteen doors that were measured out of the
+ * renders (see scripts/derive-door-anchors.mjs). Their height is tight across
+ * every kit (0.74-0.84 of the house); their horizontal placement is not, so
+ * an unseen door is put on the blankest stretch of the front wall — the point
+ * in the middle of the facade furthest from any window — rather than at a
+ * constant that would sometimes land on the glass.
+ */
+export function doorAnchor(kit: PortraitKitEntry): { x: number; y: number; w: number; h: number } {
+  const b = kit.houseBounds;
+  const fallbackW = b.w * 0.077;
+  const fallbackH = b.h * 0.188;
+  if (kit.door) {
+    return {
+      x: kit.door.x,
+      y: kit.door.y,
+      w: kit.door.w ?? fallbackW,
+      h: kit.door.h ?? fallbackH,
+    };
+  }
+  let bestX = b.x + b.w * 0.6;
+  let bestGap = -1;
+  for (let step = 0; step <= 20; step += 1) {
+    const x = b.x + b.w * (0.2 + (0.6 * step) / 20);
+    const gap = kit.windows.length
+      ? Math.min(...kit.windows.map((w) => Math.abs(x - (w.x + w.w / 2))))
+      : Infinity;
+    if (gap > bestGap) {
+      bestGap = gap;
+      bestX = x;
+    }
+  }
+  return { x: bestX, y: b.y + b.h * 0.81, w: fallbackW, h: fallbackH };
 }
 
 /** Foliage used to be one shared, day-lit image per season, which made the trees

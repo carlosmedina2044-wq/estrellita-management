@@ -26,6 +26,7 @@ import { houseLight } from "@/lib/scene/light";
 import { skyGradient } from "@/lib/scene/sky";
 import {
   dayOpacityForPhase,
+  doorAnchor,
   gradeOpacityForPhase,
   portraitKit,
   portraitLayerUrls,
@@ -321,7 +322,7 @@ export function PortraitScene({
     count: String(Math.max(0, arc.open)),
   });
 
-  const door = kit.door;
+  const door = doorAnchor(kit);
   const stackWidthPct = 62;
   // Transparent padding beneath the house inside its own render, as a fraction
   // of the image box, converted to viewport width so it can offset the box.
@@ -506,7 +507,7 @@ export function PortraitScene({
             }}
           />
         )}
-        {ceremony && door ? (
+        {ceremony ? (
           <motion.div
             className="pointer-events-none absolute"
             style={{

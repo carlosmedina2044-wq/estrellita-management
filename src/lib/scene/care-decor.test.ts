@@ -90,6 +90,18 @@ test("no decoration ever lands on another decoration", () => {
   assert.deepEqual(clashes, []);
 });
 
+/**
+ * The porch is one place, not four. A wreath hangs on the door, the lamp is
+ * mounted beside the door head, the string lights run above it and the cat
+ * sleeps on the step: all of them are within a door's width of the threshold
+ * on purpose, layered rather than stacked, and pulling them 8 points apart
+ * would mean putting the lamp out on blank wall and the lights in the eaves.
+ * They cleared each other before only because the door anchor was wrong and
+ * scattered them (see scripts/derive-door-anchors.mjs). Anything that is not
+ * door furniture still has to keep off the porch.
+ */
+const PORCH: ReadonlySet<string> = new Set(["wreath", "lantern", "string-lights", "companion"]);
+
 test("every decoration the geometry lets us move clears the living details", () => {
   // The window box is excluded deliberately: it is pinned to a real sill, so
   // on a kit whose only low window sits over the porch it cannot be moved
@@ -100,6 +112,7 @@ test("every decoration the geometry lets us move clears the living details", () 
     for (const decor of CARE_DECOR_KINDS) {
       if (decor === "window-box") continue;
       for (const detail of DETAIL_KINDS) {
+        if (PORCH.has(decor) && PORCH.has(detail)) continue;
         if (conflicts(careDecorAnchor(decor, kit), anchorFor(detail, kit))) {
           clashes.push(`${kitType}: ${decor} on ${detail}`);
         }

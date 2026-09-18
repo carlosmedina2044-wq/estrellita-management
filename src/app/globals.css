@@ -653,13 +653,37 @@ html.keyboard-open [data-slot="sheet-footer"] {
 .scene-details[data-paused="true"] * {
   animation-play-state: paused;
 }
+/*
+ * The porch light comes on once and then stays on. The fade-up is the moment;
+ * after it, the only movement is a flicker built from stops that do not sit on
+ * a beat, so it never reads as a pulse. The previous version scaled a radial
+ * blob 15% wider every three seconds, which is what made it look pasted on.
+ */
 .detail-lantern {
-  background: radial-gradient(closest-side, rgba(255, 196, 120, 0.85), rgba(255, 196, 120, 0));
-  animation: detail-glow 3s ease-in-out infinite;
+  animation: detail-lantern-on 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-@keyframes detail-glow {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.15); opacity: 1; }
+@keyframes detail-lantern-on {
+  0% { opacity: 0; }
+  35% { opacity: 1; }
+  48% { opacity: 0.62; }
+  62% { opacity: 1; }
+  70% { opacity: 0.86; }
+  100% { opacity: 1; }
+}
+.detail-lantern-glow {
+  animation: detail-lantern-flicker 7.3s ease-in-out infinite;
+  transform-origin: 13px 12px;
+}
+@keyframes detail-lantern-flicker {
+  0% { opacity: 1; }
+  17% { opacity: 0.93; }
+  24% { opacity: 1; }
+  43% { opacity: 0.89; }
+  49% { opacity: 0.99; }
+  61% { opacity: 0.94; }
+  76% { opacity: 1; }
+  84% { opacity: 0.9; }
+  100% { opacity: 1; }
 }
 .detail-puff {
   background: rgba(235, 232, 226, 0.75);

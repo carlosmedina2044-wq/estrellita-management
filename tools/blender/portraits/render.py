@@ -873,17 +873,40 @@ def build_and_render(
     clusters = cluster_windows(glass)
     windows = refine_window_rects(cam, clusters)
 
+    # Only the door the camera can see. Averaging every door-coloured face —
+    # the back door, the jamb, the slab's hidden edges — pulls the centroid
+    # into the middle of the house, and the projection of that lands on the
+    # roof. Six anchors hang off the threshold (porch lantern, string lights,
+    # wreath, doormat, cat, closing sparkle), so all six were misplaced. Same
+    # facing test the window pass has always used. Renders shipped before this
+    # fix were corrected in place by scripts/derive-door-anchors.mjs.
     door_anchor = None
     if door:
-        pts = []
+        cam_loc = cam.matrix_world.translation
+        facing = []
         for o, pi in door:
+            rot = o.matrix_world.to_3x3()
+            normal = (rot @ o.data.polygons[pi].normal).normalized()
+            centre = o.matrix_world @ o.data.polygons[pi].center
+            if normal.dot((cam_loc - centre).normalized()) < 0.2:
+                continue
+            facing.append((o, pi))
+        pts = []
+        for o, pi in facing:
             pts.extend(window_world_points(o, [pi]))
         if pts:
-            c = sum(pts, Vector((0, 0, 0))) / len(pts)
             from bpy_extras.object_utils import world_to_camera_view
 
-            co = world_to_camera_view(bpy.context.scene, cam, c)
-            door_anchor = {"x": round(co.x * FRAME_W, 1), "y": round((1 - co.y) * FRAME_H, 1)}
+            # Centre and size, so anchors can be placed off the door's own
+            # height instead of a guessed fraction of the frame.
+            rect = project_rect(cam, pts)
+            if rect:
+                door_anchor = {
+                    "x": round(rect["x"] + rect["w"] / 2, 1),
+                    "y": round(rect["y"] + rect["h"] / 2, 1),
+                    "w": round(rect["w"], 1),
+                    "h": round(rect["h"], 1),
+                }
 
     chimney = find_chimney_top(house_meshes)
     chimney_anchor = None

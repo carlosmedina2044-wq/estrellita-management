@@ -12,7 +12,7 @@ registering it in `src/lib/illustrations.ts`, and replacing the matching
 | Moment | Shows when | Loop | Anchor | Size cap |
 | --- | --- | --- | --- | --- |
 | Chimney smoke | Closed day, winter or night | 4 s | `chimney` | 20 KB |
-| Door lantern | Dusk or night, anything done | 3 s | `door` | 12 KB |
+| Porch light | Dusk or night, anything done | fade-up, then flicker | wall beside the door head | 12 KB |
 | String lights | Dusk or night, care level loved | 3 s | porch line above the door | 16 KB |
 | Porch cat | Closed day, cared-for or above; asleep at night | 5 s (2 states) | porch, right of the door | 20 KB |
 | Laundry line | Day, laundry room fresh, no rain or snow | 4 s | left of the house, mid-height | 16 KB |
@@ -20,7 +20,11 @@ registering it in `src/lib/illustrations.ts`, and replacing the matching
 | Sprinkler arc | Summer day, irrigation done in the last 3 days | 3 s | left ground | 16 KB |
 
 Rules: at most two details at once, best first (lantern, smoke, companion,
-string lights, leaves, laundry, sprinkler). The negative state is leaves
+string lights, leaves, laundry, sprinkler). The porch light is the one that
+has to read as light rather than as an object: the fitting is drawn about the
+size of the door handle it hangs beside, and the wash falling down the wall
+does the work. It comes on once and then only flickers — the version that
+breathed 15% wider every three seconds read as a sticker. The negative state is leaves
 alone. Nothing rusts, cracks or turns red. Every moment must have a static
 poster for Reduce Motion, and the illustration budget test allows 500 KB plus
 120 KB for these seven files.
@@ -49,10 +53,14 @@ on every kit and fails on a regression. The one standing exception is the
 window box: it is pinned to a real sill, so on the six single-storey kits
 whose only low window sits over the porch it lands near whatever is there.
 
-Note for the art pass: several kits' `door` anchors in the manifest sit a
-little off the painted door, which the lantern and string lights already
-inherit. The wreath will look misplaced on those until the anchors are
-corrected.
+The `door` anchor is now measured out of the renders rather than taken from
+Blender's door-face centroid, which averaged in the back door and the hidden
+edges and landed on the roof on every kit — see
+`scripts/derive-door-anchors.mjs` and the fix in
+`tools/blender/portraits/render.py`. It carries the door's size as well as its
+centre, so anything on the porch is placed off the door's own height. Three
+kits (`p`, `r`, `s`) hide their entrance from the camera and fall back to
+`doorAnchor()` in `src/lib/scene/portrait.ts`.
 
 Static PNG or SVG, not Lottie: nothing here animates, so nothing here competes
 with the living details. Same warm neutral palette as the details so one file

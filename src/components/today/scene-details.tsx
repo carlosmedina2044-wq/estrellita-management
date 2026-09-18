@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import type { SceneDetail } from "@/lib/scene/details";
 
 /**
@@ -36,10 +37,48 @@ export function SceneDetails({
   );
 }
 
+/**
+ * The porch light. What reads as "someone is home" is the light a lamp throws,
+ * not the lamp: the fitting is drawn about the size of the door handle it hangs
+ * beside, and the wash falling down the wall below it does the work. It fades
+ * up once when it comes on, then only flickers — a light that breathes 15%
+ * wider every three seconds is the one thing a real one never does.
+ */
+function PorchLight() {
+  const id = useId();
+  return (
+    // `overflow-visible` lets the wash fall past the box to the step without
+    // moving the lamp off the anchor, which is the door head.
+    <svg viewBox="0 0 26 26" className="detail-lantern block size-[26px] overflow-visible" fill="none">
+      <defs>
+        <radialGradient id={`${id}-bloom`}>
+          <stop offset="0%" stopColor="#ffe3b0" stopOpacity="0.9" />
+          <stop offset="40%" stopColor="#ffb457" stopOpacity="0.38" />
+          <stop offset="100%" stopColor="#ff9c3a" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id={`${id}-cone`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffc472" stopOpacity="0.5" />
+          <stop offset="50%" stopColor="#ffb457" stopOpacity="0.16" />
+          <stop offset="100%" stopColor="#ff9c3a" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <g className="detail-lantern-glow">
+        {/* The wash down the wall — a light has a direction; a blob does not. */}
+        <path d="M10.9 12.3 H15.1 L21.2 31 H4.8 Z" fill={`url(#${id}-cone)`} />
+        <circle cx="13" cy="12.2" r="7.6" fill={`url(#${id}-bloom)`} />
+        <circle cx="13" cy="12.1" r="1.15" fill="#ffeccb" />
+      </g>
+      {/* The fitting itself, read as a silhouette against its own light. */}
+      <path d="M13 7.6 V9" stroke="#2f2a25" strokeWidth="0.9" strokeLinecap="round" />
+      <path d="M10.7 12.3 L13 8.8 L15.3 12.3 Z" fill="#2f2a25" />
+    </svg>
+  );
+}
+
 function Detail({ kind, asleep }: { kind: SceneDetail["kind"]; asleep?: boolean }) {
   switch (kind) {
     case "lantern":
-      return <span className="detail-lantern block size-7 rounded-full" />;
+      return <PorchLight />;
     case "smoke":
       return (
         <span className="relative block h-10 w-6">

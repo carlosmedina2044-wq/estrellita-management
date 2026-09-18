@@ -1,4 +1,4 @@
-import type { PortraitKitEntry, PortraitWindowRect } from "@/lib/scene/portrait";
+import { doorAnchor, type PortraitKitEntry, type PortraitWindowRect } from "@/lib/scene/portrait";
 import { CARE_LEVELS, type CareLevelId } from "@/lib/types";
 
 /** Earned by holding a care level. */
@@ -62,7 +62,7 @@ function pct(value: number, of: number): number {
 function boxWindow(kit: PortraitKitEntry) {
   if (kit.windows.length === 0) return null;
   const b = kit.houseBounds;
-  const doorX = kit.door?.x ?? b.x + b.w / 2;
+  const doorX = doorAnchor(kit).x;
   const lowest = kit.windows.reduce((best, window) =>
     window.y + window.h > best.y + best.h ? window : best,
   );
@@ -113,7 +113,7 @@ const BENCH_OFFSET = 1.05;
 /** Where `scene/details.ts` already stands things on the ground line. */
 function groundTaken(kit: PortraitKitEntry): number[] {
   const b = kit.houseBounds;
-  const doorX = kit.door?.x ?? b.x + b.w / 2;
+  const doorX = doorAnchor(kit).x;
   return [b.x + b.w * 0.16, doorX + b.w * 0.09];
 }
 
@@ -140,7 +140,7 @@ function planterX(kit: PortraitKitEntry): number {
  */
 export function careDecorAnchor(kind: CareDecorKind, kit: PortraitKitEntry): { x: number; y: number } {
   const { frame, houseBounds: b } = kit;
-  const door = kit.door ?? { x: b.x + b.w / 2, y: b.y + b.h * 0.8 };
+  const door = doorAnchor(kit);
   const baseY = b.y + b.h * 0.93;
   switch (kind) {
     case "planter":
@@ -158,7 +158,10 @@ export function careDecorAnchor(kind: CareDecorKind, kit: PortraitKitEntry): { x
       return { x: pct(b.x + b.w * BENCH_OFFSET, frame.w), y: pct(baseY, frame.h) };
     case "wreath":
       // On the door face, below the lantern and the string lights above it.
-      return { x: pct(door.x, frame.w), y: pct(door.y + frame.h * 0.045, frame.h) };
+      // Off the door's own height, not a fraction of the frame: kits vary
+      // enough that a constant put it on the step on some and the lintel on
+      // others.
+      return { x: pct(door.x, frame.w), y: pct(door.y - door.h * 0.12, frame.h) };
     case "bunting": {
       // Under the eaves, strung away from the chimney the smoke rises out of.
       const chimneyX = kit.chimney?.x ?? b.x + b.w * 0.7;
