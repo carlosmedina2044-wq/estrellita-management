@@ -87,6 +87,7 @@ import { CEREMONY_BEAT, CEREMONY_MS, DUR_QUICK, EASE_OUT, SPRING_SETTLE, STAGGER
 import { hapticClose, hapticComplete, hapticLevelUp, hapticSuccess, hapticTab } from "@/lib/native/haptics";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { useLocale } from "@/i18n/locale-provider";
+import { requestTilt } from "@/lib/native/orientation";
 import { useClock } from "@/hooks/use-clock";
 import { useNow } from "@/hooks/use-now";
 import { useSessionArrival } from "@/hooks/use-session-arrival";
@@ -271,6 +272,7 @@ export function TodayView({
   // flare left mounted would replay on the next unrelated re-render.
   const [houseAnswer, setHouseAnswer] = useState<{ roomId: string | null; key: number } | null>(null);
   const houseAnswerKey = useRef(0);
+  const tiltAsked = useRef(false);
   useEffect(() => {
     if (!houseAnswer) return;
     // Longer than the flare itself (DUR_AMBIENT), so Today never unmounts
@@ -589,6 +591,20 @@ export function TodayView({
   const secondaryLine = [headingDate, weatherSentence ?? (!needsZip ? weatherLine : null)]
     .filter(Boolean)
     .join(" · ");
+
+  // Anything sitting over the scene. The parallax and the living details both
+  // stop while one of these is up: a picture drifting behind a sheet reads as
+  // a bug, and nothing back there is being looked at anyway.
+  const sceneCovered =
+    houseOpen ||
+    calendarOpen ||
+    zipOpen ||
+    yearIntroOpen ||
+    moreOptionsOpen ||
+    detail !== null ||
+    shareCard !== null ||
+    dutyMenu !== null ||
+    orderItemId !== null;
 
   const ceremonyActive = ceremonyDay === todayIso;
   // `ceremonyActive` stays true for the rest of the session, which is right
@@ -1042,9 +1058,20 @@ export function TodayView({
               greeting={greeting}
               secondaryLine={secondaryLine}
               onOpenSettings={onOpenSettings}
-              onOpenHouse={() => setHouseOpen(true)}
+              onOpenHouse={() => {
+                // WebKit hands out no `deviceorientation` events until this
+                // has been called from inside a gesture. The house tap is the
+                // right one: it is the first thing anyone does to the scene,
+                // it happens after the reveal, and if it is declined the only
+                // consequence is a house that does not lean.
+                if (!tiltAsked.current) {
+                  tiltAsked.current = true;
+                  void requestTilt();
+                }
+                setHouseOpen(true);
+              }}
               onOpenRoom={onNavigate ? (roomId) => onNavigate({ tab: "home", roomId }) : undefined}
-              paused={compactBar}
+              paused={compactBar || sceneCovered}
               answer={houseAnswer}
               hearth={arc.state === "closed"}
               warm={ceremonyPlaying ? 1 : 0}

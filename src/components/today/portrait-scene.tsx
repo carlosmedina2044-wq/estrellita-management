@@ -5,6 +5,7 @@ import {
   motion,
   useReducedMotion,
   useSpring,
+  useTransform,
   type TargetAndTransition,
   type Transition,
 } from "motion/react";
@@ -227,6 +228,13 @@ function useMinuteTicker(enabled: boolean): Date {
   return now;
 }
 
+/**
+ * How far each layer of the scene moves against a tilt, as a multiple of the
+ * house's own travel. The point of a diorama is that the near things move more
+ * than the far ones; moving only the house made the whole picture slide.
+ */
+const TILT_DEPTH = { sky: 0.3, clouds: 0.5, house: 1, ground: 1.3 } as const;
+
 function useGyroOffset(enabled: boolean) {
   const reduce = useReducedMotion();
   const x = useSpring(0, { stiffness: 120, damping: 20 });
@@ -394,7 +402,17 @@ export function PortraitScene({
   const precip =
     weather.kind === "rain" || weather.kind === "snow" ? Math.max(0.35, weather.precipIntensity) : 0;
 
-  const gyro = useGyroOffset(!reduce);
+  // Stilled while a sheet is over the scene or the compact bar has taken the
+  // top of the screen: a picture drifting behind a sheet reads as a bug.
+  const gyro = useGyroOffset(!reduce && !paused);
+  const skyX = useTransform(gyro.x, (value) => value * TILT_DEPTH.sky);
+  const skyY = useTransform(gyro.y, (value) => value * TILT_DEPTH.sky);
+  const cloudX = useTransform(gyro.x, (value) => value * TILT_DEPTH.clouds);
+  const cloudY = useTransform(gyro.y, (value) => value * TILT_DEPTH.clouds);
+  // Applied on top of the house's own offset, so the ground layer ends up at
+  // TILT_DEPTH.ground overall.
+  const groundX = useTransform(gyro.x, (value) => value * (TILT_DEPTH.ground - TILT_DEPTH.house));
+  const groundY = useTransform(gyro.y, (value) => value * (TILT_DEPTH.ground - TILT_DEPTH.house));
   const sun =
     lat != null && household.location.lng != null
       ? sunPosition(lat, household.location.lng, minuteNow)
@@ -500,8 +518,12 @@ export function PortraitScene({
           "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}
     >
-      <SkyDisc phase={phase} t={phaseT} sun={sun} />
-      <Clouds cover={weather.cloudCover} />
+      <motion.div className="pointer-events-none absolute inset-0" style={{ x: skyX, y: skyY }}>
+        <SkyDisc phase={phase} t={phaseT} sun={sun} />
+      </motion.div>
+      <motion.div className="pointer-events-none absolute inset-0" style={{ x: cloudX, y: cloudY }}>
+        <Clouds cover={weather.cloudCover} />
+      </motion.div>
 
       {/* Stars at night */}
       {(phase === "night" || (phase === "dusk" && phaseT > 0.5)) && (
@@ -740,6 +762,7 @@ export function PortraitScene({
             transition={{ duration: DUR_AMBIENT, times: [0, 0.3, 1], ease: [[...EASE_OUT], "easeInOut"] }}
           />
         ) : null}
+        <motion.div className="pointer-events-none absolute inset-0" style={{ x: groundX, y: groundY }}>
         <CareDecorLayer
           decor={decor}
           // Whatever this level itself added, on top of everything the levels
@@ -749,6 +772,7 @@ export function PortraitScene({
         />
         <VisitorLayer visitor={visitor} paused={paused} />
         <SceneDetails details={details} paused={paused} asleep={light.companion === "asleep"} />
+        </motion.div>
       </motion.div>
 
       {ceremony && onSkipCeremony && !reduce ? (
