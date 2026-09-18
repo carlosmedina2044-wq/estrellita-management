@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { DUR_QUICK, EASE_OUT, STAGGER_CHILD } from "@/lib/motion";
 
 /** How long the year takes to draw itself: twelve months 45ms apart, plus the
@@ -51,12 +51,17 @@ const DOT: Record<YearDay["outcome"], string> = {
 };
 
 function Tile({ value, label, index }: { value: string; label: string; index: number }) {
+  const reduce = useReducedMotion();
   return (
     <motion.div
       className="rounded-2xl bg-card px-4 py-3"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: YEAR_GRID_MS / 1000 + index * STAGGER_CHILD }}
+      transition={{
+        duration: DUR_QUICK,
+        ease: EASE_OUT,
+        delay: reduce ? 0 : YEAR_GRID_MS / 1000 + index * STAGGER_CHILD,
+      }}
     >
       <p className="ui-title font-semibold num">{value}</p>
       <p className="mt-0.5 ui-caption text-muted-foreground">{label}</p>
@@ -79,6 +84,7 @@ function MonthGrid({
   onSelect: () => void;
 }) {
   const { t } = useLocale();
+  const reduce = useReducedMotion();
   // Leading blanks so the first day lands on its weekday column.
   const lead = days[0]?.date.getDay() ?? 0;
   const closed = days.filter((day) => day.outcome === "closed").length;
@@ -113,10 +119,14 @@ function MonthGrid({
             // The year draws itself once, month by month and day by day, in
             // about a second. A grid of 365 dots that is simply there says
             // nothing; watching it fill in is the point of the screen.
+            // Under Reduce Motion the dots still cross-fade in (that is what
+            // the setting asks for) but they arrive together: 395 elements
+            // landing in sequence is staged motion however gently each one
+            // moves.
             transition={{
               duration: DUR_QUICK,
               ease: EASE_OUT,
-              delay: monthIndex * 0.045 + dayIndex * 0.0035,
+              delay: reduce ? 0 : monthIndex * 0.045 + dayIndex * 0.0035,
             }}
           />
         ))}

@@ -1092,6 +1092,16 @@ html.keyboard-open [data-slot="sheet-footer"] {
   transition-duration: var(--dur-instant) !important;
 }
 
+/* The blanket rule at the bottom of this file is `!important` too, but it
+ * matches on `*` — the selectors above are more specific and would win, so the
+ * toast has to opt out by name. */
+@media (prefers-reduced-motion: reduce) {
+  [data-sonner-toast],
+  [data-sonner-toast][data-removed="true"] {
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /*
  * A slow vertical wander on each cloud, on top of its horizontal drift. The
  * drift lives on the outer element and the scale on the inner one (a running

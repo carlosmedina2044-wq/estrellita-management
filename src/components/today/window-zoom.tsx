@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 
 export type WindowZoom = { x: number; y: number; w: number; h: number; key: number };
@@ -20,9 +20,13 @@ export type WindowZoom = { x: number; y: number; w: number; h: number; key: numb
  * the sheet underneath is already usable.
  */
 export function WindowZoomLayer({ zoom }: { zoom: WindowZoom | null }) {
+  // Under Reduce Motion the sheet simply appears; a pane of light flying at
+  // the viewer is the exact thing the setting is asking not to happen, and
+  // there is nothing here the user needs to see.
+  const reduce = useReducedMotion();
   return (
     <AnimatePresence>
-      {zoom ? (
+      {zoom && !reduce ? (
         <motion.div
           key={zoom.key}
           aria-hidden
