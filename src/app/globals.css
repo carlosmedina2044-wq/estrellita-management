@@ -813,11 +813,14 @@ html.keyboard-open [data-slot="sheet-footer"] {
 }
 .detail-laundry {
   transform-origin: 50% 0;
-  animation: detail-sway 4s ease-in-out infinite;
+  /* Period and angle both come from the day's wind (see SceneDetails), so a
+   * blustery forecast and a still one do not look identical. Falls back to the
+   * original fixed values wherever the variables are not set. */
+  animation: detail-sway var(--sway-seconds, 4s) ease-in-out infinite;
 }
 @keyframes detail-sway {
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
+  0%, 100% { transform: rotate(calc(-1 * var(--sway-angle, 2deg))); }
+  50% { transform: rotate(var(--sway-angle, 2deg)); }
 }
 .detail-sprinkler {
   transform-origin: 50% 100%;
@@ -1087,4 +1090,29 @@ html.keyboard-open [data-slot="sheet-footer"] {
 
 [data-sonner-toast][data-removed="true"] {
   transition-duration: var(--dur-instant) !important;
+}
+
+/*
+ * A slow vertical wander on each cloud, on top of its horizontal drift. The
+ * drift lives on the outer element and the scale on the inner one (a running
+ * CSS animation owns the whole `transform` property), so this rides on a third
+ * element between them and only writes `translate`.
+ *
+ * Small on purpose: clouds that visibly bob look like balloons. This is here
+ * to stop three of them crossing the sky on rails.
+ */
+@keyframes portrait-cloud-bob {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 6px;
+  }
+}
+
+.portrait-cloud-bob {
+  animation-name: portrait-cloud-bob;
+  animation-timing-function: var(--ease-breathe);
+  animation-iteration-count: infinite;
 }

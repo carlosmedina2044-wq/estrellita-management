@@ -59,3 +59,20 @@ test("kindFromCondition mapping", () => {
   assert.equal(kindFromCondition("mostlyCloudy"), "cloudy");
   assert.equal(kindFromCondition("clear"), "clear");
 });
+
+test("wind is read from the day and normalised against a 25mph ceiling", () => {
+  const forecast = {
+    days: [{ date: "2026-09-17", tempMinF: 50, tempMaxF: 70, windMph: 12.5, precipIn: 0 }],
+    current: null,
+  } as unknown as WeatherForecast;
+  assert.equal(sceneWeather(forecast, "2026-09-17").wind, 0.5);
+});
+
+test("wind is clamped, and a forecast without one reads as still", () => {
+  const gale = {
+    days: [{ date: "2026-09-17", tempMinF: 50, tempMaxF: 70, windMph: 90, precipIn: 0 }],
+    current: null,
+  } as unknown as WeatherForecast;
+  assert.equal(sceneWeather(gale, "2026-09-17").wind, 1);
+  assert.equal(sceneWeather(null, "2026-09-17").wind, 0);
+});

@@ -3,8 +3,8 @@ import { test } from "node:test";
 import { VISITOR_KINDS, VISITOR_ODDS, visitorAnchor, visitorFor, type VisitorSignals } from "@/lib/scene/visitor";
 import type { SceneWeather } from "@/lib/scene/weather";
 
-const clear: SceneWeather = { kind: "clear", cloudCover: 0.1, precipIntensity: 0, source: "derived" };
-const rain: SceneWeather = { kind: "rain", cloudCover: 0.9, precipIntensity: 0.6, source: "native" };
+const clear: SceneWeather = { kind: "clear", cloudCover: 0.1, precipIntensity: 0, wind: 0, source: "derived" };
+const rain: SceneWeather = { kind: "rain", cloudCover: 0.9, precipIntensity: 0.6, wind: 0.5, source: "native" };
 
 function signals(overrides: Partial<VisitorSignals> = {}): VisitorSignals {
   return {

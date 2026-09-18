@@ -5,6 +5,11 @@ export type SceneWeather = {
   kind: WeatherKind;
   cloudCover: number;
   precipIntensity: number;
+  /** 0-1, from the day's wind in mph against a 25mph ceiling. The scene uses
+   * it to set how hard the laundry and the trees move, so a blustery day looks
+   * like one — the sway had a fixed period regardless of the forecast sitting
+   * two lines above it. */
+  wind: number;
   source: "native" | "derived";
 };
 
@@ -39,6 +44,7 @@ export function sceneWeather(forecast: WeatherForecast | null, today: string): S
       kind,
       cloudCover: clamp01(current.cloudCover),
       precipIntensity: clamp01((day?.precipIn ?? 0) / 0.5),
+      wind: clamp01((day?.windMph ?? 0) / 25),
       source: "native",
     };
   }
@@ -52,6 +58,7 @@ export function sceneWeather(forecast: WeatherForecast | null, today: string): S
     kind,
     cloudCover,
     precipIntensity: clamp01(precipIn / 0.5),
+    wind: clamp01((day?.windMph ?? 0) / 25),
     source: "derived",
   };
 }

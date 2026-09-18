@@ -156,11 +156,11 @@ function fixtureHousehold(opts: {
 }
 
 function weatherFor(kind: (typeof WEATHERS)[number]): SceneWeather {
-  if (kind === "clear") return { kind, cloudCover: 0.05, precipIntensity: 0, source: "derived" };
-  if (kind === "cloudy") return { kind, cloudCover: 0.7, precipIntensity: 0, source: "derived" };
-  if (kind === "fog") return { kind, cloudCover: 0.9, precipIntensity: 0, source: "derived" };
-  if (kind === "rain") return { kind, cloudCover: 0.85, precipIntensity: 0.7, source: "derived" };
-  return { kind: "snow", cloudCover: 0.8, precipIntensity: 0.6, source: "derived" };
+  if (kind === "clear") return { kind, cloudCover: 0.05, precipIntensity: 0, wind: 0.1, source: "derived" };
+  if (kind === "cloudy") return { kind, cloudCover: 0.7, precipIntensity: 0, wind: 0.45, source: "derived" };
+  if (kind === "fog") return { kind, cloudCover: 0.9, precipIntensity: 0, wind: 0.05, source: "derived" };
+  if (kind === "rain") return { kind, cloudCover: 0.85, precipIntensity: 0.7, wind: 0.6, source: "derived" };
+  return { kind: "snow", cloudCover: 0.8, precipIntensity: 0.6, wind: 0.35, source: "derived" };
 }
 
 function PortraitShotInner() {

@@ -16,18 +16,50 @@ type Cloud = {
   opacity: number;
   duration: number;
   delay: number;
+  /** Which silhouette. One lozenge repeated three times read as a pattern
+   * rather than as weather — the eye finds the repeat before it finds the
+   * sky. Two shapes and a bank of three is enough to break it. */
+  shape: 0 | 1 | 2;
+  /** A slow vertical wander, so the three do not travel on rails. */
+  bob: number;
 };
 
+/** Up to five at full cover, not three: an overcast sky with three clouds in
+ * it is a sky with three clouds in it. */
 function buildClouds(cover: number): Cloud[] {
-  const n = Math.min(3, Math.max(0, Math.round(cover * 3)));
+  const n = Math.min(5, Math.max(0, Math.round(cover * 5)));
   return Array.from({ length: n }, (_, i) => ({
     id: i,
-    top: `${10 + i * 12}%`,
-    scale: 0.75 + (i % 2) * 0.3,
-    opacity: 0.28 + cover * 0.32,
-    duration: 52 + i * 14,
-    delay: i * -11,
+    top: `${8 + i * 9}%`,
+    scale: 0.7 + ((i * 7) % 5) * 0.12,
+    opacity: 0.24 + cover * 0.3 - (i % 2) * 0.05,
+    duration: 52 + i * 11,
+    delay: i * -13,
+    shape: (i % 3) as 0 | 1 | 2,
+    bob: 7 + (i % 3) * 3,
   }));
+}
+
+/** Three silhouettes built from overlapping lozenges, so no two clouds in a
+ * bank are the same outline. */
+function CloudShape({ shape }: { shape: 0 | 1 | 2 }) {
+  if (shape === 1) {
+    return (
+      <span className="relative block h-10 w-32">
+        <span className="absolute left-0 top-2 h-8 w-20 rounded-[50%] bg-white/75 blur-[0.5px]" />
+        <span className="absolute left-10 top-0 h-9 w-16 rounded-[50%] bg-white/75 blur-[0.5px]" />
+      </span>
+    );
+  }
+  if (shape === 2) {
+    return (
+      <span className="relative block h-9 w-24">
+        <span className="absolute left-0 top-1 h-7 w-16 rounded-[50%] bg-white/70 blur-[0.5px]" />
+        <span className="absolute left-7 top-3 h-5 w-12 rounded-[50%] bg-white/70 blur-[0.5px]" />
+      </span>
+    );
+  }
+  return <span className="block h-11 w-28 rounded-[50%] bg-white/75 blur-[0.5px]" />;
 }
 
 export function Clouds({ cover, className }: CloudsProps) {
@@ -58,9 +90,15 @@ export function Clouds({ cover, className }: CloudsProps) {
           }}
         >
           <div
-            className="h-11 w-28 rounded-[50%] bg-white/75 blur-[0.5px]"
-            style={{ transform: `scale(${c.scale})` }}
-          />
+            className={cn(!reduce && "portrait-cloud-bob")}
+            style={{
+              transform: `scale(${c.scale})`,
+              animationDuration: reduce ? undefined : `${c.bob}s`,
+              animationDelay: reduce ? undefined : `${c.delay}s`,
+            }}
+          >
+            <CloudShape shape={c.shape} />
+          </div>
         </div>
       ))}
     </div>

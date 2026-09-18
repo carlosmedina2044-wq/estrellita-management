@@ -2,6 +2,7 @@
 
 import { CalendarCheck, Check, Flame, Heart, ListChecks, Sprout } from "lucide-react";
 import { motion } from "motion/react";
+import { RollingNumber } from "@/components/today/rolling-number";
 import type { MessageKey } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { DUR_SCREEN, EASE_OUT } from "@/lib/motion";
@@ -59,6 +60,26 @@ function ProgressTrack({
         transition={{ duration: DUR_SCREEN, ease: EASE_OUT }}
       />
     </span>
+  );
+}
+
+/** "3 of 10", with the moving half actually moving. Split around the numbers
+ * rather than interpolated so each can roll on its own. */
+function DoneOf({ done, total }: { done: number; total: number }) {
+  const { t } = useLocale();
+  const parts = t("seasonal.doneOf", { done: "%%d", total: "%%t" }).split(/(%%d|%%t)/);
+  return (
+    <>
+      {parts.map((part, index) =>
+        part === "%%d" ? (
+          <RollingNumber key={index} value={done} />
+        ) : part === "%%t" ? (
+          <span key={index}>{total}</span>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )}
+    </>
   );
 }
 
@@ -126,9 +147,14 @@ export function MilestoneRow({
           item.earned ? "text-done" : "text-muted-foreground",
         )}
       >
-        {item.earned
-          ? earnedLabel
-          : t("seasonal.doneOf", { done: item.current, total: item.target })}
+        {item.earned ? (
+          earnedLabel
+        ) : (
+          // The ladder's own number. It rolls, because it is the one thing on
+          // this row that changes when you act, and a count that swaps
+          // silently is the difference between a goal and a label.
+          <DoneOf done={item.current} total={item.target} />
+        )}
       </span>
     </div>
   );

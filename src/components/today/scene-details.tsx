@@ -16,14 +16,32 @@ export function SceneDetails({
   details,
   paused,
   asleep,
+  wind = 0,
 }: {
   details: SceneDetail[];
   paused?: boolean;
   asleep?: boolean;
+  /** 0-1 from the day's forecast. The laundry and the sprinkler read it, so a
+   * blustery day looks like one instead of everything swaying on the same
+   * fixed period whatever the weather line above it says. */
+  wind?: number;
 }) {
   if (details.length === 0) return null;
   return (
-    <div aria-hidden className="scene-details pointer-events-none absolute inset-0" data-paused={paused ? "true" : "false"}>
+    <div
+      aria-hidden
+      className="scene-details pointer-events-none absolute inset-0"
+      data-paused={paused ? "true" : "false"}
+      style={
+        {
+          // Still air takes its time; a gale hurries. The angle widens with the
+          // wind too, so a breezy day is visibly different from a calm one
+          // rather than merely faster.
+          "--sway-seconds": `${(5.2 - wind * 3).toFixed(2)}s`,
+          "--sway-angle": `${(1.5 + wind * 6).toFixed(1)}deg`,
+        } as React.CSSProperties
+      }
+    >
       {details.map((detail) => (
         <div
           key={detail.kind}

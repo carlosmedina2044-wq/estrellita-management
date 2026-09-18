@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { RollingNumber } from "@/components/today/rolling-number";
 import { Check } from "lucide-react";
 import { ProgressTrack } from "@/components/milestone-list";
 import type { MessageKey } from "@/i18n";
@@ -63,14 +64,23 @@ export function QuestCard({ quest, now = new Date() }: { quest: Quest; now?: Dat
         </p>
         <p
           className={cn(
-            "shrink-0 ui-caption num",
+            "flex shrink-0 items-baseline ui-caption num",
             quest.done ? "text-done" : "text-muted-foreground",
           )}
         >
-          {t(`quest.${quest.id}.count` as MessageKey, {
-            done: quest.current,
-            total: quest.target,
-          })}
+          {/* The week's own number. It rolls for the same reason the day's
+              does: finishing a room should move it, not replace it. */}
+          {t(`quest.${quest.id}.count` as MessageKey, { done: "%%d", total: "%%t" })
+            .split(/(%%d|%%t)/)
+            .map((part, index) =>
+              part === "%%d" ? (
+                <RollingNumber key={index} value={quest.current} />
+              ) : part === "%%t" ? (
+                <span key={index}>{quest.target}</span>
+              ) : (
+                <span key={index}>{part}</span>
+              ),
+            )}
         </p>
       </div>
       <p className="mt-0.5 flex items-center gap-1.5 ui-card font-semibold text-foreground">

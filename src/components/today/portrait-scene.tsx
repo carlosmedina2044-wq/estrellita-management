@@ -773,7 +773,12 @@ export function PortraitScene({
           arrivalKey={levelUp}
         />
         <VisitorLayer visitor={visitor} paused={paused} />
-        <SceneDetails details={details} paused={paused} asleep={light.companion === "asleep"} />
+        <SceneDetails
+          details={details}
+          paused={paused}
+          asleep={light.companion === "asleep"}
+          wind={weather.wind}
+        />
         </motion.div>
       </motion.div>
 
