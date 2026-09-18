@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		54A74BB0A676422FAB8A9421 /* CuidalaBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F241625B3F24B0D82B85B35 /* CuidalaBridgeViewController.swift */; };
+		131788EB4441AF67D186D808 /* CuidalaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 23CA3C9D772F6D3A078BEA4F /* CuidalaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -15,14 +15,51 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		54A74BB0A676422FAB8A9421 /* CuidalaBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F241625B3F24B0D82B85B35 /* CuidalaBridgeViewController.swift */; };
+		7A5A33D9AE2C5904F6A7CBF5 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FDFC9CF3950439D0EA40C84F /* SwiftUI.framework */; };
+		8D7FB88C6255B6B1DEA69217 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7CC669CDB1277EAB54BE9BA1 /* PrivacyInfo.xcprivacy */; };
+		952C79F99B5DB91109021F10 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = E54FB144CEEABB7508986506 /* Localizable.strings */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		9990B0C77AD96FD3FFB95D24 /* CuidalaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F998B6E0B3ECCB3A04847E /* CuidalaWidget.swift */; };
+		A5731EABDD19023757A0AC91 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2F2082C71B72B652682971A2 /* WidgetKit.framework */; };
 		C01DA1A00000000000000002 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = C01DA1A00000000000000001 /* PrivacyInfo.xcprivacy */; };
 		C01DA1A00000000000000012 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = C01DA1A00000000000000010 /* InfoPlist.strings */; };
+		D6B6C9C7CC41746BF940612A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A393081D5274444C37580C10 /* Foundation.framework */; };
+		F800D5262DC4DDAAB0582753 /* CuidalaWidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDF9A571E2CFEEAB23E9E19 /* CuidalaWidgetSnapshot.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		159373F9DA9C2933113AAC1A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 504EC2FC1FED79650016851F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 50424CFC3B4C3CC757CB0EDC;
+			remoteInfo = CuidalaWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		417C602D0E462BD338C6D918 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				131788EB4441AF67D186D808 /* CuidalaWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
-		4F241625B3F24B0D82B85B35 /* CuidalaBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaBridgeViewController.swift; sourceTree = "<group>"; };
+		23CA3C9D772F6D3A078BEA4F /* CuidalaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CuidalaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		2E9FE26EAD3A1C4FFF5E33C9 /* CuidalaWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = CuidalaWidget.entitlements; sourceTree = "<group>"; };
+		2F2082C71B72B652682971A2 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
+		3EEAE56C1BFF4410811263E9 /* en */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		48457732224CF716A5CF431C /* es */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
+		4F241625B3F24B0D82B85B35 /* CuidalaBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaBridgeViewController.swift; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		504EC3071FED79650016851F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -30,12 +67,19 @@
 		504EC3111FED79650016851F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
+		59A306F90432024D25B0F6D1 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		79F998B6E0B3ECCB3A04847E /* CuidalaWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CuidalaWidget.swift; sourceTree = "<group>"; };
+		7CC669CDB1277EAB54BE9BA1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		7DE30E35BF8697B596E9EEBE /* pt-BR */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		A393081D5274444C37580C10 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		BBDF9A571E2CFEEAB23E9E19 /* CuidalaWidgetSnapshot.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CuidalaWidgetSnapshot.swift; sourceTree = "<group>"; };
 		C01DA1A00000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		C01DA1A00000000000000011 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		C01DA1A00000000000000013 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		E8A11C1A2FE9B0010072D4E9 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
+		FDFC9CF3950439D0EA40C84F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,15 +91,45 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E99C221AA5DEC849357CC5D3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D6B6C9C7CC41746BF940612A /* Foundation.framework in Frameworks */,
+				A5731EABDD19023757A0AC91 /* WidgetKit.framework in Frameworks */,
+				7A5A33D9AE2C5904F6A7CBF5 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		054224764395A39983FAAB82 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				A393081D5274444C37580C10 /* Foundation.framework */,
+				2F2082C71B72B652682971A2 /* WidgetKit.framework */,
+				FDFC9CF3950439D0EA40C84F /* SwiftUI.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		0F92822B7F9B97DF339310E1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				054224764395A39983FAAB82 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
 				504EC3061FED79650016851F /* App */,
 				504EC3051FED79650016851F /* Products */,
+				0F92822B7F9B97DF339310E1 /* Frameworks */,
+				B2E9543AFAC50EA6C579EBAD /* CuidalaWidget */,
 			);
 			sourceTree = "<group>";
 		};
@@ -63,6 +137,7 @@
 			isa = PBXGroup;
 			children = (
 				504EC3041FED79650016851F /* App.app */,
+				23CA3C9D772F6D3A078BEA4F /* CuidalaWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -86,9 +161,40 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		B2E9543AFAC50EA6C579EBAD /* CuidalaWidget */ = {
+			isa = PBXGroup;
+			children = (
+				79F998B6E0B3ECCB3A04847E /* CuidalaWidget.swift */,
+				BBDF9A571E2CFEEAB23E9E19 /* CuidalaWidgetSnapshot.swift */,
+				7CC669CDB1277EAB54BE9BA1 /* PrivacyInfo.xcprivacy */,
+				E54FB144CEEABB7508986506 /* Localizable.strings */,
+				59A306F90432024D25B0F6D1 /* Info.plist */,
+				2E9FE26EAD3A1C4FFF5E33C9 /* CuidalaWidget.entitlements */,
+			);
+			name = CuidalaWidget;
+			path = CuidalaWidget;
+			sourceTree = SOURCE_ROOT;
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		50424CFC3B4C3CC757CB0EDC /* CuidalaWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7C307A592A7BB3ACAC9B37F6 /* Build configuration list for PBXNativeTarget "CuidalaWidget" */;
+			buildPhases = (
+				9DE752311B6BA5DC4668CB34 /* Sources */,
+				E99C221AA5DEC849357CC5D3 /* Frameworks */,
+				E54D01393C12BEF2DBC77DDD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CuidalaWidget;
+			productName = CuidalaWidget;
+			productReference = 23CA3C9D772F6D3A078BEA4F /* CuidalaWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		504EC3031FED79650016851F /* App */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 504EC3161FED79650016851F /* Build configuration list for PBXNativeTarget "App" */;
@@ -96,10 +202,12 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				417C602D0E462BD338C6D918 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				6B601EB03258F93C019175FA /* PBXTargetDependency */,
 			);
 			name = App;
 			packageProductDependencies = (
@@ -149,6 +257,7 @@
 			projectRoot = "";
 			targets = (
 				504EC3031FED79650016851F /* App */,
+				50424CFC3B4C3CC757CB0EDC /* CuidalaWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -168,6 +277,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E54D01393C12BEF2DBC77DDD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8D7FB88C6255B6B1DEA69217 /* PrivacyInfo.xcprivacy in Resources */,
+				952C79F99B5DB91109021F10 /* Localizable.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -181,7 +299,25 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9DE752311B6BA5DC4668CB34 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9990B0C77AD96FD3FFB95D24 /* CuidalaWidget.swift in Sources */,
+				F800D5262DC4DDAAB0582753 /* CuidalaWidgetSnapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		6B601EB03258F93C019175FA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = CuidalaWidget;
+			target = 50424CFC3B4C3CC757CB0EDC /* CuidalaWidget */;
+			targetProxy = 159373F9DA9C2933113AAC1A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		504EC3101FED79650016851F /* LaunchScreen.storyboard */ = {
@@ -199,6 +335,16 @@
 				C01DA1A00000000000000013 /* pt-BR */,
 			);
 			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		E54FB144CEEABB7508986506 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				3EEAE56C1BFF4410811263E9 /* en */,
+				48457732224CF716A5CF431C /* es */,
+				7DE30E35BF8697B596E9EEBE /* pt-BR */,
+			);
+			name = Localizable.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -359,6 +505,59 @@
 			};
 			name = Release;
 		};
+		9E12235053693DF349FFA51F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = CuidalaWidget/CuidalaWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CuidalaWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cuidala.app.CuidalaWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E4E4BA3F3DAD7D1CFA571A84 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = CuidalaWidget/CuidalaWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = CuidalaWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.cuidala.app.CuidalaWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -376,6 +575,15 @@
 			buildConfigurations = (
 				504EC3171FED79650016851F /* Debug */,
 				504EC3181FED79650016851F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7C307A592A7BB3ACAC9B37F6 /* Build configuration list for PBXNativeTarget "CuidalaWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9E12235053693DF349FFA51F /* Release */,
+				E4E4BA3F3DAD7D1CFA571A84 /* Debug */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

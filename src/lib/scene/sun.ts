@@ -93,17 +93,34 @@ function clamp01(n: number): number {
   return Math.min(1, Math.max(0, n));
 }
 
-export function skyPhase(now: Date, times: SunTimes | null): { phase: SkyPhase; t: number } {
+export type PhaseBoundaries = {
+  dawnStart: number;
+  dawnEnd: number;
+  goldenStart: number;
+  goldenEnd: number;
+  duskStart: number;
+  duskEnd: number;
+};
+
+/** The minutes-of-day at which the sky changes phase for `times` (or the
+ * fallback sun). Shared with the lock-screen widget's timeline, so the
+ * widget can paint the right sky without the household's coordinates. */
+export function phaseBoundaries(times: SunTimes | null): PhaseBoundaries {
   const sunriseMin = times ? minutesOfDay(times.sunrise) : FALLBACK_SUN.sunriseMinutes;
   const sunsetMin = times ? minutesOfDay(times.sunset) : FALLBACK_SUN.sunsetMinutes;
-  const nowMin = minutesOfDay(now);
+  return {
+    dawnStart: sunriseMin - 40,
+    dawnEnd: sunriseMin + 25,
+    goldenStart: sunsetMin - 60,
+    goldenEnd: sunsetMin - 10,
+    duskStart: sunsetMin - 10,
+    duskEnd: sunsetMin + 35,
+  };
+}
 
-  const dawnStart = sunriseMin - 40;
-  const dawnEnd = sunriseMin + 25;
-  const goldenStart = sunsetMin - 60;
-  const goldenEnd = sunsetMin - 10;
-  const duskStart = sunsetMin - 10;
-  const duskEnd = sunsetMin + 35;
+export function skyPhase(now: Date, times: SunTimes | null): { phase: SkyPhase; t: number } {
+  const nowMin = minutesOfDay(now);
+  const { dawnStart, dawnEnd, goldenStart, goldenEnd, duskStart, duskEnd } = phaseBoundaries(times);
 
   const spanT = (start: number, end: number) => clamp01((nowMin - start) / Math.max(1, end - start));
 

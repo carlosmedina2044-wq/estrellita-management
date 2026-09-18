@@ -10,6 +10,12 @@ export type WidgetSnapshotPayload = {
   dayFraction: number;
   careLabel: string;
   runLabel: string;
+  kitType: string;
+  palette: string;
+  season: string;
+  windowStates: string;
+  layerFiles: string[];
+  phaseTimes: number[];
 };
 
 export interface CuidalaWidgetPlugin {

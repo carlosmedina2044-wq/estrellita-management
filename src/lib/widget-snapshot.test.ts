@@ -164,3 +164,22 @@ test("widgetSnapshotFor clears momentum fields when momentum is off", () => {
   assert.equal(snap.careLabel, "");
   assert.equal(snap.runLabel, "");
 });
+
+test("widgetSnapshotFor carries the house: kit, palette, season, window paint, layer files and phase times", () => {
+  const snapshot = widgetSnapshotFor(
+    household({ duties: [duty({ title: "Wipe counters" })] }),
+    new Date(2026, 8, 17, 10),
+  );
+  assert.equal(snapshot.kitType, "a");
+  assert.equal(snapshot.palette, "classic");
+  assert.equal(snapshot.season, "autumn");
+  assert.equal(snapshot.windowStates.split(",").length, 3);
+  assert.ok(snapshot.windowStates.split(",").every((state) => ["lit", "dim", "off"].includes(state)));
+  assert.equal(snapshot.layerFiles.length, 7);
+  assert.ok(snapshot.layerFiles.every((file) => file.startsWith("/portraits/") && file.endsWith(".webp")));
+  assert.equal(snapshot.phaseTimes.length, 6);
+  // Fallback sun (no coordinates): dawn starts 40 minutes before a 06:30 sunrise.
+  assert.equal(snapshot.phaseTimes[0], 390 - 40);
+  for (let i = 1; i < snapshot.phaseTimes.length; i += 1) assert.ok(snapshot.phaseTimes[i] >= snapshot.phaseTimes[i - 1]);
+});
+
