@@ -3,6 +3,8 @@ import { isNative } from "@/lib/native/platform";
 import { roundCoord } from "@/lib/climate";
 import { sanitizeText, TEXT_LIMITS } from "@/lib/sanitize";
 import type { DailyWeather, WeatherForecast } from "@/lib/weather/provider";
+import { weatherWatchList, type WeatherWatch } from "@/lib/weather/watch";
+import type { Household } from "@/lib/types";
 
 const FALLBACK_LEGAL = "https://weatherkit.apple.com/legal-attribution.html";
 
@@ -27,6 +29,8 @@ export type WeatherAttribution = {
 
 type NativeWeatherKit = {
   fetchForecast(options: { latitude: number; longitude: number }): Promise<NativeWeatherForecast>;
+  updateWatchList(options: WeatherWatch): Promise<void>;
+  clearWatchList(): Promise<void>;
   geocodeZip(options: { postalCode: string }): Promise<NativeGeocodedZip>;
   reverseGeocode(options: { latitude: number; longitude: number }): Promise<{ placeName?: string }>;
   fetchAttribution(): Promise<WeatherAttribution>;
@@ -120,3 +124,30 @@ export async function fetchWeatherAttribution(): Promise<WeatherAttribution | nu
     return null;
   }
 }
+
+/**
+ * Publishes the weather watch list for the native background refresh
+ * (`WeatherRefresh.swift`). Plaintext by design, like the widget snapshot:
+ * trigger thresholds, localised copy and coordinates rounded to two decimals.
+ * No-op off native; a missing plugin method never breaks persist.
+ */
+export async function syncWeatherWatch(household: Household): Promise<void> {
+  if (!isNative()) return;
+  try {
+    const watch = weatherWatchList(household);
+    if (watch) await plugin.updateWatchList(watch);
+    else await plugin.clearWatchList();
+  } catch {
+    // ignore
+  }
+}
+
+export async function clearWeatherWatch(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await plugin.clearWatchList();
+  } catch {
+    // ignore
+  }
+}
+

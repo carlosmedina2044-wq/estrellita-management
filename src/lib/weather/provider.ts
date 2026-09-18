@@ -76,7 +76,7 @@ export function metricValue(day: DailyWeather, metric: WeatherMetric): number {
   }
 }
 
-function triggerAppliesInZone(trigger: WeatherTrigger, zone: ClimateZone): boolean {
+export function triggerAppliesInZone(trigger: WeatherTrigger, zone: ClimateZone): boolean {
   if (!trigger.climateZones || trigger.climateZones.length === 0) return true;
   return trigger.climateZones.includes(zone);
 }

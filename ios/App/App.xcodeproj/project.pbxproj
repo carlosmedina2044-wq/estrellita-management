@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		131788EB4441AF67D186D808 /* CuidalaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 23CA3C9D772F6D3A078BEA4F /* CuidalaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		16771EAE2C1E506AB89DDBDA /* WeatherRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85CDEA54DD19AC0BE534D256 /* WeatherRefresh.swift */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -71,6 +72,7 @@
 		79F998B6E0B3ECCB3A04847E /* CuidalaWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CuidalaWidget.swift; sourceTree = "<group>"; };
 		7CC669CDB1277EAB54BE9BA1 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		7DE30E35BF8697B596E9EEBE /* pt-BR */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		85CDEA54DD19AC0BE534D256 /* WeatherRefresh.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WeatherRefresh.swift; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		A393081D5274444C37580C10 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -157,6 +159,7 @@
 				C01DA1A00000000000000010 /* InfoPlist.strings */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				85CDEA54DD19AC0BE534D256 /* WeatherRefresh.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -296,6 +299,7 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				54A74BB0A676422FAB8A9421 /* CuidalaBridgeViewController.swift in Sources */,
+				16771EAE2C1E506AB89DDBDA /* WeatherRefresh.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

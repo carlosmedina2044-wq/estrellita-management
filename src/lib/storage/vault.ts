@@ -23,6 +23,7 @@ import {
 } from "@/lib/native/device-key";
 import { kvGet, kvRemove, kvSet } from "@/lib/native/kv";
 import { clearWidgetSnapshot, syncWidgetSnapshot } from "@/lib/native/widget";
+import { clearWeatherWatch, syncWeatherWatch } from "@/lib/native/weatherkit";
 import { syncScheduledNotifications } from "@/lib/notifications";
 import { isPlainObject } from "@/lib/sanitize";
 import { EMPTY_HOUSEHOLD, migrateHousehold, parseStored } from "@/lib/storage/migrate";
@@ -224,6 +225,7 @@ function scheduleNotificationSync(next: Household) {
   notifyTimer = setTimeout(() => {
     void syncScheduledNotifications(next).catch(() => {});
     void syncWidgetSnapshot(next).catch(() => {});
+    void syncWeatherWatch(next).catch(() => {});
   }, 1500);
 }
 
@@ -585,6 +587,7 @@ export async function eraseHousehold(): Promise<{ ok: boolean }> {
   notifyChange();
   void syncScheduledNotifications(memory).catch(() => {});
   void clearWidgetSnapshot().catch(() => {});
+  void clearWeatherWatch().catch(() => {});
   return { ok: true };
 }
 

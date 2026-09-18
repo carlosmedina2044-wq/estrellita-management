@@ -23,8 +23,42 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "fetchForecast", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "geocodeZip", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "reverseGeocode", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "fetchAttribution", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "fetchAttribution", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "updateWatchList", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearWatchList", returnType: CAPPluginReturnPromise)
     ]
+
+    /// Where the background refresh (`WeatherRefresh.swift`, app target) reads
+    /// the watch list. Standard defaults, not the App Group: only the app's own
+    /// process needs it. Plaintext by design; see docs/RESIDUAL_RISKS.md.
+    public static let watchListKey = "cuidala.weatherWatch"
+
+    @objc func updateWatchList(_ call: CAPPluginCall) {
+        guard let latitude = call.getDouble("latitude"),
+              let longitude = call.getDouble("longitude"),
+              let entries = call.getArray("entries") else {
+            call.reject("latitude, longitude and entries are required")
+            return
+        }
+        let payload: [String: Any] = [
+            "latitude": latitude,
+            "longitude": longitude,
+            "entries": entries,
+            "updatedAt": ISO8601DateFormatter().string(from: .now)
+        ]
+        guard JSONSerialization.isValidJSONObject(payload),
+              let data = try? JSONSerialization.data(withJSONObject: payload) else {
+            call.reject("watch list is not serialisable")
+            return
+        }
+        UserDefaults.standard.set(data, forKey: Self.watchListKey)
+        call.resolve()
+    }
+
+    @objc func clearWatchList(_ call: CAPPluginCall) {
+        UserDefaults.standard.removeObject(forKey: Self.watchListKey)
+        call.resolve()
+    }
 
     private static let attributionCache = AttributionCacheStore()
 
