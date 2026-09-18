@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Check } from "lucide-react";
 import type { MessageKey } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { careLevelIndex } from "@/lib/care-level";
@@ -48,14 +47,17 @@ export function CareLadder({
                   />
                 ) : null}
               </span>
+              {/* No tick alongside the name: five names share the screen width,
+                  and the glyph cost enough of it to truncate "Settling in" on a
+                  fresh home — the very level it was marking. The filled bar
+                  above already says the rung is behind you. */}
               <span
                 className={cn(
-                  "flex items-center gap-0.5 truncate ui-caption leading-tight",
+                  "truncate ui-caption leading-tight",
                   done ? "font-medium text-foreground" : "text-muted-foreground/70",
                 )}
               >
-                {done ? <Check className="size-2.5 shrink-0" aria-hidden /> : null}
-                <span className="truncate">{t(`care.level.${step}` as MessageKey)}</span>
+                {t(`care.level.${step}` as MessageKey)}
               </span>
             </li>
           );
