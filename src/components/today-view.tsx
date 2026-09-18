@@ -43,7 +43,7 @@ import { dismissGetAhead, getAheadCandidate, isGetAheadDismissed } from "@/lib/g
 import { houseLine } from "@/lib/house-line";
 import { weeklyQuest } from "@/lib/quest";
 import { visitorFor } from "@/lib/scene/visitor";
-import { currentCareState } from "@/lib/care-level";
+import { careLevelIndex, currentCareState } from "@/lib/care-level";
 import { dayOpacityForPhase, portraitLayerUrls, resolveHomeSpec } from "@/lib/scene/portrait";
 import { seasonFor } from "@/lib/scene/season";
 import { closedDayCardModel, yearCardModel, type ShareCardModel, type ShareCardScene } from "@/lib/share-card";
@@ -84,7 +84,7 @@ import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/
 import type { WeatherForecast } from "@/lib/weather/provider";
 import { cn } from "@/lib/utils";
 import { CEREMONY_BEAT, CEREMONY_MS, DUR_QUICK, EASE_OUT, SPRING_SETTLE, STAGGER_CHILD, prefersReducedMotion, scrollBehavior } from "@/lib/motion";
-import { hapticClose, hapticComplete, hapticSuccess, hapticTab } from "@/lib/native/haptics";
+import { hapticClose, hapticComplete, hapticLevelUp, hapticSuccess, hapticTab } from "@/lib/native/haptics";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { useLocale } from "@/i18n/locale-provider";
 import { useClock } from "@/hooks/use-clock";
@@ -736,6 +736,34 @@ export function TodayView({
   const careNotice =
     careKey && careState && !dismissedCareKeys.has(careKey) ? careState : null;
 
+  // The ladder paying out. The words for this already existed (the care notice
+  // card says "your house is now Kept"); what was missing was the house doing
+  // anything about it, so the one visible reward in the app arrived as a
+  // silent re-render.
+  //
+  // Seeded from the stored state so a level earned between sessions still gets
+  // its moment on the next open, and bumped during render when the level rises
+  // while the app is open. Adjusting state during render is the sanctioned way
+  // to react to a changed value without waiting a frame, the same pattern
+  // RollingNumber uses for its direction.
+  const careLevelNow = careState?.level ?? "settling-in";
+  const [levelUpKey, setLevelUpKey] = useState(() =>
+    careState?.direction === "up" && careState.since === todayIso ? 1 : 0,
+  );
+  const [seenLevel, setSeenLevel] = useState(careLevelNow);
+  if (careLevelNow !== seenLevel) {
+    setSeenLevel(careLevelNow);
+    if (careLevelIndex(careLevelNow) > careLevelIndex(seenLevel)) {
+      setLevelUpKey((key) => key + 1);
+    }
+  }
+  useEffect(() => {
+    if (levelUpKey === 0) return;
+    void hapticLevelUp();
+    const timer = window.setTimeout(() => setLevelUpKey(0), CEREMONY_MS);
+    return () => window.clearTimeout(timer);
+  }, [levelUpKey]);
+
   let activeNotice: TodayNotice | null = null;
   if (pendingMilestone) {
     activeNotice = { kind: "milestone", id: pendingMilestone.id };
@@ -1020,6 +1048,7 @@ export function TodayView({
               answer={houseAnswer}
               hearth={arc.state === "closed"}
               warm={ceremonyPlaying ? 1 : 0}
+              levelUp={levelUpKey}
               onSkipCeremony={ceremonyPlaying ? () => setCeremonyPlaying(false) : undefined}
               questDone={Boolean(quest?.done)}
             />

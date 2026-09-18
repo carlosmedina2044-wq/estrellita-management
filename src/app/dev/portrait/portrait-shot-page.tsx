@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { DETAIL_KINDS, type SceneDetailKind } from "@/lib/scene/details";
@@ -202,6 +202,14 @@ function PortraitShotInner() {
         : undefined;
   const compact = params.get("compact") === "1";
   const ceremony = params.get("ceremony") === "1";
+  // `?levelup=1` replays the care-level payout (whole-house bloom, the level's
+  // decoration dropping onto its anchor, the puff). The real trigger needs a
+  // fortnight of history behind it, so there is no other way to look at it.
+  const levelUp = params.get("levelup") === "1";
+  // `?repaint=1` cycles the palette in place so the door-outward repaint can
+  // be watched. Navigating between `?palette=` values remounts the scene, so
+  // the reveal never plays that way.
+  const repaint = params.get("repaint") === "1";
   const weather = weatherFor(weatherKind);
   const stops = skyGradient(phase, 0.55, weather.kind, weather.cloudCover);
   const cssVars = sceneCssVars(stops);
@@ -216,6 +224,23 @@ function PortraitShotInner() {
   const greeting = todayGreeting(household.ownerName, 10);
   const weatherLabel = t(`scene.weather.${weatherKind}` as "scene.weather.clear");
   const secondaryLine = `${formatLongDate(now)} · ${weatherLabel}`;
+
+  const [repaintIndex, setRepaintIndex] = useState(0);
+  useEffect(() => {
+    if (!repaint) return;
+    const id = window.setInterval(() => setRepaintIndex((n) => n + 1), 3000);
+    return () => window.clearInterval(id);
+  }, [repaint]);
+  const livePalette = repaint ? PALETTE_IDS[repaintIndex % PALETTE_IDS.length] : palette;
+
+  // Replays every few seconds so the landing can be watched more than once
+  // without a reload.
+  const [levelUpBeat, setLevelUpBeat] = useState(1);
+  useEffect(() => {
+    if (!levelUp) return;
+    const id = window.setInterval(() => setLevelUpBeat((n) => n + 1), 4000);
+    return () => window.clearInterval(id);
+  }, [levelUp]);
 
   useEffect(() => {
     if (!compact) return;
@@ -243,12 +268,14 @@ function PortraitShotInner() {
           phaseT={0.55}
           weather={weather}
           ceremony={ceremony || closed}
+          hearth={closed}
+          levelUp={levelUp ? levelUpBeat : 0}
           greeting={greeting}
           secondaryLine={secondaryLine}
           onOpenSettings={() => undefined}
           overrides={{
             kitType,
-            palette,
+            palette: livePalette,
             phase,
             phaseT: 0.55,
             weather,

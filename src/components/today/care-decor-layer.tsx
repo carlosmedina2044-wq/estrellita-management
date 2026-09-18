@@ -1,6 +1,8 @@
 "use client";
 
-import type { CareDecor } from "@/lib/scene/care-decor";
+import { motion, useReducedMotion } from "motion/react";
+import { DUR_BASE, EASE_OUT, SPRING_SETTLE } from "@/lib/motion";
+import type { CareDecor, CareDecorKind } from "@/lib/scene/care-decor";
 
 /**
  * What the house has earned, standing on it all day. Separate from
@@ -12,22 +14,62 @@ import type { CareDecor } from "@/lib/scene/care-decor";
  *
  * CSS and inline SVG placeholders shaped to the anchors the real art will use
  * (see `docs/SCENE_DETAILS_BRIEF.md`); swapping in the art means replacing a
- * `case` here. Purely decorative: `aria-hidden`, no pointer events, no
- * animation, so nothing here competes with the living details beside it.
+ * `case` here. Purely decorative: `aria-hidden`, no pointer events.
+ *
+ * Standing still is the rule, with exactly one exception: the piece being
+ * earned right now drops onto its anchor once. A decoration that simply
+ * appeared on the next render was the whole ladder paying out with no moment
+ * attached to it.
  */
-export function CareDecorLayer({ decor }: { decor: CareDecor[] }) {
+export function CareDecorLayer({
+  decor,
+  arriving,
+  arrivalKey = 0,
+}: {
+  decor: CareDecor[];
+  /** The piece earned by the level the house just reached, if that happened
+   * in this session. Everything else is already standing. */
+  arriving?: CareDecorKind | null;
+  /** Rises per level-up so a second rise in one session plays again. */
+  arrivalKey?: number;
+}) {
+  const reduce = useReducedMotion();
   if (decor.length === 0) return null;
   return (
     <div aria-hidden className="care-decor pointer-events-none absolute inset-0">
-      {decor.map((item) => (
-        <div
-          key={item.kind}
-          className="absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ left: `${item.x}%`, top: `${item.y}%` }}
-        >
-          <Decor kind={item.kind} />
-        </div>
-      ))}
+      {decor.map((item) => {
+        const lands = !reduce && arrivalKey > 0 && item.kind === arriving;
+        return (
+          <div
+            key={item.kind}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${item.x}%`, top: `${item.y}%` }}
+          >
+            {lands ? (
+              <motion.span
+                key={arrivalKey}
+                className="relative block"
+                initial={{ y: -24, scale: 0.8, opacity: 0 }}
+                animate={{ y: 0, scale: 1, opacity: 1 }}
+                transition={SPRING_SETTLE}
+              >
+                <Decor kind={item.kind} />
+                {/* The ground answering the landing. Same puff the chimney
+                    uses, at a fraction of the size and once only. */}
+                <motion.span
+                  className="absolute left-1/2 top-full block size-3 -translate-x-1/2 rounded-full"
+                  style={{ background: "rgba(235, 232, 226, 0.75)" }}
+                  initial={{ opacity: 0, scale: 0.4 }}
+                  animate={{ opacity: [0, 0.7, 0], scale: [0.4, 1.6, 2.1] }}
+                  transition={{ duration: DUR_BASE * 2, delay: 0.18, times: [0, 0.3, 1], ease: [[...EASE_OUT], "easeInOut"] }}
+                />
+              </motion.span>
+            ) : (
+              <Decor kind={item.kind} />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

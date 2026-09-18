@@ -677,6 +677,30 @@ html.keyboard-open [data-slot="sheet-footer"] {
   }
 }
 
+/*
+ * Earning a palette repaints the house from its own front door outward rather
+ * than swapping the picture between frames. A CSS keyframe, not a motion
+ * tween: clip-path interpolation is something the browser does natively and
+ * exactly, and this way the blanket reduce-motion rule below lands the house
+ * on its finished colour with no wipe at all.
+ */
+@keyframes palette-reveal {
+  from {
+    clip-path: circle(0% at var(--reveal-x, 50%) var(--reveal-y, 70%));
+  }
+  to {
+    clip-path: circle(150% at var(--reveal-x, 50%) var(--reveal-y, 70%));
+  }
+}
+
+.palette-reveal {
+  /* A symmetric curve, not the app's usual `--ease-out`. That one is a settle
+   * curve: measured, it put the circle at 85% of the house within 158ms, so
+   * the repaint was over before it read as a sweep. This is paint spreading,
+   * and it should be legible for most of its 900ms. */
+  animation: palette-reveal 900ms var(--ease-breathe) both;
+}
+
 @keyframes portrait-cloud-drift {
   from {
     transform: translateX(0);

@@ -24,7 +24,7 @@ import { completionsInRange, isOverdueFor } from "@/lib/duties";
 import { dutyTopic } from "@/lib/duty-topics";
 import { keptRooms } from "@/lib/kept-rooms";
 import { detailsFor, sceneDetails, type SceneDetailKind } from "@/lib/scene/details";
-import { careDecor, decorFor, type CareDecorKind } from "@/lib/scene/care-decor";
+import { CARE_DECOR_AT, careDecor, decorFor, type CareDecorKind } from "@/lib/scene/care-decor";
 import { visitorFor, type VisitorKind } from "@/lib/scene/visitor";
 import { sceneCssVars } from "@/lib/scene/css";
 import { assignWindowRooms, litWindowCount, windowStates, type WindowState } from "@/lib/scene/window-rooms";
@@ -128,6 +128,10 @@ type PortraitSceneProps = {
   hearth?: boolean;
   /** Called when the user taps through the ceremony rather than watching it. */
   onSkipCeremony?: () => void;
+  /** Rises per care-level gain in this session; 0 when nothing was earned.
+   * Drives the whole-house bloom and drops the newly earned decoration onto
+   * its anchor. */
+  levelUp?: number;
   /** 0-1. Leans the whole sky toward hearth colour for the beat where a day
    * is closed. The scene computes its own sky (it is rendered on pages that
    * define no `--sky-*` at all), so a caller cannot warm it by overriding the
@@ -235,6 +239,7 @@ export function PortraitScene({
   answer,
   hearth,
   onSkipCeremony,
+  levelUp = 0,
   warm = 0,
   questDone,
   overrides,
@@ -681,7 +686,32 @@ export function PortraitScene({
             <IllustratedMoment kind="sparkle-burst" size={72} autoplay />
           </motion.div>
         ) : null}
-        <CareDecorLayer decor={decor} />
+        {levelUp > 0 && !reduce ? (
+          <motion.div
+            key={`level-${levelUp}`}
+            aria-hidden
+            className="pointer-events-none absolute"
+            style={{
+              left: `${((kit.houseBounds.x + kit.houseBounds.w / 2) / kit.frame.w) * 100}%`,
+              top: `${((kit.houseBounds.y + kit.houseBounds.h / 2) / kit.frame.h) * 100}%`,
+              width: `${(kit.houseBounds.w / kit.frame.w) * 100 * 1.5}%`,
+              aspectRatio: "1",
+              translateX: "-50%",
+              translateY: "-50%",
+              background: "radial-gradient(closest-side, rgba(255, 233, 196, 0.62), transparent 68%)",
+            }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: [0, 0.9, 0], scale: [0.8, 1.05, 1.2] }}
+            transition={{ duration: DUR_AMBIENT, times: [0, 0.3, 1], ease: [[...EASE_OUT], "easeInOut"] }}
+          />
+        ) : null}
+        <CareDecorLayer
+          decor={decor}
+          // Whatever this level itself added, on top of everything the levels
+          // below it had already earned.
+          arriving={CARE_DECOR_AT[careLevel]}
+          arrivalKey={levelUp}
+        />
         <VisitorLayer visitor={visitor} paused={paused} />
         <SceneDetails details={details} paused={paused} asleep={light.companion === "asleep"} />
       </motion.div>

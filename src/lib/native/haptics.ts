@@ -8,7 +8,8 @@ export type HapticKind =
   | "tab"
   | "destructive"
   | "press"
-  | "close";
+  | "close"
+  | "level-up";
 
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => {
@@ -37,6 +38,15 @@ async function play(kind: HapticKind): Promise<void> {
         return;
       case "destructive":
         await Haptics.notification({ type: NotificationType.Warning });
+        return;
+      case "level-up":
+        // Two beats, the other way round from `close`: a nudge, then the
+        // confirmation. Closing a day is something you did; rising a care
+        // level is something the house did back, so it should not feel like
+        // the same event.
+        await Haptics.impact({ style: ImpactStyle.Medium });
+        await wait(90);
+        await Haptics.notification({ type: NotificationType.Success });
         return;
       case "close":
         await Haptics.notification({ type: NotificationType.Success });
@@ -81,4 +91,8 @@ export function hapticPress(): Promise<void> {
 
 export function hapticClose(): Promise<void> {
   return play("close");
+}
+
+export function hapticLevelUp(): Promise<void> {
+  return play("level-up");
 }

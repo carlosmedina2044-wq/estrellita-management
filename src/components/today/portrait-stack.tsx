@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { PaletteId } from "@/lib/types";
 import type { Season } from "@/lib/scene/season";
-import { portraitLayerUrls, type PortraitWindowRect } from "@/lib/scene/portrait";
+import { doorAnchor, portraitKit, portraitLayerUrls, type PortraitWindowRect } from "@/lib/scene/portrait";
 import type { WindowState } from "@/lib/scene/window-rooms";
 import { DUR_AMBIENT } from "@/lib/motion";
 import { cn } from "@/lib/utils";
@@ -86,11 +87,59 @@ export function PortraitStack({
   const { frame, windows } = layers;
   const aspect = `${frame.w} / ${frame.h}`;
 
+  // A palette is the one thing the care ladder pays out, so earning one should
+  // not look like a texture swap between frames. The outgoing colour stays on
+  // screen underneath while the new one is revealed in a circle spreading from
+  // the front door. Tracked with the adjust-during-render pattern so the old
+  // palette is captured in the same commit the new one arrives in.
+  const [shownPalette, setShownPalette] = useState(palette);
+  const [outgoing, setOutgoing] = useState<PaletteId | null>(null);
+  if (palette !== shownPalette) {
+    setOutgoing(shownPalette);
+    setShownPalette(palette);
+  }
+  useEffect(() => {
+    if (!outgoing) return;
+    const timer = window.setTimeout(() => setOutgoing(null), 950);
+    return () => window.clearTimeout(timer);
+  }, [outgoing]);
+
+  const repainting = Boolean(outgoing) && !reduce;
+  const under = repainting ? portraitLayerUrls(kitType as never, outgoing as PaletteId, season) : null;
+  const door = doorAnchor(portraitKit(kitType as never));
+
   return (
     <div
       className={cn("relative overflow-visible", className)}
       style={{ width: widthPx, aspectRatio: aspect, ...style }}
     >
+      {under ? (
+        // Only the opaque body of the house: the windows, foliage and snow
+        // above carry no palette, so duplicating them would just double the
+        // paint cost for no visible difference.
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={under.shadow} alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={under.night} alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={under.day} alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-contain" style={{ opacity: dayOpacity }} />
+        </>
+      ) : null}
+      <div
+        className={cn("contents", repainting && "palette-reveal")}
+        style={
+          repainting
+            ? ({
+                display: "block",
+                position: "absolute",
+                inset: 0,
+                "--reveal-x": `${((door.x / frame.w) * 100).toFixed(1)}%`,
+                "--reveal-y": `${((door.y / frame.h) * 100).toFixed(1)}%`,
+              } as React.CSSProperties)
+            : undefined
+        }
+      >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={layers.shadow}
@@ -210,6 +259,7 @@ export function PortraitStack({
         className="pointer-events-none absolute inset-0 h-full w-full object-contain transition-opacity duration-700"
         style={{ opacity: showSnow ? 1 : 0 }}
       />
+      </div>
     </div>
   );
 }
