@@ -29,7 +29,7 @@ import { visitorFor, type VisitorKind } from "@/lib/scene/visitor";
 import { sceneCssVars } from "@/lib/scene/css";
 import { assignWindowRooms, litWindowCount, windowStates, type WindowState } from "@/lib/scene/window-rooms";
 import { houseLight } from "@/lib/scene/light";
-import { skyGradient, warmedStops } from "@/lib/scene/sky";
+import { daySweep, skyGradient, warmedStops } from "@/lib/scene/sky";
 import {
   dayOpacityForPhase,
   doorAnchor,
@@ -38,7 +38,7 @@ import {
   portraitLayerUrls,
   resolveHomeSpec,
 } from "@/lib/scene/portrait";
-import { CEREMONY_BEAT, DUR_AMBIENT, DUR_QUICK, EASE_OUT } from "@/lib/motion";
+import { CEREMONY_BEAT, DUR_AMBIENT, DUR_BASE, DUR_QUICK, EASE_OUT } from "@/lib/motion";
 import { hapticTab } from "@/lib/native/haptics";
 import type { MessageKey } from "@/i18n";
 import { seasonFor, type Season } from "@/lib/scene/season";
@@ -176,6 +176,36 @@ function useArrivalReveal(play: boolean): { litNow: boolean; staggering: boolean
   return { litNow: phase !== "pending", staggering: phase === "revealing" };
 }
 
+/**
+ * Once a day, on the first open, the sky catches up: it starts at first light
+ * and sweeps to the hour it actually is, sun and all. The whole sky model is
+ * parametric and a user otherwise only ever sees one frame of it.
+ *
+ * Three waypoints rather than a per-frame tween. Each step re-renders the
+ * scene and recomputes the gradient, and the `--sky-*` properties are
+ * registered in CSS, so the browser already tweens between the steps.
+ */
+function useDaySweep(
+  play: boolean,
+  phase: SkyPhase,
+  phaseT: number,
+): { phase: SkyPhase; t: number; sweeping: boolean } {
+  // Captured once: the sweep is a fixed path decided when the scene first
+  // mounted, not something that re-plans as the half-hour ticker moves on.
+  const [waypoints] = useState(() => (play ? daySweep(phase, phaseT) : []));
+  const [step, setStep] = useState(0);
+  const sweeping = step < waypoints.length;
+  useEffect(() => {
+    if (!sweeping) return;
+    // The first step lands on the next frame so the dawn sky is a real paint
+    // rather than a value React coalesces away before anything is shown.
+    const timer = window.setTimeout(() => setStep((current) => current + 1), step === 0 ? 60 : 420);
+    return () => window.clearTimeout(timer);
+  }, [step, sweeping]);
+  if (!sweeping) return { phase, t: phaseT, sweeping: false };
+  return { ...waypoints[step], sweeping: true };
+}
+
 function useMinuteTicker(enabled: boolean): Date {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -260,8 +290,13 @@ export function PortraitScene({
     return assignWindowRooms({ ...base, kitType, palette }, household.rooms, household.duties, portraitKit(kitType));
   }, [household, overrides?.kitType, overrides?.palette]);
 
-  const phase = overrides?.phase ?? phaseProp;
-  const phaseT = overrides?.phaseT ?? phaseTProp;
+  const sweep = useDaySweep(
+    Boolean(arrival) && !reduce && !overrides,
+    overrides?.phase ?? phaseProp,
+    overrides?.phaseT ?? phaseTProp,
+  );
+  const phase = sweep.phase;
+  const phaseT = sweep.t;
   const weather = overrides?.weather ?? weatherProp;
   const lat = household.location.lat;
   const season =
@@ -757,10 +792,17 @@ export function PortraitScene({
           color: "var(--scene-text)",
         }}
       >
-        <div className="min-w-0">
+        {/* The greeting lands with the sky rather than sitting over a sunrise
+            that is not the hour it claims. */}
+        <motion.div
+          className="min-w-0"
+          initial={false}
+          animate={{ opacity: sweep.sweeping ? 0 : 1 }}
+          transition={{ duration: DUR_BASE, ease: EASE_OUT }}
+        >
           <p className="ui-title text-[1.35rem] font-semibold tracking-tight">{greeting}</p>
           <p className="ui-caption mt-0.5 opacity-80">{secondaryLine}</p>
-        </div>
+        </motion.div>
         <div className="flex shrink-0 gap-2">
           {onOpenSettings ? (
             <button

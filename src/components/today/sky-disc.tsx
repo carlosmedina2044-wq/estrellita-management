@@ -85,7 +85,14 @@ export function SkyDisc({ phase, t, sun, className }: SkyDiscProps) {
       aria-hidden
       className={cn(
         "pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full",
-        !reduce && "transition-[left,top,opacity] duration-1000 ease-out",
+        // Matched to the sky's own `--sky-*` transition so the sun and the
+        // gradient move as one thing, including through the once-a-day sweep
+        // where the disc has three steps to keep up with. Left and top rather
+        // than a transform: the travel is expressed in percentages of the
+        // scene and a safe-area calc, neither of which a transform can take,
+        // and a 36px disc moving twice a minute is not where the frames go.
+        !reduce &&
+          "transition-[left,top,opacity] ease-out [transition-duration:var(--dur-ambient)]",
         className,
       )}
       style={style}

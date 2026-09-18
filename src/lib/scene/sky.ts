@@ -218,3 +218,46 @@ export function warmedStops(stops: SkyStops, amount: number): SkyStops {
     ambient: mixHex(stops.ambient, HEARTH, a * 0.4),
   };
 }
+
+/**
+ * The order a day is actually lived through, which is not `PHASE_ORDER` (that
+ * one starts at night because it is a cycle). Used to place a moment on a
+ * single 0-1 scale so the sky can be swept along it.
+ */
+const DAY_ARC: SkyPhase[] = ["dawn", "day", "golden", "dusk", "night"];
+
+/** Where a moment sits in the day, 0 at first light and 1 at the end of night. */
+export function dayProgress(phase: SkyPhase, t: number): number {
+  const index = DAY_ARC.indexOf(phase);
+  if (index < 0) return 0;
+  return (index + Math.min(1, Math.max(0, t))) / DAY_ARC.length;
+}
+
+/** The inverse: the phase and its own 0-1 at a point in the day. */
+export function phaseAtProgress(progress: number): { phase: SkyPhase; t: number } {
+  const clamped = Math.min(1, Math.max(0, progress));
+  const scaled = clamped * DAY_ARC.length;
+  const index = Math.min(DAY_ARC.length - 1, Math.floor(scaled));
+  return { phase: DAY_ARC[index], t: Math.min(1, Math.max(0, scaled - index)) };
+}
+
+/**
+ * Waypoints for the once-a-day sweep that catches the sky up from first light
+ * to now. Three of them, not a per-frame tween: each one re-renders the whole
+ * scene and recomputes the gradient, and the registered `--sky-*` properties
+ * already tween between them in CSS for free. The house's own sun disc
+ * transitions over the same window.
+ *
+ * Empty when the day has barely started — there is nothing to catch up on at
+ * dawn, and a sweep that goes nowhere is just a delay before the real sky.
+ */
+export function daySweep(phase: SkyPhase, t: number): Array<{ phase: SkyPhase; t: number }> {
+  const target = dayProgress(phase, t);
+  if (target <= 0.2) return [];
+  const steps = 3;
+  const out: Array<{ phase: SkyPhase; t: number }> = [];
+  for (let i = 0; i < steps; i += 1) {
+    out.push(phaseAtProgress((target * i) / steps));
+  }
+  return out;
+}

@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { contrastRatio, isHexColor } from "@/lib/scene/color";
-import { assertValidStops, skyGradient, warmedStops, type WeatherKind } from "@/lib/scene/sky";
+import {
+  assertValidStops,
+  dayProgress,
+  daySweep,
+  phaseAtProgress,
+  skyGradient,
+  warmedStops,
+  type WeatherKind,
+} from "@/lib/scene/sky";
 import type { SkyPhase } from "@/lib/scene/sun";
 
 const PHASES: SkyPhase[] = ["night", "dawn", "day", "golden", "dusk"];
@@ -65,4 +73,45 @@ test("warmedStops actually warms the horizon", () => {
   const warmed = warmedStops(stops, 1);
   assert.notEqual(warmed.horizon, stops.horizon);
   assert.notEqual(warmed.mid, stops.mid);
+});
+
+test("dayProgress and phaseAtProgress round-trip", () => {
+  for (const phase of ["dawn", "day", "golden", "dusk", "night"] as const) {
+    for (const t of [0, 0.25, 0.5, 0.75, 0.99]) {
+      const back = phaseAtProgress(dayProgress(phase, t));
+      assert.equal(back.phase, phase, `${phase}@${t} came back as ${back.phase}`);
+      assert.ok(Math.abs(back.t - t) < 1e-9, `${phase}@${t} came back at ${back.t}`);
+    }
+  }
+});
+
+test("dayProgress runs forward through the day", () => {
+  const order = ["dawn", "day", "golden", "dusk", "night"] as const;
+  let last = -1;
+  for (const phase of order) {
+    const value = dayProgress(phase, 0.5);
+    assert.ok(value > last, `${phase} (${value}) did not come after ${last}`);
+    last = value;
+  }
+});
+
+test("daySweep starts at first light, ends before now, and stays short", () => {
+  // Nothing to catch up on at dawn.
+  assert.deepEqual(daySweep("dawn", 0), []);
+  for (const phase of ["day", "golden", "dusk", "night"] as const) {
+    const sweep = daySweep(phase, 0.5);
+    assert.equal(sweep.length, 3);
+    assert.equal(sweep[0].phase, "dawn");
+    assert.equal(sweep[0].t, 0);
+    const target = dayProgress(phase, 0.5);
+    for (const point of sweep) {
+      assert.ok(dayProgress(point.phase, point.t) < target, "a waypoint overshot now");
+    }
+    for (let i = 1; i < sweep.length; i += 1) {
+      assert.ok(
+        dayProgress(sweep[i].phase, sweep[i].t) > dayProgress(sweep[i - 1].phase, sweep[i - 1].t),
+        "waypoints are not in order",
+      );
+    }
+  }
 });
