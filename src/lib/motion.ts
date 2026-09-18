@@ -32,6 +32,14 @@ export const EASE_OUT = [0.32, 0.72, 0, 1] as const;
  * waiting on, so it gets its own, longer step instead of being squeezed into
  * DUR_SCREEN.
  */
+/**
+ * No animation at all. Only for the Reduce Motion branch of a property
+ * `MotionConfig reducedMotion="user"` does not cover on its own — it
+ * neutralises transforms, but width, colour and opacity still animate, so a
+ * gauge filling or a bar growing has to opt out by hand. Named rather than
+ * written as a bare 0 so the duration guard below stays absolute.
+ */
+export const DUR_NONE = 0;
 export const DUR_INSTANT = 0.12;
 export const DUR_QUICK = 0.2;
 export const DUR_BASE = 0.32;

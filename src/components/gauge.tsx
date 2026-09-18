@@ -1,6 +1,8 @@
 "use client";
 
+import { motion, useReducedMotion } from "motion/react";
 import { tActive } from "@/i18n";
+import { DUR_NONE, SPRING_SETTLE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export type GaugeSegment = {
@@ -22,6 +24,13 @@ function captionFor(fraction: number, runwayDays: number | null): string {
 /**
  * Shared supply / fund gauge.
  * solid = have, hatched = on the way, empty = need.
+ *
+ * The most reused piece of data drawing in the app — the budget hero, every
+ * restock row, the supply check-in — and until now its width snapped between
+ * values, so using a supply or receiving an order changed the picture with no
+ * sign that anything had moved. The bar now springs to its new width, and
+ * fills once on first mount so arriving at a screen shows the level being
+ * measured rather than already drawn.
  */
 export function Gauge({
   fraction,
@@ -41,6 +50,7 @@ export function Gauge({
   showCaption?: boolean;
   "aria-label"?: string;
 }) {
+  const reduce = useReducedMotion();
   if (fraction == null) return null;
   const have = Math.min(1, Math.max(0, fraction));
   const transit = Math.min(1 - have, Math.max(0, onTheWayFraction));
@@ -54,13 +64,19 @@ export function Gauge({
   const body = (
     <>
       <span className={cn("relative block h-2.5 w-full overflow-hidden rounded-full bg-secondary", className)}>
-        <span className={cn("absolute inset-y-0 left-0 rounded-full", haveClass)} style={{ width: `${have * 100}%` }} />
+        <motion.span
+          className={cn("absolute inset-y-0 left-0 rounded-full", haveClass)}
+          initial={reduce ? false : { width: 0 }}
+          animate={{ width: `${have * 100}%` }}
+          transition={reduce ? { duration: DUR_NONE } : SPRING_SETTLE}
+        />
         {transit > 0 ? (
-          <span
+          <motion.span
             className="absolute inset-y-0 rounded-full bg-signal/70"
+            initial={reduce ? false : { left: `${have * 100}%`, width: 0 }}
+            animate={{ left: `${have * 100}%`, width: `${transit * 100}%` }}
+            transition={reduce ? { duration: DUR_NONE } : SPRING_SETTLE}
             style={{
-              left: `${have * 100}%`,
-              width: `${transit * 100}%`,
               backgroundImage:
                 "repeating-linear-gradient(-45deg,transparent,transparent 3px,rgb(0_0_0/18%)_3px,rgb(0_0_0/18%)_5px)",
             }}

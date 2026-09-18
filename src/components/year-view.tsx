@@ -1,5 +1,12 @@
 "use client";
 
+import { motion } from "motion/react";
+import { DUR_QUICK, EASE_OUT, STAGGER_CHILD } from "@/lib/motion";
+
+/** How long the year takes to draw itself: twelve months 45ms apart, plus the
+ * last month's own day-by-day fill. The stat tiles wait for it rather than
+ * landing over a grid that is still arriving. */
+const YEAR_GRID_MS = 700;
 import { useMemo, useState } from "react";
 import { Share2 } from "lucide-react";
 import { DayCalendar } from "@/components/day-calendar";
@@ -43,12 +50,17 @@ const DOT: Record<YearDay["outcome"], string> = {
   before: "bg-foreground/8",
 };
 
-function Tile({ value, label }: { value: string; label: string }) {
+function Tile({ value, label, index }: { value: string; label: string; index: number }) {
   return (
-    <div className="rounded-2xl bg-card px-4 py-3">
+    <motion.div
+      className="rounded-2xl bg-card px-4 py-3"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: YEAR_GRID_MS / 1000 + index * STAGGER_CHILD }}
+    >
       <p className="ui-title font-semibold num">{value}</p>
       <p className="mt-0.5 ui-caption text-muted-foreground">{label}</p>
-    </div>
+    </motion.div>
   );
 }
 
@@ -56,11 +68,14 @@ function MonthGrid({
   days,
   label,
   selected,
+  monthIndex,
   onSelect,
 }: {
   days: YearDay[];
   label: string;
   selected: boolean;
+  /** Its place in the stagger, so the year fills left to right. */
+  monthIndex: number;
   onSelect: () => void;
 }) {
   const { t } = useLocale();
@@ -84,14 +99,25 @@ function MonthGrid({
         {Array.from({ length: lead }, (_, index) => (
           <span key={`lead-${index}`} className="size-[7px]" />
         ))}
-        {days.map((day) => (
-          <span
+        {days.map((day, dayIndex) => (
+          <motion.span
             key={day.date.toISOString()}
             className={cn(
               "size-[7px] rounded-full",
               DOT[day.outcome],
               day.isToday && "ring-1 ring-primary ring-offset-1 ring-offset-background",
+              day.isToday && day.outcome !== "closed" && "today-dot-open",
             )}
+            initial={{ opacity: 0, scale: 0.4 }}
+            animate={{ opacity: 1, scale: 1 }}
+            // The year draws itself once, month by month and day by day, in
+            // about a second. A grid of 365 dots that is simply there says
+            // nothing; watching it fill in is the point of the screen.
+            transition={{
+              duration: DUR_QUICK,
+              ease: EASE_OUT,
+              delay: monthIndex * 0.045 + dayIndex * 0.0035,
+            }}
           />
         ))}
       </span>
@@ -248,6 +274,7 @@ export function YearView({
               days={monthDays}
               label={new Date(year, index, 1).toLocaleString(dateLocale, { month: "short" })}
               selected={openMonth === index}
+              monthIndex={index}
               onSelect={() => setOpenMonth((current) => (current === index ? null : index))}
             />
           ))}
@@ -275,15 +302,19 @@ export function YearView({
       </section>
 
       <section className="grid grid-cols-2 gap-2">
-        <Tile value={String(closedDays)} label={t("year.closedDays")} />
-        <Tile value={bestRun > 0 ? t("today.runDay", { count: bestRun }) : "–"} label={t("year.bestRun")} />
-        <Tile value={hoursText} label={t("year.hoursGiven")} />
+        <Tile index={0} value={String(closedDays)} label={t("year.closedDays")} />
+        <Tile
+          index={1}
+          value={bestRun > 0 ? t("today.runDay", { count: bestRun }) : "–"}
+          label={t("year.bestRun")}
+        />
+        <Tile index={2} value={hoursText} label={t("year.hoursGiven")} />
         {ledger.showAmount ? (
-          <Tile value={formatMoney(Math.round(ledger.amount))} label={t("year.handled")} />
+          <Tile index={3} value={formatMoney(Math.round(ledger.amount))} label={t("year.handled")} />
         ) : (
-          <Tile value={String(opened)} label={t("year.daysOpened")} />
+          <Tile index={3} value={String(opened)} label={t("year.daysOpened")} />
         )}
-        {ledger.showAmount ? <Tile value={String(opened)} label={t("year.daysOpened")} /> : null}
+        {ledger.showAmount ? <Tile index={4} value={String(opened)} label={t("year.daysOpened")} /> : null}
       </section>
 
       <section>

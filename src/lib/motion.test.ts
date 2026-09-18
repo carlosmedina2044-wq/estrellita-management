@@ -47,7 +47,7 @@ test("no component hardcodes a raw motion duration — use a token from lib/moti
   assert.deepEqual(
     offenders,
     [],
-    `Found raw duration literal(s) — replace with DUR_INSTANT/DUR_QUICK/DUR_BASE/DUR_SCREEN/DUR_AMBIENT from @/lib/motion:\n${offenders.join("\n")}`,
+    `Found raw duration literal(s) — replace with DUR_NONE/DUR_INSTANT/DUR_QUICK/DUR_BASE/DUR_SCREEN/DUR_AMBIENT from @/lib/motion:\n${offenders.join("\n")}`,
   );
 });
 
