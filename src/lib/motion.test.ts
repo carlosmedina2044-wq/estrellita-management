@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { DUR_AMBIENT, DUR_BASE, DUR_INSTANT, DUR_QUICK, DUR_SCREEN } from "@/lib/motion";
+import { DUR_AMBIENT, DUR_BASE, DUR_INSTANT, DUR_QUICK, DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 
 const COMPONENTS_DIR = join(__dirname, "..", "components");
 
@@ -60,4 +60,57 @@ test("the duration scale is ordered and each step is a meaningful jump from the 
       `step ${i} (${scale[i]}) is too close to step ${i - 1} (${scale[i - 1]}) to read as distinct`,
     );
   }
+});
+
+/**
+ * The CSS half of the scale. `globals.css` carries `--dur-*` / `--ease-out`
+ * twins of the tokens above so stylesheets, Tailwind arbitrary values and
+ * inline `style` strings can all reach the same numbers. Nothing enforces
+ * that the two files agree except this test, and a silent drift between them
+ * is exactly the kind of thing nobody notices until two transitions that are
+ * meant to be one gesture stop lining up.
+ */
+const GLOBALS_CSS = join(__dirname, "..", "app", "globals.css");
+
+function cssToken(name: string): string {
+  const css = readFileSync(GLOBALS_CSS, "utf8");
+  const match = css.match(new RegExp(`\\n\\s*--${name}:\\s*([^;]+);`));
+  assert.ok(match, `globals.css is missing the --${name} token`);
+  return match![1].trim();
+}
+
+test("the CSS duration tokens mirror lib/motion's scale", () => {
+  const pairs: [string, number][] = [
+    ["dur-instant", DUR_INSTANT],
+    ["dur-quick", DUR_QUICK],
+    ["dur-base", DUR_BASE],
+    ["dur-screen", DUR_SCREEN],
+    ["dur-ambient", DUR_AMBIENT],
+  ];
+  for (const [name, seconds] of pairs) {
+    assert.equal(
+      cssToken(name),
+      `${Math.round(seconds * 1000)}ms`,
+      `--${name} in globals.css no longer matches its lib/motion twin`,
+    );
+  }
+});
+
+test("the CSS easing token mirrors EASE_OUT", () => {
+  assert.equal(cssToken("ease-out"), `cubic-bezier(${EASE_OUT.join(", ")})`);
+});
+
+test("the app's easing curve is written once, as a token", () => {
+  const offenders: string[] = [];
+  for (const file of tsxFiles(COMPONENTS_DIR)) {
+    const contents = readFileSync(file, "utf8");
+    contents.split("\n").forEach((line, index) => {
+      // Spacing varies between the CSS and the JS string forms, so match on
+      // the numbers rather than on one exact spelling.
+      if (/cubic-bezier\(\s*0\.32\s*,\s*0\.72\s*,\s*0\s*,\s*1\s*\)/.test(line)) {
+        offenders.push(`${file}:${index + 1}: ${line.trim()}`);
+      }
+    });
+  }
+  assert.deepEqual(offenders, [], `Use var(--ease-out) (CSS) or EASE_OUT (motion/react):\n${offenders.join("\n")}`);
 });

@@ -118,6 +118,29 @@
   --sidebar-accent-foreground: #1d1d1f;
   --sidebar-border: rgb(45 35 25 / 10%);
   --sidebar-ring: #9a5a35;
+
+  /*
+   * The motion scale, mirroring `src/lib/motion.ts` so CSS and `motion/react`
+   * cannot drift apart. `motion.test.ts` reads these back out of this file and
+   * fails if a number here stops matching its `DUR_*` / `EASE_OUT` twin.
+   *
+   * Before these existed the same cubic-bezier was hand-retyped in seven
+   * places (the shell push, the roots parallax, the edge-swipe release, the
+   * sheet travel and its drag release) and every duration was a literal, so
+   * nothing said which differences were deliberate.
+   */
+  --ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Symmetric, for anything that loops back and forth. `--ease-out` is
+   * asymmetric by design and snaps oddly on the return swing. */
+  --ease-breathe: cubic-bezier(0.45, 0, 0.55, 1);
+  --dur-instant: 120ms;
+  --dur-quick: 200ms;
+  --dur-base: 320ms;
+  --dur-screen: 400ms;
+  --dur-ambient: 600ms;
+  /* Not on the interaction scale: what a transition collapses to under Reduce
+   * Motion, where the point is to avoid a jarring snap, not to choreograph. */
+  --dur-reduced: 150ms;
 }
 
 .dark {
@@ -385,7 +408,7 @@
 }
 
 .app-shell-main--push {
-  animation: app-shell-fade 150ms ease-out;
+  animation: app-shell-fade var(--dur-reduced) ease-out;
 }
 
 .app-shell-roots {
@@ -394,8 +417,8 @@
   flex: 1 1 auto;
   flex-direction: column;
   transition:
-    transform 350ms cubic-bezier(0.32, 0.72, 0, 1),
-    opacity 350ms cubic-bezier(0.32, 0.72, 0, 1);
+    transform var(--dur-base) var(--ease-out),
+    opacity var(--dur-base) var(--ease-out);
   will-change: transform, opacity;
 }
 
@@ -407,7 +430,7 @@
 
 .app-shell-roots[data-reduce-motion="true"] {
   transition:
-    opacity 150ms ease-out;
+    opacity var(--dur-reduced) ease-out;
   transform: none;
 }
 
@@ -431,19 +454,19 @@
   padding-inline: 1rem;
   padding-top: max(0.75rem, env(safe-area-inset-top));
   padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
-  animation: app-shell-push-in 350ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: app-shell-push-in var(--dur-base) var(--ease-out) both;
 }
 
 .app-shell-push[data-leaving="true"] {
-  animation: app-shell-push-out 350ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: app-shell-push-out var(--dur-base) var(--ease-out) both;
 }
 
 .app-shell-push[data-reduce-motion="true"] {
-  animation: app-shell-fade 150ms ease-out both;
+  animation: app-shell-fade var(--dur-reduced) ease-out both;
 }
 
 .app-shell-push[data-reduce-motion="true"][data-leaving="true"] {
-  animation: app-shell-fade-out 150ms ease-out both;
+  animation: app-shell-fade-out var(--dur-reduced) ease-out both;
 }
 
 .forecast-shimmer > * {
@@ -642,7 +665,7 @@ html.keyboard-open [data-slot="sheet-footer"] {
 }
 
 .today-dot-open {
-  animation: today-dot-breathe 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation: today-dot-breathe 2.4s var(--ease-breathe) infinite;
 }
 
 /*
@@ -883,7 +906,7 @@ html.keyboard-open [data-slot="sheet-footer"] {
   }
   .app-shell-roots,
   .app-shell-push {
-    animation-duration: 150ms !important;
-    transition-duration: 150ms !important;
+    animation-duration: var(--dur-reduced) !important;
+    transition-duration: var(--dur-reduced) !important;
   }
 }

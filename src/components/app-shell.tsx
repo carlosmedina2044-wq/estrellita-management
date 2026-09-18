@@ -122,7 +122,10 @@ export function AppShell() {
     leaveTimerRef.current = window.setTimeout(() => {
       setLeavingPush(null);
       leaveTimerRef.current = null;
-    }, prefersReducedMotion() ? 150 : 350);
+      // Must stay in step with `.app-shell-push`'s own animation length in
+      // globals.css (`--dur-base` / `--dur-reduced`), or the leaving screen
+      // either unmounts mid-flight or lingers as a dead layer afterwards.
+    }, prefersReducedMotion() ? 150 : 320);
   }, []);
 
   const cancelPushExit = useCallback(() => {
@@ -194,7 +197,8 @@ export function AppShell() {
   const EDGE_ZONE = 24;
   const EDGE_DISMISS = 0.35;
   const EDGE_VELOCITY = 0.6;
-  const EDGE_SPRING = "transform 320ms cubic-bezier(0.32,0.72,0,1), opacity 320ms cubic-bezier(0.32,0.72,0,1)";
+  const EDGE_SPRING =
+    "transform var(--dur-base) var(--ease-out), opacity var(--dur-base) var(--ease-out)";
 
   function applyEdgeProgress(progress: number, withTransition: boolean) {
     const push = pushLayerRef.current;
