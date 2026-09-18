@@ -69,5 +69,18 @@ function Decor({ kind }: { kind: CareDecor["kind"] }) {
           <circle cx="8" cy="2.6" r="1.5" fill="#c4574f" />
         </svg>
       );
+    case "bunting":
+      return (
+        <svg viewBox="0 0 48 10" className="h-2.5 w-12" fill="none">
+          <path d="M1 2q23 6 46 0" stroke="rgba(0,0,0,0.3)" strokeWidth="0.8" fill="none" />
+          {[0, 1, 2, 3, 4, 5, 6].map((index) => {
+            const x = 3 + index * 7;
+            const dip = Math.sin((index / 6) * Math.PI) * 2.2;
+            const y = 2 + dip;
+            const fill = ["#d98b9a", "#e8c06a", "#7fa8c9"][index % 3];
+            return <path key={index} d={`M${x} ${y}l3 0l-1.5 4z`} fill={fill} />;
+          })}
+        </svg>
+      );
   }
 }

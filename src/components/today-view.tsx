@@ -24,6 +24,7 @@ import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/part
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { GetAheadCard } from "@/components/today/get-ahead-card";
+import { QuestCard } from "@/components/today/quest-card";
 import { HouseSheet } from "@/components/today/house-sheet";
 import { ShareCardSheet } from "@/components/today/share-card-sheet";
 import { YearIntroSheet } from "@/components/today/year-intro-sheet";
@@ -39,6 +40,7 @@ import { payoffKeyFor } from "@/lib/payoff-lines";
 import { hasSeenTip, markTipSeen, shouldShowYearIntro, TIP_HOUSE_REVEAL, TIP_YEAR_INTRO } from "@/lib/teaching";
 import { dismissGetAhead, getAheadCandidate, isGetAheadDismissed } from "@/lib/get-ahead";
 import { houseLine } from "@/lib/house-line";
+import { weeklyQuest } from "@/lib/quest";
 import { currentCareState } from "@/lib/care-level";
 import { dayOpacityForPhase, portraitLayerUrls, resolveHomeSpec } from "@/lib/scene/portrait";
 import { seasonFor } from "@/lib/scene/season";
@@ -585,6 +587,10 @@ export function TodayView({
         name: household.ownerName.trim(),
       },
     );
+  const quest = useMemo(
+    () => (household.momentum.enabled ? weeklyQuest(household, now) : null),
+    [household, now],
+  );
   const monthLedgerLine = useMemo(() => formatLedgerLine(monthLedger(household, now), t), [household, now, t]);
   const kept = useMemo(() => keptRooms(household, now), [household, now]);
   const houseKept = useMemo(() => wholeHouseKept(kept, household, now), [kept, household, now]);
@@ -904,6 +910,7 @@ export function TodayView({
               onOpenHouse={() => setHouseOpen(true)}
               onOpenRoom={onNavigate ? (roomId) => onNavigate({ tab: "home", roomId }) : undefined}
               paused={compactBar}
+              questDone={Boolean(quest?.done)}
             />
           </SceneBoundary>
         </div>
@@ -990,6 +997,18 @@ export function TodayView({
               instant={false}
             />
           ) : null}
+        </motion.div>
+      ) : null}
+
+      {/* Between the day ring and the care level: the week. Sits under the day
+          card so progress and what is still open keep the top of the screen. */}
+      {sceneMode && quest ? (
+        <motion.div
+          initial={playArrival ? { opacity: 0, y: 8 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: playArrival ? STAGGER_CHILD : 0 }}
+        >
+          <QuestCard quest={quest} />
         </motion.div>
       ) : null}
 

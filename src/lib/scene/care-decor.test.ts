@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   CARE_DECOR_AT,
   CARE_DECOR_KINDS,
+  LEVEL_DECOR_KINDS,
   careDecor,
   careDecorAnchor,
   careDecorKinds,
@@ -25,13 +26,22 @@ test("decorations accumulate level by level and never shrink", () => {
   assert.deepEqual(careDecorKinds("loved"), ["planter", "window-box", "bench", "wreath"]);
 });
 
-test("every level's decoration is unique and every kind is reachable", () => {
+test("every level's decoration is unique and every level kind is reachable", () => {
   const assigned = CARE_LEVELS.map((level) => CARE_DECOR_AT[level]).filter(Boolean);
   assert.equal(new Set(assigned).size, assigned.length);
-  for (const kind of CARE_DECOR_KINDS) {
+  for (const kind of LEVEL_DECOR_KINDS) {
     assert.ok(assigned.includes(kind), `${kind} is never earned`);
     assert.equal(CARE_DECOR_AT[levelForDecor(kind)], kind);
   }
+});
+
+test("the week's bunting is not a care level's payout", () => {
+  const assigned = CARE_LEVELS.map((level) => CARE_DECOR_AT[level]);
+  assert.ok(!assigned.includes("bunting" as never));
+  assert.ok(!careDecorKinds("loved").includes("bunting" as never));
+  const dressed = careDecor("loved", portraitKit("a"), { questDone: true });
+  assert.ok(dressed.some((item) => item.kind === "bunting"));
+  assert.equal(dressed.length, 5);
 });
 
 test("anchors land inside the frame for every kit, including one-window kits", () => {

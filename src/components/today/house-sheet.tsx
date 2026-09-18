@@ -12,6 +12,7 @@ import { useLocale } from "@/i18n/locale-provider";
 import { careProgress, currentCareState } from "@/lib/care-level";
 import { formatLongDate, parseISODate } from "@/lib/dates";
 import { closedDayRun, nextMilestone, type DayArc } from "@/lib/momentum";
+import { weeklyQuest } from "@/lib/quest";
 import { seasonalTimeline } from "@/lib/playbooks";
 import type { Household } from "@/lib/types";
 import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
@@ -80,6 +81,13 @@ export function HouseSheet({
         : t("today.runStart");
   const next = nextSeasonal(household, now);
   const ladder = careProgress(household, now);
+  const quest = weeklyQuest(household, now);
+  const questLine = quest
+    ? `${t(`quest.${quest.id}.title` as MessageKey)} · ${t(`quest.${quest.id}.count` as MessageKey, {
+        done: quest.current,
+        total: quest.target,
+      })}`
+    : null;
   const milestone = nextMilestone(household, now);
 
   return (
@@ -111,6 +119,7 @@ export function HouseSheet({
           <div className="ui-group">
             <Row label={t("today.rowThisMonth")} value={formatLedgerLine(monthLedger(household, now), t)} />
             <Row label={t("today.rowRun")} value={runLine} hint={runHint} />
+            {questLine ? <Row label={t("today.rowQuest")} value={questLine} /> : null}
             <Row label={t("today.rowNextSeasonal")} value={next ?? t("today.nextSeasonalNone")} />
           </div>
         </div>

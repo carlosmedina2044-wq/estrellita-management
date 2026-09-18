@@ -86,6 +86,8 @@ type PortraitSceneProps = {
   onOpenRoom?: (roomId: string) => void;
   /** Stills the detail animations (Today passes its compact-bar state). */
   paused?: boolean;
+  /** This week's quest is met, so the house wears its bunting until Sunday. */
+  questDone?: boolean;
   overrides?: PortraitSceneOverrides;
   className?: string;
   /** Default true: Today and the lock screen sit flush at the true top of
@@ -183,6 +185,7 @@ export function PortraitScene({
   onOpenHouse,
   onOpenRoom,
   paused,
+  questDone,
   overrides,
   className,
   insetTop = true,
@@ -261,8 +264,11 @@ export function PortraitScene({
   // as a word in a sheet.
   const forcedDecor = overrides?.decor;
   const decor = useMemo(
-    () => (forcedDecor ? decorFor(forcedDecor, kit) : careDecor(careLevel, kit)),
-    [forcedDecor, careLevel, kit],
+    () =>
+      forcedDecor
+        ? decorFor(forcedDecor, kit)
+        : careDecor(careLevel, kit, { questDone: Boolean(questDone) }),
+    [forcedDecor, careLevel, kit, questDone],
   );
 
   // The scene owns its sky. Today's root sets the same variables so the sky

@@ -1,7 +1,14 @@
 import type { PortraitKitEntry } from "@/lib/scene/portrait";
 import { CARE_LEVELS, type CareLevelId } from "@/lib/types";
 
-export const CARE_DECOR_KINDS = ["planter", "window-box", "bench", "wreath"] as const;
+/** Earned by holding a care level. */
+export const LEVEL_DECOR_KINDS = ["planter", "window-box", "bench", "wreath"] as const;
+export type LevelDecorKind = (typeof LEVEL_DECOR_KINDS)[number];
+
+/** Earned by the week's quest, and gone again when the next week opens. */
+export const WEEK_DECOR_KINDS = ["bunting"] as const;
+
+export const CARE_DECOR_KINDS = [...LEVEL_DECOR_KINDS, ...WEEK_DECOR_KINDS] as const;
 export type CareDecorKind = (typeof CARE_DECOR_KINDS)[number];
 
 /** A decoration and where it sits, as percentages of the house stack's box. */
@@ -14,7 +21,7 @@ export type CareDecor = { kind: CareDecorKind; x: number; y: number };
  * baseline the others are measured against, and a house that starts full has
  * nothing to give.
  */
-export const CARE_DECOR_AT: Record<CareLevelId, CareDecorKind | null> = {
+export const CARE_DECOR_AT: Record<CareLevelId, LevelDecorKind | null> = {
   "settling-in": null,
   kept: "planter",
   "well-kept": "window-box",
@@ -23,10 +30,10 @@ export const CARE_DECOR_AT: Record<CareLevelId, CareDecorKind | null> = {
 };
 
 /** Everything a house at `level` shows, earned level by level. */
-export function careDecorKinds(level: CareLevelId): CareDecorKind[] {
+export function careDecorKinds(level: CareLevelId): LevelDecorKind[] {
   const reached = CARE_LEVELS.indexOf(level);
   if (reached < 0) return [];
-  const out: CareDecorKind[] = [];
+  const out: LevelDecorKind[] = [];
   for (let index = 0; index <= reached; index += 1) {
     const kind = CARE_DECOR_AT[CARE_LEVELS[index]];
     if (kind) out.push(kind);
@@ -35,7 +42,7 @@ export function careDecorKinds(level: CareLevelId): CareDecorKind[] {
 }
 
 /** The level a decoration arrives at, for naming it before it is earned. */
-export function levelForDecor(kind: CareDecorKind): CareLevelId {
+export function levelForDecor(kind: LevelDecorKind): CareLevelId {
   for (const level of CARE_LEVELS) {
     if (CARE_DECOR_AT[level] === kind) return level;
   }
@@ -81,12 +88,24 @@ export function careDecorAnchor(kind: CareDecorKind, kit: PortraitKitEntry): { x
       return { x: pct(b.x + b.w * 0.76, frame.w), y: pct(baseY, frame.h) };
     case "wreath":
       return { x: pct(door.x, frame.w), y: pct(door.y - b.h * 0.04, frame.h) };
+    case "bunting":
+      // Strung across the front, above the windows and clear of the roofline.
+      return { x: pct(b.x + b.w / 2, frame.w), y: pct(b.y + b.h * 0.34, frame.h) };
   }
 }
 
-/** Everything the house shows at `level`, placed on this kit. */
-export function careDecor(level: CareLevelId, kit: PortraitKitEntry): CareDecor[] {
-  return careDecorKinds(level).map((kind) => ({ kind, ...careDecorAnchor(kind, kit) }));
+/**
+ * Everything the house shows, placed on this kit: what the care level has
+ * earned, plus the week's bunting once its quest is met.
+ */
+export function careDecor(
+  level: CareLevelId,
+  kit: PortraitKitEntry,
+  opts: { questDone?: boolean } = {},
+): CareDecor[] {
+  const kinds: CareDecorKind[] = [...careDecorKinds(level)];
+  if (opts.questDone) kinds.push("bunting");
+  return kinds.map((kind) => ({ kind, ...careDecorAnchor(kind, kit) }));
 }
 
 /** Placed decorations for an explicit list — the dev portrait page. */
