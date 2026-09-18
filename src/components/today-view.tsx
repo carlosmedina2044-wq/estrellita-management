@@ -36,6 +36,7 @@ import { shouldPromptCost, suggestedCostFor } from "@/lib/costs";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfDay, startOfMonth, startOfWeek, toISODate, weekRange } from "@/lib/dates";
 import { keptRooms, wholeHouseKept } from "@/lib/kept-rooms";
+import { doneLineKey } from "@/lib/done-lines";
 import { payoffKeyFor } from "@/lib/payoff-lines";
 import { hasSeenTip, markTipSeen, shouldShowYearIntro, TIP_HOUSE_REVEAL, TIP_YEAR_INTRO } from "@/lib/teaching";
 import { dismissGetAhead, getAheadCandidate, isGetAheadDismissed } from "@/lib/get-ahead";
@@ -271,6 +272,17 @@ export function TodayView({
     momentumOn: household.momentum.enabled,
     onComplete,
     onUndo,
+    reactionFor: (duty, remaining) =>
+      household.momentum.enabled
+        ? t(
+            doneLineKey({
+              duty,
+              rooms: household.rooms,
+              remaining,
+              index: household.completions.length,
+            }),
+          )
+        : null,
     onCommitted: (duty, remaining) => {
       if (payoffKeyFor(duty)) {
         setPayoffDuty(duty);

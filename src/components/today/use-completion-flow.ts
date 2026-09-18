@@ -17,6 +17,10 @@ export function useCompletionFlow(args: {
   onComplete: (id: string) => void;
   onUndo: (id: string) => void;
   onCommitted?: (duty: Duty, remaining: Duty[]) => void;
+  /** The house's answer to this chore, shown under the toast. Returning null
+   * falls back to the bare title. Supplied by the caller because the copy
+   * needs `t`, which belongs to the view, not to this hook. */
+  reactionFor?: (duty: Duty, remaining: number) => string | null;
 }): {
   completingId: string | null;
   complete: (duty: Duty) => void;
@@ -51,7 +55,12 @@ export function useCompletionFlow(args: {
     completingRef.current = duty.id;
     setCompletingId(duty.id);
     void hapticComplete();
-    toast.success(tDutyTitle(duty.title), {
+    // The house answers in the same beat as the haptic, rather than reading
+    // the chore's own title back at the person who just tapped it.
+    const remainingNow = argsRef.current.open.filter((item) => item.id !== duty.id).length;
+    const reaction = argsRef.current.reactionFor?.(duty, remainingNow) ?? null;
+    toast.success(reaction ?? tDutyTitle(duty.title), {
+      description: reaction ? tDutyTitle(duty.title) : undefined,
       action: {
         label: t("today.undoToast"),
         onClick: () => undoDuringOrAfter(duty),
