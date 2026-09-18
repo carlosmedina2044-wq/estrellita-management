@@ -487,3 +487,70 @@ test("every milestone earned leaves no next", () => {
   });
   assert.equal(nextMilestone(home, thursday), null);
 });
+
+test("the milestone ladder keeps going past the first month", () => {
+  const thursday = new Date(2026, 8, 17);
+  const wipe = duty({ id: "wipe", title: "Wipe", createdAt: "2026-06-01T00:00:00.000Z" });
+  // A home that has cleared everything the original seven milestones asked for.
+  const veteran = household({
+    duties: [wipe],
+    completions: Array.from({ length: 60 }, (_, index) =>
+      completion({ dutyId: "wipe", id: `c${index}`, completedAt: atNoon(addDays(thursday, -index - 1)) }),
+    ),
+    momentum: {
+      enabled: true,
+      bestRun: 40,
+      care: { level: "well-kept", since: "2026-07-01" },
+    },
+  });
+  const open = milestoneProgress(veteran, thursday).filter((item) => !item.earned);
+  assert.ok(open.length > 0, "a 60-chore, 40-day-streak home has run out of goals");
+  assert.ok(nextMilestone(veteran, thursday), "nothing left to aim at");
+});
+
+test("care milestones measure rungs climbed, not an all-or-nothing flag", () => {
+  const thursday = new Date(2026, 8, 17);
+  const wipe = duty({ id: "wipe", title: "Wipe" });
+  const at = (level: "settling-in" | "well-kept") =>
+    household({
+      duties: [wipe],
+      momentum: { enabled: true, bestRun: 0, care: { level, since: "2026-09-01" } },
+    });
+  const low = milestoneProgress(at("settling-in"), thursday).find((item) => item.id === "care-loved");
+  const high = milestoneProgress(at("well-kept"), thursday).find((item) => item.id === "care-loved");
+  assert.ok(high && low && high.fraction > low.fraction, "the care bar does not move with the level");
+  assert.equal(high?.earned, false);
+});
+
+test("a care milestone survives the level falling back", () => {
+  const thursday = new Date(2026, 8, 17);
+  const fallen = household({
+    duties: [duty({ id: "wipe", title: "Wipe" })],
+    momentum: {
+      enabled: true,
+      bestRun: 0,
+      care: { level: "kept", since: "2026-09-01" },
+      careHistory: [{ level: "loved", since: "2026-05-01" }],
+    },
+  });
+  const earned = milestoneProgress(fallen, thursday)
+    .filter((item) => item.earned)
+    .map((item) => item.id);
+  assert.ok(earned.includes("care-loved"));
+  assert.ok(earned.includes("care-cared-for"));
+});
+
+test("seasonal tiers count every seasonal job, not distinct chores", () => {
+  const thursday = new Date(2026, 8, 17);
+  const gutters = duty({ id: "gutters", title: "Clear gutters", frequency: "quarterly" });
+  const home = household({
+    duties: [gutters],
+    completions: Array.from({ length: 4 }, (_, index) =>
+      completion({ dutyId: "gutters", id: `g${index}`, completedAt: atNoon(addDays(thursday, -index * 90 - 1)) }),
+    ),
+  });
+  const byId = new Map(milestoneProgress(home, thursday).map((item) => [item.id, item]));
+  assert.equal(byId.get("four-seasonal")?.earned, true);
+  assert.equal(byId.get("twelve-seasonal")?.current, 4);
+  assert.equal(byId.get("twelve-seasonal")?.earned, false);
+});

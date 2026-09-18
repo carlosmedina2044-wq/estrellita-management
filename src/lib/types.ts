@@ -327,6 +327,9 @@ export type WeatherStatus = {
   lastError: string | null;
 };
 
+/** Ordered easiest first. Tiers deliberately run past what a consistent home
+ * reaches in a month: with only seven, the ladder ran out by day 30 and the
+ * house sheet said "every milestone earned" for the rest of its life. */
 export const MILESTONE_IDS = [
   "first-close",
   "first-week",
@@ -335,6 +338,13 @@ export const MILESTONE_IDS = [
   "every-room",
   "first-quarterly",
   "thirty-run",
+  "fifty-done",
+  "four-seasonal",
+  "care-cared-for",
+  "hundred-run",
+  "two-hundred-done",
+  "twelve-seasonal",
+  "care-loved",
 ] as const;
 export type MilestoneId = (typeof MILESTONE_IDS)[number];
 

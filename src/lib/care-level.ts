@@ -172,6 +172,20 @@ export function currentCareState(household: Household, now = new Date()): CareSt
   return household.momentum.care ?? nextCareState(undefined, careSignals(household, now), now);
 }
 
+/**
+ * The best care level a home has ever held. The level itself can fall — that
+ * is what makes it a live signal — but anything paid out for reaching a level
+ * is keyed off this, so one bad fortnight never takes back what was earned.
+ * The same reason the streak has a grace day.
+ */
+export function bestCareLevel(household: Household, now = new Date()): CareLevelId {
+  let best = careLevelIndex(currentCareState(household, now).level);
+  for (const entry of household.momentum.careHistory ?? []) {
+    best = Math.max(best, careLevelIndex(entry.level));
+  }
+  return CARE_LEVELS[Math.max(0, best)];
+}
+
 export type CareProgress = {
   level: CareLevelId;
   next: CareLevelId | null;

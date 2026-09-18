@@ -10,6 +10,7 @@ import {
   isScheduledInRange,
   todaysOpenDuties,
 } from "@/lib/duties";
+import { bestCareLevel, careLevelIndex } from "@/lib/care-level";
 import type { Audience, Duty, Household, MilestoneId } from "@/lib/types";
 
 export type DayOutcome = "closed" | "open" | "rest";
@@ -433,13 +434,29 @@ function everyRoomTouched(household: Household, now: Date): boolean {
   return rooms.every((room) => touched.has(room.id));
 }
 
-function hasQuarterlyDone(household: Household): boolean {
+/** Every seasonal job ever done. Counts completions, not duties: doing the
+ * gutters three autumns running is three seasonal jobs, and a ladder that only
+ * counted distinct chores would stall on a home with a short catalogue. */
+function seasonalDoneCount(household: Household): number {
   const ids = new Set(
     household.duties
       .filter((duty) => duty.frequency === "quarterly" || duty.frequency === "yearly")
       .map((duty) => duty.id),
   );
-  return household.completions.some((item) => ids.has(item.dutyId));
+  let count = 0;
+  for (const item of household.completions) {
+    if (ids.has(item.dutyId)) count += 1;
+  }
+  return count;
+}
+
+function hasQuarterlyDone(household: Household): boolean {
+  return seasonalDoneCount(household) > 0;
+}
+
+/** The longest streak a home has ever held, live or filed. */
+function runReached(household: Household, now: Date): number {
+  return Math.max(closedDayRun(household, now).current, cachedBestRun(household));
 }
 
 export const MILESTONES: Array<{ id: MilestoneId; when: (household: Household, now: Date) => boolean }> = [
@@ -448,16 +465,26 @@ export const MILESTONES: Array<{ id: MilestoneId; when: (household: Household, n
     id: "first-week",
     when: (household, now) => weekWasFull(household, now) || weekWasFull(household, addDays(now, -7)),
   },
-  {
-    id: "seven-run",
-    when: (household, now) => closedDayRun(household, now).current >= 7 || cachedBestRun(household) >= 7,
-  },
+  { id: "seven-run", when: (household, now) => runReached(household, now) >= 7 },
   { id: "ten-done", when: (household) => household.completions.length >= 10 },
   { id: "every-room", when: everyRoomTouched },
   { id: "first-quarterly", when: hasQuarterlyDone },
   {
     id: "thirty-run",
-    when: (household, now) => closedDayRun(household, now).current >= 30 || cachedBestRun(household) >= 30,
+    when: (household, now) => runReached(household, now) >= 30,
+  },
+  { id: "fifty-done", when: (household) => household.completions.length >= 50 },
+  { id: "four-seasonal", when: (household) => seasonalDoneCount(household) >= 4 },
+  {
+    id: "care-cared-for",
+    when: (household, now) => careLevelIndex(bestCareLevel(household, now)) >= careLevelIndex("cared-for"),
+  },
+  { id: "hundred-run", when: (household, now) => runReached(household, now) >= 100 },
+  { id: "two-hundred-done", when: (household) => household.completions.length >= 200 },
+  { id: "twelve-seasonal", when: (household) => seasonalDoneCount(household) >= 12 },
+  {
+    id: "care-loved",
+    when: (household, now) => careLevelIndex(bestCareLevel(household, now)) >= careLevelIndex("loved"),
   },
 ];
 
@@ -482,6 +509,9 @@ export function milestoneProgress(household: Household, now = new Date()): Miles
   // own list rather than sitting at 0 of 1 until the day lands.
   const today = dayArc(household, now);
   const closedEver = hasClosedDay(household, now);
+  // Care milestones measure rungs climbed, so their bar fills as the level
+  // does rather than sitting at nothing until the level lands.
+  const careReached = careLevelIndex(bestCareLevel(household, now));
   const counts: Record<MilestoneId, { current: number; target: number }> = {
     "first-close": closedEver
       ? { current: 1, target: 1 }
@@ -493,8 +523,15 @@ export function milestoneProgress(household: Household, now = new Date()): Miles
       current: roomsTouchedInRange(household, addDays(now, -30), now),
       target: Math.max(rooms.length, 1),
     },
-    "first-quarterly": { current: hasQuarterlyDone(household) ? 1 : 0, target: 1 },
+    "first-quarterly": { current: Math.min(seasonalDoneCount(household), 1), target: 1 },
     "thirty-run": { current: Math.max(run.current, run.best), target: 30 },
+    "fifty-done": { current: household.completions.length, target: 50 },
+    "four-seasonal": { current: seasonalDoneCount(household), target: 4 },
+    "care-cared-for": { current: careReached, target: careLevelIndex("cared-for") },
+    "hundred-run": { current: Math.max(run.current, run.best), target: 100 },
+    "two-hundred-done": { current: household.completions.length, target: 200 },
+    "twelve-seasonal": { current: seasonalDoneCount(household), target: 12 },
+    "care-loved": { current: careReached, target: careLevelIndex("loved") },
   };
 
   return MILESTONES.map((item) => {

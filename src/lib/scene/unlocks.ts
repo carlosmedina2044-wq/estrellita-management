@@ -1,5 +1,5 @@
-import { careLevelIndex, currentCareState } from "@/lib/care-level";
-import { CARE_LEVELS, PALETTE_IDS, type CareLevelId, type Household, type PaletteId } from "@/lib/types";
+import { bestCareLevel, careLevelIndex } from "@/lib/care-level";
+import { PALETTE_IDS, type CareLevelId, type Household, type PaletteId } from "@/lib/types";
 
 /**
  * The care level each palette arrives at. The house *shape* is never locked —
@@ -13,27 +13,14 @@ export const PALETTE_UNLOCK: Record<PaletteId, CareLevelId> = {
   slate: "well-kept",
 };
 
+export { bestCareLevel };
+
 export type PaletteLock = {
   palette: PaletteId;
   unlocked: boolean;
   /** The level that opens it, or null once it is open. */
   needs: CareLevelId | null;
 };
-
-/**
- * The best care level a home has ever held. Unlocks are permanent: the level
- * itself can fall — that is what makes it a live signal — but taking a colour
- * back off someone for one bad fortnight would punish the exact week they
- * most need the app to feel forgiving. The same reason the streak has a grace
- * day.
- */
-export function bestCareLevel(household: Household, now = new Date()): CareLevelId {
-  let best = careLevelIndex(currentCareState(household, now).level);
-  for (const entry of household.momentum.careHistory ?? []) {
-    best = Math.max(best, careLevelIndex(entry.level));
-  }
-  return CARE_LEVELS[Math.max(0, best)];
-}
 
 /**
  * Every palette with its state, for a home that has reached `level`.
