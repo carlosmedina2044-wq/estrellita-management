@@ -7,7 +7,33 @@ iPhone 17 size and reading every animation in `src/`. Companion to
 [`MOTION_PLAN.md`](./MOTION_PLAN.md), which is the consistency-and-bugs list; this
 file is only about the moments people would record and send to someone.
 
-Everything below is a recommendation. Nothing in this pass changed code.
+**Status: all 17 items are implemented**, on branch `v1.2-motion-wow` as
+`W0-01` … `W3-guardrail`, one commit per item or pair. Gate green throughout
+(483 tests, typecheck, lint), static export builds, and the iPhone 17 simulator
+build succeeds with no warnings. Each item below is annotated with what was
+actually built, including where the plan turned out to be wrong.
+
+Everything below was written as a recommendation before any of it was built;
+the annotations are the record of building it.
+
+## What was found while building
+
+Four things only showed up once the work was measured rather than read:
+
+- **A three-keyframe spring took out the whole ceremony.** Motion supports
+  exactly two keyframes with a spring and throws on a third, and the throw is
+  not contained — it aborts every other animation starting in the same frame.
+  One bouncy run dot silently stopped the hearth and the reward card from ever
+  playing. Found by reading the console after measuring opacity that never
+  moved.
+- **The parallax could never have worked on a phone.** Confirmed as suspected:
+  nothing called `requestPermission()`, so WebKit delivered no events at all.
+- **Closing a day had no haptic.** The three-beat close pattern lived in
+  `TodayHero`, which the scene path never renders, so finishing a day buzzed
+  exactly like ticking one more chore off.
+- **The first cut of the per-tab entrance replayed on every visit.** The flag
+  was set once and never dropped, which is the exact failure the item was
+  written to avoid. Caught by switching away and back while measuring.
 
 ## Where the app stands
 
@@ -51,12 +77,12 @@ Two principles run through every item:
 
 ---
 
-## Tier 1 — Signature moments (Today, ~4.5 days)
+## Tier 1 — Signature moments (Today, ~4.5 days) — all done
 
 These are the ones that make the app feel expensive on the screen people open
 every day. All five sit on infrastructure that already exists.
 
-### 1. The house answers every tick
+### 1. The house answers every tick ✅
 
 **What.** When a chore commits, the window mapped to that room warms on right
 then, with a small sparkle at the window, and the "min left" number rolls in
@@ -87,7 +113,7 @@ every day, not only when tapped.
 **Effort.** 0.5–1 day. Files: `today-view.tsx` (commit hook),
 `today/portrait-scene.tsx`, `today/portrait-stack.tsx`, `today/day-run-card.tsx`.
 
-### 2. The closing ceremony as a 2.5-second piece
+### 2. The closing ceremony as a 2.5-second piece ✅
 
 **What.** The sequence exists (`MOTION_PLAN.md` §0/§3.5) but everything lands
 inside 0.7 s and settles at 1.2 s. Stretch it into a piece with a beginning,
@@ -116,7 +142,7 @@ at the end of it.
 
 **Effort.** 1 day.
 
-### 3. The ladder pays out: a level-up ceremony
+### 3. The ladder pays out: a level-up ceremony ✅
 
 **What.** Care decorations (planter, window box, bench, wreath) and the
 palette unlocks are the reward the whole progression model pays; today they
@@ -148,7 +174,7 @@ pay out, and the payout is on the picture of your own house.
 **Effort.** 1–1.5 days. Files: `today/care-decor-layer.tsx`,
 `today/portrait-stack.tsx`, `today/day-run-card.tsx`, `lib/native/haptics.ts`.
 
-### 4. A sky that visibly moves
+### 4. A sky that visibly moves ✅
 
 **What.** The sky is fully parametric (`skyGradient(phase, phaseT, …)`), yet a
 user only ever sees one frame of it. Two additions:
@@ -171,7 +197,7 @@ already moves by `left/top`; switch it to `transform` while there.
 **Effort.** 0.5 day. Files: `today/portrait-scene.tsx`, `today/sky-disc.tsx`,
 `globals.css`, `lib/scene/sky.ts`.
 
-### 5. Wake the tilt parallax and give it depth
+### 5. Wake the tilt parallax and give it depth ✅
 
 **What.** Make the diorama real. `useGyroOffset` is written correctly but
 never receives events on iOS.
@@ -194,7 +220,7 @@ Preferences key.
 
 ---
 
-## Tier 2 — Continuity (~4.5 days)
+## Tier 2 — Continuity (~4.5 days) — all done
 
 The app currently has three separate spatial models: Today's scene, the tab
 panes, and Radix sheets. These four items make it feel like one place.
@@ -243,7 +269,7 @@ threshold; a full swipe commits and the row flies to Done through the existing
 
 ---
 
-## Tier 3 — Everywhere polish (~4 days)
+## Tier 3 — Everywhere polish (~4 days) — all done
 
 The consistency signal. None of these is a wow on its own; together they are
 the difference between "the Today screen is nice" and "this app is nice".
@@ -354,3 +380,62 @@ The seven Lottie details and the four decoration pieces in
   focused pane, and Motion clamps its frame delta, so 200 ms tweens crawl over
   seconds there. It looked like the quest card was stuck at opacity 0 for six
   seconds; on a focused load it reached 1 within a second. Not a bug in the app.
+
+
+---
+
+## Built, with the deviations
+
+Where the plan and the result differ, the result is right and the reason is
+here.
+
+**1. The house answers every tick.** Built as light only — no second sparkle at
+the window. The plan allowed one; the row's own check already sparkles at the
+finger and the door sparkle is reserved for closing the day, so a third would
+have been three confetti sources for one tap. The first curve peaked for about
+180ms, which is over before the eye reaches the house; splitting it into a fast
+rise and a slow fall holds it above a quarter opacity for 416ms.
+
+**2. The ceremony.** Built to the timeline as written, with `CEREMONY_MS` at
+2400 and the beats named in `lib/motion` as `CEREMONY_BEAT` rather than left as
+delay literals in five files. The missing close haptic was found here.
+
+**3. The level-up.** Built, except the headline underline: the day's headline is
+about chores, so underlining it on a care-level rise points at the wrong
+sentence. The words already exist on the care notice card. `?levelup=1` and
+`?repaint=1` on the dev portrait page replay both halves, since the real
+triggers need a fortnight of history.
+
+**4. The sky.** Built. `daySweep` returns three waypoints rather than a tween,
+and the registered `--sky-*` properties tween between them in CSS. The sun disc
+stays on `left`/`top`: its travel is a percentage plus a safe-area calc, which
+a transform cannot express, and a 36px disc that moves twice a minute is not
+where the frames go.
+
+**6. Window → room.** Built as a pane of light growing toward the viewer, not a
+FLIP onto the sheet's header art. The sheet has not mounted when the flight
+starts, so its position would have to be guessed, and a flight that lands
+slightly off is worse than one that never claimed a target.
+
+**7. Onboarding.** Built as the haptics pass and the progress bar. The house
+does *not* rebuild itself as you answer: that needs the in-progress household
+threaded into the scene, and onboarding is the highest-risk surface in the app
+to break before a first submission. The house-look step needed nothing — it
+renders the real scene, so the palette repaint from item 3 already plays there.
+**This is the one item delivered narrower than written.**
+
+**16. Ambient depth.** Clouds and wind built. Snow accumulating on the roof over
+a snowy day was not: the snow layer is a single shipped art layer per kit with
+one opacity, so "accumulating" would mean new art rather than new motion.
+
+## Still open
+
+- **Device verification.** The tilt permission prompt, every haptic pattern, and
+  WKWebView paint cost under the new gradient work cannot be checked in a
+  browser or on the simulator. The simulator has no gyroscope and no Taptic
+  Engine.
+- **Reduce Motion on a device.** Verified by inspection and by the two explicit
+  gaps closed in `W3-guardrail`, not by walking the app with the setting on.
+- **Accessibility text sizes.** None of the new layers were checked at
+  accessibility-extra-large.
+- **The 120fps recording** of the ceremony that `MOTION_PLAN.md` §5 asks for.
