@@ -310,19 +310,29 @@
   scroll-padding-bottom: 1.25rem;
 }
 
+/*
+ * `clip` on the inline axis, not `hidden`. They paint identically — both clip
+ * at the padding box — but `hidden` leaves the box a scroll container that
+ * script can still scroll sideways, and `clip` does not. Nothing in the app
+ * scrolls horizontally at the pane level, so making that structurally
+ * impossible costs nothing and closes off a whole class of glitch where a
+ * pane ends up parked off-screen with no way to scroll back (see
+ * `src/lib/scroll.ts`).
+ */
 .app-shell-main {
   display: flex;
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: hidden;
   padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
 }
 
 .app-keep-alive {
   min-height: 0;
   flex: 1 1 auto;
-  overflow-x: hidden;
+  overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
@@ -413,7 +423,7 @@
   display: flex;
   min-height: 0;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
