@@ -16,7 +16,8 @@ import type { MessageKey } from "@/i18n";
 import { useClock } from "@/hooks/use-clock";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
 import { toISODate } from "@/lib/dates";
-import { DUR_INSTANT, DUR_QUICK, EASE_OUT } from "@/lib/motion";
+import { DUR_INSTANT, DUR_QUICK, EASE_OUT, SPRING_SETTLE } from "@/lib/motion";
+import { hapticSuccess, hapticTab } from "@/lib/native/haptics";
 import { dayArc } from "@/lib/momentum";
 import { portraitKit } from "@/lib/scene/portrait";
 import { previewHousehold } from "@/lib/scene/preview-household";
@@ -121,6 +122,10 @@ export function Onboarding({
 
   async function finish(nextAnswers: OnboardingAnswers) {
     setBusy(true);
+    // Setting up a home is the one thing in onboarding worth a success beat.
+    // Fired before the work rather than after it: `onComplete` hands over to
+    // Today, and a buzz that lands on the next screen belongs to that screen.
+    void hapticSuccess();
     try {
       const trimmed = ownerName.trim();
       await onComplete({ answers: nextAnswers, ownerName: trimmed || undefined });
@@ -288,7 +293,12 @@ export function Onboarding({
             aria-valuenow={Math.round(progress * 100)}
             aria-label={t("onboarding.progressAria")}
           >
-            <div className="h-full bg-brand transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
+            <motion.div
+              className="h-full bg-brand"
+              initial={false}
+              animate={{ width: `${Math.round(progress * 100)}%` }}
+              transition={SPRING_SETTLE}
+            />
           </div>
         ) : (
           <div className="h-1" aria-hidden />
@@ -374,11 +384,12 @@ export function Onboarding({
                     <input
                       type="checkbox"
                       checked={room.enabled}
-                      onChange={() =>
+                      onChange={() => {
+                        void hapticTab();
                         setRooms((current) =>
                           current.map((item) => (item.key === room.key ? { ...item, enabled: !item.enabled } : item)),
-                        )
-                      }
+                        );
+                      }}
                       className="peer absolute inset-0 z-10 cursor-pointer opacity-0"
                     />
                     <CircleCheck checked={room.enabled} />
@@ -403,7 +414,10 @@ export function Onboarding({
                     key={item.id}
                     type="button"
                     className="h-11 rounded-2xl bg-secondary text-sm font-medium"
-                    onClick={() => addRoom(item.id)}
+                    onClick={() => {
+                      void hapticTab();
+                      addRoom(item.id);
+                    }}
                   >
                     {t(item.labelKey)}
                   </button>
@@ -426,11 +440,12 @@ export function Onboarding({
                       "h-11 rounded-full px-3 ui-caption font-medium",
                       on ? "bg-primary text-primary-foreground" : "bg-secondary",
                     )}
-                    onClick={() =>
+                    onClick={() => {
+                      void hapticTab();
                       setExtraFeatures((current) =>
                         on ? current.filter((id) => id !== item.id) : [...current, item.id],
-                      )
-                    }
+                      );
+                    }}
                   >
                     {t(item.labelKey)}
                   </button>
@@ -593,7 +608,10 @@ export function Onboarding({
                       "h-11 rounded-full px-3 ui-body font-medium",
                       index >= 0 ? "bg-primary text-primary-foreground" : "bg-secondary",
                     )}
-                    onClick={() => toggleRetailer(chip.id)}
+                    onClick={() => {
+                      void hapticTab();
+                      toggleRetailer(chip.id);
+                    }}
                   >
                     {chip.label}
                     {index >= 0 ? ` · ${index + 1}` : ""}
@@ -732,9 +750,12 @@ function ChoiceGrid({
         <button
           key={item.id}
           type="button"
-          onClick={() => onChange(item.id)}
+          onClick={() => {
+            void hapticTab();
+            onChange(item.id);
+          }}
           className={cn(
-            "min-h-14 rounded-2xl border px-4 py-3 text-left ui-card font-medium",
+            "min-h-14 rounded-2xl border px-4 py-3 text-left ui-card font-medium transition-transform active:scale-[0.99]",
             value === item.id ? "border-brand bg-brand-cream/60" : "border-border bg-card",
           )}
         >

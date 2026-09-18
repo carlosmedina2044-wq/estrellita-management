@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "motion/react";
 import { BrandMark } from "@/components/brand-logo";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { PortraitScene } from "@/components/today/portrait-scene";
@@ -14,7 +15,13 @@ import { sceneWeather } from "@/lib/scene/weather";
 import { skyPhase, sunTimes } from "@/lib/scene/sun";
 import type { UnlockHouseholdResult } from "@/lib/storage";
 import { toISODate } from "@/lib/dates";
+import { DUR_QUICK, DUR_SCREEN, EASE_OUT, prefersReducedMotion } from "@/lib/motion";
+import { hapticDestructive, hapticSuccess } from "@/lib/native/haptics";
 import type { Household } from "@/lib/types";
+
+/** Long enough for the card to fade and the house to sharpen, short enough
+ * that it never feels like the unlock is still thinking. */
+const UNLOCK_RELEASE_MS = 380;
 
 /**
  * App lock. Vault decrypt happens only after ACL Keychain get succeeds.
@@ -56,6 +63,7 @@ export function FaceLock({
   const sceneWx = useMemo(() => sceneWeather(null, toISODate(clock)), [clock]);
   const lockCopy = lockMethodLabel(method, t);
   const [busy, setBusy] = useState(false);
+  const [releasing, setReleasing] = useState(false);
   const [error, setError] = useState("");
 
   async function unlock() {
@@ -64,14 +72,28 @@ export function FaceLock({
     const result = await performUnlock();
     setBusy(false);
     if (result.ok) {
-      onUnlocked();
+      void hapticSuccess();
+      // The card lets go and the house it was standing in front of comes into
+      // focus, then the shell swaps trees. Without the beat the unlock was a
+      // hard cut from a blurred house to a sharp one, which is the one moment
+      // in the app where the user is waiting on it and watching.
+      if (prefersReducedMotion()) {
+        onUnlocked();
+        return;
+      }
+      setReleasing(true);
+      window.setTimeout(onUnlocked, UNLOCK_RELEASE_MS);
       return;
     }
     onUnlockFailed?.(result);
     if (result.reason === "canceled") {
+      // No buzz: dismissing Face ID is a decision, not a failure, and
+      // answering it with a warning pattern would tell the user they did
+      // something wrong.
       setError(t("lock.cancelError"));
       return;
     }
+    void hapticDestructive();
     if (result.reason === "auth_failed") {
       setError(t("lock.authError"));
       return;
@@ -96,7 +118,16 @@ export function FaceLock({
         // count-bearing) `role="img"` label out of the accessibility tree
         // entirely, matching the "no chore details on a locked screen"
         // stance `privateNotifications` already takes elsewhere.
-        <div aria-hidden className="opacity-90 blur-[1.5px] brightness-[0.6]">
+        <motion.div
+          aria-hidden
+          initial={false}
+          animate={
+            releasing
+              ? { opacity: 1, filter: "blur(0px) brightness(1)" }
+              : { opacity: 0.9, filter: "blur(1.5px) brightness(0.6)" }
+          }
+          transition={{ duration: DUR_SCREEN, ease: EASE_OUT }}
+        >
           <SceneBoundary>
             <PortraitScene
               household={household}
@@ -109,10 +140,15 @@ export function FaceLock({
               secondaryLine=""
             />
           </SceneBoundary>
-        </div>
+        </motion.div>
       ) : null}
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-8 pb-12 text-center">
-        <div className="ui-bevel w-full max-w-xs bg-card/95 px-6 py-8 backdrop-blur-md">
+        <motion.div
+          className="ui-bevel w-full max-w-xs bg-card/95 px-6 py-8 backdrop-blur-md"
+          initial={false}
+          animate={releasing ? { opacity: 0, scale: 0.96 } : { opacity: 1, scale: 1 }}
+          transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
+        >
           <BrandMark size="md" className="mx-auto" />
           <h1 className="ui-heading mt-8 ui-title font-semibold tracking-tight">{t("lock.title")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -130,7 +166,7 @@ export function FaceLock({
             {busy ? t("lock.waiting") : t("lock.unlock")}
           </Button>
           {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
-        </div>
+        </motion.div>
       </div>
     </div>
   );

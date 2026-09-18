@@ -42,7 +42,8 @@ import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMe
 import { isNative } from "@/lib/native/platform";
 import { isCuidalaTodayUrl } from "@/lib/widget-url";
 import { hideLaunchSplash } from "@/lib/native/splash";
-import { prefersReducedMotion, scrollBehavior } from "@/lib/motion";
+import { motion } from "motion/react";
+import { DUR_SCREEN, EASE_OUT, prefersReducedMotion, scrollBehavior } from "@/lib/motion";
 import { fetchForecastFor } from "@/lib/weather/client";
 import { fetchWeatherAttribution, type WeatherAttribution } from "@/lib/native/weatherkit";
 import { evaluateTriggers, weatherCaption, type WeatherForecast } from "@/lib/weather/provider";
@@ -992,13 +993,26 @@ export function AppShell() {
   );
 }
 
+/**
+ * The half-second between the splash and the first real screen. It was a bare
+ * mark on cream, which is honest but reads as a stall; the mark now breathes
+ * up to full so the wait looks like the app arriving rather than nothing
+ * happening. Nothing here waits on data — it is a local-first app and there is
+ * no spinner to justify.
+ */
 function OpeningScreen() {
   return (
     <div
       suppressHydrationWarning
       className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-8"
     >
-      <BrandMark size="md" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: DUR_SCREEN, ease: EASE_OUT }}
+      >
+        <BrandMark size="md" />
+      </motion.div>
     </div>
   );
 }
