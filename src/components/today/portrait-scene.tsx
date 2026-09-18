@@ -7,10 +7,15 @@ import { IllustratedMoment } from "@/components/illustrated-moment";
 import { Clouds } from "@/components/today/clouds";
 import { PortraitStack } from "@/components/today/portrait-stack";
 import { SkyDisc } from "@/components/today/sky-disc";
+import { SceneDetails } from "@/components/today/scene-details";
 import { StatusGlyphs } from "@/components/today/status-glyphs";
 import { WeatherLayer } from "@/components/today/weather-layer";
 import { useLocale } from "@/i18n/locale-provider";
+import { addDays } from "@/lib/dates";
+import { completionsInRange, isOverdueFor } from "@/lib/duties";
+import { dutyTopic } from "@/lib/duty-topics";
 import { keptRooms } from "@/lib/kept-rooms";
+import { detailsFor, sceneDetails, type SceneDetailKind } from "@/lib/scene/details";
 import { sceneCssVars } from "@/lib/scene/css";
 import { assignWindowRooms, litWindowCount, windowStates, type WindowState } from "@/lib/scene/window-rooms";
 import { houseLight } from "@/lib/scene/light";
@@ -50,6 +55,8 @@ export type PortraitSceneOverrides = {
   season?: Season;
   windowsLit?: number;
   closedToday?: boolean;
+  /** Force these details (dev page); otherwise they follow the house. */
+  details?: SceneDetailKind[];
 };
 
 type PortraitSceneProps = {
@@ -72,6 +79,8 @@ type PortraitSceneProps = {
   onOpenHouse?: () => void;
   /** When given, each window with a room becomes a button into that room. */
   onOpenRoom?: (roomId: string) => void;
+  /** Stills the detail animations (Today passes its compact-bar state). */
+  paused?: boolean;
   overrides?: PortraitSceneOverrides;
   className?: string;
   /** Default true: Today and the lock screen sit flush at the true top of
@@ -168,6 +177,7 @@ export function PortraitScene({
   onOpenSettings,
   onOpenHouse,
   onOpenRoom,
+  paused,
   overrides,
   className,
   insetTop = true,
@@ -218,6 +228,27 @@ export function PortraitScene({
           : allOff;
   const litCount = overrides?.windowsLit ?? litWindowCount(states ?? allOff);
   const staggerWindows = ceremony || arrivalReveal.staggering;
+
+  // Small living details (E4-01), two at most, from the same signals the
+  // lights use plus the rooms and the season.
+  const forcedDetails = overrides?.details;
+  const details = useMemo(() => {
+    if (forcedDetails) return detailsFor(forcedDetails, kit);
+    const guttersOverdue = household.duties.some(
+      (duty) => !duty.archived && dutyTopic(duty) === "gutters-clear" && isOverdueFor(duty, household, minuteNow),
+    );
+    const laundryFresh = kept.some((entry) => entry.room.type === "laundry" && entry.state === "fresh");
+    const irrigationRecent = completionsInRange(household.completions, addDays(minuteNow, -3), minuteNow).some(
+      (item) => {
+        const duty = household.duties.find((entry) => entry.id === item.dutyId);
+        return Boolean(duty && (dutyTopic(duty) ?? "").startsWith("irrigation"));
+      },
+    );
+    return sceneDetails(
+      { light, phase, season, weather, careLevel, laundryFresh, guttersOverdue, irrigationRecent },
+      kit,
+    );
+  }, [forcedDetails, kit, household, minuteNow, kept, light, phase, season, weather, careLevel]);
 
   // The scene owns its sky. Today's root sets the same variables so the sky
   // colour can bleed into the sheet below it, but the welcome screen, the
@@ -455,10 +486,8 @@ export function PortraitScene({
             <IllustratedMoment kind="sparkle-burst" size={72} autoplay />
           </motion.div>
         ) : null}
+        <SceneDetails details={details} paused={paused} asleep={light.companion === "asleep"} />
       </motion.div>
-
-      {/* RiveLayer stub — wired in P3 */}
-      <div data-rive-layer aria-hidden className="pointer-events-none absolute inset-0" />
 
       <WeatherLayer kind={weather.kind} intensity={precip} />
       <StatusGlyphs weather={weather} careLevel={household.momentum.care?.level} />

@@ -636,6 +636,69 @@ html.keyboard-open [data-slot="sheet-footer"] {
 }
 
 /*
+ * Scene details (E4-01): CSS placeholders for the seven living-house moments,
+ * shaped to the anchors and timing the real Lottie art will use. Paused while
+ * Today's compact bar is up; the global reduce-motion rule stills them too.
+ */
+.scene-details[data-paused="true"] * {
+  animation-play-state: paused;
+}
+.detail-lantern {
+  background: radial-gradient(closest-side, rgba(255, 196, 120, 0.85), rgba(255, 196, 120, 0));
+  animation: detail-glow 3s ease-in-out infinite;
+}
+@keyframes detail-glow {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+.detail-puff {
+  background: rgba(235, 232, 226, 0.75);
+  animation: detail-rise 4s ease-out infinite;
+  opacity: 0;
+}
+@keyframes detail-rise {
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  15% { opacity: 0.7; }
+  100% { transform: translate(-30%, -34px) scale(1.5); opacity: 0; }
+}
+.detail-bulb {
+  background: #ffd9a0;
+  box-shadow: 0 0 6px rgba(255, 217, 160, 0.9);
+  animation: detail-twinkle 3s ease-in-out infinite;
+}
+@keyframes detail-twinkle {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.detail-cat {
+  color: #2a2622;
+}
+.detail-leaf {
+  background: #c8863f;
+  animation: detail-drift 6s ease-in-out infinite;
+}
+@keyframes detail-drift {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 2px 1px; }
+}
+.detail-laundry {
+  transform-origin: 50% 0;
+  animation: detail-sway 4s ease-in-out infinite;
+}
+@keyframes detail-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+.detail-sprinkler {
+  transform-origin: 50% 100%;
+  animation: detail-sweep 3s ease-in-out infinite;
+}
+@keyframes detail-sweep {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(12deg); }
+}
+
+/*
  * Evening look for Today. This must stay a complete mirror of `.dark`, not a
  * subset: any token left out keeps its light-theme value against a dark
  * surface. The first version omitted the status and brand colours, so due /

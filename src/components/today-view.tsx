@@ -850,6 +850,7 @@ export function TodayView({
               onOpenSettings={onOpenSettings}
               onOpenHouse={() => setHouseOpen(true)}
               onOpenRoom={onNavigate ? (roomId) => onNavigate({ tab: "home", roomId }) : undefined}
+              paused={compactBar}
             />
           </SceneBoundary>
         </div>

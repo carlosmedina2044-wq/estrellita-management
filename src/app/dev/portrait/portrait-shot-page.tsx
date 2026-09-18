@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { PortraitScene } from "@/components/today/portrait-scene";
+import { DETAIL_KINDS, type SceneDetailKind } from "@/lib/scene/details";
 import { DevLocaleOverride, useLocale } from "@/i18n/locale-provider";
 import { isAppLocale, type AppLocale } from "@/i18n";
 import { addDays, formatLongDate, toISODate } from "@/lib/dates";
@@ -174,6 +175,10 @@ function PortraitShotInner() {
   const closed = params.get("closed") === "1";
   const lit = params.get("lit");
   const windowsLit = lit != null && lit !== "" ? Number(lit) : undefined;
+  const detailsParam = params.get("details");
+  const forcedDetails = detailsParam
+    ? detailsParam.split(",").filter((kind): kind is SceneDetailKind => (DETAIL_KINDS as readonly string[]).includes(kind))
+    : undefined;
   const compact = params.get("compact") === "1";
   const ceremony = params.get("ceremony") === "1";
   const weather = weatherFor(weatherKind);
@@ -229,6 +234,7 @@ function PortraitShotInner() {
             season,
             windowsLit: Number.isFinite(windowsLit) ? windowsLit : undefined,
             closedToday: closed || ceremony,
+            details: forcedDetails,
           }}
         />
         {compact ? (
