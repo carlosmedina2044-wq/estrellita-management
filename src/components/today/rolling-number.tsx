@@ -36,33 +36,44 @@ export function RollingNumber({
 
   return (
     <span className={cn("inline-flex num tabular-nums", className)}>
-      {text.split("").map((digit, index) => (
-        // Keyed by position only — the digit itself keys the child below, so
-        // a position whose digit is unchanged (19 -> 29's ones place) never
-        // remounts and never re-plays its enter animation. It previously kept
-        // `value` in the key too, which retriggered every digit on every
-        // change regardless of whether that digit actually moved.
-        <span key={index} className="relative inline-block h-[1lh] w-[1ch] overflow-hidden text-center">
-          <AnimatePresence initial={false} mode="popLayout">
-            {/* `absolute inset-0`, not `block`: with normal flow, the entering
+      {/* The digits are separate boxes so each can slide on its own, which
+          means assistive tech would otherwise read 30 as "three zero". The
+          real number is announced once, here, and the moving parts are
+          hidden. Today's own cards mostly sit inside buttons with their own
+          aria-label, but this component is used well beyond them. */}
+      <span className="sr-only">{text}</span>
+      <span aria-hidden className="inline-flex">
+        {text.split("").map((digit, index) => (
+          // Keyed by position only — the digit itself keys the child below, so
+          // a position whose digit is unchanged (19 -> 29's ones place) never
+          // remounts and never re-plays its enter animation. It previously kept
+          // `value` in the key too, which retriggered every digit on every
+          // change regardless of whether that digit actually moved.
+          <span
+            key={index}
+            className="relative inline-block h-[1lh] w-[1ch] overflow-hidden text-center"
+          >
+            <AnimatePresence initial={false} mode="popLayout">
+              {/* `absolute inset-0`, not `block`: with normal flow, the entering
                 digit would stack below the exiting one (the box only gets its
                 width/height from the `1ch`/`1lh` on the wrapper, not from an
                 in-flow child) rather than sliding directly over it. `tabular-
                 nums` on `.num` guarantees every digit is exactly `1ch` wide,
                 so nothing shifts horizontally as digits change. */}
-            <motion.span
-              key={digit}
-              className="absolute inset-0"
-              initial={{ y: rising ? "100%" : "-100%" }}
-              animate={{ y: "0%" }}
-              exit={{ y: rising ? "-100%" : "100%" }}
-              transition={SPRING_SETTLE}
-            >
-              {digit}
-            </motion.span>
-          </AnimatePresence>
-        </span>
-      ))}
+              <motion.span
+                key={digit}
+                className="absolute inset-0"
+                initial={{ y: rising ? "100%" : "-100%" }}
+                animate={{ y: "0%" }}
+                exit={{ y: rising ? "-100%" : "100%" }}
+                transition={SPRING_SETTLE}
+              >
+                {digit}
+              </motion.span>
+            </AnimatePresence>
+          </span>
+        ))}
+      </span>
     </span>
   );
 }

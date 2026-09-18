@@ -132,12 +132,13 @@ export function DayRunCard({
   const closedDays = days.filter((day) => day.outcome === "closed" || day.outcome === "rest").length;
   const openDays = days.filter((day) => day.outcome === "open" || day.outcome === "grace").length;
 
-  const subline = [
-    arc.open > 0 ? t("today.runCount", { count: arc.open }) : null,
-    arc.minutesLeft > 0 ? t("today.effort", { minutes: arc.minutesLeft }) : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  // Split around the number rather than interpolated, so both halves of the
+  // subline can roll when a chore is ticked instead of the whole line being
+  // replaced under the user. Same shape as `runParts` above.
+  const countParts = t("today.runCount", { count: "%%" }).split("%%");
+  const effortParts = t("today.effort", { minutes: "%%" }).split("%%");
+  const showCount = arc.open > 0;
+  const showEffort = arc.minutesLeft > 0;
 
   return (
     <div className="ui-group">
@@ -155,8 +156,24 @@ export function DayRunCard({
           <DayRing arc={arc} />
           <span className="min-w-0 flex-1">
             <span className="block ui-card font-semibold leading-snug text-foreground">{headline}</span>
-            {subline ? (
-              <span className="mt-0.5 block ui-caption num text-muted-foreground">{subline}</span>
+            {showCount || showEffort ? (
+              <span className="mt-0.5 flex items-baseline ui-caption num text-muted-foreground">
+                {showCount ? (
+                  <>
+                    {countParts[0]}
+                    <RollingNumber value={arc.open} />
+                    {countParts[1] ?? null}
+                  </>
+                ) : null}
+                {showCount && showEffort ? <>&nbsp;·&nbsp;</> : null}
+                {showEffort ? (
+                  <>
+                    {effortParts[0]}
+                    <RollingNumber value={arc.minutesLeft} />
+                    {effortParts[1] ?? null}
+                  </>
+                ) : null}
+              </span>
             ) : null}
           </span>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />

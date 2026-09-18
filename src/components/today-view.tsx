@@ -265,6 +265,20 @@ export function TodayView({
   const weatherListed = listed.filter((duty) => Boolean(duty.weatherTriggerId));
   const regularListed = listed.filter((duty) => !duty.weatherTriggerId);
 
+  // The house's answer to one completed chore: which room, and a key that
+  // rises per completion so two chores in the same room each get a flare.
+  // Cleared on a timer, because this is a moment rather than a state — a
+  // flare left mounted would replay on the next unrelated re-render.
+  const [houseAnswer, setHouseAnswer] = useState<{ roomId: string | null; key: number } | null>(null);
+  const houseAnswerKey = useRef(0);
+  useEffect(() => {
+    if (!houseAnswer) return;
+    // Longer than the flare itself (DUR_AMBIENT), so Today never unmounts
+    // it mid-fall; short enough that it is gone well before anything else.
+    const timer = window.setTimeout(() => setHouseAnswer(null), 900);
+    return () => window.clearTimeout(timer);
+  }, [houseAnswer]);
+
   const completion = useCompletionFlow({
     open,
     scope,
@@ -284,6 +298,19 @@ export function TodayView({
           )
         : null,
     onCommitted: (duty, remaining) => {
+      // On commit rather than on press: an undo during the hold must not have
+      // to take a lit window back off the house.
+      if (household.momentum.enabled && !viewingCalendar) {
+        houseAnswerKey.current += 1;
+        // The same rule `keptRooms` uses to decide which room a chore belongs
+        // to, so the flare lands on exactly the window that is about to light
+        // rather than on a near-miss. Resolved against the real room list, so
+        // a `nodeId` pointing at an asset or the whole home falls through to
+        // the house-wide wash instead of anchoring nowhere.
+        const answeredRoom =
+          household.rooms.find((room) => duty.room === room.id || duty.nodeId === room.id)?.id ?? null;
+        setHouseAnswer({ roomId: answeredRoom, key: houseAnswerKey.current });
+      }
       if (payoffKeyFor(duty)) {
         setPayoffDuty(duty);
       } else {
@@ -941,6 +968,7 @@ export function TodayView({
               onOpenHouse={() => setHouseOpen(true)}
               onOpenRoom={onNavigate ? (roomId) => onNavigate({ tab: "home", roomId }) : undefined}
               paused={compactBar}
+              answer={houseAnswer}
               questDone={Boolean(quest?.done)}
             />
           </SceneBoundary>

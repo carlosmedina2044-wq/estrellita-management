@@ -32,7 +32,7 @@ import {
   portraitLayerUrls,
   resolveHomeSpec,
 } from "@/lib/scene/portrait";
-import { DUR_QUICK } from "@/lib/motion";
+import { DUR_AMBIENT, DUR_QUICK, EASE_OUT } from "@/lib/motion";
 import { hapticTab } from "@/lib/native/haptics";
 import type { MessageKey } from "@/i18n";
 import { seasonFor, type Season } from "@/lib/scene/season";
@@ -91,6 +91,12 @@ type PortraitSceneProps = {
   onOpenRoom?: (roomId: string) => void;
   /** Stills the detail animations (Today passes its compact-bar state). */
   paused?: boolean;
+  /** One chore just committed: the house answers at that room's window (or
+   * over the whole house when the chore belongs to no room). `key` rises per
+   * completion so two chores ticked in a row each get their own flare
+   * instead of the second one being swallowed as "same props". Today clears
+   * it after the flare, so this is a moment, not a state. */
+  answer?: { roomId: string | null; key: number } | null;
   /** This week's quest is met, so the house wears its bunting until Sunday. */
   questDone?: boolean;
   overrides?: PortraitSceneOverrides;
@@ -190,6 +196,7 @@ export function PortraitScene({
   onOpenHouse,
   onOpenRoom,
   paused,
+  answer,
   questDone,
   overrides,
   className,
@@ -323,6 +330,36 @@ export function PortraitScene({
   });
 
   const door = doorAnchor(kit);
+
+  // Where the house answers a completed chore. A room with a window answers
+  // at that window; anything else (a whole-home chore, a room this kit has no
+  // window for) answers as a soft wash over the house, so every tick gets an
+  // answer rather than only the lucky ones.
+  const answerFlare = useMemo(() => {
+    if (!answer) return null;
+    const windowId = answer.roomId
+      ? (homeSpec.windows.find((entry) => entry.roomId === answer.roomId)?.id ?? null)
+      : null;
+    const rect = windowId ? (kit.windows.find((w) => w.id === windowId) ?? null) : null;
+    if (rect) {
+      return {
+        kind: "window" as const,
+        left: ((rect.x + rect.w / 2) / kit.frame.w) * 100,
+        top: ((rect.y + rect.h / 2) / kit.frame.h) * 100,
+        // Four times the window's longest side: a glow the size of the window
+        // itself reads as the window merely changing colour.
+        width: (Math.max(rect.w, rect.h) / kit.frame.w) * 100 * 4,
+      };
+    }
+    const bounds = kit.houseBounds;
+    return {
+      kind: "house" as const,
+      left: ((bounds.x + bounds.w / 2) / kit.frame.w) * 100,
+      top: ((bounds.y + bounds.h / 2) / kit.frame.h) * 100,
+      width: (bounds.w / kit.frame.w) * 100 * 1.25,
+    };
+  }, [answer, homeSpec.windows, kit]);
+
   const stackWidthPct = 62;
   // Transparent padding beneath the house inside its own render, as a fraction
   // of the image box, converted to viewport width so it can offset the box.
@@ -507,6 +544,42 @@ export function PortraitScene({
             }}
           />
         )}
+        {answerFlare && answer && !reduce ? (
+          <motion.div
+            // Keyed by the completion, not by the room: ticking two chores in
+            // the same room has to flare twice.
+            key={answer.key}
+            aria-hidden
+            className="pointer-events-none absolute"
+            style={{
+              left: `${answerFlare.left}%`,
+              top: `${answerFlare.top}%`,
+              width: `${answerFlare.width}%`,
+              aspectRatio: "1",
+              translateX: "-50%",
+              translateY: "-50%",
+              // Plain alpha rather than `screen`: a screen-blended warm glow
+              // all but disappears against a bright noon sky, and this is
+              // feedback for something the user just did, not ambience.
+              background:
+                answerFlare.kind === "window"
+                  ? "radial-gradient(closest-side, rgba(255, 214, 150, 0.9), rgba(255, 214, 150, 0.3) 45%, transparent 72%)"
+                  : "radial-gradient(closest-side, rgba(255, 226, 184, 0.5), transparent 70%)",
+            }}
+            initial={{ opacity: 0, scale: 0.55 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.55, 1, 1.25] }}
+            // Two segments with their own curves, not one ease across the
+            // whole run: a single `EASE_OUT` front-loads the fall as well as
+            // the rise, which measured as a ~180ms blink — over before the
+            // eye reaches the house. Rising fast and falling slowly is what
+            // makes it read as a light coming on rather than a flash.
+            transition={{
+              duration: DUR_AMBIENT,
+              times: [0, 0.22, 1],
+              ease: [EASE_OUT, "easeInOut"],
+            }}
+          />
+        ) : null}
         {ceremony ? (
           <motion.div
             className="pointer-events-none absolute"
