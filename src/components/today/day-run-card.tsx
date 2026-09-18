@@ -1,12 +1,12 @@
 "use client";
 
 import { Check, ChevronRight } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, type Variants } from "motion/react";
 import { ClosingStats } from "@/components/today/closing-ceremony";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatWeekdayNarrow } from "@/lib/dates";
-import { DUR_SCREEN, EASE_OUT, STAGGER_CHILD } from "@/lib/motion";
+import { CEREMONY_BEAT, DUR_BASE, DUR_SCREEN, EASE_OUT, STAGGER_CHILD } from "@/lib/motion";
 import type { DayArc, RunDay } from "@/lib/momentum";
 import { cn } from "@/lib/utils";
 
@@ -60,12 +60,32 @@ function DayRing({ arc, size = 44 }: { arc: DayArc; size?: number }) {
   );
 }
 
+const PAST_DOT = { hidden: { scale: 0.6, opacity: 0 }, show: { scale: 1, opacity: 1 } };
+/**
+ * The day just closed, so its dot overshoots and settles: the eye should go to
+ * it rather than to the six that were already there.
+ *
+ * A tween, not a spring. Springs in motion accept exactly two keyframes and
+ * throw on a third — and the throw is not contained, it aborts every other
+ * animation starting in the same frame. That is how one bouncy dot silently
+ * took out the whole closing ceremony.
+ */
+const TODAY_DOT = {
+  hidden: { scale: 0.6, opacity: 0 },
+  show: {
+    scale: [0.6, 1.18, 1],
+    opacity: 1,
+    transition: { duration: DUR_BASE, times: [0, 0.6, 1], ease: [[...EASE_OUT], "easeInOut"] },
+  },
+} satisfies Variants;
+
 function RunDots({ days, celebrate }: { days: RunDay[]; celebrate: boolean }) {
   return (
     <motion.span
       className="flex items-end gap-[7px]"
       variants={{
-        show: { transition: { staggerChildren: STAGGER_CHILD, delayChildren: DUR_SCREEN } },
+        // Lands with the streak number, after the house has had the screen.
+        show: { transition: { staggerChildren: STAGGER_CHILD, delayChildren: CEREMONY_BEAT.run } },
       }}
       initial={celebrate ? "hidden" : false}
       animate={celebrate ? "show" : undefined}
@@ -74,7 +94,7 @@ function RunDots({ days, celebrate }: { days: RunDay[]; celebrate: boolean }) {
         <motion.span
           key={day.date.toISOString()}
           className="flex flex-col items-center gap-1"
-          variants={{ hidden: { scale: 0.6, opacity: 0 }, show: { scale: 1, opacity: 1 } }}
+          variants={day.isToday ? TODAY_DOT : PAST_DOT}
         >
           <span
             className={cn(

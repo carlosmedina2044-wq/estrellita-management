@@ -9,6 +9,8 @@ import {
 import { PARTICLE_CAP, prefersReducedMotion } from "@/lib/motion";
 
 const COLORS = ["#9a5a35", "#e0662b", "#f5ebd8"] as const;
+/** Fireflies are light, not confetti, so they keep their own warm set. */
+const EMBER_COLORS = ["#ffd9a0", "#ffc27a", "#f5ebd8"] as const;
 
 type Particle = {
   x: number;
@@ -19,10 +21,17 @@ type Particle = {
   color: string;
   born: number;
   life: number;
+  /** A burst pops outward and fades linearly. A drifting ember rises, wanders
+   * sideways and fades in as well as out, so it reads as something alive
+   * rather than as debris thrown from a point. */
+  drift?: { amp: number; hz: number; phase: number; baseX: number };
 };
 
 export type ParticleLayerHandle = {
   burst: (opts: { x: number; y: number; count: number }) => void;
+  /** Embers rising from a band (the house's footprint), for the long tail of
+   * the closing ceremony. */
+  drift: (opts: { x: number; y: number; width: number; count: number }) => void;
 };
 
 export const ParticleLayer = forwardRef<ParticleLayerHandle>(function ParticleLayer(_, ref) {
@@ -54,6 +63,38 @@ export const ParticleLayer = forwardRef<ParticleLayerHandle>(function ParticleLa
           color: COLORS[i % COLORS.length],
           born: now,
           life: 600,
+        });
+      }
+      start();
+    },
+    drift({ x, y, width, count }) {
+      if (prefersReducedMotion() || document.hidden) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const now = performance.now();
+      const n = Math.min(Math.max(count, 1), PARTICLE_CAP);
+      for (let i = 0; i < n; i++) {
+        if (particlesRef.current.length >= PARTICLE_CAP) break;
+        const localX = x - rect.left + (Math.random() - 0.5) * width;
+        const localY = y - rect.top + Math.random() * 12;
+        particlesRef.current.push({
+          x: localX,
+          y: localY,
+          vx: 0,
+          // Slow: 8-18px/s upward over a ~2.4s life is about a third of the
+          // scene's height, so they leave the frame rather than piling up.
+          vy: -(8 + Math.random() * 10),
+          r: 1.6 + Math.random() * 1.6,
+          color: EMBER_COLORS[i % EMBER_COLORS.length],
+          born: now + Math.random() * 900,
+          life: 2400,
+          drift: {
+            amp: 4 + Math.random() * 7,
+            hz: 0.25 + Math.random() * 0.25,
+            phase: Math.random() * Math.PI * 2,
+            baseX: localX,
+          },
         });
       }
       start();
@@ -93,13 +134,28 @@ export const ParticleLayer = forwardRef<ParticleLayerHandle>(function ParticleLa
       for (const p of particlesRef.current) {
         const age = now - p.born;
         if (age >= p.life) continue;
+        // A staggered ember is not born yet: keep it, but do not draw it.
+        if (age < 0) {
+          next.push(p);
+          continue;
+        }
         const t = age / p.life;
-        p.x += p.vx * dt;
         p.y += p.vy * dt;
-        ctx.globalAlpha = 1 - t;
+        if (p.drift) {
+          // Integrated from its own base rather than accumulated onto x, so a
+          // dropped frame shifts the phase rather than the whole path.
+          p.drift.phase += dt * p.drift.hz * Math.PI * 2;
+          p.x = p.drift.baseX + Math.sin(p.drift.phase) * p.drift.amp;
+          // Fade in over the first fifth, out over the last two fifths, so an
+          // ember never appears or vanishes mid-air at full brightness.
+          ctx.globalAlpha = Math.min(1, t / 0.2, (1 - t) / 0.4);
+        } else {
+          p.x += p.vx * dt;
+          ctx.globalAlpha = 1 - t;
+        }
         ctx.fillStyle = p.color;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r * (1 - t * 0.3), 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.r * (p.drift ? 1 : 1 - t * 0.3), 0, Math.PI * 2);
         ctx.fill();
         next.push(p);
       }

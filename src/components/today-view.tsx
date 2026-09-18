@@ -70,7 +70,7 @@ import {
 } from "@/lib/duties";
 import { closedDayRun, dayArc, dismissWeekWrapped, dismissYearWrapped, roomsTouchedInRange, runStripDays, shouldShowWeekWrapped, shouldShowYearWrapped, todayEffort, weekProgress, yearWrap, yearWrappedYear } from "@/lib/momentum";
 import { sceneCssVars } from "@/lib/scene/css";
-import { skyGradient } from "@/lib/scene/sky";
+import { skyGradient, warmedStops } from "@/lib/scene/sky";
 import { skyPhase, sunTimes } from "@/lib/scene/sun";
 import { sceneWeather } from "@/lib/scene/weather";
 import { tDutyTitle } from "@/i18n/content";
@@ -83,8 +83,8 @@ import { groupRestock, orderNowCostCaption, partStatusForDuty, type RestockFlowH
 import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/lib/types";
 import type { WeatherForecast } from "@/lib/weather/provider";
 import { cn } from "@/lib/utils";
-import { CEREMONY_MS, DUR_QUICK, EASE_OUT, SPRING_SETTLE, STAGGER_CHILD, scrollBehavior } from "@/lib/motion";
-import { hapticComplete, hapticTab } from "@/lib/native/haptics";
+import { CEREMONY_BEAT, CEREMONY_MS, DUR_QUICK, EASE_OUT, SPRING_SETTLE, STAGGER_CHILD, prefersReducedMotion, scrollBehavior } from "@/lib/motion";
+import { hapticClose, hapticComplete, hapticSuccess, hapticTab } from "@/lib/native/haptics";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { useLocale } from "@/i18n/locale-provider";
 import { useClock } from "@/hooks/use-clock";
@@ -326,6 +326,13 @@ export function TodayView({
         if (!celebratedDays.current.has(iso)) {
           celebratedDays.current.add(iso);
           setCeremonyDay(iso);
+          setCeremonyPlaying(true);
+          // The three-beat close: the one haptic pattern the app reserves for
+          // finishing a day. It lived in TodayHero, which the scene path never
+          // renders, so until now closing a day buzzed exactly like ticking
+          // one more chore off.
+          if (prefersReducedMotion()) void hapticSuccess();
+          else void hapticClose();
         }
       }
     },
@@ -584,6 +591,37 @@ export function TodayView({
     .join(" · ");
 
   const ceremonyActive = ceremonyDay === todayIso;
+  // `ceremonyActive` stays true for the rest of the session, which is right
+  // for the reward card ("the moment it was earned") but wrong for anything
+  // that must settle back — a sky left leaning warm, embers left rising.
+  // This is the live 2.4 seconds, and the tap-to-skip ends it early.
+  // Started by the completion that closes the day (an event, not an effect)
+  // and only ever cleared here, on the timer.
+  const [ceremonyPlaying, setCeremonyPlaying] = useState(false);
+  useEffect(() => {
+    if (!ceremonyPlaying) return;
+    const timer = window.setTimeout(() => setCeremonyPlaying(false), CEREMONY_MS);
+    return () => window.clearTimeout(timer);
+  }, [ceremonyPlaying]);
+
+  // Embers rising off the house's own footprint, as the ceremony's long tail.
+  // Read from the DOM rather than recomputed, because only the scene knows
+  // where the house ended up after its kit's padding and the gyro offset.
+  useEffect(() => {
+    if (!ceremonyPlaying || prefersReducedMotion()) return;
+    const timer = window.setTimeout(() => {
+      const stack = document.querySelector("[data-house-stack]");
+      if (!stack) return;
+      const box = stack.getBoundingClientRect();
+      particlesRef.current?.drift({
+        x: box.left + box.width / 2,
+        y: box.bottom - box.height * 0.18,
+        width: box.width * 0.72,
+        count: 10,
+      });
+    }, CEREMONY_BEAT.reward * 1000);
+    return () => window.clearTimeout(timer);
+  }, [ceremonyPlaying]);
   // Plays once, the first time Today ever renders with a chosen house look —
   // never again after (existing households with no `homeSpec` never had a
   // "your house" moment to begin with, so they're excluded rather than
@@ -732,6 +770,14 @@ export function TodayView({
   const sceneStops = useMemo(
     () => skyGradient(scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover),
     [scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover],
+  );
+  // The whole sky leans warm for the length of the ceremony and then settles.
+  // The registered `--sky-*` properties in globals.css make both directions a
+  // tween rather than a cut; `warmedStops` re-checks the greeting's contrast
+  // so the warm second can never make it unreadable.
+  const displayStops = useMemo(
+    () => (ceremonyPlaying ? warmedStops(sceneStops, 1) : sceneStops),
+    [sceneStops, ceremonyPlaying],
   );
 
   // The house in its current sky, every window warm, for a share card (E3-03).
@@ -898,7 +944,7 @@ export function TodayView({
       style={
         sceneMode
           ? {
-              ...sceneCssVars(sceneStops),
+              ...sceneCssVars(displayStops),
               background: "color-mix(in oklab, var(--background) 96%, var(--ambient))",
             }
           : undefined
@@ -960,7 +1006,10 @@ export function TodayView({
               phase={scenePhaseEffective.phase}
               phaseT={scenePhaseEffective.t}
               weather={sceneWx}
-              ceremony={ceremonyActive || houseReveal}
+              // The live moment, not the session flag: `ceremonyActive` stays
+              // true until the app is closed, which left the door sparkle
+              // mounted and every window carrying a stagger delay all evening.
+              ceremony={ceremonyPlaying || houseReveal}
               arrival={playArrival}
               greeting={greeting}
               secondaryLine={secondaryLine}
@@ -969,6 +1018,9 @@ export function TodayView({
               onOpenRoom={onNavigate ? (roomId) => onNavigate({ tab: "home", roomId }) : undefined}
               paused={compactBar}
               answer={houseAnswer}
+              hearth={arc.state === "closed"}
+              warm={ceremonyPlaying ? 1 : 0}
+              onSkipCeremony={ceremonyPlaying ? () => setCeremonyPlaying(false) : undefined}
               questDone={Boolean(quest?.done)}
             />
           </SceneBoundary>

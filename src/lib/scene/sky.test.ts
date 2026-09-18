@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { contrastRatio, isHexColor } from "@/lib/scene/color";
-import { assertValidStops, skyGradient, type WeatherKind } from "@/lib/scene/sky";
+import { assertValidStops, skyGradient, warmedStops, type WeatherKind } from "@/lib/scene/sky";
 import type { SkyPhase } from "@/lib/scene/sun";
 
 const PHASES: SkyPhase[] = ["night", "dawn", "day", "golden", "dusk"];
@@ -36,4 +36,33 @@ test("rain lowers exposure and snow lightens the horizon", () => {
   const snow = skyGradient("day", 0.4, "snow", 0.8);
   assert.ok(rain.exposure < clear.exposure);
   assert.notEqual(snow.horizon, clear.horizon);
+});
+
+test("warmedStops leaves the sky alone at zero", () => {
+  for (const phase of ["night", "dawn", "day", "golden", "dusk"] as const) {
+    const stops = skyGradient(phase, 0.5, "clear", 0);
+    assert.deepEqual(warmedStops(stops, 0), stops);
+  }
+});
+
+test("warmedStops keeps the greeting readable at every hour and in every weather", () => {
+  for (const phase of ["night", "dawn", "day", "golden", "dusk"] as const) {
+    for (const weather of ["clear", "cloudy", "rain", "snow", "fog"] as const) {
+      for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+        for (const amount of [0.25, 0.5, 0.75, 1]) {
+          const warmed = warmedStops(skyGradient(phase, t, weather, 0.5), amount);
+          // The same bar `assertValidStops` holds the unwarmed sky to: the
+          // greeting is painted straight onto the top stop.
+          assertValidStops(warmed);
+        }
+      }
+    }
+  }
+});
+
+test("warmedStops actually warms the horizon", () => {
+  const stops = skyGradient("day", 0.5, "clear", 0);
+  const warmed = warmedStops(stops, 1);
+  assert.notEqual(warmed.horizon, stops.horizon);
+  assert.notEqual(warmed.mid, stops.mid);
 });

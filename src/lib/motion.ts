@@ -43,5 +43,32 @@ export const DUR_AMBIENT = 0.6;
 export const STAGGER_CHILD = 0.07;
 
 export const COMPLETE_HOLD_MS = 320;
-export const CEREMONY_MS = 1200;
+
+/**
+ * How long the closing ceremony holds the screen. Was 1200ms, by which point
+ * every beat had already landed — the windows, the sparkle, the numbers and
+ * the reward card all inside the first 700ms, which read as one event rather
+ * than as a sequence. 2400ms gives it a beginning, a middle and an end.
+ *
+ * The beats below are absolute offsets from the start, in seconds, so the
+ * order is legible in one place instead of being spread across five files as
+ * unrelated `delay` literals. They are `delay` values for `motion/react`,
+ * which is why they are seconds while the total is milliseconds.
+ */
+export const CEREMONY_MS = 2400;
+export const CEREMONY_BEAT = {
+  /** Windows warm on (their own stagger), sky leans warm, haptic fires. */
+  lights: 0,
+  /** A sparkle at the door, once the lights have had their moment. */
+  sparkle: 0.5,
+  /** The hearth: a glow under the house that stays for the rest of the day. */
+  hearth: 0.7,
+  /** Today's dot lands on the run strip and the streak number rolls. */
+  run: 0.9,
+  /** The day's three numbers count up. */
+  stats: 1,
+  /** The reward card rises, with the Share button on it. */
+  reward: 1.6,
+} as const;
+
 export const PARTICLE_CAP = 24;

@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion, useReducedMotion, useSpring } from "motion/react";
+import {
+  motion,
+  useReducedMotion,
+  useSpring,
+  type TargetAndTransition,
+  type Transition,
+} from "motion/react";
 import { Settings } from "lucide-react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { Clouds } from "@/components/today/clouds";
@@ -23,7 +29,7 @@ import { visitorFor, type VisitorKind } from "@/lib/scene/visitor";
 import { sceneCssVars } from "@/lib/scene/css";
 import { assignWindowRooms, litWindowCount, windowStates, type WindowState } from "@/lib/scene/window-rooms";
 import { houseLight } from "@/lib/scene/light";
-import { skyGradient } from "@/lib/scene/sky";
+import { skyGradient, warmedStops } from "@/lib/scene/sky";
 import {
   dayOpacityForPhase,
   doorAnchor,
@@ -32,7 +38,7 @@ import {
   portraitLayerUrls,
   resolveHomeSpec,
 } from "@/lib/scene/portrait";
-import { DUR_AMBIENT, DUR_QUICK, EASE_OUT } from "@/lib/motion";
+import { CEREMONY_BEAT, DUR_AMBIENT, DUR_QUICK, EASE_OUT } from "@/lib/motion";
 import { hapticTab } from "@/lib/native/haptics";
 import type { MessageKey } from "@/i18n";
 import { seasonFor, type Season } from "@/lib/scene/season";
@@ -42,6 +48,25 @@ import type { SceneWeather } from "@/lib/scene/weather";
 import type { DayArc } from "@/lib/momentum";
 import type { CareLevelId, Household, KitType, PaletteId } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+/** What the hearth settles to once its ceremony flare is over: present, but
+ * far enough down that it never competes with the windows. */
+const HEARTH_HOLD = 0.16;
+const HEARTH_GRADIENT = "radial-gradient(closest-side, rgba(255, 196, 128, 0.55), transparent 72%)";
+/* Hoisted, not inline: a fresh keyframe array on every render is a new target
+ * as far as motion is concerned, so a long beat like this one restarts before
+ * its delay has elapsed and never actually plays. Same reason
+ * `kept-rooms-row.tsx` hoists its pulse. */
+const HEARTH_SWELL: TargetAndTransition = { opacity: [0, 0.34, 0], scale: [0.9, 1.06, 1.14] };
+const HEARTH_SWELL_FROM: TargetAndTransition = { opacity: 0, scale: 0.9 };
+const HEARTH_SWELL_TRANSITION: Transition = {
+  duration: DUR_AMBIENT * 2,
+  delay: CEREMONY_BEAT.hearth,
+  times: [0, 0.35, 1],
+  // One easing per segment. A single four-number curve here is ambiguous
+  // against motion's "array of per-segment easings" reading.
+  ease: [[...EASE_OUT], "easeInOut"],
+};
 
 const CARE_TO_GARDEN: Record<CareLevelId, 0 | 1 | 2 | 3 | 4> = {
   "settling-in": 0,
@@ -97,6 +122,17 @@ type PortraitSceneProps = {
    * instead of the second one being swallowed as "same props". Today clears
    * it after the flare, so this is a moment, not a state. */
   answer?: { roomId: string | null; key: number } | null;
+  /** The day is closed, so the house keeps its hearth lit. Unlike `ceremony`
+   * this is the settled state, not the moment: it is true on every later open
+   * of a closed day, with no replay. */
+  hearth?: boolean;
+  /** Called when the user taps through the ceremony rather than watching it. */
+  onSkipCeremony?: () => void;
+  /** 0-1. Leans the whole sky toward hearth colour for the beat where a day
+   * is closed. The scene computes its own sky (it is rendered on pages that
+   * define no `--sky-*` at all), so a caller cannot warm it by overriding the
+   * variables from outside — it has to come in as a number. */
+  warm?: number;
   /** This week's quest is met, so the house wears its bunting until Sunday. */
   questDone?: boolean;
   overrides?: PortraitSceneOverrides;
@@ -197,6 +233,9 @@ export function PortraitScene({
   onOpenRoom,
   paused,
   answer,
+  hearth,
+  onSkipCeremony,
+  warm = 0,
   questDone,
   overrides,
   className,
@@ -304,8 +343,8 @@ export function PortraitScene({
   // page where nothing defines `--sky-*`, and the gradient below painted as
   // `none`: a house floating on the page background with a sun over it.
   const skyStops = useMemo(
-    () => skyGradient(phase, phaseT, weather.kind, weather.cloudCover),
-    [phase, phaseT, weather.kind, weather.cloudCover],
+    () => warmedStops(skyGradient(phase, phaseT, weather.kind, weather.cloudCover), warm),
+    [phase, phaseT, weather.kind, weather.cloudCover, warm],
   );
   const skyVars = sceneCssVars(skyStops);
 
@@ -330,6 +369,17 @@ export function PortraitScene({
   });
 
   const door = doorAnchor(kit);
+
+  // Under the house's own footprint, a little wider than the house and half
+  // as tall, so it reads as light spilling onto the ground.
+  const hearthBox = {
+    left: `${((kit.houseBounds.x + kit.houseBounds.w / 2) / kit.frame.w) * 100}%`,
+    top: `${((kit.houseBounds.y + kit.houseBounds.h * 0.86) / kit.frame.h) * 100}%`,
+    width: `${(kit.houseBounds.w / kit.frame.w) * 100 * 1.35}%`,
+    aspectRatio: "2 / 1",
+    translateX: "-50%",
+    translateY: "-50%",
+  } as const;
 
   // Where the house answers a completed chore. A room with a window answers
   // at that window; anything else (a whole-home chore, a room this kit has no
@@ -435,6 +485,10 @@ export function PortraitScene({
       )}
 
       <motion.div
+        // Today reads this box to know where on screen the house stands, so
+        // the ceremony's embers can rise from its footprint rather than from
+        // a guessed point.
+        data-house-stack
         className="pointer-events-none absolute left-1/2"
         style={{
           width: `${stackWidthPct}%`,
@@ -453,6 +507,33 @@ export function PortraitScene({
           translateX: "-50%",
         }}
       >
+        {/* The hearth, in two layers on purpose.
+            The steady one is simply on whenever the day is closed: it is what
+            makes "we finished" readable at a glance hours later rather than
+            only in the moment. The swell is the ceremony's own beat over the
+            top of it.
+            Two elements rather than one with three keyframes: a single layer
+            animating 0 -> flare -> hold has to change its `animate` from a
+            number to an array mid-life, and motion settles straight to the
+            last value instead of playing it. */}
+        <motion.div
+          aria-hidden
+          className="pointer-events-none absolute"
+          style={{ ...hearthBox, background: HEARTH_GRADIENT }}
+          initial={false}
+          animate={{ opacity: hearth ? HEARTH_HOLD : 0 }}
+          transition={{ duration: reduce ? 0 : DUR_AMBIENT, ease: EASE_OUT }}
+        />
+        {ceremony && hearth && !reduce ? (
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute"
+            style={{ ...hearthBox, background: HEARTH_GRADIENT }}
+            initial={HEARTH_SWELL_FROM}
+            animate={HEARTH_SWELL}
+            transition={HEARTH_SWELL_TRANSITION}
+          />
+        ) : null}
         {onOpenHouse ? (
           <button
             type="button"
@@ -595,7 +676,7 @@ export function PortraitScene({
             // variant already uses for the same beat.
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: reduce ? 0 : 0.5, duration: DUR_QUICK }}
+            transition={{ delay: reduce ? 0 : CEREMONY_BEAT.sparkle, duration: DUR_QUICK }}
           >
             <IllustratedMoment kind="sparkle-burst" size={72} autoplay />
           </motion.div>
@@ -604,6 +685,19 @@ export function PortraitScene({
         <VisitorLayer visitor={visitor} paused={paused} />
         <SceneDetails details={details} paused={paused} asleep={light.companion === "asleep"} />
       </motion.div>
+
+      {ceremony && onSkipCeremony && !reduce ? (
+        // Ported from TodayHero's momentum variant, which the live app cannot
+        // reach: a ceremony the user cannot get out of is a ceremony that
+        // annoys on the second viewing. Above the scene, below the greeting
+        // row and the settings button so neither is blocked.
+        <button
+          type="button"
+          className="absolute inset-0 z-[5] cursor-pointer bg-transparent"
+          aria-label={t("today.ceremonySkipAria")}
+          onClick={onSkipCeremony}
+        />
+      ) : null}
 
       <WeatherLayer kind={weather.kind} intensity={precip} />
       <StatusGlyphs weather={weather} careLevel={household.momentum.care?.level} />

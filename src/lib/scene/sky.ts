@@ -177,3 +177,44 @@ export function assertValidStops(stops: SkyStops): void {
     throw new Error(`contrast ${contrastRatio(stops.top, text).toFixed(2)}`);
   }
 }
+
+/** The colour the sky leans toward while a day is being closed. Warm, but
+ * still a sky: mixing all the way to a lamp colour turned dusk orange and
+ * midday peach, which read as a bug rather than a moment. */
+const HEARTH = "#ffb872";
+
+/**
+ * A one-off warming of the sky, for the beat where the day closes. Applied
+ * on top of whatever `skyGradient` already produced, so it works at any hour
+ * and in any weather rather than only at dusk.
+ *
+ * `amount` is 0 (untouched) to 1. The top stop is deliberately warmed less
+ * than the horizon: the greeting sits against the top, and that text is only
+ * guaranteed readable because `skyGradient` ran `ensureContrast` on it. The
+ * result is re-checked here and backed off rather than trusted, so a warm
+ * pulse can never push the greeting below 4.5:1 for the second it lasts.
+ */
+export function warmedStops(stops: SkyStops, amount: number): SkyStops {
+  const a = Math.min(1, Math.max(0, amount));
+  if (a === 0) return stops;
+  const text = stops.textTone === "ink" ? "#1d1d1f" : "#f7f3ec";
+  let top = mixHex(stops.top, HEARTH, a * 0.28);
+  if (contrastRatio(top, text) < 4.5) {
+    // Step back toward the original until the greeting is readable again.
+    for (let i = 4; i >= 0; i--) {
+      const candidate = mixHex(stops.top, HEARTH, a * 0.28 * (i / 5));
+      if (contrastRatio(candidate, text) >= 4.5) {
+        top = candidate;
+        break;
+      }
+      top = stops.top;
+    }
+  }
+  return {
+    ...stops,
+    top,
+    mid: mixHex(stops.mid, HEARTH, a * 0.4),
+    horizon: mixHex(stops.horizon, HEARTH, a * 0.5),
+    ambient: mixHex(stops.ambient, HEARTH, a * 0.4),
+  };
+}

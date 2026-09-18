@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { RollingNumber } from "@/components/today/rolling-number";
-import { DUR_SCREEN, STAGGER_CHILD } from "@/lib/motion";
+import { CEREMONY_BEAT, STAGGER_CHILD } from "@/lib/motion";
 import { useLocale } from "@/i18n/locale-provider";
 import type { RunDay } from "@/lib/momentum";
 import { closedDayRun } from "@/lib/momentum";
@@ -56,7 +56,7 @@ export function RunStrip({
       <motion.span
         className="flex items-center gap-1.5"
         variants={{
-          show: { transition: { staggerChildren: STAGGER_CHILD, delayChildren: DUR_SCREEN } },
+          show: { transition: { staggerChildren: STAGGER_CHILD, delayChildren: CEREMONY_BEAT.run } },
         }}
         initial={celebrate ? "hidden" : false}
         animate={celebrate ? "show" : undefined}
