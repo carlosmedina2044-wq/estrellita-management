@@ -65,7 +65,7 @@ test("plans one evening note per day for a week when a run is at stake and littl
     assert.equal(notice.extra.tab, "today");
     assert.match(notice.body, /1 left/);
   }
-  assert.match(notices[0].body, /5-day run/);
+  assert.match(notices[0].body, /5-day streak/);
 });
 
 test("stays silent when off, when the run is short, when the hour has passed, and when too much is left", () => {

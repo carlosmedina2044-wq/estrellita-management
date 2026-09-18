@@ -15,11 +15,14 @@ import { seasonalTimeline } from "@/lib/playbooks";
 import type { Household } from "@/lib/types";
 import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, hint }: { label: string; value: string; hint?: string | null }) {
   return (
-    <div className="ui-group-row flex items-center justify-between gap-3 px-4 py-3">
+    <div className="ui-group-row flex items-start justify-between gap-3 px-4 py-3">
       <span className="shrink-0 ui-caption text-muted-foreground">{label}</span>
-      <span className="ui-body font-medium text-right">{value}</span>
+      <span className="min-w-0 text-right">
+        <span className="block ui-body font-medium">{value}</span>
+        {hint ? <span className="mt-0.5 block ui-caption text-muted-foreground">{hint}</span> : null}
+      </span>
     </div>
   );
 }
@@ -62,12 +65,18 @@ export function HouseSheet({
   const level = t(`care.level.${care.level}` as MessageKey);
   const since = formatLongDate(new Date(parseISODate(care.since)));
   const run = closedDayRun(household, now);
-  const runLine =
+  // A streak nobody has started yet is a goal, not a blank: "None yet" on its
+  // own named what was missing without naming how to get it, and it swallowed
+  // a best streak that had only just been broken.
+  const runLine = run.current > 0 ? t("today.runDay", { count: run.current }) : t("today.runNone");
+  const runHint =
     run.current > 0
       ? run.best > run.current
-        ? `${t("today.runDay", { count: run.current })} · ${t("today.runBest", { count: run.best })}`
-        : t("today.runDay", { count: run.current })
-      : t("today.runNone");
+        ? t("today.runBest", { count: run.best })
+        : null
+      : run.best > 0
+        ? `${t("today.runBest", { count: run.best })} · ${t("today.runRestart")}`
+        : t("today.runStart");
   const next = nextSeasonal(household, now);
   const ladder = careProgress(household, now);
   const milestone = nextMilestone(household, now);
@@ -109,7 +118,7 @@ export function HouseSheet({
           <NextMilestone item={milestone} />
           <div className="ui-group">
             <Row label={t("today.rowThisMonth")} value={formatLedgerLine(monthLedger(household, now), t)} />
-            <Row label={t("today.rowRun")} value={runLine} />
+            <Row label={t("today.rowRun")} value={runLine} hint={runHint} />
             <Row label={t("today.rowNextSeasonal")} value={next ?? t("today.nextSeasonalNone")} />
           </div>
         </div>
