@@ -448,6 +448,7 @@ export function TodayView({
             : completion.complete(duty)
         }
         onOpen={() => setDetail(duty)}
+        onSnooze={extra.done ? undefined : () => snoozeDuty(duty)}
         onSparkleError={(point) => particlesRef.current?.burst({ ...point, count: 12 })}
       />
     );
