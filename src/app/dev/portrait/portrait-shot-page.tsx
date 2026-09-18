@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { DETAIL_KINDS, type SceneDetailKind } from "@/lib/scene/details";
+import { CARE_DECOR_KINDS, type CareDecorKind } from "@/lib/scene/care-decor";
 import { DevLocaleOverride, useLocale } from "@/i18n/locale-provider";
 import { isAppLocale, type AppLocale } from "@/i18n";
 import { addDays, formatLongDate, toISODate } from "@/lib/dates";
@@ -16,8 +17,10 @@ import type { SceneWeather } from "@/lib/scene/weather";
 import type { Season } from "@/lib/scene/season";
 import type { SkyPhase } from "@/lib/scene/sun";
 import {
+  CARE_LEVELS,
   KIT_TYPES,
   PALETTE_IDS,
+  type CareLevelId,
   type Completion,
   type Duty,
   type HomeRoom,
@@ -179,6 +182,16 @@ function PortraitShotInner() {
   const forcedDetails = detailsParam
     ? detailsParam.split(",").filter((kind): kind is SceneDetailKind => (DETAIL_KINDS as readonly string[]).includes(kind))
     : undefined;
+  const decorParam = params.get("decor");
+  const forcedDecor = decorParam
+    ? decorParam
+        .split(",")
+        .filter((kind): kind is CareDecorKind => (CARE_DECOR_KINDS as readonly string[]).includes(kind))
+    : undefined;
+  const careParam = params.get("care");
+  const forcedCare = (CARE_LEVELS as readonly string[]).includes(careParam ?? "")
+    ? (careParam as CareLevelId)
+    : undefined;
   const compact = params.get("compact") === "1";
   const ceremony = params.get("ceremony") === "1";
   const weather = weatherFor(weatherKind);
@@ -235,6 +248,8 @@ function PortraitShotInner() {
             windowsLit: Number.isFinite(windowsLit) ? windowsLit : undefined,
             closedToday: closed || ceremony,
             details: forcedDetails,
+            decor: forcedDecor,
+            careLevel: forcedCare,
           }}
         />
         {compact ? (

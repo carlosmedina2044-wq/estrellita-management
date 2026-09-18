@@ -1,6 +1,7 @@
 "use client";
 
-import { NextMilestone, ProgressTrack } from "@/components/milestone-list";
+import { NextMilestone } from "@/components/milestone-list";
+import { CareLadder } from "@/components/today/care-ladder";
 import { HouseOrbit } from "@/components/today/house-orbit";
 import { KeptRoomsRow } from "@/components/today/kept-rooms-row";
 import { Button } from "@/components/ui/button";
@@ -102,18 +103,9 @@ export function HouseSheet({
               </p>
               <p className="mt-0.5 ui-caption text-muted-foreground">{t("today.careSince", { date: since })}</p>
               <p className="mt-2 ui-caption text-muted-foreground num">{t("today.dayArcAria", { done: arc.done, total: arc.total })}</p>
-              {ladder.next ? (
-                <>
-                  <ProgressTrack fraction={ladder.fraction} className="mt-2" />
-                  <p className="mt-1.5 ui-caption text-muted-foreground">
-                    {t("care.nextLevel", {
-                      level: t(`care.level.${ladder.next}` as MessageKey),
-                    })}
-                  </p>
-                </>
-              ) : null}
             </div>
           </div>
+          <CareLadder level={ladder.level} next={ladder.next} fraction={ladder.fraction} />
           <KeptRoomsRow household={household} now={now} />
           <NextMilestone item={milestone} />
           <div className="ui-group">

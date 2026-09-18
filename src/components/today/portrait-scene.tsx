@@ -8,6 +8,7 @@ import { Clouds } from "@/components/today/clouds";
 import { PortraitStack } from "@/components/today/portrait-stack";
 import { SkyDisc } from "@/components/today/sky-disc";
 import { SceneDetails } from "@/components/today/scene-details";
+import { CareDecorLayer } from "@/components/today/care-decor-layer";
 import { StatusGlyphs } from "@/components/today/status-glyphs";
 import { WeatherLayer } from "@/components/today/weather-layer";
 import { useLocale } from "@/i18n/locale-provider";
@@ -16,6 +17,7 @@ import { completionsInRange, isOverdueFor } from "@/lib/duties";
 import { dutyTopic } from "@/lib/duty-topics";
 import { keptRooms } from "@/lib/kept-rooms";
 import { detailsFor, sceneDetails, type SceneDetailKind } from "@/lib/scene/details";
+import { careDecor, decorFor, type CareDecorKind } from "@/lib/scene/care-decor";
 import { sceneCssVars } from "@/lib/scene/css";
 import { assignWindowRooms, litWindowCount, windowStates, type WindowState } from "@/lib/scene/window-rooms";
 import { houseLight } from "@/lib/scene/light";
@@ -57,6 +59,9 @@ export type PortraitSceneOverrides = {
   closedToday?: boolean;
   /** Force these details (dev page); otherwise they follow the house. */
   details?: SceneDetailKind[];
+  /** Force the earned decorations (dev page); otherwise they follow the care level. */
+  decor?: CareDecorKind[];
+  careLevel?: CareLevelId;
 };
 
 type PortraitSceneProps = {
@@ -205,7 +210,7 @@ export function PortraitScene({
   const kit = portraitKit(homeSpec.kitType);
   const windowCount = kit.windowCount || kit.windows.length || 1;
   const closedToday = overrides?.closedToday ?? arc.state === "closed";
-  const careLevel = household.momentum.care?.level ?? "settling-in";
+  const careLevel = overrides?.careLevel ?? household.momentum.care?.level ?? "settling-in";
   const gardenLevel = CARE_TO_GARDEN[careLevel];
   const light = houseLight(arc, phase, closedToday, season, gardenLevel, windowCount);
   // Windows follow rooms (E1-02): a fresh room lit, a due room dark, a room
@@ -249,6 +254,16 @@ export function PortraitScene({
       kit,
     );
   }, [forcedDetails, kit, household, minuteNow, kept, light, phase, season, weather, careLevel]);
+
+  // What the house has earned (E5-02). Unlike the details above these do not
+  // come and go with the hour or the weather: a level's decoration stands all
+  // day, which is what makes the care ladder visible at noon rather than only
+  // as a word in a sheet.
+  const forcedDecor = overrides?.decor;
+  const decor = useMemo(
+    () => (forcedDecor ? decorFor(forcedDecor, kit) : careDecor(careLevel, kit)),
+    [forcedDecor, careLevel, kit],
+  );
 
   // The scene owns its sky. Today's root sets the same variables so the sky
   // colour can bleed into the sheet below it, but the welcome screen, the
@@ -486,6 +501,7 @@ export function PortraitScene({
             <IllustratedMoment kind="sparkle-burst" size={72} autoplay />
           </motion.div>
         ) : null}
+        <CareDecorLayer decor={decor} />
         <SceneDetails details={details} paused={paused} asleep={light.companion === "asleep"} />
       </motion.div>
 

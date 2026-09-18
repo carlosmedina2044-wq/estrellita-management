@@ -24,3 +24,29 @@ string lights, leaves, laundry, sprinkler). The negative state is leaves
 alone. Nothing rusts, cracks or turns red. Every moment must have a static
 poster for Reduce Motion, and the illustration budget test allows 500 KB plus
 120 KB for these seven files.
+
+## Care decorations (E5-02)
+
+Four static pieces, one per care level above `settling-in`, cumulative: a
+house at Loved shows all four. Unlike the details above, these do not come and
+go — they are what the ladder pays out, and they stand all day, which is the
+only reason a Settling-in house and a Loved house look different at noon.
+Losing a level takes its piece back off the house.
+
+| Piece | Earned at | Anchor | Size cap |
+| --- | --- | --- | --- |
+| Planter | Kept | left of the door, ground | 10 KB |
+| Window box | Well kept | under the lowest front window | 10 KB |
+| Bench | Cared for | right side of the house, ground | 12 KB |
+| Door wreath | Loved | on the door face | 8 KB |
+
+Static PNG or SVG, not Lottie: nothing here animates, so nothing here competes
+with the living details. Same warm neutral palette as the details so one file
+works on classic, terracotta and slate. The model and the anchors already
+exist (`src/lib/scene/care-decor.ts`, rendered by
+`src/components/today/care-decor-layer.tsx` as CSS/SVG placeholders); dropping
+the art in means replacing a `case` there.
+
+Preview any combination on the dev page:
+`/dev/portrait?care=loved` for the earned set, or `?decor=planter,wreath` to
+force specific pieces.
