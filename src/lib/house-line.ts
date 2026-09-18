@@ -5,12 +5,13 @@ import { completionsInRange } from "@/lib/duties";
 import { dutyTopic } from "@/lib/duty-topics";
 import { PLAYBOOKS, playbookApplies, seasonYearFor, windowFor } from "@/lib/playbooks";
 import { seasonFor } from "@/lib/scene/season";
+import type { VisitorKind } from "@/lib/scene/visitor";
 import { dayOfYear } from "@/lib/today-copy";
 import type { Household } from "@/lib/types";
 import { monthLedger } from "@/lib/value-ledger";
 import type { WeatherForecast } from "@/lib/weather/provider";
 
-export type HouseLineSource = "weather" | "season" | "anniversary" | "ledger" | "fact";
+export type HouseLineSource = "visitor" | "weather" | "season" | "anniversary" | "ledger" | "fact";
 
 export type HouseLine = {
   source: HouseLineSource;
@@ -147,8 +148,13 @@ export function houseLineCandidates(
   household: Household,
   forecast: WeatherForecast | null,
   now: Date,
+  visitor: VisitorKind | null = null,
 ): HouseLine[] {
   const out: HouseLine[] = [];
+  // A visitor outranks everything. It happens on maybe one closed day in four
+  // and it is the only thing on the screen nobody was promised, so on the day
+  // it comes it is the thing worth saying.
+  if (visitor) out.push({ source: "visitor", key: `houseLine.visitor.${visitor}` as MessageKey });
   const weather = weatherCandidate(household, forecast, now);
   if (weather) out.push(weather);
   const season = seasonCandidate(household, now);
@@ -170,8 +176,15 @@ export function houseLineCandidates(
  * turns in between, so the line is never the same twice in a row and no
  * source becomes wallpaper.
  */
-export function houseLine(household: Household, forecast: WeatherForecast | null, now: Date): HouseLine {
-  const today = houseLineCandidates(household, forecast, now);
+export function houseLine(
+  household: Household,
+  forecast: WeatherForecast | null,
+  now: Date,
+  visitor: VisitorKind | null = null,
+): HouseLine {
+  const today = houseLineCandidates(household, forecast, now, visitor);
+  // A visitor never yields its turn, however the day before went.
+  if (today[0].source === "visitor") return today[0];
   const yesterdayTop = houseLineCandidates(household, forecast, addDays(now, -1))[0]?.source;
   if (today[0].source !== yesterdayTop) return today[0];
   const others = today.slice(1);

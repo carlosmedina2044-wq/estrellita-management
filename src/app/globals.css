@@ -699,6 +699,51 @@ html.keyboard-open [data-slot="sheet-footer"] {
 }
 
 /*
+ * The day's visitor (E5-06). Its own layer, never part of the two-detail
+ * budget, and it only ever shows on a day that was closed. Paused with the
+ * compact bar and stilled by the global reduce-motion rule, like the details.
+ */
+.scene-visitor[data-paused="true"] * {
+  animation-play-state: paused;
+}
+.visitor-birds {
+  animation: visitor-cross 14s linear infinite;
+}
+@keyframes visitor-cross {
+  0% { transform: translate(-40px, 6px) scale(0.85); opacity: 0; }
+  12% { opacity: 0.9; }
+  88% { opacity: 0.9; }
+  100% { transform: translate(40px, -8px) scale(0.85); opacity: 0; }
+}
+.visitor-butterfly {
+  animation: visitor-flutter 6s ease-in-out infinite;
+}
+@keyframes visitor-flutter {
+  0%, 100% { transform: translate(0, 0) rotate(-6deg); }
+  25% { transform: translate(5px, -6px) rotate(6deg); }
+  50% { transform: translate(10px, 2px) rotate(-4deg); }
+  75% { transform: translate(4px, -3px) rotate(5deg); }
+}
+.visitor-rainbow {
+  animation: visitor-fade 9s ease-in-out infinite;
+}
+@keyframes visitor-fade {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.8; }
+}
+.visitor-moth {
+  animation: visitor-flutter 4s ease-in-out infinite;
+}
+.visitor-deer {
+  animation: visitor-graze 8s ease-in-out infinite;
+}
+@keyframes visitor-graze {
+  0%, 100% { transform: rotate(0deg); }
+  45% { transform: rotate(-5deg); }
+  60% { transform: rotate(-5deg); }
+}
+
+/*
  * Evening look for Today. This must stay a complete mirror of `.dark`, not a
  * subset: any token left out keeps its light-theme value against a dark
  * surface. The first version omitted the status and brand colours, so due /

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { DETAIL_KINDS, type SceneDetailKind } from "@/lib/scene/details";
 import { CARE_DECOR_KINDS, type CareDecorKind } from "@/lib/scene/care-decor";
+import { VISITOR_KINDS, type VisitorKind } from "@/lib/scene/visitor";
 import { DevLocaleOverride, useLocale } from "@/i18n/locale-provider";
 import { isAppLocale, type AppLocale } from "@/i18n";
 import { addDays, formatLongDate, toISODate } from "@/lib/dates";
@@ -192,6 +193,13 @@ function PortraitShotInner() {
   const forcedCare = (CARE_LEVELS as readonly string[]).includes(careParam ?? "")
     ? (careParam as CareLevelId)
     : undefined;
+  const visitorParam = params.get("visitor");
+  const forcedVisitor =
+    visitorParam === "none"
+      ? ("none" as const)
+      : (VISITOR_KINDS as readonly string[]).includes(visitorParam ?? "")
+        ? (visitorParam as VisitorKind)
+        : undefined;
   const compact = params.get("compact") === "1";
   const ceremony = params.get("ceremony") === "1";
   const weather = weatherFor(weatherKind);
@@ -250,6 +258,7 @@ function PortraitShotInner() {
             details: forcedDetails,
             decor: forcedDecor,
             careLevel: forcedCare,
+            visitor: forcedVisitor,
           }}
         />
         {compact ? (

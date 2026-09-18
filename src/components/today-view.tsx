@@ -41,6 +41,7 @@ import { hasSeenTip, markTipSeen, shouldShowYearIntro, TIP_HOUSE_REVEAL, TIP_YEA
 import { dismissGetAhead, getAheadCandidate, isGetAheadDismissed } from "@/lib/get-ahead";
 import { houseLine } from "@/lib/house-line";
 import { weeklyQuest } from "@/lib/quest";
+import { visitorFor } from "@/lib/scene/visitor";
 import { currentCareState } from "@/lib/care-level";
 import { dayOpacityForPhase, portraitLayerUrls, resolveHomeSpec } from "@/lib/scene/portrait";
 import { seasonFor } from "@/lib/scene/season";
@@ -434,9 +435,52 @@ export function TodayView({
   // One sentence a day from the house (E2-01): the forecast, a seasonal
   // window opening, what was done a year ago, the month's ledger, or a
   // seasonal fact. Deterministic per day, never the same two days running.
+  const todayIso = toISODate(now);
+  // The sky reads `clock`, never `now`. `now` is local midnight by design (see
+  // `useNow`), and `skyPhase` reads `getHours()` — feeding it `now` pinned every
+  // user's sky to "night" at every hour of the day. Computed up here because
+  // the day's visitor and the day's line both read from it.
+  const sceneWx = sceneWeather(forecast, todayIso);
+  const { lat, lng } = household.location;
+  const sceneTimes = useMemo(
+    () => (lat != null && lng != null ? sunTimes(lat, lng, new Date(clockMs)) : null),
+    [lat, lng, clockMs],
+  );
+  const scenePhase = useMemo(() => skyPhase(new Date(clockMs), sceneTimes), [clockMs, sceneTimes]);
+  // Settings promises a fixed appearance "stays put" (Always light / Always
+  // dark / Match iPhone). `nightFollowsSky === false` means the user picked
+  // one of those, so the scene itself — not just the chrome — has to stop
+  // reading the real sun position. Without this, the sky/moon kept following
+  // real dusk/night under "Always light," producing a lit cream sheet under a
+  // night sky with no way to tell the setting was doing anything at all.
+  const { resolvedTheme } = useTheme();
+  const scenePhaseEffective = useMemo(
+    () =>
+      household.momentum.nightFollowsSky === false
+        ? { phase: (resolvedTheme === "dark" ? "night" : "day") as typeof scenePhase.phase, t: 0.5 }
+        : scenePhase,
+    [household.momentum.nightFollowsSky, resolvedTheme, scenePhase],
+  );
+
+  // Today computes the visitor itself so the day's line and the picture agree;
+  // the scene derives the same answer from the same signals.
+  const todayVisitor = useMemo(
+    () =>
+      momentumOn
+        ? visitorFor({
+            closedToday: arc.state === "closed",
+            phase: scenePhaseEffective.phase,
+            season: seasonFor(new Date(clockMs), household.location.lat ?? null),
+            weather: sceneWx,
+            dateKey: todayIso,
+            seed: resolveHomeSpec(household).seed,
+          })
+        : null,
+    [momentumOn, arc.state, scenePhaseEffective.phase, clockMs, household, sceneWx, todayIso],
+  );
   const dayLine = useMemo(
-    () => (momentumOn ? houseLine(household, forecast ?? null, now) : null),
-    [momentumOn, household, forecast, now],
+    () => (momentumOn ? houseLine(household, forecast ?? null, now, todayVisitor) : null),
+    [momentumOn, household, forecast, now, todayVisitor],
   );
   const dayLineText = dayLine ? t(dayLine.key, dayLine.params) : null;
   // Year wrapped (E2-06): once, in the last week of December or the first of
@@ -500,7 +544,6 @@ export function TodayView({
     .filter(Boolean)
     .join(" · ");
 
-  const todayIso = toISODate(now);
   const ceremonyActive = ceremonyDay === todayIso;
   // Plays once, the first time Today ever renders with a chosen house look —
   // never again after (existing households with no `homeSpec` never had a
@@ -642,35 +685,11 @@ export function TodayView({
 
   // Momentum scene: layered portrait; plain/cleaner keeps the M7-09-r2 hero card.
   //
-  // The sky reads `clock`, never `now`. `now` is local midnight by design (see
-  // `useNow`), and `skyPhase` reads `getHours()` — feeding it `now` pinned every
-  // user's sky to "night" at every hour of the day.
   const sceneMode = momentumOn;
   // In scene mode the day card already names today's count and its clear state,
   // so the row only earns its slot when it has something else to say.
   const showAttention =
     !sceneMode || summary.overdue > 0 || summary.orderNow > 0 || summary.arriving > 0;
-  const sceneWx = sceneWeather(forecast, todayIso);
-  const { lat, lng } = household.location;
-  const sceneTimes = useMemo(
-    () => (lat != null && lng != null ? sunTimes(lat, lng, new Date(clockMs)) : null),
-    [lat, lng, clockMs],
-  );
-  const scenePhase = useMemo(() => skyPhase(new Date(clockMs), sceneTimes), [clockMs, sceneTimes]);
-  // Settings promises a fixed appearance "stays put" (Always light / Always
-  // dark / Match iPhone). `nightFollowsSky === false` means the user picked
-  // one of those, so the scene itself — not just the chrome — has to stop
-  // reading the real sun position. Without this, the sky/moon kept following
-  // real dusk/night under "Always light," producing a lit cream sheet under a
-  // night sky with no way to tell the setting was doing anything at all.
-  const { resolvedTheme } = useTheme();
-  const scenePhaseEffective = useMemo(
-    () =>
-      household.momentum.nightFollowsSky === false
-        ? { phase: (resolvedTheme === "dark" ? "night" : "day") as typeof scenePhase.phase, t: 0.5 }
-        : scenePhase,
-    [household.momentum.nightFollowsSky, resolvedTheme, scenePhase],
-  );
   const sceneStops = useMemo(
     () => skyGradient(scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover),
     [scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover],

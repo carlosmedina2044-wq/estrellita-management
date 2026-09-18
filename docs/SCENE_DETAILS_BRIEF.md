@@ -50,3 +50,25 @@ the art in means replacing a `case` there.
 Preview any combination on the dev page:
 `/dev/portrait?care=loved` for the earned set, or `?decor=planter,wreath` to
 force specific pieces.
+
+## The day's visitor (E5-06)
+
+Five short loops, one of which may turn up on a day that was closed — roughly
+one closed day in four, fixed for the day so it cannot be rerolled by
+reopening the app, and never on a day that was not closed.
+
+| Visitor | Comes when | Loop | Anchor | Size cap |
+| --- | --- | --- | --- | --- |
+| Birds | Daylight, not winter, dry | 6 s, crosses frame | upper right | 20 KB |
+| Butterfly | Daylight, spring or summer, dry | 5 s | mid left | 16 KB |
+| Rainbow | Daylight during rain | 8 s, slow fade | above the roof | 16 KB |
+| Moth | Dusk or night | 4 s | near the porch light | 12 KB |
+| Deer | Dawn or dusk, autumn or winter | 8 s | lower left, on the grass | 24 KB |
+
+This is the one thing on the screen nobody is promised. Everything else the
+house does is a rule you can learn, which is what makes it legible and also
+what makes it predictable. Keep these gentle and never startling: no sudden
+entrances, nothing that reads as an alert, nothing the user has to dismiss.
+
+Preview with `/dev/portrait?closed=1&visitor=deer`, or `?visitor=none` to
+suppress it.

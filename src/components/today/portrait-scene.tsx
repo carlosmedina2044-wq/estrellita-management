@@ -9,15 +9,17 @@ import { PortraitStack } from "@/components/today/portrait-stack";
 import { SkyDisc } from "@/components/today/sky-disc";
 import { SceneDetails } from "@/components/today/scene-details";
 import { CareDecorLayer } from "@/components/today/care-decor-layer";
+import { VisitorLayer } from "@/components/today/visitor-layer";
 import { StatusGlyphs } from "@/components/today/status-glyphs";
 import { WeatherLayer } from "@/components/today/weather-layer";
 import { useLocale } from "@/i18n/locale-provider";
-import { addDays } from "@/lib/dates";
+import { addDays, toISODate } from "@/lib/dates";
 import { completionsInRange, isOverdueFor } from "@/lib/duties";
 import { dutyTopic } from "@/lib/duty-topics";
 import { keptRooms } from "@/lib/kept-rooms";
 import { detailsFor, sceneDetails, type SceneDetailKind } from "@/lib/scene/details";
 import { careDecor, decorFor, type CareDecorKind } from "@/lib/scene/care-decor";
+import { visitorFor, type VisitorKind } from "@/lib/scene/visitor";
 import { sceneCssVars } from "@/lib/scene/css";
 import { assignWindowRooms, litWindowCount, windowStates, type WindowState } from "@/lib/scene/window-rooms";
 import { houseLight } from "@/lib/scene/light";
@@ -62,6 +64,8 @@ export type PortraitSceneOverrides = {
   /** Force the earned decorations (dev page); otherwise they follow the care level. */
   decor?: CareDecorKind[];
   careLevel?: CareLevelId;
+  /** Force today's visitor (dev page); `"none"` suppresses it. */
+  visitor?: VisitorKind | "none";
 };
 
 type PortraitSceneProps = {
@@ -262,6 +266,21 @@ export function PortraitScene({
   // come and go with the hour or the weather: a level's decoration stands all
   // day, which is what makes the care ladder visible at noon rather than only
   // as a word in a sheet.
+  // The day's visitor (E5-06). Read from the same signals the rest of the
+  // scene uses, so the picture and the day's line always name the same guest.
+  const forcedVisitor = overrides?.visitor;
+  const visitor = useMemo(() => {
+    if (forcedVisitor) return forcedVisitor === "none" ? null : forcedVisitor;
+    return visitorFor({
+      closedToday,
+      phase,
+      season,
+      weather,
+      dateKey: toISODate(minuteNow),
+      seed: homeSpec.seed,
+    });
+  }, [forcedVisitor, closedToday, phase, season, weather, minuteNow, homeSpec.seed]);
+
   const forcedDecor = overrides?.decor;
   const decor = useMemo(
     () =>
@@ -508,6 +527,7 @@ export function PortraitScene({
           </motion.div>
         ) : null}
         <CareDecorLayer decor={decor} />
+        <VisitorLayer visitor={visitor} paused={paused} />
         <SceneDetails details={details} paused={paused} asleep={light.companion === "asleep"} />
       </motion.div>
 
