@@ -22,7 +22,13 @@ import { checkInsInYear } from "@/lib/check-ins";
 import { formatLongDate, parseISODate } from "@/lib/dates";
 import { completionDays, completionsInRange, relativeDayLabel } from "@/lib/duties";
 import { formatMoney } from "@/lib/forecast";
-import { closedDayRun, milestoneProgress, yearDays, type YearDay } from "@/lib/momentum";
+import {
+  closedDayRun,
+  milestoneProgress,
+  milestonesForDisplay,
+  yearDays,
+  type YearDay,
+} from "@/lib/momentum";
 import { PLAYBOOKS } from "@/lib/playbooks";
 import type { CareState, Household } from "@/lib/types";
 import { valueLedger } from "@/lib/value-ledger";
@@ -135,15 +141,12 @@ export function YearView({
   const opened = checkInsInYear(household, year);
   // Earned first, newest win at the top, then whatever is closest to falling —
   // the list has to read as a ladder, not a receipt.
-  const milestones = useMemo(() => {
-    const all = milestoneProgress(household, now);
-    const earned = all
-      .filter((item) => item.earned)
-      .sort((a, b) => (b.earnedAt ?? "").localeCompare(a.earnedAt ?? ""));
-    const open = all.filter((item) => !item.earned).sort((a, b) => b.fraction - a.fraction);
-    return [...earned, ...open];
-  }, [household, now]);
-  const next = milestones.find((item) => !item.earned) ?? null;
+  const milestones = useMemo(
+    () => milestonesForDisplay(milestoneProgress(household, now)),
+    [household, now],
+  );
+  const next = milestones.open[0] ?? null;
+  const rest = milestones.open.slice(1);
   const seasonalDone = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of completionsInRange(household.completions, yearStart, now)) {
@@ -286,17 +289,41 @@ export function YearView({
       <section>
         <h2 className="ui-heading mb-2 ui-title font-semibold">{t("today.rowMilestones")}</h2>
         <NextMilestone item={next} />
-        <div className="ui-group mt-2">
-          {milestones.map((item) => (
-            <MilestoneRow
-              key={item.id}
-              item={item}
-              earnedLabel={
-                item.earnedAt ? relativeDayLabel(new Date(item.earnedAt), now) : undefined
-              }
-            />
-          ))}
-        </div>
+        {/* Won and still-to-come are two different things to look at, and a
+            single run of fourteen rows made them one. The count on each head
+            is the shape of the ladder in one glance. The nearest one is the
+            card above, so the list carries what comes after it rather than
+            naming the same milestone twice in a row. */}
+        {rest.length > 0 ? (
+          <>
+            <h3 className="ui-heading mt-4 mb-2 ui-caption text-muted-foreground">
+              {t("milestone.groupOpen", { count: rest.length })}
+            </h3>
+            <div className="ui-group">
+              {rest.map((item) => (
+                <MilestoneRow key={item.id} item={item} />
+              ))}
+            </div>
+          </>
+        ) : null}
+        {milestones.earned.length > 0 ? (
+          <>
+            <h3 className="ui-heading mt-4 mb-2 ui-caption text-muted-foreground">
+              {t("milestone.groupEarned", { count: milestones.earned.length })}
+            </h3>
+            <div className="ui-group">
+              {milestones.earned.map((item) => (
+                <MilestoneRow
+                  key={item.id}
+                  item={item}
+                  earnedLabel={
+                    item.earnedAt ? relativeDayLabel(new Date(item.earnedAt), now) : undefined
+                  }
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
       </section>
 
       <section>

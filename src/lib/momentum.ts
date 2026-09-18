@@ -488,6 +488,47 @@ export const MILESTONES: Array<{ id: MilestoneId; when: (household: Household, n
   },
 ];
 
+/**
+ * What kind of thing a milestone is. Fourteen of them rendered as identical
+ * grey rings read as one undifferentiated list of things you have not done —
+ * "30-day streak" and "Twelve seasonal jobs" are different kinds of work and
+ * the list should say so before you read the words.
+ */
+export type MilestoneFamily = "first" | "run" | "done" | "seasonal" | "care";
+
+export const MILESTONE_FAMILY: Record<MilestoneId, MilestoneFamily> = {
+  "first-close": "first",
+  "first-week": "first",
+  "every-room": "first",
+  "seven-run": "run",
+  "thirty-run": "run",
+  "hundred-run": "run",
+  "ten-done": "done",
+  "fifty-done": "done",
+  "two-hundred-done": "done",
+  "first-quarterly": "seasonal",
+  "four-seasonal": "seasonal",
+  "twelve-seasonal": "seasonal",
+  "care-cared-for": "care",
+  "care-loved": "care",
+};
+
+/**
+ * Earned first, newest win at the top; then everything still open, closest
+ * first. The catalogue order is by tier, which buries a milestone you are two
+ * days from under one that is two hundred chores away.
+ */
+export function milestonesForDisplay(items: MilestoneProgress[]): {
+  earned: MilestoneProgress[];
+  open: MilestoneProgress[];
+} {
+  const earned = items
+    .filter((item) => item.earned)
+    .sort((a, b) => (b.earnedAt ?? "").localeCompare(a.earnedAt ?? ""));
+  const open = items.filter((item) => !item.earned).sort((a, b) => b.fraction - a.fraction);
+  return { earned, open };
+}
+
 export type MilestoneProgress = {
   id: MilestoneId;
   earned: boolean;
