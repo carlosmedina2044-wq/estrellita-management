@@ -10,6 +10,7 @@ export function AttentionTiles({
   orderNowCost,
   arriving,
   labels,
+  showDueToday = true,
   onOverdue,
   onDueToday,
   onOrder,
@@ -30,6 +31,9 @@ export function AttentionTiles({
     allClearHint: string;
     allClearAria: string;
   };
+  /** False when the day card above already names today's count and its clear
+   * state, so the row would otherwise repeat both. */
+  showDueToday?: boolean;
   onOverdue: () => void;
   onDueToday: () => void;
   onOrder: () => void;
@@ -47,7 +51,7 @@ export function AttentionTiles({
           className: "ring-destructive/40",
         }
       : null,
-    dueToday > 0
+    showDueToday && dueToday > 0
       ? {
           key: "due",
           count: dueToday,
@@ -79,6 +83,7 @@ export function AttentionTiles({
   ].filter((tile): tile is NonNullable<typeof tile> => Boolean(tile));
 
   if (tiles.length === 0) {
+    if (!showDueToday) return null;
     return (
       <button
         type="button"

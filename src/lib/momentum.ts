@@ -448,6 +448,10 @@ export const MILESTONES: Array<{ id: MilestoneId; when: (household: Household, n
     id: "first-week",
     when: (household, now) => weekWasFull(household, now) || weekWasFull(household, addDays(now, -7)),
   },
+  {
+    id: "seven-run",
+    when: (household, now) => closedDayRun(household, now).current >= 7 || cachedBestRun(household) >= 7,
+  },
   { id: "ten-done", when: (household) => household.completions.length >= 10 },
   { id: "every-room", when: everyRoomTouched },
   { id: "first-quarterly", when: hasQuarterlyDone },
@@ -456,6 +460,68 @@ export const MILESTONES: Array<{ id: MilestoneId; when: (household: Household, n
     when: (household, now) => closedDayRun(household, now).current >= 30 || cachedBestRun(household) >= 30,
   },
 ];
+
+export type MilestoneProgress = {
+  id: MilestoneId;
+  earned: boolean;
+  earnedAt: string | null;
+  current: number;
+  target: number;
+  /** 0–1, clamped. */
+  fraction: number;
+};
+
+/** Every milestone, earned or not, with a real number to show against it.
+ * The catalogue was only ever read after the fact — a milestone nobody can see
+ * coming is a trophy, not a goal. */
+export function milestoneProgress(household: Household, now = new Date()): MilestoneProgress[] {
+  const week = weekProgress(household, now);
+  const rooms = household.rooms.filter((room) => !room.system);
+  const run = closedDayRun(household, now);
+  // The first milestone is the one a new home sees first, so it tracks today's
+  // own list rather than sitting at 0 of 1 until the day lands.
+  const today = dayArc(household, now);
+  const closedEver = hasClosedDay(household, now);
+  const counts: Record<MilestoneId, { current: number; target: number }> = {
+    "first-close": closedEver
+      ? { current: 1, target: 1 }
+      : { current: today.done, target: Math.max(today.total, 1) },
+    "first-week": { current: week.done, target: Math.max(week.planned, 1) },
+    "seven-run": { current: Math.max(run.current, run.best), target: 7 },
+    "ten-done": { current: household.completions.length, target: 10 },
+    "every-room": {
+      current: roomsTouchedInRange(household, addDays(now, -30), now),
+      target: Math.max(rooms.length, 1),
+    },
+    "first-quarterly": { current: hasQuarterlyDone(household) ? 1 : 0, target: 1 },
+    "thirty-run": { current: Math.max(run.current, run.best), target: 30 },
+  };
+
+  return MILESTONES.map((item) => {
+    const stored = household.milestones.find((entry) => entry.id === item.id);
+    const { current, target } = counts[item.id];
+    // A milestone is only filed on the next completion, so between meeting one
+    // and recording it the predicate is the truth — without this, `nextMilestone`
+    // would point at something already won.
+    const earned = Boolean(stored) || item.when(household, now);
+    return {
+      id: item.id,
+      earned,
+      earnedAt: stored?.earnedAt ?? null,
+      current: Math.min(current, target),
+      target,
+      fraction: earned ? 1 : Math.max(0, Math.min(1, target ? current / target : 0)),
+    };
+  });
+}
+
+/** The unearned milestone closest to falling, so Today and the house sheet can
+ * name one goal instead of a wall of them. */
+export function nextMilestone(household: Household, now = new Date()): MilestoneProgress | null {
+  const open = milestoneProgress(household, now).filter((item) => !item.earned);
+  if (open.length === 0) return null;
+  return open.reduce((best, item) => (item.fraction > best.fraction ? item : best));
+}
 
 export function newlyEarned(household: Household, now = new Date()): MilestoneId[] {
   const have = new Set(household.milestones.map((item) => item.id));

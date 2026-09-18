@@ -172,6 +172,40 @@ export function currentCareState(household: Household, now = new Date()): CareSt
   return household.momentum.care ?? nextCareState(undefined, careSignals(household, now), now);
 }
 
+export type CareProgress = {
+  level: CareLevelId;
+  next: CareLevelId | null;
+  /** 0–1 toward the next level. */
+  fraction: number;
+};
+
+/** The closed-day ratio each level asks for, mirroring `rawCareLevel`. */
+const CARE_THRESHOLD: Record<CareLevelId, (seasonalOk: boolean) => number> = {
+  "settling-in": () => 0,
+  kept: () => 0.5,
+  "well-kept": (seasonalOk) => (seasonalOk ? 0.65 : 0.8),
+  "cared-for": () => 0.8,
+  loved: () => 0.9,
+};
+
+/** How far the house is from its next level, so the ladder is visible while it
+ * is still being climbed rather than only after a level lands. */
+export function careProgress(household: Household, now = new Date()): CareProgress {
+  const signals = careSignals(household, now);
+  const level = currentCareState(household, now).level;
+  const index = careLevelIndex(level);
+  const next = index >= 0 && index < CARE_LEVELS.length - 1 ? CARE_LEVELS[index + 1] : null;
+  if (!next) return { level, next: null, fraction: 1 };
+  // Under a week of history `rawCareLevel` pins the level whatever the ratio
+  // is, so the honest bar to show is the time still to run.
+  if (signals.windowDays < 7) {
+    return { level, next, fraction: Math.max(0, Math.min(1, signals.windowDays / 7)) };
+  }
+  const threshold = CARE_THRESHOLD[next](signals.seasonalOk);
+  const fraction = threshold ? signals.closedRatio / threshold : 1;
+  return { level, next, fraction: Math.max(0, Math.min(1, fraction)) };
+}
+
 export function houseMomentFor(level: CareLevelId): "living-house" | "breathing-loop" {
   return level === "loved" ? "breathing-loop" : "living-house";
 }

@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { addDays, toISODate } from "@/lib/dates";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import {
+  careProgress,
   careSignals,
   houseMomentFor,
   nextCareState,
@@ -173,3 +174,35 @@ test("reconcileCareLevel files each replaced state in careHistory, oldest first"
   );
 });
 
+
+test("careProgress names the next level and measures the climb", () => {
+  const now = new Date(2026, 8, 17);
+
+  // Under a week of history the level is pinned, so the bar tracks time.
+  const young = closedFixture(now, 3);
+  const early = careProgress(young, now);
+  assert.equal(early.level, "settling-in");
+  assert.equal(early.next, "kept");
+  assert.ok(early.fraction > 0 && early.fraction < 1);
+
+  // Mid-ladder, a month of closed days clears the ratio the next level asks for.
+  const steady = closedFixture(now, 30, true);
+  const kept = {
+    ...steady,
+    momentum: { ...steady.momentum, care: { level: "kept" as const, since: toISODate(addDays(now, -30)) } },
+  };
+  const climbing = careProgress(kept, now);
+  assert.equal(climbing.level, "kept");
+  assert.equal(climbing.next, "well-kept");
+  assert.equal(climbing.fraction, 1);
+
+  // The top of the ladder has nothing left to climb.
+  const loved = {
+    ...steady,
+    momentum: { ...steady.momentum, care: { level: "loved" as const, since: toISODate(now) } },
+  };
+  const done = careProgress(loved, now);
+  assert.equal(done.level, "loved");
+  assert.equal(done.next, null);
+  assert.equal(done.fraction, 1);
+});

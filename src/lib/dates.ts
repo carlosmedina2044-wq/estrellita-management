@@ -88,6 +88,10 @@ export function formatDueDate(value: string | Date): string {
   }).format(date);
 }
 
+export function formatWeekdayNarrow(date: Date): string {
+  return new Intl.DateTimeFormat(activeDateLocale, { weekday: "narrow" }).format(date);
+}
+
 export function formatWeekdayDate(value: string | Date): string {
   const date = typeof value === "string" ? new Date(parseISODate(value)) : value;
   const includeYear = date.getFullYear() !== new Date().getFullYear();

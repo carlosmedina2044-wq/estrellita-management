@@ -20,8 +20,10 @@ import {
   todayEffort,
   weekProgress,
   weekWrappedTipKey,
+  milestoneProgress,
+  nextMilestone,
 } from "@/lib/momentum";
-import type { Completion, Duty, Household } from "@/lib/types";
+import { MILESTONE_IDS, type Completion, type Duty, type Household } from "@/lib/types";
 
 function duty(partial: Partial<Duty> & Pick<Duty, "title">): Duty {
   return {
@@ -409,3 +411,79 @@ test("year wrapped shows between 26 December and 7 January, once, only with some
   assert.equal(wrap.minutes, 10);
 });
 
+
+test("milestone progress measures unearned milestones", () => {
+  const thursday = new Date(2026, 8, 17);
+  const wipe = duty({
+    id: "wipe",
+    title: "Wipe",
+    createdAt: "2026-09-01T00:00:00.000Z",
+    estimatedMinutes: 10,
+  });
+  const trash = duty({
+    id: "trash",
+    title: "Trash",
+    createdAt: "2026-09-01T00:00:00.000Z",
+    estimatedMinutes: 5,
+  });
+  const fresh = household({ duties: [wipe, trash] });
+
+  const byId = new Map(milestoneProgress(fresh, thursday).map((item) => [item.id, item]));
+  assert.equal(byId.size, MILESTONE_IDS.length);
+  assert.equal(byId.get("seven-run")?.target, 7);
+  assert.equal([...byId.values()].every((item) => !item.earned), true);
+
+  // The first milestone tracks today's own list so it moves on the first day.
+  const firstClose = byId.get("first-close");
+  assert.equal(firstClose?.current, 0);
+  assert.equal(firstClose?.target, 2);
+
+  assert.equal(byId.get("ten-done")?.target, 10);
+  assert.equal(byId.get("thirty-run")?.target, 30);
+  assert.equal(byId.get("every-room")?.target, 1);
+
+  const halfDone = household({
+    duties: [wipe, trash],
+    completions: [completion({ dutyId: "wipe", completedAt: atNoon(thursday) })],
+  });
+  const halfway = milestoneProgress(halfDone, thursday).find((item) => item.id === "first-close");
+  assert.equal(halfway?.current, 1);
+  assert.equal(halfway?.fraction, 0.5);
+});
+
+test("milestone progress reports stored wins as earned", () => {
+  const thursday = new Date(2026, 8, 17);
+  const wipe = duty({ id: "wipe", title: "Wipe", createdAt: "2026-09-01T00:00:00.000Z" });
+  const home = household({
+    duties: [wipe],
+    milestones: [{ id: "ten-done", earnedAt: "2026-09-10T12:00:00.000Z" }],
+  });
+  const tenDone = milestoneProgress(home, thursday).find((item) => item.id === "ten-done");
+  assert.equal(tenDone?.earned, true);
+  assert.equal(tenDone?.fraction, 1);
+  assert.equal(tenDone?.earnedAt, "2026-09-10T12:00:00.000Z");
+  assert.equal(nextMilestone(home, thursday)?.earned, false);
+});
+
+test("nextMilestone picks the closest unearned milestone", () => {
+  const thursday = new Date(2026, 8, 17);
+  const wipe = duty({ id: "wipe", title: "Wipe", createdAt: "2026-09-01T00:00:00.000Z" });
+  const completions = Array.from({ length: 9 }, (_, index) =>
+    completion({
+      dutyId: "wipe",
+      id: `c${index}`,
+      completedAt: atNoon(addDays(thursday, -index - 1)),
+    }),
+  );
+  const home = household({ duties: [wipe], completions });
+  assert.equal(nextMilestone(home, thursday)?.id, "ten-done");
+});
+
+test("every milestone earned leaves no next", () => {
+  const thursday = new Date(2026, 8, 17);
+  const home = household({
+    duties: [duty({ id: "wipe", title: "Wipe" })],
+    milestones: MILESTONE_IDS.map((id) => ({ id, earnedAt: "2026-09-10T12:00:00.000Z" })),
+  });
+  assert.equal(nextMilestone(home, thursday), null);
+});

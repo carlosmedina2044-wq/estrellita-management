@@ -1,5 +1,6 @@
 "use client";
 
+import { NextMilestone, ProgressTrack } from "@/components/milestone-list";
 import { HouseOrbit } from "@/components/today/house-orbit";
 import { KeptRoomsRow } from "@/components/today/kept-rooms-row";
 import { Button } from "@/components/ui/button";
@@ -7,9 +8,9 @@ import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/com
 import type { MessageKey } from "@/i18n";
 import { tPlaybookName } from "@/i18n/content";
 import { useLocale } from "@/i18n/locale-provider";
-import { currentCareState } from "@/lib/care-level";
+import { careProgress, currentCareState } from "@/lib/care-level";
 import { formatLongDate, parseISODate } from "@/lib/dates";
-import { closedDayRun, type DayArc } from "@/lib/momentum";
+import { closedDayRun, nextMilestone, type DayArc } from "@/lib/momentum";
 import { seasonalTimeline } from "@/lib/playbooks";
 import type { Household } from "@/lib/types";
 import { formatLedgerLine, monthLedger } from "@/lib/value-ledger";
@@ -67,8 +68,9 @@ export function HouseSheet({
         ? `${t("today.runDay", { count: run.current })} · ${t("today.runBest", { count: run.best })}`
         : t("today.runDay", { count: run.current })
       : t("today.runNone");
-  const milestones = household.milestones.length;
   const next = nextSeasonal(household, now);
+  const ladder = careProgress(household, now);
+  const milestone = nextMilestone(household, now);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -91,17 +93,24 @@ export function HouseSheet({
               </p>
               <p className="mt-0.5 ui-caption text-muted-foreground">{t("today.careSince", { date: since })}</p>
               <p className="mt-2 ui-caption text-muted-foreground num">{t("today.dayArcAria", { done: arc.done, total: arc.total })}</p>
+              {ladder.next ? (
+                <>
+                  <ProgressTrack fraction={ladder.fraction} className="mt-2" />
+                  <p className="mt-1.5 ui-caption text-muted-foreground">
+                    {t("care.nextLevel", {
+                      level: t(`care.level.${ladder.next}` as MessageKey),
+                    })}
+                  </p>
+                </>
+              ) : null}
             </div>
           </div>
           <KeptRoomsRow household={household} now={now} />
+          <NextMilestone item={milestone} />
           <div className="ui-group">
             <Row label={t("today.rowThisMonth")} value={formatLedgerLine(monthLedger(household, now), t)} />
             <Row label={t("today.rowRun")} value={runLine} />
             <Row label={t("today.rowNextSeasonal")} value={next ?? t("today.nextSeasonalNone")} />
-            <Row
-              label={t("today.rowMilestones")}
-              value={milestones > 0 ? t("today.milestonesEarned", { count: milestones }) : t("today.milestonesNone")}
-            />
           </div>
         </div>
         <SheetFooter className="pt-2">

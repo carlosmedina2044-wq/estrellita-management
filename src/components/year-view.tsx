@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Share2 } from "lucide-react";
 import { DayCalendar } from "@/components/day-calendar";
+import { MilestoneRow, NextMilestone } from "@/components/milestone-list";
 import { PageHeader } from "@/components/page-header";
 import { ShareCardSheet } from "@/components/today/share-card-sheet";
 import { useClock } from "@/hooks/use-clock";
@@ -21,7 +22,7 @@ import { checkInsInYear } from "@/lib/check-ins";
 import { formatLongDate, parseISODate } from "@/lib/dates";
 import { completionDays, completionsInRange, relativeDayLabel } from "@/lib/duties";
 import { formatMoney } from "@/lib/forecast";
-import { closedDayRun, yearDays, type YearDay } from "@/lib/momentum";
+import { closedDayRun, milestoneProgress, yearDays, type YearDay } from "@/lib/momentum";
 import { PLAYBOOKS } from "@/lib/playbooks";
 import type { CareState, Household } from "@/lib/types";
 import { valueLedger } from "@/lib/value-ledger";
@@ -132,9 +133,17 @@ export function YearView({
   const yearStart = useMemo(() => new Date(year, 0, 1), [year]);
   const ledger = valueLedger(household, yearStart, now);
   const opened = checkInsInYear(household, year);
-  const milestones = [...household.milestones]
-    .filter((item) => item.earnedAt.startsWith(`${year}-`))
-    .sort((a, b) => b.earnedAt.localeCompare(a.earnedAt));
+  // Earned first, newest win at the top, then whatever is closest to falling —
+  // the list has to read as a ladder, not a receipt.
+  const milestones = useMemo(() => {
+    const all = milestoneProgress(household, now);
+    const earned = all
+      .filter((item) => item.earned)
+      .sort((a, b) => (b.earnedAt ?? "").localeCompare(a.earnedAt ?? ""));
+    const open = all.filter((item) => !item.earned).sort((a, b) => b.fraction - a.fraction);
+    return [...earned, ...open];
+  }, [household, now]);
+  const next = milestones.find((item) => !item.earned) ?? null;
   const seasonalDone = useMemo(() => {
     const counts = new Map<string, number>();
     for (const item of completionsInRange(household.completions, yearStart, now)) {
@@ -276,19 +285,17 @@ export function YearView({
 
       <section>
         <h2 className="ui-heading mb-2 ui-title font-semibold">{t("today.rowMilestones")}</h2>
-        <div className="ui-group">
-          {milestones.length === 0 ? (
-            <div className="ui-group-row px-4 py-3">
-              <p className="ui-caption text-muted-foreground">{t("settings.milestonesEmpty")}</p>
-            </div>
-          ) : (
-            milestones.map((item) => (
-              <div key={item.id} className="ui-group-row flex items-center justify-between gap-3 px-4 py-3">
-                <p className="ui-body font-medium">{t(`milestone.${item.id}.title` as MessageKey)}</p>
-                <p className="shrink-0 ui-caption text-muted-foreground">{relativeDayLabel(new Date(item.earnedAt), now)}</p>
-              </div>
-            ))
-          )}
+        <NextMilestone item={next} />
+        <div className="ui-group mt-2">
+          {milestones.map((item) => (
+            <MilestoneRow
+              key={item.id}
+              item={item}
+              earnedLabel={
+                item.earnedAt ? relativeDayLabel(new Date(item.earnedAt), now) : undefined
+              }
+            />
+          ))}
         </div>
       </section>
 

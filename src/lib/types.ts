@@ -330,6 +330,7 @@ export type WeatherStatus = {
 export const MILESTONE_IDS = [
   "first-close",
   "first-week",
+  "seven-run",
   "ten-done",
   "every-room",
   "first-quarterly",

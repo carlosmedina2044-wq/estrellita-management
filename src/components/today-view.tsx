@@ -18,7 +18,8 @@ import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { AttentionTiles } from "@/components/today/attention-tiles";
-import { ClosingReward, ClosingStats } from "@/components/today/closing-ceremony";
+import { ClosingReward } from "@/components/today/closing-ceremony";
+import { DayRunCard } from "@/components/today/day-run-card";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
@@ -26,8 +27,6 @@ import { GetAheadCard } from "@/components/today/get-ahead-card";
 import { HouseSheet } from "@/components/today/house-sheet";
 import { ShareCardSheet } from "@/components/today/share-card-sheet";
 import { YearIntroSheet } from "@/components/today/year-intro-sheet";
-import { RollingNumber } from "@/components/today/rolling-number";
-import { RunStrip } from "@/components/today/run-strip";
 import { TodayHero } from "@/components/today/today-hero";
 import { TodayNoticeCard, type TodayNotice } from "@/components/today/today-notice-card";
 import { WholeHouseCard } from "@/components/today/whole-house-card";
@@ -546,7 +545,7 @@ export function TodayView({
     minutes: todayEffort(todayDoneForCeremony.map((entry) => entry.duty)),
     rooms: roomsTouchedInRange(household, new Date(startOfDay(now)), now),
   };
-  const sceneMinutesParts = t("today.minutesLeft", { minutes: "%%" }).split("%%");
+  const sceneRun = closedDayRun(household, now);
   // A clear or rest day has no minutes to count down, and "0 min left" read
   // as a bug. The house line fills that row when it has something specific
   // to say; a plain fact yields to "All clear. Next up Friday." while there
@@ -568,6 +567,24 @@ export function TodayView({
         ? dayLineText
         : heroQuietLine
       : null;
+  // The house's own daily voice ("{count} left. The house is waiting.") only
+  // ever reached the plain hero. In scene mode the sheet opened on a bare
+  // "30 min left", which named a number without naming what it was for.
+  const sceneHeadline =
+    sceneQuietLine ??
+    t(
+      heroCopyKey(arc.state, dayOfYear(now), {
+        hasName: Boolean(household.ownerName.trim()),
+        count: arc.open,
+        nextUp: arc.nextUp,
+      }),
+      {
+        count: arc.open,
+        minutes: arc.minutesLeft,
+        day: nextUpDayLabel(arc.nextUp),
+        name: household.ownerName.trim(),
+      },
+    );
   const monthLedgerLine = useMemo(() => formatLedgerLine(monthLedger(household, now), t), [household, now, t]);
   const kept = useMemo(() => keptRooms(household, now), [household, now]);
   const houseKept = useMemo(() => wholeHouseKept(kept, household, now), [kept, household, now]);
@@ -623,6 +640,10 @@ export function TodayView({
   // `useNow`), and `skyPhase` reads `getHours()` — feeding it `now` pinned every
   // user's sky to "night" at every hour of the day.
   const sceneMode = momentumOn;
+  // In scene mode the day card already names today's count and its clear state,
+  // so the row only earns its slot when it has something else to say.
+  const showAttention =
+    !sceneMode || summary.overdue > 0 || summary.orderNow > 0 || summary.arriving > 0;
   const sceneWx = sceneWeather(forecast, todayIso);
   const { lat, lng } = household.location;
   const sceneTimes = useMemo(
@@ -821,6 +842,38 @@ export function TodayView({
     >
       <ParticleLayer ref={particlesRef} />
       {sceneMode ? (
+        // Zero-height, so the bar never takes a slot in the flow. Mounting a
+        // real 52px block when the scroll passed 120px pushed the scope pills
+        // and the whole list down by that much — and because every row is
+        // layout-animated, they sprang after it. First child so its flow
+        // position is 0 and `sticky` has it pinned from the start.
+        <div className="sticky top-0 z-30 h-0">
+          <div
+            className={cn(
+              "absolute inset-x-0 top-0 flex h-[calc(env(safe-area-inset-top)+52px)] items-end justify-between bg-background/90 px-5 pb-1 backdrop-blur-md transition-opacity duration-200",
+              compactBar ? "opacity-100" : "pointer-events-none opacity-0",
+            )}
+            aria-hidden={!compactBar}
+          >
+            <p className="ui-caption font-medium">
+              {arc.state === "closed"
+                ? t("today.compactClosed")
+                : t("today.compactTitle", { count: arc.open })}
+            </p>
+            {onOpenSettings ? (
+              <button
+                type="button"
+                aria-label={t("common.settings")}
+                onClick={onOpenSettings}
+                className="flex size-11 items-center justify-center rounded-full bg-secondary"
+              >
+                <Settings className="size-5" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      {sceneMode ? (
         <div
           // `top` cancels the negative margin this root uses to bleed the scene
           // under the status bar. The scroll container's content starts below
@@ -874,25 +927,6 @@ export function TodayView({
         />
       )}
 
-      {sceneMode && compactBar ? (
-        <div className="sticky top-0 z-30 flex h-[calc(env(safe-area-inset-top)+52px)] items-end justify-between bg-background/90 px-5 pb-1 backdrop-blur-md">
-          <p className="ui-caption font-medium">
-            {arc.state === "closed"
-              ? t("today.compactClosed")
-              : t("today.compactTitle", { count: arc.open })}
-          </p>
-          {onOpenSettings ? (
-            <button
-              type="button"
-              aria-label={t("common.settings")}
-              onClick={onOpenSettings}
-              className="flex size-11 items-center justify-center rounded-full bg-secondary"
-            >
-              <Settings className="size-5" />
-            </button>
-          ) : null}
-        </div>
-      ) : null}
 
       <div
         className={
@@ -927,38 +961,41 @@ export function TodayView({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
         >
-          <div className="flex min-h-14 items-start justify-between gap-3">
-            {arc.state === "closed" ? (
-              <ClosingStats stats={ceremonyStats} instant={!ceremonyActive} />
-            ) : sceneQuietLine ? (
-              <p className="ui-body font-medium">{sceneQuietLine}</p>
-            ) : (
-              <p className="ui-body font-medium num">
-                {sceneMinutesParts[0]}
-                <RollingNumber value={arc.minutesLeft} />
-                {sceneMinutesParts[1] ?? null}
-              </p>
-            )}
-            <RunStrip
-              household={household}
-              now={now}
-              days={runStripDays(household, now)}
-              celebrate={arc.state === "closed"}
-              onOpenCalendar={() => (onNavigate ? onNavigate({ tab: "year" }) : setCalendarOpen(true))}
-            />
-          </div>
-          {arc.state === "closed" ? (
+          <DayRunCard
+            arc={arc}
+            days={runStripDays(household, now)}
+            run={sceneRun}
+            graceUsed={sceneRun.graceUsed}
+            headline={sceneHeadline}
+            stats={ceremonyStats}
+            celebrate={arc.state === "closed"}
+            instant={!ceremonyActive}
+            onOpenList={() => {
+              setOnlyOverdue(false);
+              setScope("daily");
+              setCalendarDay(null);
+              setCalendarOpen(false);
+              listRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+            }}
+            onOpenYear={() => (onNavigate ? onNavigate({ tab: "year" }) : setCalendarOpen(true))}
+          />
+          {/* Only in the moment it is earned. On a cold open of an
+              already-closed day the share card led the screen, ahead of the
+              day's own progress and whatever is still on the list. */}
+          {arc.state === "closed" && ceremonyActive ? (
             <ClosingReward
               onShare={() => {
                 shareClosedDay();
               }}
-              instant={!ceremonyActive}
+              instant={false}
             />
           ) : null}
         </motion.div>
       ) : null}
 
-      {momentumOn || zipBannerVisible ? (
+      {/* An empty wrapper still takes a slot in the sheet's `gap-5` column, which
+          is how a quiet day grew ~100px of dead space under the scene. */}
+      {(momentumOn && (activeNotice || getAhead)) || zipBannerVisible ? (
         <motion.div
           className="flex flex-col gap-5"
           initial={playArrival ? { opacity: 0, y: 8 } : false}
@@ -978,32 +1015,18 @@ export function TodayView({
           }}
         />
       ) : null}
-      {zipBannerVisible ? (
-        <button
-          type="button"
-          onClick={() => setZipOpen(true)}
-          className="ui-group flex w-full items-center justify-between gap-3 px-4 py-3 text-left active:bg-foreground/6"
-        >
-          <span className="min-w-0">
-            <span className="block ui-body font-medium">{t("today.addZip")}</span>
-            <span className="mt-0.5 block ui-caption text-muted-foreground">
-              {t("zip.addBody")}
-            </span>
-          </span>
-          <span className="shrink-0 ui-caption font-semibold text-primary">{t("today.addZipCta")}</span>
-        </button>
-      ) : null}
         </motion.div>
       ) : null}
 
       {weatherLoading && !needsZip ? (
         <div className="forecast-shimmer rounded-[var(--r-container)] bg-card px-4 py-4" aria-hidden>
-          <div className="h-3 w-24 rounded-full bg-foreground/8" />
-          <div className="mt-3 h-5 w-48 rounded-full bg-foreground/8" />
-          <div className="mt-2 h-3 w-36 rounded-full bg-foreground/8" />
+          <div className="h-3 w-24 rounded-full bg-foreground/14" />
+          <div className="mt-3 h-5 w-48 rounded-full bg-foreground/14" />
+          <div className="mt-2 h-3 w-36 rounded-full bg-foreground/14" />
         </div>
       ) : null}
 
+      {showAttention ? (
       <motion.div
         initial={playArrival ? { opacity: 0, y: 8 } : false}
         animate={{ opacity: 1, y: 0 }}
@@ -1015,6 +1038,7 @@ export function TodayView({
         orderNow={summary.orderNow}
         orderNowCost={orderNowCostCaption(restock.order_now)}
         arriving={summary.arriving}
+        showDueToday={!sceneMode}
         labels={{
           overdue: t("today.overdue"),
           dueToday: t("today.dueToday"),
@@ -1043,6 +1067,7 @@ export function TodayView({
         onAllClear={() => onOpenHome?.()}
       />
       </motion.div>
+      ) : null}
 
       <div className="flex items-center gap-2">
         <div role="tablist" aria-label={t("today.scopeList")} className="flex min-w-0 flex-1 rounded-full bg-secondary p-1">
@@ -1240,6 +1265,28 @@ export function TodayView({
           </Button>
         </>
       )}
+
+      {arc.state === "closed" && !ceremonyActive && sceneMode ? (
+        <ClosingReward
+          onShare={() => {
+            shareClosedDay();
+          }}
+          instant
+        />
+      ) : null}
+
+      {/* A quiet reminder below the day's work rather than a card above it:
+          weather sharpens the list, it is not the reason to open the app. */}
+      {zipBannerVisible ? (
+        <button
+          type="button"
+          onClick={() => setZipOpen(true)}
+          className="flex w-full items-center justify-between gap-3 rounded-2xl bg-secondary px-3 py-2.5 text-left active:bg-foreground/6"
+        >
+          <span className="min-w-0 ui-caption text-muted-foreground">{t("today.addZipHint")}</span>
+          <span className="shrink-0 ui-caption font-semibold text-primary">{t("today.addZipCta")}</span>
+        </button>
+      ) : null}
 
       {scope === "daily" && !viewingCalendar ? (
         <SeasonSection household={household} now={now} onNavigate={onNavigate} />

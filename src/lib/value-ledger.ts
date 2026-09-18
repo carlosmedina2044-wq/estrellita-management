@@ -82,9 +82,11 @@ export function formatLedgerLine(
   const hoursText =
     ledger.hours === 1 ? t("ledger.hour") : t("ledger.hours", { hours: ledger.hours });
   const base =
-    ledger.hours < 1
-      ? t("ledger.monthMinutes", { minutes: ledger.minutes })
-      : t("ledger.month", { hours: hoursText });
+    ledger.minutes <= 0
+      ? t("ledger.monthNone")
+      : ledger.hours < 1
+        ? t("ledger.monthMinutes", { minutes: ledger.minutes })
+        : t("ledger.month", { hours: hoursText });
   if (!ledger.showAmount) return base;
   return `${base} · ${t("ledger.amount", { amount: Math.round(ledger.amount) })}`;
 }
