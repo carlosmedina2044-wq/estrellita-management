@@ -6,6 +6,7 @@ import {
   useImperativeHandle,
   useRef,
 } from "react";
+import { createPortal } from "react-dom";
 import { PARTICLE_CAP, prefersReducedMotion } from "@/lib/motion";
 
 const COLORS = ["#9a5a35", "#e0662b", "#f5ebd8"] as const;
@@ -174,11 +175,16 @@ export const ParticleLayer = forwardRef<ParticleLayerHandle>(function ParticleLa
     };
   }, []);
 
-  return (
+  // `.app-shell-roots` has `will-change: transform`, so it is the containing
+  // block for anything `fixed` inside it: this canvas was sized and stacked
+  // against that pane rather than the viewport, and painted under the tab bar.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <canvas
       ref={canvasRef}
       className="pointer-events-none fixed inset-0 z-40"
       aria-hidden
-    />
+    />,
+    document.body,
   );
 });

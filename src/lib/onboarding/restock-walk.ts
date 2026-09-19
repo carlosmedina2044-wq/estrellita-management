@@ -79,7 +79,10 @@ export function cadenceForInterval(intervalMonths: 1 | 3 | 6 | 12): {
   }
   if (intervalMonths === 6) {
     return {
-      frequency: "monthly",
+      // Not `monthly`: the duty cadence drives the modelled consumption rate,
+      // so a 180-day filter on a 30-day cadence was re-ordered twelve times a
+      // year and sat in "Order now" from the day it was added.
+      frequency: "semiannual",
       lifespanValue: 6,
       lifespanUnit: "months",
       dutyPrefix: tActive("content.prefix.replace"),

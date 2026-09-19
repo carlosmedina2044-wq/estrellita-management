@@ -7,6 +7,7 @@ const FREQ_KEYS: Record<Frequency, MessageKey> = {
   weekly: "freq.everyWeek",
   monthly: "freq.everyMonth",
   quarterly: "freq.everyQuarter",
+  semiannual: "freq.everySixMonths",
   yearly: "freq.everyYear",
   once: "freq.oneTime",
 };
@@ -16,6 +17,7 @@ const FREQ_SHORT: Record<Frequency, MessageKey> = {
   weekly: "freq.weekly",
   monthly: "freq.monthly",
   quarterly: "freq.quarterly",
+  semiannual: "freq.semiannual",
   yearly: "freq.yearly",
   once: "freq.oneTime",
 };
@@ -34,6 +36,7 @@ export const FREQUENCIES: { id: Frequency; label: string }[] = [
   { id: "weekly", label: "Every week" },
   { id: "monthly", label: "Every month" },
   { id: "quarterly", label: "Every quarter" },
+  { id: "semiannual", label: "Every 6 months" },
   { id: "yearly", label: "Every year" },
   { id: "once", label: "One time" },
 ];
@@ -119,4 +122,52 @@ export function frequencyLabel(frequency: Frequency, weekday: number, monthDay: 
 
 export function inferAudience(title: string): Audience {
   return inferHouseAudience(title);
+}
+
+/**
+ * Two cadence lengths, deliberately distinct — three copies used to disagree silently.
+ *
+ * `cadenceWindowDays` is the generous CALENDAR window a period can occupy (a month can
+ * run 31 days, a quarter 92, a leap year 366). Use it when asking "did this happen inside
+ * the last period?", where being a day short would wrongly report a miss.
+ *
+ * `cadenceAverageDays` is the AVERAGE length of a period (30/90/365). Use it for rates and
+ * money — occurrences per horizon, units per day — where the generous figure would undercount.
+ */
+export function cadenceWindowDays(frequency: Frequency): number | null {
+  switch (frequency) {
+    case "daily":
+      return 1;
+    case "weekly":
+      return 7;
+    case "monthly":
+      return 31;
+    case "quarterly":
+      return 92;
+    case "semiannual":
+      return 184;
+    case "yearly":
+      return 366;
+    case "once":
+      return null;
+  }
+}
+
+export function cadenceAverageDays(frequency: Frequency): number | null {
+  switch (frequency) {
+    case "daily":
+      return 1;
+    case "weekly":
+      return 7;
+    case "monthly":
+      return 30;
+    case "quarterly":
+      return 90;
+    case "semiannual":
+      return 182;
+    case "yearly":
+      return 365;
+    case "once":
+      return null;
+  }
 }

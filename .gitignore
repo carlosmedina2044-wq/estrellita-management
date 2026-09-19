@@ -42,6 +42,10 @@ yarn-error.log*
 next-env.d.ts
 .env*.local
 
+# SwiftPM local state inside the plugin packages. The packages themselves are
+# committed; `.swiftpm/` is per-machine Xcode scratch.
+plugins/*/.swiftpm/
+
 # Capacitor iOS build artifacts (the Xcode project itself IS committed)
 ios/App/App/public
 ios/App/App/capacitor.config.json

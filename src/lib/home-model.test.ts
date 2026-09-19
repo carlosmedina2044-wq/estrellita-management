@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { migrateRoom } from "@/lib/house";
 import {
   deleteRoomFromHousehold,
+  roomHasAssignedWork,
   ensureHomeTree,
   EXTERIOR_ID,
   systemRooms,
@@ -114,4 +115,36 @@ test("deleteRoom without work removes the empty room", () => {
   const home = household();
   const next = deleteRoomFromHousehold(home, "hall", { action: "delete" });
   assert.equal(next.rooms.some((room) => room.id === "hall"), false);
+});
+
+test("a room's consumables count as work, and follow the room out or across", () => {
+  const home = household({
+    assets: [{ id: "asset-vac", roomId: "hall", name: "Vacuum", type: "other" }],
+    consumables: [
+      { id: "c-room", nodeId: "hall", nodeType: "room", name: "Air filter", intervalDays: 90, unitCost: 20 },
+      { id: "c-asset", assetId: "asset-vac", nodeId: "hall", nodeType: "room", name: "Vacuum bags", intervalDays: 60, unitCost: 12 },
+      { id: "c-other", nodeId: "kitchen", nodeType: "room", name: "Sponges", intervalDays: 30, unitCost: 4 },
+    ],
+  });
+  assert.equal(roomHasAssignedWork(home, "hall"), true);
+
+  // Without a target the delete is refused, exactly as it is for duties.
+  assert.equal(deleteRoomFromHousehold(home, "hall", { action: "delete" }), home);
+
+  const moved = deleteRoomFromHousehold(home, "hall", { action: "reassign", toRoomId: "kitchen" });
+  assert.equal(moved.consumables.length, 3);
+  assert.equal(moved.consumables.find((item) => item.id === "c-room")?.nodeId, "kitchen");
+  const bags = moved.consumables.find((item) => item.id === "c-asset");
+  assert.equal(bags?.nodeId, "kitchen");
+  assert.equal(bags?.assetId, undefined); // the asset went with the room
+  assert.equal(moved.consumables.find((item) => item.id === "c-other")?.nodeId, "kitchen");
+
+  // A truly empty room still deletes, and unrelated consumables stay put.
+  const empty = household({
+    consumables: [{ id: "c-other", nodeId: "kitchen", nodeType: "room", name: "Sponges", intervalDays: 30, unitCost: 4 }],
+  });
+  assert.equal(roomHasAssignedWork(empty, "hall"), false);
+  const gone = deleteRoomFromHousehold(empty, "hall", { action: "delete" });
+  assert.equal(gone.rooms.some((room) => room.id === "hall"), false);
+  assert.equal(gone.consumables.length, 1);
 });

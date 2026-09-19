@@ -226,7 +226,9 @@ async function offerBackupFile(
     link.href = url;
     link.download = filename;
     link.click();
-    URL.revokeObjectURL(url);
+    // Revoking synchronously after `click()` can cancel the download in
+    // Safari — the fetch of the blob URL has not started yet.
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
     return "downloaded";
   } catch {
     return shareText(tActive("share.backupTitle"), json);

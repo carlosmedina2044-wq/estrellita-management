@@ -11,7 +11,10 @@ import {
   visibleWalkItems,
 } from "@/lib/onboarding/restock-walk";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
-import type { Household } from "@/lib/types";
+import { parseISODate } from "@/lib/dates";
+import { nextDueDate } from "@/lib/duties";
+import { parseStored } from "@/lib/storage/migrate";
+import type { Completion, Duty, Household } from "@/lib/types";
 
 function seededHousehold(overrides: Partial<Household> = {}): Household {
   const generated = generateHomeFromAnswers(sampleHomeAnswers(), new Date(2026, 5, 1));
@@ -227,4 +230,80 @@ test("custom walk pick check-in stamps lastConfirmed and out sets onHand 0", () 
   assert.equal(outItem?.lastConfirmedLevel, 0);
   assert.equal(outItem?.lastConfirmedAt, "2026-06-01");
   assert.equal(outItem?.onHand, 0);
+});
+
+test("a six-month item is scheduled twice a year, not monthly", () => {
+  const household = seededHousehold();
+  const room = household.rooms.find((entry) => !entry.system) ?? household.rooms[0]!;
+  const now = new Date(2026, 5, 1);
+  const next = applyRestockPicks(
+    household,
+    [
+      {
+        id: "custom:fridge-filter",
+        custom: {
+          itemName: "Fridge water filter",
+          roomId: room.id,
+          intervalMonths: 6,
+          group: "kitchen",
+        },
+      },
+    ],
+    now,
+  );
+  const item = next.supplyAutomations.find((entry) => entry.itemName === "Fridge water filter");
+  const duty = next.duties.find((entry) => entry.id === item?.dutyId);
+  assert.ok(item);
+  // A 180-day filter used to be given a 30-day duty cadence, which drove the
+  // modelled consumption rate and re-ordered it every month.
+  assert.equal(duty?.frequency, "semiannual");
+  assert.equal(item.lifespanValue, 6);
+  assert.equal(item.lifespanUnit, "months");
+
+  // The walk stamps `installedAt` today, which is what the app passes in.
+  const due = nextDueDate(duty!, next.completions, now, item.installedAt);
+  assert.ok(due, "a semiannual duty schedules a next date");
+  const months = (due.getFullYear() - now.getFullYear()) * 12 + (due.getMonth() - now.getMonth());
+  assert.equal(months, 6, "a freshly installed six-month filter is next due in six months, not next month");
+
+  // The user-visible symptom: it must not be sitting in "Order now" on day one.
+  const orderBy = new Date(parseISODate(item.orderByDate));
+  const daysOut = Math.round((orderBy.getTime() - now.getTime()) / 86_400_000);
+  assert.ok(daysOut > 60, `expected the order date months out, got ${daysOut} days`);
+});
+
+test("a semiannual duty repeats every six months from its last completion", () => {
+  const duty: Duty = {
+    ...seededHousehold().duties[0]!,
+    id: "semiannual-duty-1",
+    frequency: "semiannual",
+    createdAt: new Date(2026, 0, 10).toISOString(),
+    dueDate: null,
+  };
+  const completions: Completion[] = [
+    {
+      id: "semiannual-completion-1",
+      dutyId: duty.id,
+      actor: "me",
+      visitId: null,
+      completedAt: new Date(2026, 0, 10, 9).toISOString(),
+    },
+  ];
+  const due = nextDueDate(duty, completions, new Date(2026, 0, 11));
+  assert.ok(due);
+  assert.equal(due.getFullYear(), 2026);
+  assert.equal(due.getMonth(), 6, "January completion is next due in July");
+  assert.equal(due.getDate(), 10);
+});
+
+test("a stored semiannual duty survives a reload", () => {
+  // `migrateHousehold` coerces any frequency it does not whitelist to "weekly",
+  // which would silently re-cadence the duty on every load.
+  const household = seededHousehold();
+  const stored = {
+    ...household,
+    duties: [{ ...household.duties[0]!, id: "semiannual-duty-2", frequency: "semiannual" }],
+  };
+  const reloaded = parseStored(JSON.stringify(stored));
+  assert.equal(reloaded.duties.find((entry) => entry.id === "semiannual-duty-2")?.frequency, "semiannual");
 });

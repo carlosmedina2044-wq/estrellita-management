@@ -237,7 +237,9 @@ export function useHousehold() {
         const received = {
           ...current,
           supplyAutomations: current.supplyAutomations.map((item) =>
-            item.id === id ? receiveConsumable(item, qty) : item,
+            // `current` gives the duty cadence, which sharpens the learned
+            // consumption rate for duty-driven items.
+            item.id === id ? receiveConsumable(item, qty, new Date(), current) : item,
           ),
         };
         return paid != null ? applyReceivedPrice(received, id, paid) : received;

@@ -2,8 +2,8 @@ import triggerSeed from "@/lib/weather/triggers.json";
 import { tActive } from "@/i18n";
 import { tTriggerName } from "@/i18n/content";
 import { deriveClimate } from "@/lib/climate";
-import { addDays, toISODate } from "@/lib/dates";
-import { attributesMatch, dutyFromPlaybookTask, resolvePlaybookTarget, type Playbook, type PlaybookTaskDef } from "@/lib/playbooks";
+import { addDays, parseISODate, startOfDay, toISODate } from "@/lib/dates";
+import { attributesMatch, dutyFromPlaybookTask, type Playbook, type PlaybookTaskDef } from "@/lib/playbooks";
 import type { ClimateZone, HomeAttributes, HomeLocation, Household, WeatherFire } from "@/lib/types";
 
 export type WeatherMetric = "tempMinF" | "tempMaxF" | "windMph" | "precipIn";
@@ -87,10 +87,13 @@ export function conditionHits(
   now = new Date(),
   zone?: ClimateZone,
 ): DailyWeather | null {
+  // Forecast dates are yyyy-MM-dd calendar days: parse them LOCALLY. Date.parse would
+  // read them as UTC midnight, which is the prior evening west of Greenwich and drops today.
+  const start = startOfDay(now);
+  const end = startOfDay(addDays(now, trigger.condition.withinDays));
   const window = forecast.days.filter((day) => {
-    const time = Date.parse(day.date);
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const end = addDays(now, trigger.condition.withinDays).getTime();
+    const time = parseISODate(day.date);
+    if (Number.isNaN(time)) return false;
     return time >= start && time <= end;
   });
   const target = (zone && trigger.condition.byZone?.[zone]) ?? trigger.condition.value;
@@ -117,13 +120,15 @@ export function onCooldown(trigger: WeatherTrigger, fires: WeatherFire[], now = 
 }
 
 export function evaluateTriggers(
-  household: Pick<Household, "attributes" | "weatherFires" | "rooms" | "assets" | "duties" | "location">,
+  household: Pick<Household, "attributes" | "weatherFires" | "rooms" | "assets" | "duties" | "location"> &
+    Partial<Pick<Household, "completions">>,
   forecast: WeatherForecast,
   now = new Date(),
 ): { duties: Array<Omit<Household["duties"][number], "id" | "createdAt">>; fires: WeatherFire[] } {
   const zone = deriveClimate(household.location);
   const duties: Array<Omit<Household["duties"][number], "id" | "createdAt">> = [];
   const fires: WeatherFire[] = [];
+  const completedDutyIds = new Set((household.completions ?? []).map((item) => item.dutyId));
   for (const trigger of WEATHER_TRIGGERS) {
     if (!triggerAppliesInZone(trigger, zone)) continue;
     if (!attributesMatch(trigger.requires, household.attributes)) continue;
@@ -138,16 +143,20 @@ export function evaluateTriggers(
       tasks: trigger.tasks,
     };
     for (const task of trigger.tasks) {
-      const already = household.duties.some(
-        (duty) => duty.weatherTriggerId === trigger.id && duty.title === task.title && !duty.archived,
-      );
+      // A live duty blocks a repeat; a completed one-off does not, so the next freeze
+      // of the winter re-creates the job (mirrors liveDuties in duty-topics).
+      const already = household.duties.some((duty) => {
+        if (duty.weatherTriggerId !== trigger.id || duty.title !== task.title) return false;
+        if (duty.archived) return false;
+        if (duty.frequency === "once") return !completedDutyIds.has(duty.id);
+        return true;
+      });
       if (already) continue;
       duties.push({
         ...dutyFromPlaybookTask(household, playbook, task, day.date, "weather"),
         weatherTriggerId: trigger.id,
         notes: `${task.description ?? ""} Forecast: ${trigger.name} on ${day.date}`.trim(),
       });
-      void resolvePlaybookTarget;
     }
     fires.push({ triggerId: trigger.id, firedAt: now.toISOString() });
   }

@@ -1,11 +1,11 @@
 "use client";
 
 import { CalendarCheck, Check, Flame, Heart, ListChecks, Sprout } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { RollingNumber } from "@/components/today/rolling-number";
 import type { MessageKey } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
-import { DUR_SCREEN, EASE_OUT } from "@/lib/motion";
+import { DUR_NONE, DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 import { MILESTONE_FAMILY, type MilestoneFamily, type MilestoneProgress } from "@/lib/momentum";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,9 @@ function ProgressTrack({
   className?: string;
   muted?: boolean;
 }) {
+  // `MotionConfig reducedMotion="user"` only neutralises transforms and
+  // layout; a width tween has to opt out by hand.
+  const reduce = useReducedMotion();
   const fill = muted ? "bg-done/55" : "bg-done";
   if (segments != null && segments >= 2 && segments <= MAX_SEGMENTS) {
     const filled = Math.round(fraction * segments);
@@ -55,9 +58,9 @@ function ProgressTrack({
     <span className={cn("block h-1 overflow-hidden rounded-full bg-foreground/12", className)}>
       <motion.span
         className={cn("block h-full rounded-full", fill)}
-        initial={{ width: 0 }}
+        initial={reduce ? false : { width: 0 }}
         animate={{ width: `${Math.round(fraction * 100)}%` }}
-        transition={{ duration: DUR_SCREEN, ease: EASE_OUT }}
+        transition={reduce ? { duration: DUR_NONE } : { duration: DUR_SCREEN, ease: EASE_OUT }}
       />
     </span>
   );

@@ -70,7 +70,9 @@ export function ShareCardSheet({
       const result = await shareText(model?.headline ?? "Cuidala", fallbackText);
       if (result === "copied") toast.success(t("share.copiedDone"));
       if (result === "failed") toast.error(t("share.failedList"));
-      if (result !== "failed") onOpenChange(false);
+      // A dismissed share sheet leaves this one open to try again, and says
+      // nothing: cancelling is a decision, not an error worth a toast.
+      if (result === "shared" || result === "copied") onOpenChange(false);
     } finally {
       setBusy(false);
     }

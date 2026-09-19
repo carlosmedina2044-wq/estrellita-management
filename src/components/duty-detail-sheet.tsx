@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -26,17 +27,16 @@ function Row({ label, value, index }: { label: string; value: string; index: num
   );
 }
 
-export function DutyDetailSheet({
-  open,
-  duty,
-  household,
-  now,
-  onOpenChange,
-  onComplete,
-  onUndo,
-  onSnooze,
-  onEdit,
-}: {
+/**
+ * The body used to sit behind an `if (!duty) return null` placed ABOVE the
+ * `<Sheet>`, so completing, undoing or snoozing tore the sheet out in one
+ * frame while every other sheet in the app slides out — and `editFromDetail`'s
+ * 350ms hand-off was waiting on an animation that never played. The Sheet now
+ * stays mounted and closes on `duty` going null; the last duty is held just
+ * long enough for the exit to finish (it also keeps a `SheetTitle` in the tree
+ * the whole time, which Radix requires).
+ */
+export function DutyDetailSheet(props: {
   open: boolean;
   duty: Duty | null;
   household: Household;
@@ -47,9 +47,46 @@ export function DutyDetailSheet({
   onSnooze: (duty: Duty) => void;
   onEdit: (duty: Duty) => void;
 }) {
-  const { t } = useLocale();
-  if (!duty) return null;
+  const { open, duty, household, now, onOpenChange, onComplete, onUndo, onSnooze, onEdit } = props;
+  const [lastDuty, setLastDuty] = useState<Duty | null>(duty);
+  if (duty && duty !== lastDuty) setLastDuty(duty);
+  const shown = duty ?? lastDuty;
 
+  return (
+    <Sheet open={open && Boolean(duty)} onOpenChange={onOpenChange}>
+      {shown ? (
+        <DutyDetailBody
+          duty={shown}
+          household={household}
+          now={now}
+          onComplete={onComplete}
+          onUndo={onUndo}
+          onSnooze={onSnooze}
+          onEdit={onEdit}
+        />
+      ) : null}
+    </Sheet>
+  );
+}
+
+function DutyDetailBody({
+  duty,
+  household,
+  now,
+  onComplete,
+  onUndo,
+  onSnooze,
+  onEdit,
+}: {
+  duty: Duty;
+  household: Household;
+  now: Date;
+  onComplete: (duty: Duty) => void;
+  onUndo: (duty: Duty) => void;
+  onSnooze: (duty: Duty) => void;
+  onEdit: (duty: Duty) => void;
+}) {
+  const { t } = useLocale();
   const completions = household.completions;
   const doneToday = wasCompletedToday(duty, completions, now);
   const last = lastDoneInfo(duty.id, completions);
@@ -69,8 +106,7 @@ export function DutyDetailSheet({
   let rowIndex = 0;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+    <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader className="shrink-0 pb-2">
           <SheetTitle>{tDutyTitle(duty.title)}</SheetTitle>
         </SheetHeader>
@@ -125,7 +161,6 @@ export function DutyDetailSheet({
             {t("common.edit")}
           </Button>
         </SheetFooter>
-      </SheetContent>
-    </Sheet>
+    </SheetContent>
   );
 }

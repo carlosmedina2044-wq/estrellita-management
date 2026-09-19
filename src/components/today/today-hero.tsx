@@ -136,11 +136,16 @@ export function TodayHero({
         <p className="ui-card font-semibold leading-snug text-foreground">{greeting}</p>
       </div>
 
+      {/* The live region has to be a stable element. It used to sit on the
+          `h1` itself, which `AnimatePresence mode="wait"` remounts on every
+          `arc.state` change — and a live region that is newly inserted is not
+          announced, so the open→closed transition this exists for was the one
+          thing that stayed silent. The wrapper persists; the keyed child
+          changes inside it. */}
+      <div aria-live="polite" aria-atomic="true">
       <AnimatePresence mode="wait">
         <motion.h1
           key={arc.state}
-          aria-live="polite"
-          aria-atomic="true"
           className="ui-hero-serif mt-[4px] max-w-[22ch] pr-12 text-foreground"
           initial={{ y: 8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -154,6 +159,7 @@ export function TodayHero({
           {headline}
         </motion.h1>
       </AnimatePresence>
+      </div>
       <div className="ui-caption num text-muted-foreground">{secondaryLine}</div>
 
       {variant === "momentum" ? (

@@ -121,6 +121,16 @@ export function RestockOrderButton({
   const flowProgressing = useRef(false);
   const [waitingResume, setWaitingResume] = useState(false);
   const [qtyDraft, setQtyDraft] = useState(String(item.qtyPerOrder || 1));
+  // This row stays mounted for its whole life (Radix only unmounts sheet
+  // *content*), so a draft seeded once went stale: an edited `qtyPerOrder`
+  // never pre-filled the next "It arrived". Same `prevKey` reset as
+  // `OrderConfirmSheet`.
+  const qtyResetKey = `${item.id}:${item.qtyPerOrder}`;
+  const [prevQtyKey, setPrevQtyKey] = useState(qtyResetKey);
+  if (prevQtyKey !== qtyResetKey) {
+    setPrevQtyKey(qtyResetKey);
+    setQtyDraft(String(item.qtyPerOrder || 1));
+  }
   const [pendingRetailer, setPendingRetailer] = useState<string | undefined>();
   const pendingRetailerRef = useRef<string | undefined>(undefined);
   if (autoReceive && sheet === "closed") setSheet("receive");
@@ -716,6 +726,15 @@ function ReceiveDialog({
 }) {
   const { t } = useLocale();
   const [costDraft, setCostDraft] = useState(suggestedCost != null ? String(suggestedCost) : "");
+  // Seeded once, this stayed empty on a second cycle even though
+  // `lastPaidPrice` was known by then, because the dialog never unmounts.
+  const costResetKey = `${open}:${suggestedCost ?? ""}`;
+  const [prevCostKey, setPrevCostKey] = useState(costResetKey);
+  if (prevCostKey !== costResetKey) {
+    // Tracked on close as well as on open, so each opening re-seeds.
+    setPrevCostKey(costResetKey);
+    if (open) setCostDraft(suggestedCost != null ? String(suggestedCost) : "");
+  }
   const parsedCost = Number(costDraft);
   const paid = Number.isFinite(parsedCost) && parsedCost >= 0 ? Math.round(parsedCost * 100) / 100 : undefined;
 

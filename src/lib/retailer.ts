@@ -5,13 +5,20 @@ import { RETAILER_IDS, type Household, type RetailerId, type SavedRetailerLink, 
 export type { RetailerId } from "@/lib/types";
 
 const ASIN = /^[A-Z0-9]{10}$/i;
+/** Amazon's own product codes start with B0 — the only bare shape we treat as an ASIN. */
+const AMAZON_ASIN = /^B0[A-Z0-9]{8}$/i;
+/** An explicit Amazon context around a bare code: "asin B0...", "amazon: B0...". */
+const ASIN_WITH_CONTEXT = /^(?:amazon|asin)\s*[:#]?\s*([A-Z0-9]{10})$/i;
 const AMAZON_HOST = /(^|\.)amazon\.(com|ca|com\.mx|co\.uk|de|fr|es|it|nl|se|pl|com\.au|co\.jp|in|sg|ae|sa|com\.br)$/i;
 const SHORT_HOST = /^(amzn\.to|a\.co)$/i;
 
-/** Hosts a link may come from without the user pasting it themselves. */
+/**
+ * Hosts a link may come from without the user pasting it themselves.
+ * Amazon's shorteners (amzn.to, a.co) are deliberately absent: they redirect anywhere,
+ * so they are not evidence that shared input leads to a retailer. Parsing still knows them.
+ */
 const KNOWN_RETAILER_HOSTS = [
   AMAZON_HOST,
-  SHORT_HOST,
   /(^|\.)homedepot\.com$/i,
   /(^|\.)lowes\.com$/i,
   /(^|\.)walmart\.com$/i,
@@ -211,14 +218,24 @@ export function isProductPageUrl(value: string): boolean {
     return /\.product\./i.test(path) || /\.html$/i.test(path);
   }
   const last = path.split("/").filter(Boolean).pop() ?? "";
-  return last.length > 8 && !/^search|s|shop$/i.test(last);
+  // Grouped alternation: the old /^search|s|shop$/ read as "^search" OR "s" OR "shop$",
+  // so any final segment containing an "s" was judged not a product page.
+  return last.length > 8 && !/^(search|s|shop)$/i.test(last);
 }
 
-export function parseRetailerInput(input: string): RetailerRef {
+export function parseRetailerInput(
+  input: string,
+  options?: { amazon?: boolean },
+): RetailerRef {
   const value = input.trim();
   if (!value) return { ok: false, error: tActive("retailer.pasteLink") };
-  if (ASIN.test(value)) {
-    const asin = value.toUpperCase();
+  // A bare 10-character code only becomes an Amazon link with explicit Amazon context:
+  // the caller says so, the text names Amazon, or the code has Amazon's own B0 shape.
+  const bareAsin =
+    ASIN_WITH_CONTEXT.exec(value)?.[1] ??
+    (AMAZON_ASIN.test(value) || (options?.amazon && ASIN.test(value)) ? value : undefined);
+  if (bareAsin) {
+    const asin = bareAsin.toUpperCase();
     return { ok: true, url: amazonUrlFromAsin(asin), asin, productPage: true };
   }
 

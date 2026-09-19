@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { BrandMark } from "@/components/brand-logo";
 import { SceneBoundary } from "@/components/scene-boundary";
@@ -65,11 +65,18 @@ export function FaceLock({
   const [busy, setBusy] = useState(false);
   const [releasing, setReleasing] = useState(false);
   const [error, setError] = useState("");
+  // `busy` is state, so a second call in the same tick would still get through;
+  // the ref closes that window. A queued second prompt is a second system Face
+  // ID sheet, which the user reads as the first one having failed.
+  const unlockingRef = useRef(false);
 
   async function unlock() {
+    if (unlockingRef.current) return;
+    unlockingRef.current = true;
     setBusy(true);
     setError("");
     const result = await performUnlock();
+    unlockingRef.current = false;
     setBusy(false);
     if (result.ok) {
       void hapticSuccess();
@@ -103,7 +110,12 @@ export function FaceLock({
 
   useEffect(() => {
     if (showTip) return;
-    const timer = window.setTimeout(() => void unlock(), 400);
+    // A tap inside this 400ms window already started an unlock; firing the
+    // timer as well queued a second Face ID prompt behind the first.
+    const timer = window.setTimeout(() => {
+      if (unlockingRef.current) return;
+      void unlock();
+    }, 400);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showTip]);

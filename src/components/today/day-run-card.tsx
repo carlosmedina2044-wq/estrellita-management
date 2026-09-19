@@ -177,7 +177,14 @@ export function DayRunCard({
           <span className="min-w-0 flex-1">
             <span className="block ui-card font-semibold leading-snug text-foreground">{headline}</span>
             {showCount || showEffort ? (
-              <span className="mt-0.5 flex items-baseline ui-caption num text-muted-foreground">
+              <span
+                // Not a flex container: CSS strips the collapsible whitespace
+                // at the edges of each flex item, so " to do" and "about "
+                // lost their spaces and the line read "3to do · about40min".
+                // `RollingNumber` is already `inline-flex` and baseline-
+                // aligned, so plain inline flow is all this needs.
+                className="mt-0.5 block ui-caption num text-muted-foreground"
+              >
                 {showCount ? (
                   <>
                     {countParts[0]}

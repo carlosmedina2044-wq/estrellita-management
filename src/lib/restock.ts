@@ -1,4 +1,5 @@
 import { tActive } from "@/i18n";
+import { cadenceAverageDays } from "@/lib/constants";
 /**
  * restockPlacement() bucket rules
  *
@@ -18,8 +19,8 @@ import { tActive } from "@/i18n";
 import { addCalendarMonths, addCalendarYears, addDays, getActiveDateLocale, parseISODate, startOfDay, toISODate } from "@/lib/dates";
 import { isDoneThisPeriod, isOverdue, lastCompletion, nextDueDate } from "@/lib/duties";
 import { retailerUrlFor } from "@/lib/retailer";
-import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, isOrdered, leadTimeDaysFor } from "@/lib/supply";
-import type { Completion, Duty, Frequency, Household, SupplyAutomation } from "@/lib/types";
+import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, dateFromISO, isOrdered, leadTimeDaysFor } from "@/lib/supply";
+import type { Completion, Duty, Household, SupplyAutomation } from "@/lib/types";
 
 export const DEFAULT_REORDER_AT = 0;
 export const COMING_UP_DAYS = 21;
@@ -74,11 +75,6 @@ export type RestockPlacement = {
   runwayDays: number | null;
   estimatedLevelFraction: number | null;
 };
-
-function dateFromISO(value: string): Date {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, (month ?? 1) - 1, day ?? 1);
-}
 
 export function linkedDutyIdsFor(item: Pick<SupplyAutomation, "dutyId" | "linkedDutyIds">): string[] {
   const ids = [item.dutyId, ...(item.linkedDutyIds ?? [])].filter(Boolean);
@@ -263,23 +259,6 @@ function earlierISO(a: string | null, b: string | null): string | null {
   return a <= b ? a : b;
 }
 
-function cadenceDaysFor(frequency: Frequency): number | null {
-  switch (frequency) {
-    case "daily":
-      return 1;
-    case "weekly":
-      return 7;
-    case "monthly":
-      return 30;
-    case "quarterly":
-      return 90;
-    case "yearly":
-      return 365;
-    default:
-      return null;
-  }
-}
-
 export function safetyBufferDaysFor(
   household: Pick<Household, "restockSafetyBufferDays">,
 ): number {
@@ -315,7 +294,7 @@ export function ratePerDayFor(
   for (const dutyId of linkedDutyIdsFor(current)) {
     const duty = household.duties.find((entry) => entry.id === dutyId);
     if (!duty) continue;
-    const days = cadenceDaysFor(duty.frequency);
+    const days = cadenceAverageDays(duty.frequency);
     if (days == null) continue;
     if (shortest == null || days < shortest) shortest = days;
   }
@@ -458,6 +437,7 @@ export function checkinDue(
 export function updateObservedRateOnReceive(
   item: SupplyAutomation,
   now = new Date(),
+  household: Pick<Household, "duties"> = { duties: [] },
 ): Pick<SupplyAutomation, "observedRatePerDay"> | Record<string, never> {
   const current = normalizeConsumable(item);
   if (!isISODate(current.lastConfirmedAt)) return {};
@@ -465,7 +445,13 @@ export function updateObservedRateOnReceive(
   if (daysBetween < 7) return {};
   const confirmed = current.lastConfirmedLevel;
   if (typeof confirmed !== "number" || !Number.isFinite(confirmed) || confirmed <= 0) return {};
-  const impliedRate = confirmed / daysBetween;
+  // Units actually CONSUMED over the interval, the way applyCheckin measures it. Assuming
+  // the whole confirmed quantity was used up by the next receipt overstated the rate every
+  // cycle — orders are placed before run-out by design — so it ratcheted up and stock piled on.
+  const remaining = estimatedLevel(current, household, now) ?? 0;
+  const consumed = Math.max(0, confirmed - remaining);
+  if (consumed <= 0) return {};
+  const impliedRate = consumed / daysBetween;
   const existing = current.observedRatePerDay;
   const blended =
     typeof existing === "number" && Number.isFinite(existing) && existing > 0
@@ -518,8 +504,13 @@ export function restockPlacement(
 
   const rate = ratePerDayFor(current, household);
   const explicitReorder = typeof item.reorderAt === "number" && item.reorderAt > 0;
-  const rateOrderBy = rateBasedOrderByDate(current, household, now);
-  const effectiveOrderBy = earlierISO(rateOrderBy, dutyOrderByDate);
+  const rateBy = rateBasedOrderByDate(current, household, now);
+  // With no live duty dates, `dutyOrderByDate` is only the stored fallback, which can be
+  // stale (completed one-off, deleted duty). Trust the rate/lifespan runway instead of
+  // pinning the item to "Order now" for ever.
+  const hasLiveDutyDates = runway.upcomingDates.length > 0;
+  const effectiveOrderBy =
+    hasLiveDutyDates || rateBy == null ? earlierISO(rateBy, dutyOrderByDate) : rateBy;
   const placed = { ...base, orderByDate: effectiveOrderBy };
 
   if ((explicitReorder || rate == null) && current.onHand <= reorderAtFor(current)) {
@@ -660,15 +651,30 @@ export function closestArrivalOffset(leadTimeDays: number): number {
   return best;
 }
 
-export function receiveConsumable(item: SupplyAutomation, qty: number, now = new Date()): SupplyAutomation {
+export function receiveConsumable(
+  item: SupplyAutomation,
+  qty: number,
+  now = new Date(),
+  household: Pick<Household, "duties"> = { duties: [] },
+): SupplyAutomation {
   const current = normalizeConsumable(item);
   const amount = Math.max(1, Math.round(qty) || current.qtyPerOrder);
   const observed = observedLeadTimeDays(current, now);
-  const learnedRate = updateObservedRateOnReceive(current, now);
+  const learnedRate = updateObservedRateOnReceive(current, now, household);
   const newLevel = current.onHand + amount;
+  // Move the stored need date forward. It is the fallback runway when no live duty date
+  // exists (a one-off duty already completed, or a deleted duty); left on a past date the
+  // item sat in "Order now" for ever, and every "cycle" then measured only the lead time.
+  const lifespanDays = lifespanDaysFor(current);
+  const nextNeed =
+    lifespanDays != null && lifespanDays > 0
+      ? toISODate(addDays(now, Math.round(lifespanDays * newLevel)))
+      : current.orderByDate;
   return {
     ...current,
     onHand: newLevel,
+    orderByDate: nextNeed,
+    nextOrderDate: nextNeed,
     qtyPerOrder: amount,
     quantity: amount,
     state: "stocked",

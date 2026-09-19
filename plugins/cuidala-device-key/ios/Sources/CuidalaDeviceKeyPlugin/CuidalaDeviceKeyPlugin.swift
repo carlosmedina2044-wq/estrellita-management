@@ -140,16 +140,24 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
     private static func read(key: String, reason: String, fallbackTitle: String) throws -> String? {
         let requested = key.isEmpty ? v2Account : key
 
-        // Prefer bound v2 (authenticated read — system prompt via ACL).
-        if let value = try readBound(account: v2Account, reason: reason, fallbackTitle: fallbackTitle) {
-            return value
-        }
-        if requested != v2Account, let value = try readBound(account: requested, reason: reason, fallbackTitle: fallbackTitle) {
+        // Read ONLY the account that was asked for. Falling back to another
+        // account hands the caller a key that cannot decrypt the vault it was
+        // asked about, which quarantines the vault and re-mints forever.
+        if let value = try readBound(account: requested, reason: reason, fallbackTitle: fallbackTitle) {
             return value
         }
 
-        // One-shot migration: unbound v1 / legacy → bound v2, then delete leftovers.
-        if let legacy = try readUnboundLegacy() {
+        // A write interrupted between the pending add and the final add leaves
+        // the only surviving copy under `<account>.pending`. Promote it.
+        if let pending = try readBound(account: pendingAccount(for: requested), reason: reason, fallbackTitle: fallbackTitle) {
+            try writeBound(account: requested, value: pending)
+            return pending
+        }
+
+        // One-shot migration: unbound v1 / legacy → bound v2, then delete
+        // leftovers. Only the v2 account owns that key material; a keyId-scoped
+        // request must never inherit it.
+        if requested == v2Account, let legacy = try readUnboundLegacy() {
             try writeBound(account: v2Account, value: legacy)
             try deleteUnboundLegacyKeys()
             return legacy
@@ -245,12 +253,10 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
 
         // Add-then-delete: write under a temporary account first so a failed write
         // never leaves the device without the previous key.
-        let pendingAccount = account + ".pending"
-        for accountValue in accounts(for: pendingAccount) {
-            _ = SecItemDelete(baseQuery(service: currentService, account: accountValue) as CFDictionary)
-        }
+        let pending = pendingAccount(for: account)
+        deletePendingCopy(pending)
 
-        var pendingAdd = baseQuery(service: currentService, account: pendingAccount)
+        var pendingAdd = baseQuery(service: currentService, account: pending)
         pendingAdd[kSecValueData as String] = data
         pendingAdd[kSecAttrAccessControl as String] = access
         let pendingStatus = SecItemAdd(pendingAdd as CFDictionary, nil)
@@ -275,10 +281,12 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
             case errSecSuccess, errSecItemNotFound:
                 break
             case errSecInteractionNotAllowed:
-                _ = SecItemDelete(baseQuery(service: currentService, account: pendingAccount) as CFDictionary)
+                // The real account survived the failed delete, so the pending
+                // copy is no longer the last one standing.
+                deletePendingCopy(pending)
                 throw DeviceKeyStoreError.interactionNotAllowed
             default:
-                _ = SecItemDelete(baseQuery(service: currentService, account: pendingAccount) as CFDictionary)
+                deletePendingCopy(pending)
                 throw DeviceKeyStoreError.osStatus(deleteStatus)
             }
         }
@@ -286,10 +294,13 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
         var add = baseQuery(service: currentService, account: account)
         add[kSecValueData as String] = data
         add[kSecAttrAccessControl as String] = access
+        // The pending copy is the only surviving key until the real account is
+        // genuinely written, so it is dropped *after* the add is known to have
+        // succeeded — never before the status is inspected.
         let added = SecItemAdd(add as CFDictionary, nil)
-        _ = SecItemDelete(baseQuery(service: currentService, account: pendingAccount) as CFDictionary)
         switch added {
         case errSecSuccess:
+            deletePendingCopy(pending)
             return
         case errSecDuplicateItem:
             let updated = SecItemUpdate(
@@ -297,6 +308,8 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
                 [kSecValueData as String: data] as CFDictionary
             )
             guard updated == errSecSuccess else { throw DeviceKeyStoreError.osStatus(updated) }
+            deletePendingCopy(pending)
+            return
         case errSecNotAvailable:
             throw DeviceKeyStoreError.passcodeRequired
         case errSecInteractionNotAllowed:
@@ -328,12 +341,25 @@ public class CuidalaDeviceKeyPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    private static func pendingAccount(for account: String) -> String {
+        account + ".pending"
+    }
+
+    private static func deletePendingCopy(_ pending: String) {
+        for accountValue in accounts(for: pending) {
+            _ = SecItemDelete(baseQuery(service: currentService, account: accountValue) as CFDictionary)
+        }
+    }
+
     private static func delete(key: String) throws {
         if key.isEmpty {
+            // Erase-all: JS `remove({key: ""})` means "drop every device key".
             try deleteAllCuidalaDeviceKeys()
             return
         }
-        let targets = [key, v2Account, v1Account, "estrellita-device-key-v1"]
+        // A named key deletes ONLY that account (and its interrupted-write
+        // copy). Sweeping v1/v2/legacy here would destroy other vaults' keys.
+        let targets = [key, pendingAccount(for: key)]
         for service in [currentService, legacyService] {
             for target in targets {
                 for account in accounts(for: target) {

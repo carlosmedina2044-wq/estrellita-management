@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import type { MessageKey } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { careLevelIndex } from "@/lib/care-level";
-import { DUR_SCREEN, EASE_OUT } from "@/lib/motion";
+import { DUR_NONE, DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 import { CARE_DECOR_AT } from "@/lib/scene/care-decor";
 import { CARE_LEVELS, type CareLevelId } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,8 @@ export function CareLadder({
   fraction: number;
 }) {
   const { t } = useLocale();
+  // A width tween is not covered by `reducedMotion="user"`.
+  const reduce = useReducedMotion();
   const reached = careLevelIndex(level);
   const decor = next ? CARE_DECOR_AT[next] : null;
 
@@ -41,9 +43,9 @@ export function CareLadder({
                 ) : isNext ? (
                   <motion.span
                     className="block h-full rounded-full bg-done/60"
-                    initial={{ width: 0 }}
+                    initial={reduce ? false : { width: 0 }}
                     animate={{ width: `${Math.round(fraction * 100)}%` }}
-                    transition={{ duration: DUR_SCREEN, ease: EASE_OUT }}
+                    transition={reduce ? { duration: DUR_NONE } : { duration: DUR_SCREEN, ease: EASE_OUT }}
                   />
                 ) : null}
               </span>

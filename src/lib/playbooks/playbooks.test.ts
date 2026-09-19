@@ -375,10 +375,10 @@ function dayForecast(
   now: Date,
   partial: Partial<WeatherForecast["days"][number]> & Pick<WeatherForecast["days"][number], "tempMinF" | "tempMaxF" | "windMph" | "precipIn">,
 ): WeatherForecast {
-  // ISO date-only strings parse as UTC midnight, which is the prior local evening in US zones.
-  // Use tomorrow's calendar date so the day falls inside conditionHits' local window.
-  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  const date = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+  // TODAY's calendar date: conditionHits parses yyyy-MM-dd as a LOCAL day, so today
+  // must land inside the window in every time zone (it did not when parsed as UTC).
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
   return {
     fetchedAt: now.toISOString(),
     days: [{ date, ...partial }],
@@ -596,3 +596,57 @@ test("a window already late when the home joined is not offered as running late"
   assert.ok(ids(joinedInSeptember).includes("all-oct-fire"));
 });
 
+test("today's forecast day is inside the trigger window (local calendar parse)", () => {
+  const freeze = WEATHER_TRIGGERS.find((item) => item.id === "hard-freeze");
+  assert.ok(freeze);
+  const now = new Date(2026, 0, 15, 9, 30);
+  const forecast = dayForecast(now, { tempMinF: 24, tempMaxF: 38, windMph: 5, precipIn: 0 });
+  const hit = conditionHits(freeze, forecast, now, "mixed");
+  assert.equal(hit?.date, forecast.days[0].date);
+});
+
+test("a completed one-off weather duty does not block the next firing", () => {
+  const now = new Date(2026, 0, 15);
+  const later = new Date(2026, 1, 20);
+  const forecast = dayForecast(now, { tempMinF: 24, tempMaxF: 38, windMph: 5, precipIn: 0 });
+  const first = evaluateTriggers(home({ location: { postalCode: "37201", climateZone: "mixed" } }), forecast, now);
+  const freezeDuties = first.duties.filter((duty) => duty.weatherTriggerId === "hard-freeze");
+  assert.ok(freezeDuties.length > 0);
+  assert.ok(freezeDuties.every((duty) => duty.frequency === "once"));
+
+  const stored = freezeDuties.map((duty, index) => ({ ...duty, id: `wd${index}`, createdAt: now.toISOString() }));
+  const completions = stored.map((duty, index) => ({
+    id: `wc${index}`,
+    dutyId: duty.id,
+    actor: "me" as const,
+    visitId: null,
+    completedAt: now.toISOString(),
+  }));
+
+  // Cooldown has expired and the jobs are done: the next freeze must re-create them.
+  const laterForecast = dayForecast(later, { tempMinF: 24, tempMaxF: 38, windMph: 5, precipIn: 0 });
+  const second = evaluateTriggers(
+    home({
+      location: { postalCode: "37201", climateZone: "mixed" },
+      duties: stored,
+      completions,
+      weatherFires: first.fires,
+    }),
+    laterForecast,
+    later,
+  );
+  assert.equal(second.duties.filter((duty) => duty.weatherTriggerId === "hard-freeze").length, freezeDuties.length);
+
+  // Still open (no completion) => still blocked.
+  const blocked = evaluateTriggers(
+    home({
+      location: { postalCode: "37201", climateZone: "mixed" },
+      duties: stored,
+      completions: [],
+      weatherFires: first.fires,
+    }),
+    laterForecast,
+    later,
+  );
+  assert.equal(blocked.duties.filter((duty) => duty.weatherTriggerId === "hard-freeze").length, 0);
+});

@@ -1,11 +1,12 @@
 import { catalogEntry, type CatalogCost } from "@/lib/asset-catalog";
 import { getActiveAppLocale, localeDateTag, tActive } from "@/i18n";
 import { tDutyTitle } from "@/i18n/content";
+import { cadenceAverageDays } from "@/lib/constants";
 import { blendedCostFor } from "@/lib/costs";
 import { addCalendarMonths, parseISODate, toISODate } from "@/lib/dates";
 import { normalizeAssetType } from "@/lib/asset-catalog";
 import { linkedDutyIdsFor, runwayFor } from "@/lib/restock";
-import type { Completion, Duty, HomeAsset, Household } from "@/lib/types";
+import type { Completion, HomeAsset, Household } from "@/lib/types";
 
 export type ForecastKind = "consumable" | "task" | "replacement";
 export type ForecastConfidence = "high" | "medium" | "low";
@@ -119,23 +120,6 @@ export function installDateFromAge(ageYears: number, now = new Date()): string {
 
 function singleCost(value: number): CatalogCost {
   return { low: value, mid: value, high: value };
-}
-
-function cadenceDays(duty: Duty): number | null {
-  switch (duty.frequency) {
-    case "daily":
-      return 1;
-    case "weekly":
-      return 7;
-    case "monthly":
-      return 30;
-    case "quarterly":
-      return 90;
-    case "yearly":
-      return 365;
-    default:
-      return null;
-  }
 }
 
 function inHorizon(month: string, start: Date, horizonMonths: number): boolean {
@@ -299,13 +283,30 @@ export function buildForecast(
     }
   }
 
+  // One purchase, one line. A replacement chore with a priced supply item is already
+  // forecast by the automation or consumable loop above (applyCompletionCost copies the
+  // recorded price into both), so costing the duty again inflated the year.
+  const dutyIdsPricedElsewhere = new Set<string>();
+  for (const automation of household.supplyAutomations) {
+    if ((automation.lastPaidPrice ?? automation.unitCost) == null) continue;
+    for (const dutyId of linkedDutyIdsFor(automation)) dutyIdsPricedElsewhere.add(dutyId);
+  }
+  const assetIdsPricedElsewhere = new Set<string>();
+  for (const consumable of household.consumables) {
+    if ((consumable.lastPaidPrice ?? consumable.unitCost) == null || consumable.intervalDays <= 0) continue;
+    if (consumable.assetId) assetIdsPricedElsewhere.add(consumable.assetId);
+    if (consumable.nodeType === "asset") assetIdsPricedElsewhere.add(consumable.nodeId);
+  }
+
   for (const duty of household.duties) {
     if (duty.archived) continue;
+    if (dutyIdsPricedElsewhere.has(duty.id)) continue;
+    if (duty.nodeType === "asset" && assetIdsPricedElsewhere.has(duty.nodeId)) continue;
     const blended = blendedCostFor(duty, household.completions ?? []);
     if (!blended) continue;
     const cost = blended.cost;
     const source: ForecastSource = blended.source === "actual" ? "lastPaid" : "user";
-    const days = cadenceDays(duty);
+    const days = cadenceAverageDays(duty.frequency);
     if (!days) {
       if (duty.dueDate) {
         const month = duty.dueDate.slice(0, 7);

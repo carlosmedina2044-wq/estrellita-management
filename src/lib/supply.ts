@@ -4,9 +4,9 @@ import type { LifespanUnit, SupplyAutomation } from "@/lib/types";
 export const DEFAULT_LEAD_TIME_DAYS = 14;
 export const DEFAULT_QUANTITY = 1;
 
-function dateFromISO(value: string): Date {
-  const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, (month ?? 1) - 1, day ?? 1);
+/** A yyyy-MM-dd calendar day as a LOCAL Date — shared so restock and supply agree. */
+export function dateFromISO(value: string): Date {
+  return new Date(parseISODate(value));
 }
 
 export function leadTimeDaysFor(item: Pick<SupplyAutomation, "leadTimeDays"> | { leadTimeDays?: number }): number {
@@ -20,8 +20,7 @@ export function deriveOrderByDate(
   lifespanValue: number,
   lifespanUnit: LifespanUnit,
 ): string {
-  const [year, month, day] = installedAt.split("-").map(Number);
-  const installed = new Date(year, (month ?? 1) - 1, day ?? 1);
+  const installed = dateFromISO(installedAt);
   const amount = Math.max(1, Math.round(lifespanValue) || 1);
   if (lifespanUnit === "days") return toISODate(addDays(installed, amount));
   if (lifespanUnit === "months") return toISODate(addCalendarMonths(installed, amount));

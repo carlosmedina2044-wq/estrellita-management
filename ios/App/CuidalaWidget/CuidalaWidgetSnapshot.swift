@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 import UIKit
 import WidgetKit
 
@@ -112,10 +113,37 @@ struct CuidalaWidgetSnapshot: TimelineEntry {
         layerFiles.count >= 7 && CuidalaWidgetStore.portraitsDirectory != nil
     }
 
+    /// Longest edge of a decoded portrait layer. The source art is 936x672 and
+    /// a widget never renders wider than a phone, so 512px is generous on a
+    /// 3x screen while keeping six layers far under the 30 MB extension limit
+    /// (full-size RGBA would be ~2.5 MB each, ~15 MB per entry).
+    static let maxLayerPixelSize = 512
+
     /// 0 shadow, 1 night, 2 day, 3 lit, 4 foliage night, 5 foliage day, 6 snow.
     func layerImage(_ index: Int) -> UIImage? {
         guard index < layerFiles.count, let directory = CuidalaWidgetStore.portraitsDirectory else { return nil }
-        return UIImage(contentsOfFile: directory.appendingPathComponent(layerFiles[index]).path)
+        return Self.downsampledImage(
+            at: directory.appendingPathComponent(layerFiles[index]),
+            maxPixelSize: Self.maxLayerPixelSize
+        )
+    }
+
+    /// Decodes straight to the size the widget draws, via ImageIO, instead of
+    /// decoding the full-size bitmap and letting SwiftUI scale it down.
+    /// Alpha is preserved: the layers composite over one another.
+    static func downsampledImage(at url: URL, maxPixelSize: Int) -> UIImage? {
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else { return nil }
+        let thumbnailOptions: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+        ]
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions as CFDictionary) else {
+            return nil
+        }
+        return UIImage(cgImage: image)
     }
 
     /// How much of the lit layer to show: lit windows count fully, dim ones a little.

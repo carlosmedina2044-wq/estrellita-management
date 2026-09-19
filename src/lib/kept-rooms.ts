@@ -1,3 +1,4 @@
+import { cadenceWindowDays } from "@/lib/constants";
 import { weekRange } from "@/lib/dates";
 import { completionsInRange, todaysOpenDuties } from "@/lib/duties";
 import type { IllustrationName } from "@/lib/illustrations";
@@ -23,22 +24,8 @@ export type KeptRoom = {
   lastDoneAt: string | null;
 };
 
-export function cadenceDays(frequency: Duty["frequency"]): number | null {
-  switch (frequency) {
-    case "daily":
-      return 1;
-    case "weekly":
-      return 7;
-    case "monthly":
-      return 31;
-    case "quarterly":
-      return 92;
-    case "yearly":
-      return 366;
-    case "once":
-      return null;
-  }
-}
+/** Room freshness and rhythm windows use the generous calendar length. */
+export { cadenceWindowDays as cadenceDays } from "@/lib/constants";
 
 export function roomTileFor(room: HomeRoom): IllustrationName {
   if (room.system) return "sys-hvac";
@@ -48,7 +35,7 @@ export function roomTileFor(room: HomeRoom): IllustrationName {
 function shortestCadence(duties: Duty[]): number | null {
   let shortest: number | null = null;
   for (const duty of duties) {
-    const days = cadenceDays(duty.frequency);
+    const days = cadenceWindowDays(duty.frequency);
     if (days == null) continue;
     shortest = shortest == null ? days : Math.min(shortest, days);
   }

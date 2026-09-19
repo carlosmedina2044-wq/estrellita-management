@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "motion/react";
 import { useLocale } from "@/i18n/locale-provider";
 import { SPRING_SETTLE } from "@/lib/motion";
@@ -8,6 +9,11 @@ import { hapticPress } from "@/lib/native/haptics";
 import { cn } from "@/lib/utils";
 
 export type DutyMenuAction = "complete" | "snooze" | "edit" | "delete";
+
+/** Four 44px rows plus the 4px of vertical padding. */
+const MENU_HEIGHT_PX = 184;
+/** `4.5rem` — the tab bar's own height, before its safe-area padding. */
+const TAB_BAR_FALLBACK_PX = 72;
 
 export function DutyContextMenu({
   open,
@@ -26,9 +32,14 @@ export function DutyContextMenu({
 }) {
   const { t } = useLocale();
   const ref = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Focus moved in here on open and was never handed back, leaving a
+    // keyboard or VoiceOver user at the top of the document after a dismiss.
+    const opener = document.activeElement;
+    returnFocusRef.current = opener instanceof HTMLElement ? opener : null;
     const menuItems = () =>
       Array.from(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []);
     menuItems()[0]?.focus();
@@ -58,6 +69,9 @@ export function DutyContextMenu({
     return () => {
       window.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("keydown", onKey);
+      const back = returnFocusRef.current;
+      returnFocusRef.current = null;
+      if (back?.isConnected) back.focus({ preventScroll: true });
     };
   }, [open, onClose]);
 
@@ -70,12 +84,22 @@ export function DutyContextMenu({
     { id: "delete", label: t("common.delete"), danger: true },
   ];
 
-  const maxX = typeof window !== "undefined" ? window.innerWidth - 12 : x;
-  const maxY = typeof window !== "undefined" ? window.innerHeight - 12 : y;
-  const left = Math.min(Math.max(12, x), maxX - 180);
-  const top = Math.min(Math.max(12, y), maxY - 200);
+  if (typeof document === "undefined") return null;
 
-  return (
+  const maxX = window.innerWidth - 12;
+  // The clamp used to run to the bottom of the window, which put "Edit" and
+  // "Delete" under the tab bar for any row near the end of the Today list.
+  const tabBar = document.querySelector(".app-tab-bar");
+  const tabBarHeight = tabBar ? tabBar.getBoundingClientRect().height : TAB_BAR_FALLBACK_PX;
+  const maxY = window.innerHeight - tabBarHeight - 12;
+  const left = Math.min(Math.max(12, x), maxX - 180);
+  const top = Math.max(12, Math.min(y, maxY - MENU_HEIGHT_PX));
+
+  // `.app-shell-roots` carries `will-change: transform`, which makes it both
+  // the containing block and a stacking context with `z-index: auto` — so a
+  // `fixed z-[60]` menu rendered inside it still painted *under* the later
+  // sibling tab bar. Portalled to the body, as the Radix sheets are.
+  return createPortal(
     <motion.div
       ref={ref}
       role="menu"
@@ -106,6 +130,7 @@ export function DutyContextMenu({
           {item.label}
         </button>
       ))}
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }

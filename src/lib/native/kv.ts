@@ -32,3 +32,23 @@ export async function kvRemove(key: string): Promise<void> {
   }
   window.localStorage.removeItem(key);
 }
+
+/**
+ * Every key currently held by the store. Erase-all and the quarantine/snapshot
+ * pruning need this: those slots are written under timestamped names
+ * (`cuidala-vault-v2-unreadable.<ts>`), so they cannot be removed by name.
+ */
+export async function kvKeys(): Promise<string[]> {
+  if (isNative()) {
+    const { Preferences } = await import("@capacitor/preferences");
+    const result = await Preferences.keys();
+    return result.keys ?? [];
+  }
+  if (typeof window === "undefined") return [];
+  const keys: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i += 1) {
+    const name = window.localStorage.key(i);
+    if (name) keys.push(name);
+  }
+  return keys;
+}

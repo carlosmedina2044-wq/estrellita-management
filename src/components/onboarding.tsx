@@ -16,7 +16,7 @@ import type { MessageKey } from "@/i18n";
 import { useClock } from "@/hooks/use-clock";
 import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
 import { toISODate } from "@/lib/dates";
-import { DUR_INSTANT, DUR_QUICK, EASE_OUT, SPRING_SETTLE } from "@/lib/motion";
+import { DUR_INSTANT, DUR_NONE, DUR_QUICK, EASE_OUT, SPRING_SETTLE } from "@/lib/motion";
 import { hapticSuccess, hapticTab } from "@/lib/native/haptics";
 import { dayArc } from "@/lib/momentum";
 import { portraitKit } from "@/lib/scene/portrait";
@@ -59,6 +59,9 @@ export function Onboarding({
   onComplete: (input: { answers: OnboardingAnswers; ownerName?: string }) => void | Promise<void>;
 }) {
   const { t } = useLocale();
+  // The progress bar animates its width, which `reducedMotion="user"` does not
+  // neutralise — it only covers transforms and layout.
+  const reduceMotion = useReducedMotion();
   const [step, setStep] = useState(0);
   const [homeType, setHomeType] = useState<HomeType>("house");
   const [tenure, setTenure] = useState<Tenure | undefined>();
@@ -297,7 +300,7 @@ export function Onboarding({
               className="h-full bg-brand"
               initial={false}
               animate={{ width: `${Math.round(progress * 100)}%` }}
-              transition={SPRING_SETTLE}
+              transition={reduceMotion ? { duration: DUR_NONE } : SPRING_SETTLE}
             />
           </div>
         ) : (
@@ -391,6 +394,10 @@ export function Onboarding({
                         );
                       }}
                       className="peer absolute inset-0 z-10 cursor-pointer opacity-0"
+                      // The wrapping label's only text is the room-name input,
+                      // and the icon beside it is `aria-hidden`, so this
+                      // checkbox had no accessible name at all.
+                      aria-label={t("onboarding.roomIncludeAria", { name: room.name })}
                     />
                     <CircleCheck checked={room.enabled} />
                   </span>

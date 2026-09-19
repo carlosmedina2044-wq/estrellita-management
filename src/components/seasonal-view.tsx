@@ -132,10 +132,13 @@ export function SeasonalView({
   onReconsider,
   onToggleAttribute,
   onBack,
-  backLabel = "Back to Today",
+  backLabel,
   focusPlaybookId,
+  now = new Date(),
 }: {
   household: Household;
+  /** The shell's clock, so this screen agrees with Today across midnight. */
+  now?: Date;
   weatherAttribution?: WeatherAttribution | null;
   forecast: WeatherForecast | null;
   weatherLine: string;
@@ -153,8 +156,7 @@ export function SeasonalView({
   focusPlaybookId?: string;
 }) {
   const { t } = useLocale();
-  const back = backLabel === "Back to Today" ? t("seasonal.backToday") : backLabel;
-  const now = new Date();
+  const back = backLabel ?? t("seasonal.backToday");
   const suggested = matchingPlaybooks(household, now);
   const timeline = seasonalTimeline(household, now);
   const watch = weatherWatch(forecast, household, now);

@@ -87,3 +87,25 @@ test("costSummary totals every completion that recorded a cost, newest first", (
 test("costSummary is null when nothing recorded a cost", () => {
   assert.equal(costSummary("filter", [completion("filter", "2026-09-10T00:00:00.000Z")]), null);
 });
+
+test("recentRhythm keeps a completion that landed exactly one cadence ago", () => {
+  const weekly = duty({ id: "trash", title: "Trash", room: "kitchen", frequency: "weekly" });
+  const now = new Date(2026, 8, 21); // Monday
+  // Six Mondays in a row, the most recent exactly one cadence (7 days) before `now`.
+  const completions = [7, 14, 21, 28, 35, 42].map((back) =>
+    completion("trash", new Date(2026, 8, 21 - back, 9, 0).toISOString()),
+  );
+  const rhythm = recentRhythm(weekly, completions, now, 6);
+  assert.deepEqual(rhythm, { done: 6, of: 6, streak: 6 });
+});
+
+test("recentRhythm counts a daily chore done yesterday, before today's is due", () => {
+  const daily = duty({ id: "wipe", title: "Wipe counters", room: "kitchen", frequency: "daily" });
+  const now = new Date(2026, 8, 21, 7, 0);
+  const completions = [1, 2, 3].map((back) =>
+    completion("wipe", new Date(2026, 8, 21 - back, 20, 0).toISOString()),
+  );
+  const rhythm = recentRhythm(daily, completions, now, 3);
+  assert.equal(rhythm?.done, 3);
+  assert.equal(rhythm?.streak, 3);
+});

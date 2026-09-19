@@ -18,8 +18,12 @@ export function CleanerVisit({
   lockMethod,
   onComplete,
   onEndVisit,
+  now = new Date(),
 }: {
   household: Household;
+  /** The shell's clock. Passed in so this screen agrees with Today across
+   * midnight and its memos are not defeated by a fresh Date every render. */
+  now?: Date;
   /** True when the device can confirm the owner before exiting. */
   ownerCheck: boolean;
   lockMethod: LockMethod;
@@ -28,7 +32,6 @@ export function CleanerVisit({
   onEndVisit: () => boolean | Promise<boolean>;
 }) {
   const { t } = useLocale();
-  const now = new Date();
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const open = todaysOpenDuties(household, now, "cleaner");

@@ -9,7 +9,10 @@ export const RECEIVED_PRICE_WINDOW_MS = 30 * DAY_MS;
 const MAX_ACTUAL_COST = 100_000;
 
 export function parseCostInput(value: string): number | null {
-  const n = Number(value.replace(/[^0-9.]/g, ""));
+  const digits = value.replace(/[^0-9.]/g, "");
+  // Number("") is 0, which would save a blank prompt as $0 and win blendedCostFor.
+  if (digits.trim() === "" || digits === ".") return null;
+  const n = Number(digits);
   if (!Number.isFinite(n) || n < 0 || n > MAX_ACTUAL_COST) return null;
   return Math.round(n * 100) / 100;
 }

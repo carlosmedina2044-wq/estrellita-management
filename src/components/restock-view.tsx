@@ -16,8 +16,8 @@ import { Button } from "@/components/ui/button";
 import { TeachingTip } from "@/components/teaching-tip";
 import { formatDueDate } from "@/lib/dates";
 import { roomName } from "@/lib/home-model";
-import { AnimatePresence, motion } from "motion/react";
-import { DUR_QUICK, EASE_OUT, scrollBehavior } from "@/lib/motion";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { DUR_NONE, DUR_QUICK, EASE_OUT, scrollBehavior } from "@/lib/motion";
 import {
   SAMPLE_RESTOCK_PICKS,
   catalogItemForSupply,
@@ -58,6 +58,7 @@ export function RestockView({
   onFocusHandled?: () => void;
 } & RestockFlowHandlers) {
   const { t } = useLocale();
+  const reduceMotion = useReducedMotion();
   const [creating, setCreating] = useState(false);
   const [editingDuty, setEditingDuty] = useState<Duty | null>(null);
   const [stockedOpen, setStockedOpen] = useState(false);
@@ -291,7 +292,9 @@ export function RestockView({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
+            // A height tween is not covered by `reducedMotion="user"`, so the
+            // section still grew and collapsed under Reduce Motion.
+            transition={reduceMotion ? { duration: DUR_NONE } : { duration: DUR_QUICK, ease: EASE_OUT }}
           >
             {groups.stocked.map((item) => (
               <RestockRow

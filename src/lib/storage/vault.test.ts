@@ -931,3 +931,122 @@ test("restore snapshots the prior vault and undo returns the previous home", asy
   assert.equal(again.ok, false);
   resetVaultForTests();
 });
+
+test("erase removes every timestamped quarantine and restore-snapshot slot", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Keep", onboarded: true })),
+  );
+  // Slots left behind by earlier failed opens and restores: these used to
+  // survive erase-all because only the two well-known keys were removed.
+  const store = new Map<string, string>([
+    [VAULT_STORAGE_KEY, sealed],
+    [QUARANTINED_VAULT_KEY, sealed],
+    [`${QUARANTINED_VAULT_KEY}.1700000000000`, sealed],
+    [`${QUARANTINED_VAULT_KEY}.1700000000001`, sealed],
+    [`${RESTORE_SNAPSHOT_KEY_PREFIX}1700000000002`, sealed],
+    [`${RESTORE_SNAPSHOT_KEY_PREFIX}1700000000003`, sealed],
+    ["cuidala-unrelated", "leave me alone"],
+  ]);
+  installVaultIOForTests({
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+    kvKeys: async () => [...store.keys()],
+  });
+
+  const result = await eraseHousehold();
+  assert.equal(result.ok, true);
+
+  const leftovers = [...store.keys()].filter(
+    (name) => name.startsWith(QUARANTINED_VAULT_KEY) || name.startsWith(RESTORE_SNAPSHOT_KEY_PREFIX),
+  );
+  assert.deepEqual(leftovers, []);
+  assert.equal(store.has(VAULT_STORAGE_KEY), false);
+  // Erase must not reach beyond its own keys.
+  assert.equal(store.get("cuidala-unrelated"), "leave me alone");
+  resetVaultForTests();
+});
+
+test("erase reports failure when a timestamped slot cannot be removed", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Keep me", onboarded: true })),
+  );
+  const store = new Map<string, string>([
+    [VAULT_STORAGE_KEY, sealed],
+    [`${QUARANTINED_VAULT_KEY}.1700000000000`, sealed],
+  ]);
+  installVaultIOForTests({
+    loadDeviceKey: async () => key,
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      if (name.startsWith(`${QUARANTINED_VAULT_KEY}.`)) throw new Error("kv locked");
+      store.delete(name);
+    },
+    kvKeys: async () => [...store.keys()],
+  });
+
+  await hydrateHousehold();
+  const result = await eraseHousehold();
+  // A slot left on disk means the erase did not finish: it must not report ok.
+  assert.equal(result.ok, false);
+  resetVaultForTests();
+});
+
+test("quarantine caps the timestamped copies it keeps", async () => {
+  resetVaultForTests();
+  const key = await importRawKey(generateRawKey());
+  const sealed = JSON.stringify(
+    await encryptJson(key, JSON.stringify({ householdName: "Keep", onboarded: true })),
+  );
+  const store = new Map<string, string>([[VAULT_STORAGE_KEY, sealed]]);
+  for (const stamp of [1, 2, 3, 4, 5]) {
+    store.set(`${QUARANTINED_VAULT_KEY}.170000000000${stamp}`, sealed);
+  }
+  installVaultIOForTests({
+    requiresInteractiveUnlock: () => false,
+    loadDeviceKey: async () => null,
+    createDeviceKey: async () => key,
+    loadOrCreateDeviceKey: async () => key,
+    deleteDeviceKey: async () => {},
+    kvGet: async (name) => store.get(name) ?? null,
+    kvSet: async (name, value) => {
+      store.set(name, value);
+    },
+    kvRemove: async (name) => {
+      store.delete(name);
+    },
+    kvKeys: async () => [...store.keys()],
+  });
+
+  await hydrateHousehold();
+  assert.equal((await unlockHousehold()).ok, false);
+  const backup = await sealBackup(
+    JSON.stringify({ householdName: "Restored", onboarded: true }),
+    "correct horse battery staple",
+  );
+  assert.equal((await importHouseholdBackup(backup, "correct horse battery staple")).ok, true);
+
+  const slots = [...store.keys()].filter((name) => name.startsWith(`${QUARANTINED_VAULT_KEY}.`));
+  assert.ok(slots.length <= 3, `expected at most 3 retained slots, got ${slots.length}`);
+  // The newest copy is the one worth keeping; the oldest are the ones dropped.
+  assert.equal(slots.includes(`${QUARANTINED_VAULT_KEY}.1700000000001`), false);
+  resetVaultForTests();
+});

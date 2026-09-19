@@ -183,6 +183,9 @@ struct HouseStack: View {
             layer(4)
             layer(5).opacity(dayOpacity)
         }
+        // Six decorative composite layers; VoiceOver should not read "image"
+        // six times. The surrounding labels carry the meaning.
+        .accessibilityHidden(true)
     }
 
     @ViewBuilder
@@ -346,13 +349,18 @@ struct CuidalaSmallTextView: View {
                     .foregroundStyle(.secondary)
             }
             if !snapshot.titles.isEmpty {
-                ForEach(snapshot.titles, id: \.self) { title in
-                    Text(title)
+                // Indices, not the title itself: two duties may share a name,
+                // and `id: \.self` collapses them into one row.
+                ForEach(snapshot.titles.indices, id: \.self) { index in
+                    Text(snapshot.titles[index])
                         .font(.caption)
                         .lineLimit(1)
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        // The house views get this via `skyBackground`; without it the fallback
+        // draws on an undefined background on iOS 17+.
+        .skyBackground(Color(.systemBackground))
     }
 }

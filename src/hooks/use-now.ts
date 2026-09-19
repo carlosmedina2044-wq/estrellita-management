@@ -23,11 +23,18 @@ export function useNow(): Date {
     document.addEventListener("visibilitychange", onVis);
     const interval = window.setInterval(sync, 60_000);
 
+    let cancelled = false;
     let removeResume: (() => void) | undefined;
     if (isNative()) {
       void import("@capacitor/app")
         .then(async ({ App }) => {
           const handle = await App.addListener("resume", sync);
+          // Cleanup can run before this resolves (StrictMode mounts twice);
+          // without the guard the native listener is never removed.
+          if (cancelled) {
+            void handle.remove();
+            return;
+          }
           removeResume = () => {
             void handle.remove();
           };
@@ -36,6 +43,7 @@ export function useNow(): Date {
     }
 
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", onVis);
       window.clearInterval(interval);
       removeResume?.();

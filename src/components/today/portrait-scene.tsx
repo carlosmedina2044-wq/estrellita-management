@@ -217,6 +217,8 @@ function useMinuteTicker(enabled: boolean): Date {
       if (document.hidden) return;
       setNow(new Date());
     };
+    // Catch up on whatever was missed while paused or hidden.
+    tick();
     const id = window.setInterval(tick, 30_000);
     const onVis = () => {
       if (!document.hidden) tick();
@@ -289,7 +291,9 @@ export function PortraitScene({
   const { t } = useLocale();
   const reduce = useReducedMotion();
   const arrivalReveal = useArrivalReveal(Boolean(arrival) && !reduce);
-  const minuteNow = useMinuteTicker(true);
+  // Every mounted scene re-rendered every 30 seconds regardless of `paused`,
+  // including the ones sitting behind a sheet or in a hidden keep-alive pane.
+  const minuteNow = useMinuteTicker(!paused);
   const homeSpec = useMemo(() => {
     const base = resolveHomeSpec(household);
     const kitType = overrides?.kitType ?? base.kitType;

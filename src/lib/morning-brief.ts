@@ -71,7 +71,9 @@ export function morningBriefNotifications(
     if (open.length === 0) continue;
     notices.push({
       id: BRIEF_ID_BASE + offset,
-      ...briefCopy(open, privateNotifications, household, now),
+      // Only today's brief can claim the current run: baking today's count into the
+      // briefs for day+1..+6 promises a streak that may well be broken by then.
+      ...briefCopy(open, privateNotifications, offset === 0 ? household : undefined, now),
       schedule: { at },
       extra: { tab: "today" },
     });

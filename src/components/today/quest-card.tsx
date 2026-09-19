@@ -63,8 +63,10 @@ export function QuestCard({ quest, now = new Date() }: { quest: Quest; now?: Dat
           )}
         </p>
         <p
+          // Inline flow, not flex: as flex items the split fragments lost
+          // their edge whitespace and "4 of 5 rooms" rendered "4of5rooms".
           className={cn(
-            "flex shrink-0 items-baseline ui-caption num",
+            "shrink-0 ui-caption num",
             quest.done ? "text-done" : "text-muted-foreground",
           )}
         >

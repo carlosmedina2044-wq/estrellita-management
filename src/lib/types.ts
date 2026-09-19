@@ -1,4 +1,17 @@
-export type Frequency = "once" | "daily" | "weekly" | "monthly" | "quarterly" | "yearly";
+/**
+ * `semiannual` exists because six-month consumables are real (fridge and well
+ * filters, purifier cartridges) and the nearest neighbours are both wrong: the
+ * walk used to map them to `monthly`, which put a 180-day filter on a 30-day
+ * cadence and re-ordered it twelve times a year.
+ */
+export type Frequency =
+  | "once"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "quarterly"
+  | "semiannual"
+  | "yearly";
 export type Priority = "low" | "medium" | "high";
 export type Effort = "small" | "medium" | "large";
 export type Audience = "me" | "cleaner" | "anyone";

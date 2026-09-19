@@ -65,7 +65,9 @@ function problemMailto(household: Household): string {
     `Device ${model}`,
     `Counts rooms=${rooms} duties=${duties} items=${items} pendingNotifications=${pending}`,
   ].join("\n");
-  return `mailto:support@cuidala.app?subject=${encodeURIComponent("Cuidala problem")}&body=${encodeURIComponent(body)}`;
+  // The diagnostic block below the message (App / iOS / Device / Counts) stays
+  // English on purpose: it is read by support, not by the user.
+  return `mailto:support@cuidala.app?subject=${encodeURIComponent(tActive("settings.reportSubject"))}&body=${encodeURIComponent(body)}`;
 }
 
 export function HomeView({
@@ -92,7 +94,7 @@ export function HomeView({
   onFocusHandled,
   onBack,
   onOpenYear,
-  backLabel = "Back to Home",
+  backLabel,
 }: {
   household: Household;
   onUpdate: (
@@ -136,6 +138,16 @@ export function HomeView({
   const [home, setHome] = useState(household.householdName);
   const [owner, setOwner] = useState(household.ownerName);
   const [cleaner, setCleaner] = useState(household.cleanerName);
+  // "Restore from file" and "Undo last restore" live on this same screen, so
+  // the names these fields were seeded with can stop being the names of record
+  // while the fields are still on screen; blurring one then wrote the
+  // pre-restore name back over the restored one. Reset during render when the
+  // source changes — the same pattern `DebouncedTextInput` uses.
+  const [prevNames, setPrevNames] = useState({
+    home: household.householdName,
+    owner: household.ownerName,
+    cleaner: household.cleanerName,
+  });
   const [confirmErase, setConfirmErase] = useState(false);
   const [zipOpen, setZipOpen] = useState(false);
   const [houseLookOpen, setHouseLookOpen] = useState(false);
@@ -145,6 +157,20 @@ export function HomeView({
   const [hourSheet, setHourSheet] = useState(false);
   const [hourSheetTarget, setHourSheetTarget] = useState<"digest" | "brief" | "evening">("digest");
   const persistTimer = useRef<number | null>(null);
+  if (
+    prevNames.home !== household.householdName ||
+    prevNames.owner !== household.ownerName ||
+    prevNames.cleaner !== household.cleanerName
+  ) {
+    setPrevNames({
+      home: household.householdName,
+      owner: household.ownerName,
+      cleaner: household.cleanerName,
+    });
+    setHome(household.householdName);
+    setOwner(household.ownerName);
+    setCleaner(household.cleanerName);
+  }
 
   const HOUR_PRESETS = [
     { id: "morning", label: t("settings.morning"), hour: 8 },
@@ -206,6 +232,16 @@ export function HomeView({
       if (persistTimer.current != null) window.clearTimeout(persistTimer.current);
     };
   }, []);
+
+  // A debounced write still holding the pre-restore names must not land after
+  // the restore. Paired with the reset above; harmless when the change came
+  // from our own persist, since that timer has already fired.
+  useEffect(() => {
+    if (persistTimer.current != null) {
+      window.clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+    }
+  }, [household.householdName, household.ownerName, household.cleanerName]);
 
   function persistNames(householdName: string, ownerName: string, cleanerName: string) {
     if (
@@ -283,7 +319,7 @@ export function HomeView({
         title={t("settings.title")}
         subtitle={t("settings.subtitle")}
         onBack={onBack}
-        backLabel={backLabel === "Back to Home" || backLabel === t("settings.backHome") ? t("settings.backHome") : backLabel}
+        backLabel={backLabel ?? t("settings.backHome")}
       />
       <section>
         <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.language")}</h2>
@@ -786,7 +822,7 @@ export function HomeView({
         </div>
         <a
           className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-secondary text-sm font-medium"
-          href="mailto:support@cuidala.app?subject=Cuidala%20help"
+          href={`mailto:support@cuidala.app?subject=${encodeURIComponent(t("settings.helpSubject"))}`}
         >
           {t("settings.helpContact")}
         </a>

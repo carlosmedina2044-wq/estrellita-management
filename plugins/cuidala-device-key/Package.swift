@@ -20,6 +20,11 @@ let package = Package(
                 .product(name: "Cordova", package: "capacitor-swift-pm")
             ],
             path: "ios/Sources/CuidalaDeviceKeyPlugin",
+            swiftSettings: [
+                // Match the app target's SWIFT_STRICT_CONCURRENCY = complete.
+                // SPM packages do not inherit the Xcode project's build settings.
+                .enableExperimentalFeature("StrictConcurrency")
+            ],
             linkerSettings: [
                 .linkedFramework("Security"),
                 .linkedFramework("LocalAuthentication"),

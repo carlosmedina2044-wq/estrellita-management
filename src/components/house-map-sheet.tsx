@@ -27,7 +27,7 @@ import {
   todaysOpenDuties,
   wasCompletedToday,
 } from "@/lib/duties";
-import { addDays, toISODate } from "@/lib/dates";
+import { addDays, formatWeekdayDate, toISODate } from "@/lib/dates";
 import { ASSET_TYPES, roomById } from "@/lib/home-model";
 import { assetLabel, catalogLabel } from "@/lib/asset-catalog";
 import { lastDoneInRoom } from "@/lib/duties";
@@ -264,7 +264,7 @@ export function HouseMapSheet({
                           </p>
                           <p className="mt-0.5 ui-caption text-muted-foreground">
                             {placement.bucket === "ordered" && item.expectedArrivalDate
-                              ? t("home.arrivingApprox", { date: item.expectedArrivalDate })
+                              ? t("home.arrivingApprox", { date: formatWeekdayDate(item.expectedArrivalDate) })
                               : t("home.onHandLead", { onHand: item.onHand, lead: item.leadTimeDays })}
                           </p>
                           {placement.bucket === "order_now" ? (

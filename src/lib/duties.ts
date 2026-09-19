@@ -19,21 +19,48 @@ import {
 import { monthRecap } from "@/lib/momentum";
 import type { Audience, Completion, Duty, Frequency, Household } from "@/lib/types";
 
+/**
+ * Latest completion per duty, indexed once per completions array.
+ *
+ * This is called from inside every due/overdue/rhythm calculation, and it used to
+ * filter and sort the WHOLE completion log on each call — with a few thousand
+ * completions that alone cost a second on a check-off. The index is keyed on the
+ * array's identity, which is safe because completion lists are replaced, never
+ * mutated in place; a new array simply builds a new index.
+ */
+const lastCompletionIndexes = new WeakMap<Completion[], Map<string, Completion>>();
+
+function lastCompletionIndex(completions: Completion[]): Map<string, Completion> {
+  const cached = lastCompletionIndexes.get(completions);
+  if (cached) return cached;
+  const index = new Map<string, Completion>();
+  for (const item of completions) {
+    const held = index.get(item.dutyId);
+    // Strict `>` keeps the first of equal timestamps, matching the old stable sort.
+    if (!held || item.completedAt.localeCompare(held.completedAt) > 0) index.set(item.dutyId, item);
+  }
+  lastCompletionIndexes.set(completions, index);
+  return index;
+}
+
 export function lastCompletion(
   dutyId: string,
   completions: Completion[],
 ): Completion | undefined {
-  return completions
-    .filter((item) => item.dutyId === dutyId)
-    .sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
+  return lastCompletionIndex(completions).get(dutyId);
 }
 
 export function installedAtFor(household: Household, dutyId: string): string | null {
   return household.supplyAutomations.find((item) => item.dutyId === dutyId)?.installedAt ?? null;
 }
 
-function addCadence(anchor: Date, frequency: Extract<Frequency, "quarterly" | "yearly">): Date {
-  return frequency === "quarterly" ? addCalendarMonths(anchor, 3) : addCalendarYears(anchor, 1);
+function addCadence(
+  anchor: Date,
+  frequency: Extract<Frequency, "quarterly" | "semiannual" | "yearly">,
+): Date {
+  if (frequency === "quarterly") return addCalendarMonths(anchor, 3);
+  if (frequency === "semiannual") return addCalendarMonths(anchor, 6);
+  return addCalendarYears(anchor, 1);
 }
 
 /** First calendar day that may schedule a never-completed duty: max(createdAt, today). */
@@ -85,6 +112,7 @@ export function nextDueDate(
       return new Date(now.getFullYear(), now.getMonth(), dueDay);
     }
     case "quarterly":
+    case "semiannual":
     case "yearly": {
       const last = lastCompletion(duty.id, completions);
       if (last) return addCadence(new Date(last.completedAt), duty.frequency);
@@ -110,11 +138,18 @@ export function isDoneThisPeriod(
       return true;
     case "daily":
       return startOfDay(doneAt) === startOfDay(now);
-    case "weekly":
-      return new Date(last.completedAt).getTime() >= lastWeeklyStart(now, duty.weekday);
+    case "weekly": {
+      // The period is the 7 days ENDING on the duty's weekday, so trash taken out on
+      // Sunday night still counts on Monday morning. Comparing against `lastWeeklyStart`
+      // alone made the day-before completion invisible.
+      const periodEnd = new Date(lastWeeklyStart(now, duty.weekday));
+      const previousStart = startOfDay(addDays(periodEnd, -7));
+      return startOfDay(doneAt) > previousStart;
+    }
     case "monthly":
       return doneAt.getFullYear() === now.getFullYear() && doneAt.getMonth() === now.getMonth();
     case "quarterly":
+    case "semiannual":
     case "yearly": {
       const next = nextDueDate(duty, completions, now, installedAt);
       return Boolean(next) && startOfDay(now) < startOfDay(next!);
@@ -147,6 +182,7 @@ export function isDueToday(
       return now.getDate() === dueDay;
     }
     case "quarterly":
+    case "semiannual":
     case "yearly": {
       const next = nextDueDate(duty, completions, now, installedAt);
       return Boolean(next) && startOfDay(now) >= startOfDay(next!);
@@ -183,6 +219,7 @@ export function isOverdue(
       return now.getDate() > dueDay;
     }
     case "quarterly":
+    case "semiannual":
     case "yearly": {
       const next = nextDueDate(duty, completions, now, installedAt);
       return Boolean(next) && startOfDay(now) > startOfDay(next!);
@@ -318,6 +355,7 @@ export function isScheduledOn(
       return date.getDate() === dueDay;
     }
     case "quarterly":
+    case "semiannual":
     case "yearly": {
       const next = nextDueDate(duty, completions, date, installedAt);
       return Boolean(next) && startOfDay(next!) === startOfDay(date);

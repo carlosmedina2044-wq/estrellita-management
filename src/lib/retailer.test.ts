@@ -190,3 +190,31 @@ test("searchQueryFor de-dupes size and turns × into x", () => {
   assert.equal(searchQueryFor({ itemName: "HVAC filter (16x25x1)", sku: "16x25x1" }), "HVAC filter (16x25x1)");
   assert.equal(searchQueryFor({ itemName: "Trash bags", sku: "" }), "Trash bags");
 });
+
+test("a product path segment containing an 's' is still a product page", () => {
+  // /^search|s|shop$/ read as "^search" OR "s" OR "shop$" — any segment with an "s" lost.
+  assert.equal(isProductPageUrl("https://www.gardenstore.example/p/some-hose-nozzle-123456"), true);
+  assert.equal(isProductPageUrl("https://www.gardenstore.example/catalog/search"), false);
+  assert.equal(isProductPageUrl("https://www.gardenstore.example/catalog/shop"), false);
+});
+
+test("a bare 10-character code needs Amazon context to become an ASIN link", () => {
+  const plain = parseRetailerInput("HOSE123456");
+  assert.equal(plain.ok && plain.asin, undefined);
+  assert.equal(plain.ok && /amazon/i.test(plain.url), false);
+  const shaped = parseRetailerInput("B0FILTER12");
+  assert.equal(shaped.ok && shaped.asin, "B0FILTER12");
+  const named = parseRetailerInput("asin HOSE123456");
+  assert.equal(named.ok && named.asin, "HOSE123456");
+  const opted = parseRetailerInput("HOSE123456", { amazon: true });
+  assert.equal(opted.ok && opted.asin, "HOSE123456");
+});
+
+test("Amazon shorteners are not trusted hosts for shared input", () => {
+  assert.equal(isKnownRetailerUrl("https://amzn.to/3abcdef"), false);
+  assert.equal(isKnownRetailerUrl("https://a.co/d/abcdefg"), false);
+  assert.equal(isKnownRetailerUrl("https://www.amazon.com/dp/B0FILTER12"), true);
+  // Parsing still understands them.
+  const parsed = parseRetailerInput("https://a.co/dp/B0FILTER12");
+  assert.equal(parsed.ok && parsed.asin, "B0FILTER12");
+});

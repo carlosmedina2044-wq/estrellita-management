@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
-import { briefCopy } from "@/lib/morning-brief";
+import { briefCopy, morningBriefNotifications } from "@/lib/morning-brief";
 import { closedDayRun } from "@/lib/momentum";
 import type { Duty, Household } from "@/lib/types";
 
@@ -74,4 +74,23 @@ test("briefCopy private mode keeps counts and hides duty titles", () => {
   assert.equal(copy.title, `Day ${current} · 1 chore today`);
   assert.equal(copy.body, "Open Cuidala for details.");
   assert.equal(copy.body.includes("Secret HVAC filter"), false);
+});
+
+test("only today's brief carries the run count", () => {
+  const home = household({
+    duties: [
+      duty({ id: "d1", title: "Wipe counters", weekday: 1 }),
+      duty({ id: "d2", title: "Water plants", weekday: 0 }),
+    ],
+  });
+  const early = new Date(2026, 8, 13, 6, 0, 0); // Sunday
+  const { current } = closedDayRun(home, early);
+  assert.ok(current >= 2);
+  const notices = morningBriefNotifications(home, early);
+  assert.ok(notices.length > 1, `expected several briefs, got ${notices.length}`);
+  assert.equal(notices[0]?.title, `Day ${current} · 1 chore today`);
+  // Day+1..+6 must not promise today's run, which may well be broken by then.
+  for (const notice of notices.slice(1)) {
+    assert.equal(notice.title, "1 chore today");
+  }
 });

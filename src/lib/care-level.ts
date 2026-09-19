@@ -14,37 +14,83 @@ export type CareSignals = {
   openPrev7: number;
 };
 
-/** Local copy of momentum.dayOutcome to avoid a care-level ↔ momentum import cycle. */
+/**
+ * Local copy of momentum.dayOutcome to avoid a care-level ↔ momentum import cycle.
+ *
+ * Memoised per household identity, like the momentum copy: care signals walk 30 days
+ * and every walk used to rebuild the whole household, reparsing every timestamp.
+ * Households are replaced rather than mutated, so a new object starts a fresh table.
+ */
+const dayStamps = new WeakMap<Household, { duties: number[]; completions: number[] }>();
+const asOfByDay = new WeakMap<Household, Map<number, Household>>();
+const outcomeByDay = new WeakMap<Household, Map<number, "closed" | "open" | "rest">>();
+const floorByHousehold = new WeakMap<Household, number>();
+
+function dayStampsFor(household: Household): { duties: number[]; completions: number[] } {
+  const cached = dayStamps.get(household);
+  if (cached) return cached;
+  const built = {
+    duties: household.duties.map((duty) => startOfDay(new Date(duty.createdAt))),
+    completions: household.completions.map((item) => startOfDay(new Date(item.completedAt))),
+  };
+  dayStamps.set(household, built);
+  return built;
+}
+
 function householdAsOf(household: Household, day: Date): Household {
   const cutoff = startOfDay(day);
-  return {
+  let table = asOfByDay.get(household);
+  if (!table) {
+    table = new Map<number, Household>();
+    asOfByDay.set(household, table);
+  }
+  const cached = table.get(cutoff);
+  if (cached) return cached;
+  const stamps = dayStampsFor(household);
+  const asOf: Household = {
     ...household,
-    duties: household.duties.filter((duty) => startOfDay(new Date(duty.createdAt)) <= cutoff),
-    completions: household.completions.filter(
-      (item) => startOfDay(new Date(item.completedAt)) <= cutoff,
-    ),
+    duties: household.duties.filter((_, index) => stamps.duties[index] <= cutoff),
+    completions: household.completions.filter((_, index) => stamps.completions[index] <= cutoff),
   };
+  table.set(cutoff, asOf);
+  return asOf;
 }
 
 function outcomeForDay(household: Household, day: Date): "closed" | "open" | "rest" {
+  const key = startOfDay(day);
+  let table = outcomeByDay.get(household);
+  if (!table) {
+    table = new Map<number, "closed" | "open" | "rest">();
+    outcomeByDay.set(household, table);
+  }
+  const cached = table.get(key);
+  if (cached) return cached;
   const asOf = householdAsOf(household, day);
-  if (todaysOpenDuties(asOf, day).length > 0) return "open";
-  if (doneOnDay(asOf, day).length > 0) return "closed";
-  if (dutiesDueOnDate(asOf, day).length > 0) return "closed";
-  return "rest";
+  const outcome =
+    todaysOpenDuties(asOf, day).length > 0
+      ? "open"
+      : doneOnDay(asOf, day).length > 0
+        ? "closed"
+        : dutiesDueOnDate(asOf, day).length > 0
+          ? "closed"
+          : "rest";
+  table.set(key, outcome);
+  return outcome;
 }
 
 function historyFloorDate(household: Household): Date {
+  const cached = floorByHousehold.get(household);
+  if (cached != null) return new Date(cached);
+  const stamps = dayStampsFor(household);
   let earliest = Number.POSITIVE_INFINITY;
-  for (const duty of household.duties) {
-    const created = startOfDay(new Date(duty.createdAt));
+  for (const created of stamps.duties) {
     if (Number.isFinite(created) && created < earliest) earliest = created;
   }
-  for (const item of household.completions) {
-    const done = startOfDay(new Date(item.completedAt));
+  for (const done of stamps.completions) {
     if (Number.isFinite(done) && done < earliest) earliest = done;
   }
   if (!Number.isFinite(earliest)) return new Date(startOfDay(new Date()));
+  floorByHousehold.set(household, earliest);
   return new Date(earliest);
 }
 

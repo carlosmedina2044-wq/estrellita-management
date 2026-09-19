@@ -89,7 +89,7 @@ export function HouseLookPicker({
       </div>
 
       <div className="app-h-scroll -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1">
-        {order.map((kit) => {
+        {order.map((kit, index) => {
           const files = portraitKit(kit).files.day;
           const thumb = files[palette] ?? files.classic;
           const selected = kit === kitType;
@@ -98,7 +98,9 @@ export function HouseLookPicker({
               key={kit}
               type="button"
               aria-pressed={selected}
-              aria-label={t("settings.houseLook")}
+              // All 21 thumbnails shared one label, so VoiceOver read the
+              // same string 21 times with nothing to tell them apart.
+              aria-label={t("settings.houseLookOption", { index: index + 1, total: order.length })}
               onClick={() => {
                 void hapticPress();
                 onChange({ kitType: kit, palette });

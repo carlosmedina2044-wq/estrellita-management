@@ -30,11 +30,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func sceneWillResignActive(_ scene: UIScene) {
         guard let window, window.viewWithTag(privacyTag) == nil else { return }
-        let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
-        blur.frame = window.bounds
-        blur.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        blur.tag = privacyTag
-        window.addSubview(blur)
+        // Opaque, not a material: duty titles stayed readable through
+        // `.systemUltraThinMaterial` in the app switcher.
+        let cover = UIView(frame: window.bounds)
+        cover.backgroundColor = CuidalaBridgeViewController.shellBackground
+        cover.isOpaque = true
+        cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        cover.tag = privacyTag
+        window.addSubview(cover)
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {

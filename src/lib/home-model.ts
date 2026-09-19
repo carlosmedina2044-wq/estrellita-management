@@ -179,11 +179,28 @@ export function reorderRooms(rooms: HomeRoom[], floorId: string | null, orderedI
   );
 }
 
-/** True when the room still has chores or restock items that need a reassignment target. */
+/** Assets that live in this room — consumables hang off these as well as off the room itself. */
+function assetIdsInRoom(household: Household, roomId: string): Set<string> {
+  return new Set(household.assets.filter((item) => item.roomId === roomId).map((item) => item.id));
+}
+
+function consumableInRoom(
+  household: Household,
+  roomId: string,
+  assetIds: Set<string> = assetIdsInRoom(household, roomId),
+): (item: Household["consumables"][number]) => boolean {
+  return (item) =>
+    item.nodeId === roomId ||
+    (item.assetId != null && assetIds.has(item.assetId)) ||
+    (item.nodeType === "asset" && assetIds.has(item.nodeId));
+}
+
+/** True when the room still has chores, restock items or consumables that need a reassignment target. */
 export function roomHasAssignedWork(household: Household, roomId: string): boolean {
   return (
     household.duties.some((duty) => duty.room === roomId || duty.nodeId === roomId) ||
-    household.supplyAutomations.some((item) => item.room === roomId || item.nodeId === roomId)
+    household.supplyAutomations.some((item) => item.room === roomId || item.nodeId === roomId) ||
+    (household.consumables ?? []).some(consumableInRoom(household, roomId))
   );
 }
 
@@ -214,12 +231,29 @@ export function deleteRoomFromHousehold(
             ? { ...item, room: mode.toRoomId, nodeId: mode.toRoomId, nodeType: "room" as const }
             : item,
         );
+  // Consumables keep feeding the forecast unless they follow the room out (or move with it).
+  const assetIds = assetIdsInRoom(household, roomId);
+  const belongsHere = consumableInRoom(household, roomId, assetIds);
+  const consumables =
+    mode.action === "delete"
+      ? (household.consumables ?? []).filter((item) => !belongsHere(item))
+      : (household.consumables ?? []).map((item) =>
+          belongsHere(item)
+            ? {
+                ...item,
+                assetId: item.assetId != null && assetIds.has(item.assetId) ? undefined : item.assetId,
+                nodeId: mode.toRoomId,
+                nodeType: "room" as const,
+              }
+            : item,
+        );
   return {
     ...household,
     rooms: household.rooms.filter((item) => item.id !== roomId),
     assets: household.assets.filter((item) => item.roomId !== roomId),
     duties,
     supplyAutomations,
+    consumables,
     completions:
       mode.action === "delete"
         ? household.completions.filter((item) => duties.some((duty) => duty.id === item.dutyId))

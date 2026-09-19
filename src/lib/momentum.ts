@@ -61,17 +61,68 @@ function cachedBestRun(household: Household): number {
   return Math.trunc(best);
 }
 
+/**
+ * Per-day memo tables, keyed on the household's identity.
+ *
+ * `householdAsOf` and `dayOutcome` are the inner loop of the run walk, the year grid
+ * and every milestone predicate — the same handful of days is asked for again and
+ * again within one call tree, and each answer used to rebuild the whole household and
+ * rescan every duty. Households are replaced, never mutated in place, so a new object
+ * simply starts a new (empty) table and the old one is collected with it.
+ */
+const asOfByDay = new WeakMap<Household, Map<number, Household>>();
+/** The local day each duty was created / each completion landed on, parsed once. */
+const dayStamps = new WeakMap<Household, { duties: number[]; completions: number[] }>();
+const outcomeByDay = new WeakMap<Household, Map<number, DayOutcome>>();
+const historyFloors = new WeakMap<Household, Map<number, number>>();
+
+function dayStampsFor(household: Household): { duties: number[]; completions: number[] } {
+  const cached = dayStamps.get(household);
+  if (cached) return cached;
+  const built = {
+    duties: household.duties.map((duty) => startOfDay(new Date(duty.createdAt))),
+    completions: household.completions.map((item) => startOfDay(new Date(item.completedAt))),
+  };
+  dayStamps.set(household, built);
+  return built;
+}
+
+function dayTable<T>(store: WeakMap<Household, Map<number, T>>, household: Household): Map<number, T> {
+  let table = store.get(household);
+  if (!table) {
+    table = new Map<number, T>();
+    store.set(household, table);
+  }
+  return table;
+}
+
 /** Duties and completions visible at the end of `day` (local calendar). */
 export function householdAsOf(household: Household, day: Date): Household {
   const cutoff = startOfDay(day);
-  return {
+  const table = dayTable(asOfByDay, household);
+  const cached = table.get(cutoff);
+  if (cached) return cached;
+  const stamps = dayStampsFor(household);
+  const asOf: Household = {
     ...household,
-    duties: household.duties.filter((duty) => startOfDay(new Date(duty.createdAt)) <= cutoff),
-    completions: household.completions.filter((item) => startOfDay(new Date(item.completedAt)) <= cutoff),
+    duties: household.duties.filter((_, index) => stamps.duties[index] <= cutoff),
+    completions: household.completions.filter((_, index) => stamps.completions[index] <= cutoff),
   };
+  table.set(cutoff, asOf);
+  return asOf;
 }
 
 function historyFloor(household: Household, now: Date): number {
+  const key = startOfDay(now);
+  const table = dayTable(historyFloors, household);
+  const cached = table.get(key);
+  if (cached != null) return cached;
+  const floor = computeHistoryFloor(household, now);
+  table.set(key, floor);
+  return floor;
+}
+
+function computeHistoryFloor(household: Household, now: Date): number {
   let earliest = Number.POSITIVE_INFINITY;
   for (const duty of household.duties) {
     const created = startOfDay(new Date(duty.createdAt));
@@ -87,6 +138,16 @@ function historyFloor(household: Household, now: Date): number {
 }
 
 export function dayOutcome(household: Household, day: Date): DayOutcome {
+  const table = dayTable(outcomeByDay, household);
+  const key = startOfDay(day);
+  const cached = table.get(key);
+  if (cached) return cached;
+  const outcome = computeDayOutcome(household, day);
+  table.set(key, outcome);
+  return outcome;
+}
+
+function computeDayOutcome(household: Household, day: Date): DayOutcome {
   const asOf = householdAsOf(household, day);
   if (todaysOpenDuties(asOf, day).length > 0) return "open";
   if (doneOnDay(asOf, day).length > 0) return "closed";

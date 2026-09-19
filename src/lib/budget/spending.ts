@@ -99,10 +99,11 @@ export function spendingSummary(
   const start = new Date(now.getFullYear(), now.getMonth() - (options.months - 1), 1);
   const startMs = start.getTime();
   const purchases = household.purchases ?? [];
-  const purchaseDutyMonths = new Set(
-    purchases
-      .filter((item) => item.dutyId)
-      .map((item) => `${item.dutyId}:${monthKey(new Date(item.completedAt))}`),
+  // `applyLogPurchase` mirrors each purchase into a completion stamped with the SAME
+  // `completedAt`, so that exact pair is the duplicate to drop. Keying on duty+month
+  // instead swallowed unrelated costed completions from elsewhere in the same month.
+  const purchaseCompletionKeys = new Set(
+    purchases.filter((item) => item.dutyId).map((item) => `${item.dutyId}:${item.completedAt}`),
   );
 
   const fromPurchases = purchases
@@ -111,7 +112,7 @@ export function spendingSummary(
 
   const fromCompletions = household.completions
     .filter((item) => typeof item.actualCost === "number" && Date.parse(item.completedAt) >= startMs)
-    .filter((item) => !purchaseDutyMonths.has(`${item.dutyId}:${monthKey(new Date(item.completedAt))}`))
+    .filter((item) => !purchaseCompletionKeys.has(`${item.dutyId}:${item.completedAt}`))
     .map((item) => {
       const duty = household.duties.find((entry) => entry.id === item.dutyId);
       const kind: PurchaseKind = duty?.kind === "replacement" ? "consumable" : "task";

@@ -127,6 +127,7 @@ function starterSchedule(starter: StarterChore, now: Date): Pick<Duty, "weekday"
     case "monthly":
       return { weekday: 0, monthDay: addDays(now, starter.firstDueInDays).getDate(), dueDate: null };
     case "quarterly":
+    case "semiannual":
     case "yearly":
     case "once":
       return { weekday: 0, monthDay: 1, dueDate: toISODate(addDays(now, starter.firstDueInDays)) };

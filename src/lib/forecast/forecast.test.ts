@@ -9,6 +9,7 @@ import {
   installDateFromAge,
   roundUpTo,
 } from "@/lib/forecast";
+import { normalizeConsumable } from "@/lib/restock";
 import type { HomeAsset, Household } from "@/lib/types";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 
@@ -352,4 +353,98 @@ test("forecastCardSummary returns next90 and next big-ticket when data exists", 
   assert.ok(summary.next90 >= 0);
   assert.ok(summary.nextBigTicket);
   assert.equal(summary.nextBigTicket.mid, 7500);
+});
+
+test("a quarterly duty with a linked priced supply item is costed once, not twice", () => {
+  const home = household({
+    assets: [asset({ id: "hvac", name: "HVAC", type: "hvac_system" })],
+    duties: [
+      {
+        id: "duty-filter",
+        title: "Replace HVAC filter",
+        notes: "",
+        room: "kitchen",
+        nodeId: "hvac",
+        nodeType: "asset",
+        audience: "me",
+        effort: "small",
+        frequency: "quarterly",
+        kind: "replacement",
+        weekday: 0,
+        monthDay: 1,
+        dueDate: null,
+        priority: "medium",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        archived: false,
+        estimatedCost: 22,
+      },
+    ],
+    consumables: [
+      {
+        id: "cons-filter",
+        assetId: "hvac",
+        nodeId: "hvac",
+        nodeType: "asset",
+        name: "HVAC filter",
+        intervalDays: 90,
+        unitCost: 22,
+      },
+    ],
+  });
+  const forecast = buildForecast(home, 12, now);
+  const filterLines = forecast.monthly.flatMap((month) =>
+    month.items.filter((item) => /filter/i.test(item.label)),
+  );
+  assert.equal(filterLines.length, 4); // four quarters, not eight
+  assert.equal(filterLines.reduce((sum, item) => sum + item.cost.mid, 0), 88);
+  assert.equal(filterLines.every((item) => item.kind === "consumable"), true);
+});
+
+test("a duty linked to a priced supply automation is costed once", () => {
+  const home = household({
+    duties: [
+      {
+        id: "duty-filter",
+        title: "Replace HVAC filter",
+        notes: "",
+        room: "kitchen",
+        nodeId: "kitchen",
+        nodeType: "room",
+        audience: "me",
+        effort: "small",
+        frequency: "quarterly",
+        kind: "replacement",
+        weekday: 0,
+        monthDay: 1,
+        dueDate: null,
+        priority: "medium",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        archived: false,
+        estimatedCost: 22,
+      },
+    ],
+    supplyAutomations: [
+      normalizeConsumable({
+        id: "auto-filter",
+        dutyId: "duty-filter",
+        nodeId: "kitchen",
+        nodeType: "room",
+        room: "kitchen",
+        itemName: "HVAC filter",
+        lifespanValue: 3,
+        lifespanUnit: "months",
+        leadTimeDays: 3,
+        onHand: 0,
+        unitCost: 22,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      } as unknown as Parameters<typeof normalizeConsumable>[0]),
+    ],
+  });
+  const forecast = buildForecast(home, 12, now);
+  const taskLines = forecast.monthly.flatMap((month) => month.items.filter((item) => item.dutyId === "duty-filter"));
+  assert.equal(taskLines.length, 0);
+  const supplyLines = forecast.monthly.flatMap((month) =>
+    month.items.filter((item) => item.automationId === "auto-filter"),
+  );
+  assert.ok(supplyLines.length > 0);
 });

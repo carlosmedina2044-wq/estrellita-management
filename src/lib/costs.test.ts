@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   blendedCostFor,
+  parseCostInput,
   realCostFor,
   shouldPromptCost,
 } from "@/lib/costs";
@@ -159,4 +160,13 @@ test("migrateCompletion round-trips actualCost and costSkipped and rejects bad n
   assert.equal(household.completions.find((item) => item.id === "comp0003")?.actualCost, undefined);
   assert.equal(household.completions.find((item) => item.id === "comp0004")?.actualCost, undefined);
   assert.equal(household.completions.find((item) => item.id === "comp0005")?.actualCost, undefined);
+});
+
+test("parseCostInput rejects blank input instead of saving $0", () => {
+  assert.equal(parseCostInput(""), null);
+  assert.equal(parseCostInput("   "), null);
+  assert.equal(parseCostInput("$"), null);
+  assert.equal(parseCostInput("."), null);
+  assert.equal(parseCostInput("$0"), 0);
+  assert.equal(parseCostInput("$12.34"), 12.34);
 });

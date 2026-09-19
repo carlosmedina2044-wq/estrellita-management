@@ -614,7 +614,12 @@ export function TodayView({
     detail !== null ||
     shareCard !== null ||
     dutyMenu !== null ||
-    orderItemId !== null;
+    orderItemId !== null ||
+    // The add-chore and track-supply forms cover the scene too; they were
+    // missing, so parallax and the living details kept running behind them.
+    creating ||
+    creatingRule ||
+    editing !== null;
 
   const ceremonyActive = ceremonyDay === todayIso;
   // `ceremonyActive` stays true for the rest of the session, which is right

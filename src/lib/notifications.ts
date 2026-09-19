@@ -2,7 +2,7 @@ import { tActive } from "@/i18n";
 import { addDays, parseISODate } from "@/lib/dates";
 import { isOverdueFor } from "@/lib/duties";
 import { itemNameWithSize } from "@/lib/item-label";
-import { digestCandidates, linkedDutyIdsFor, restockPlacement } from "@/lib/restock";
+import { digestCandidates, linkedDutyIdsFor, restockPlacement, type RestockPlacement } from "@/lib/restock";
 import { digestCopy } from "@/lib/digest";
 import { BRIEF_DAYS, BRIEF_ID_BASE, morningBriefNotifications } from "@/lib/morning-brief";
 import { eveningNudgeNotifications, NUDGE_DAYS, NUDGE_ID_BASE } from "@/lib/evening-nudge";
@@ -102,8 +102,8 @@ function arrivalNotice(
   household: Household,
   now: Date,
   used: Set<number>,
+  placement: RestockPlacement,
 ): PlannedNotification | null {
-  const placement = restockPlacement(item, household, now);
   if (placement.bucket !== "ordered" || !item.expectedArrivalDate) return null;
   const at = arrivalCheckAt(item.expectedArrivalDate);
   if (at.getTime() <= now.getTime()) return null;
@@ -166,8 +166,18 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   notifications.push(...morningBriefNotifications(household, now));
   notifications.push(...eveningNudgeNotifications(household, now));
 
-  const arrivals = household.supplyAutomations
-    .map((item) => arrivalNotice(item, household, now, used))
+  // One placement per item: it walks duties and completions, and was being recomputed
+  // three times over for every supply item.
+  const placements = household.supplyAutomations.map((item) => ({
+    item,
+    placement: restockPlacement(item, household, now),
+  }));
+  const pending = placements.filter(
+    ({ placement }) => placement.orderByDate && placement.bucket !== "ordered",
+  );
+
+  const arrivals = placements
+    .map(({ item, placement }) => arrivalNotice(item, household, now, used, placement))
     .filter((notice): notice is PlannedNotification => Boolean(notice))
     .sort((a, b) => {
       const aAt = "at" in a.schedule ? a.schedule.at.getTime() : 0;
@@ -178,9 +188,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   notifications.push(...arrivals.slice(0, arrivalRoom));
 
   const reminderCap = Math.min(itemReminderCap(arrivals.length), Math.max(0, MAX_PENDING - notifications.length));
-  const reminders = household.supplyAutomations
-    .map((item) => ({ item, placement: restockPlacement(item, household, now) }))
-    .filter(({ placement }) => placement.orderByDate && placement.bucket !== "ordered")
+  const reminders = pending
     .map(({ item, placement }) => {
       const due = new Date(parseISODate(placement.orderByDate!));
       due.setHours(REMINDER_HOUR, 0, 0, 0);
@@ -205,9 +213,7 @@ export function plannedNotifications(household: Household, now = new Date()): Pl
   }
 
   const followRoom = Math.max(0, MAX_PENDING - notifications.length);
-  const followUps = household.supplyAutomations
-    .map((item) => ({ item, placement: restockPlacement(item, household, now) }))
-    .filter(({ placement }) => placement.orderByDate && placement.bucket !== "ordered")
+  const followUps = pending
     .map(({ item, placement }) => {
       const at = orderFollowUpAt(placement.orderByDate!, now);
       return at ? { item, at } : null;

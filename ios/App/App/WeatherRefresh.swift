@@ -65,23 +65,56 @@ enum WeatherRefresh {
             task.setTaskCompleted(success: true)
             return
         }
+        // `setTaskCompleted` must be called exactly once, on every path —
+        // including expiry, where the old code only cancelled and let iOS kill
+        // and throttle the app.
+        let completion = TaskCompletion(task: task)
         let work = Task {
             do {
                 let location = CLLocation(latitude: watch.latitude, longitude: watch.longitude)
                 let daily = try await WeatherService.shared.weather(for: location, including: .daily)
                 let now = Date()
                 let hits = evaluate(watch, days: daily.forecast.map(DaySample.init), now: now)
+                if Task.isCancelled {
+                    completion.finish(success: false)
+                    return
+                }
                 if !hits.isEmpty, await notificationsAllowed() {
                     for entry in hits {
+                        if Task.isCancelled { break }
                         await notify(entry, now: now)
                     }
                 }
-                task.setTaskCompleted(success: true)
+                completion.finish(success: !Task.isCancelled)
             } catch {
-                task.setTaskCompleted(success: false)
+                completion.finish(success: false)
             }
         }
-        task.expirationHandler = { work.cancel() }
+        task.expirationHandler = {
+            work.cancel()
+            completion.finish(success: false)
+        }
+    }
+
+    /// Calls `setTaskCompleted` at most once, from whichever of the work task
+    /// or the expiration handler gets there first. `BGAppRefreshTask` is not
+    /// `Sendable`; the lock is what makes the hand-off safe, so this is an
+    /// `@unchecked Sendable` box rather than a captured reference.
+    private final class TaskCompletion: @unchecked Sendable {
+        private let lock = NSLock()
+        private var task: BGAppRefreshTask?
+
+        init(task: BGAppRefreshTask) {
+            self.task = task
+        }
+
+        func finish(success: Bool) {
+            lock.lock()
+            let pending = task
+            task = nil
+            lock.unlock()
+            pending?.setTaskCompleted(success: success)
+        }
     }
 
     /// One day of forecast in the units the watch list speaks.

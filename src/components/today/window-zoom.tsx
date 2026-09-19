@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 
@@ -24,7 +25,12 @@ export function WindowZoomLayer({ zoom }: { zoom: WindowZoom | null }) {
   // the viewer is the exact thing the setting is asking not to happen, and
   // there is nothing here the user needs to see.
   const reduce = useReducedMotion();
-  return (
+  // Portalled for the same reason the chore menu is: `.app-shell-roots` has
+  // `will-change: transform`, which makes it the containing block for `fixed`
+  // children, so these viewport coordinates landed in the wrong place and the
+  // layer stacked below the tab bar.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <AnimatePresence>
       {zoom && !reduce ? (
         <motion.div
@@ -46,6 +52,7 @@ export function WindowZoomLayer({ zoom }: { zoom: WindowZoom | null }) {
           transition={{ duration: DUR_SCREEN, ease: EASE_OUT }}
         />
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

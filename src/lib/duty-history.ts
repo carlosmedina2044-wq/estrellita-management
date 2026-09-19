@@ -41,10 +41,14 @@ export function recentRhythm(
   let done = 0;
   let streak = 0;
   let streakBroken = false;
+  // Half-open windows: `[windowStart, windowEnd)`. The old `d > windowStart` dropped the
+  // completion that landed exactly one cadence ago — a daily chore done yesterday read 0
+  // every morning, and six Mondays in a row read 5 of 6. The newest window also keeps
+  // today, the period still in progress, so a chore done just now still counts.
   for (let i = 0; i < periods; i++) {
     const windowEnd = nowDay - i * windowMs;
     const windowStart = windowEnd - windowMs;
-    const hit = completionDays.some((d) => d > windowStart && d <= windowEnd);
+    const hit = completionDays.some((d) => d >= windowStart && (i === 0 ? d <= nowDay : d < windowEnd));
     if (hit) {
       done += 1;
       if (!streakBroken) streak += 1;

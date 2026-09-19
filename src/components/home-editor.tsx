@@ -59,6 +59,19 @@ export function HomeEditor({
   const changeTimer = useRef<number | null>(null);
   const pendingHousehold = useRef<Household | null>(null);
 
+  // A restore (or an undo of one) swaps the whole tree under this screen, and
+  // these two ids were seeded once at mount. Left alone, "Add room" could
+  // attach a room to a floor id that no longer exists. Re-point them at the
+  // current tree during render whenever the id they hold has gone.
+  if (!household.floors.some((floor) => floor.id === roomFloor)) {
+    const nextFloor = household.floors[0]?.id ?? "";
+    if (nextFloor !== roomFloor) setRoomFloor(nextFloor);
+  }
+  if (!household.rooms.some((room) => room.id === assetRoom)) {
+    const nextRoom = household.rooms[0]?.id ?? "";
+    if (nextRoom !== assetRoom) setAssetRoom(nextRoom);
+  }
+
   useEffect(() => {
     if (!focusAssetId) return;
     document.getElementById(`home-asset-${focusAssetId}`)?.scrollIntoView({ behavior: scrollBehavior(), block: "center" });

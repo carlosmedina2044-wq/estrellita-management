@@ -33,11 +33,20 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
     /// process needs it. Plaintext by design; see docs/RESIDUAL_RISKS.md.
     public static let watchListKey = "cuidala.weatherWatch"
 
+    /// Prefix of the per-trigger "already fired" Date markers written by
+    /// `WeatherRefresh.notify`. Must stay in step with
+    /// `WeatherRefresh.firedKeyPrefix` in the app target.
+    public static let firedKeyPrefix = "cuidala.weatherFired."
+
     @objc func updateWatchList(_ call: CAPPluginCall) {
         guard let latitude = call.getDouble("latitude"),
               let longitude = call.getDouble("longitude"),
               let entries = call.getArray("entries") else {
-            call.reject("latitude, longitude and entries are required")
+            call.reject("latitude, longitude and entries are required", "invalid_arguments")
+            return
+        }
+        guard CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(latitude: latitude, longitude: longitude)) else {
+            call.reject("latitude and longitude are out of range", "invalid_coordinates")
             return
         }
         let payload: [String: Any] = [
@@ -48,7 +57,7 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
         ]
         guard JSONSerialization.isValidJSONObject(payload),
               let data = try? JSONSerialization.data(withJSONObject: payload) else {
-            call.reject("watch list is not serialisable")
+            call.reject("watch list is not serialisable", "invalid_arguments")
             return
         }
         UserDefaults.standard.set(data, forKey: Self.watchListKey)
@@ -56,7 +65,13 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func clearWatchList(_ call: CAPPluginCall) {
-        UserDefaults.standard.removeObject(forKey: Self.watchListKey)
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: Self.watchListKey)
+        // Erase-all must also drop the per-trigger cooldown markers, or the
+        // next household's first alert is silently suppressed.
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(Self.firedKeyPrefix) {
+            defaults.removeObject(forKey: key)
+        }
         call.resolve()
     }
 
@@ -74,7 +89,12 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func fetchForecast(_ call: CAPPluginCall) {
         guard let latitude = call.getDouble("latitude"),
               let longitude = call.getDouble("longitude") else {
-            call.reject("latitude and longitude are required")
+            call.reject("latitude and longitude are required", "invalid_arguments")
+            return
+        }
+        let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        guard CLLocationCoordinate2DIsValid(coordinate) else {
+            call.reject("latitude and longitude are out of range", "invalid_coordinates")
             return
         }
         let location = CLLocation(latitude: latitude, longitude: longitude)
@@ -110,7 +130,8 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             } catch {
                 await MainActor.run {
-                    call.reject(error.localizedDescription)
+                    // Stable code; framework strings are not a JS contract.
+                    call.reject("Could not load the forecast", "forecast_unavailable")
                 }
             }
         }
@@ -127,12 +148,12 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
         let geocoder = CLGeocoder()
         geocoder.geocodeAddressString("\(postalCode), United States") { placemarks, error in
             Task { @MainActor in
-                if let error {
-                    call.reject(error.localizedDescription)
+                if error != nil {
+                    call.reject("Could not look up that ZIP", "geocode_failed")
                     return
                 }
                 guard let place = placemarks?.first, let location = place.location else {
-                    call.reject("No place found for that ZIP")
+                    call.reject("No place found for that ZIP", "not_found")
                     return
                 }
                 var result: [String: Any] = [
@@ -150,14 +171,18 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func reverseGeocode(_ call: CAPPluginCall) {
         guard let latitude = call.getDouble("latitude"),
               let longitude = call.getDouble("longitude") else {
-            call.reject("latitude and longitude are required")
+            call.reject("latitude and longitude are required", "invalid_arguments")
+            return
+        }
+        guard CLLocationCoordinate2DIsValid(CLLocationCoordinate2D(latitude: latitude, longitude: longitude)) else {
+            call.reject("latitude and longitude are out of range", "invalid_coordinates")
             return
         }
         let location = CLLocation(latitude: latitude, longitude: longitude)
         CLGeocoder().reverseGeocodeLocation(location) { placemarks, error in
             Task { @MainActor in
-                if let error {
-                    call.reject(error.localizedDescription)
+                if error != nil {
+                    call.reject("Could not look up that location", "geocode_failed")
                     return
                 }
                 var result: [String: Any] = [:]
@@ -201,7 +226,7 @@ public class CuidalaWeatherKitPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             } catch {
                 await MainActor.run {
-                    call.reject(error.localizedDescription)
+                    call.reject("Could not load WeatherKit attribution", "attribution_unavailable")
                 }
             }
         }

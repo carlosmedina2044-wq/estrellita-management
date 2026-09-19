@@ -315,6 +315,14 @@ export function AppShell() {
   }, []);
   // Start locked; unlock only after ACL Keychain get succeeds (or no vault / web).
   const [locked, setLocked] = useState(true);
+  // Hydration reaching plaintext means this session is already authenticated:
+  // the ACL Keychain get happened, or there was nothing to unlock. `locked`
+  // used to stay true for the whole session on a Face ID device with the
+  // setting off, so switching the lock on in Settings swapped the main tree
+  // for FaceLock mid-interaction and remounted every keep-alive pane on the
+  // way back. Cleared once, at that boundary — a later re-lock still sets
+  // `locked` (and `pendingUnlock`) and is not undone here.
+  const [unlockedThisSession, setUnlockedThisSession] = useState(false);
   const [lockMethod, setLockMethod] = useState<LockMethod | null>(null);
   const canLock = lockMethod === null ? null : lockMethod !== "none";
   const requireFaceId = sessionMeta?.requireFaceId ?? household.lockSettings?.requireFaceId ?? false;
@@ -322,9 +330,16 @@ export function AppShell() {
   const cleanerVisitActive = sessionMeta?.cleanerVisitActive ?? household.mode === "cleaner";
   const onboarded = sessionMeta?.onboarded ?? household.onboarded;
   const [forecast, setForecast] = useState<WeatherForecast | null>(null);
+  /** Inputs of the last weather fetch this session, so a coords write-back
+   * triggered by that same fetch does not fetch again. */
+  const weatherRunRef = useRef<{ lat?: number | null; lng?: number | null; zip?: string | null } | null>(null);
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [weatherAttribution, setWeatherAttribution] = useState<WeatherAttribution | null>(null);
   const [confirmErase, setConfirmErase] = useState(false);
+  if (!unlockedThisSession && hydrated && !pendingUnlock) {
+    setUnlockedThisSession(true);
+    setLocked(false);
+  }
   const now = useNow();
   const nowMs = now.getTime();
   // Once a day, note that the house was opened. On device only; it is the
@@ -374,12 +389,12 @@ export function AppShell() {
     void detectLockMethod().then((method) => {
       if (cancelled) return;
       setLockMethod(method);
-      if (method === "none" && !pendingUnlock) setLocked(false);
     });
     return () => {
       cancelled = true;
     };
-  }, [pendingUnlock]);
+  }, []);
+
 
   useEffect(() => {
     if (!onboarded || !requireFaceId || !canLock) return;
@@ -483,6 +498,16 @@ export function AppShell() {
     const lng = household.location?.lng;
     const zip = household.location?.postalCode;
     if (lat == null && lng == null && !zip) return;
+    // A ZIP-only save writes the payload's coords back into `location`, which
+    // changes this effect's own deps and ran it a second time — two WeatherKit
+    // round-trips for one save. If the last run already answered for this ZIP
+    // and it was the one that supplied the coords, there is nothing new to ask.
+    const lastRun = weatherRunRef.current;
+    if (lastRun && lastRun.zip === zip && lastRun.lat == null && lastRun.lng == null) {
+      weatherRunRef.current = { lat, lng, zip };
+      return;
+    }
+    weatherRunRef.current = { lat, lng, zip };
     let cancelled = false;
     void (async () => {
       try {
@@ -559,23 +584,33 @@ export function AppShell() {
 
   useEffect(() => {
     if (!isNative()) return;
+    let cancelled = false;
     let remove: (() => void) | undefined;
     void import("@capacitor/app").then(async ({ App }) => {
       const openToday = (url: string) => {
         if (isCuidalaTodayUrl(url)) navigate({ tab: "today" });
       };
       const launch = await App.getLaunchUrl();
+      if (cancelled) return;
       if (launch?.url) openToday(launch.url);
       const handle = await App.addListener("appUrlOpen", (event) => {
         openToday(event.url);
       });
+      if (cancelled) {
+        void handle.remove();
+        return;
+      }
       remove = () => void handle.remove();
     });
-    return () => remove?.();
+    return () => {
+      cancelled = true;
+      remove?.();
+    };
   }, [navigate]);
 
   useEffect(() => {
     if (!isNative()) return;
+    let cancelled = false;
     let remove: (() => void) | undefined;
     void import("@capacitor/local-notifications").then(async ({ LocalNotifications }) => {
       const handle = await LocalNotifications.addListener("localNotificationActionPerformed", (event) => {
@@ -591,9 +626,16 @@ export function AppShell() {
         }
         if (extra?.tab === "home") navigate({ tab: "home" });
       });
+      if (cancelled) {
+        void handle.remove();
+        return;
+      }
       remove = () => void handle.remove();
     });
-    return () => remove?.();
+    return () => {
+      cancelled = true;
+      remove?.();
+    };
   }, [navigate]);
 
   useEffect(() => {
@@ -643,9 +685,20 @@ export function AppShell() {
         confirmErase={confirmErase}
         onConfirmEraseChange={setConfirmErase}
         onErase={() => {
-          void eraseEverything().then((result) => {
+          void (async () => {
+            // Same bar as Settings: this screen is reachable on a transient
+            // `unavailable` read where the vault is still intact, so a confirm
+            // dialog alone is not enough to wipe it.
+            if (canLock) {
+              const verified = await verifyDeviceOwner(t("settings.eraseEverything"));
+              if (!verified) {
+                toast.error(t("settings.verifyFailed"));
+                return;
+              }
+            }
+            const result = await eraseEverything();
             if (!result.ok) toast.error(t("shell.eraseFailed"));
-          });
+          })();
         }}
       />
     );
@@ -688,6 +741,7 @@ export function AppShell() {
     return (
       <CleanerVisit
         household={forCleanerSession(household)}
+        now={now}
         ownerCheck={canLock === true}
         lockMethod={lockMethod ?? "none"}
         onComplete={completeDuty}
@@ -845,7 +899,7 @@ export function AppShell() {
             />
             <HomeMapView
               household={household}
-              now={new Date()}
+              now={now}
               replacementRooms={nearReplacement}
               onSelectRoom={(roomId) => setRoomOpen(roomId)}
               onReorder={(floorId, ids) =>
@@ -863,7 +917,7 @@ export function AppShell() {
               open={Boolean(roomOpen)}
               roomId={roomOpen ?? ""}
               household={household}
-              now={new Date()}
+              now={now}
               filter="all"
               onOpenChange={(open) => {
                 if (!open) setRoomOpen(null);
@@ -925,6 +979,7 @@ export function AppShell() {
             {pushScreen.tab === "seasonal" ? (
               <SeasonalView
                 household={household}
+                now={now}
                 weatherAttribution={weatherAttribution}
                 forecast={forecast}
                 weatherLine={weather.text}
@@ -1059,13 +1114,15 @@ function LoadFailed({
   const keyMismatch = reason === "key-mismatch";
   const passcodeRequired = reason === "passcode_required";
 
-  async function openIosSettings() {
-    try {
-      const { Browser } = await import("@capacitor/browser");
-      await Browser.open({ url: "app-settings:" });
-    } catch {
-      // Web / missing plugin — ignore.
-    }
+  // `Browser.open` only handles http/https on iOS, so it rejected this URL and
+  // the button did nothing on the one screen where it is the way out. A
+  // top-level navigation is the path a custom scheme needs: Capacitor's
+  // WebViewDelegationHandler cancels any top-level navigation away from the
+  // app URL and hands it to `UIApplication.open`. Fire-and-forget, and
+  // meaningless in the web shell, where the scheme resolves to nothing.
+  function openIosSettings() {
+    if (!isNative()) return;
+    window.location.href = "app-settings:";
   }
 
   if (passcodeRequired) {
@@ -1077,7 +1134,7 @@ function LoadFailed({
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">{t("recovery.passcodeBody")}</p>
         <div className="mt-6 flex flex-col gap-2">
-          <Button className="h-12" onClick={() => void openIosSettings()}>
+          <Button className="h-12" onClick={() => openIosSettings()}>
             {t("recovery.openSettings")}
           </Button>
           <Button variant="secondary" className="h-12" onClick={onRetry}>

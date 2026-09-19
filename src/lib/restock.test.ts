@@ -567,17 +567,33 @@ test("check-in plenty slows the rate and never stores zero", () => {
   assert.ok((after.observedRatePerDay ?? 0) > 0);
 });
 
-test("receiving an order learns cadence from the previous confirmation", () => {
+test("receiving an order learns from units actually consumed, not the whole confirmed pack", () => {
   const before = continuous({
     onHand: 0,
     lastConfirmedLevel: 1,
     lastConfirmedAt: daysAgo(45),
   });
+  // A 90-day lifespan and 45 days elapsed: about half the unit is gone, not all of it.
+  // The old `confirmed / daysBetween` read 1/45 = 0.0222 and ratcheted the rate up on
+  // every receipt, because orders are placed before run-out by design.
   const received = receiveConsumable(before, 1, modelNow);
-  assert.equal(received.observedRatePerDay, 0.0222);
+  assert.equal(received.observedRatePerDay, 0.0111);
   assert.equal(received.lastConfirmedLevel, 1);
   assert.equal(received.lastConfirmedAt, toISODate(modelNow));
   assert.equal(received.onHand, 1);
+});
+
+test("the learned rate does not ratchet up over repeated early re-orders", () => {
+  let current = continuous({ onHand: 0, lastConfirmedLevel: 1, lastConfirmedAt: toISODate(modelNow) });
+  const rates: number[] = [];
+  let at = modelNow;
+  for (let cycle = 0; cycle < 4; cycle += 1) {
+    // Re-ordered 45 days in, halfway through a 90-day unit — the "early order" pattern.
+    at = new Date(at.getFullYear(), at.getMonth(), at.getDate() + 45);
+    current = receiveConsumable({ ...current, onHand: 0 }, 1, at);
+    rates.push(current.observedRatePerDay ?? 0);
+  }
+  assert.equal(rates.every((rate) => rate <= 0.0112), true, `rates drifted: ${rates.join(", ")}`);
 });
 
 test("checkinDue only when approaching the decision zone with a stale lifespan or observed rate", () => {
@@ -812,4 +828,56 @@ test("seeded fuzz of 500 restock sequences stays in a known bucket", () => {
     const placement = restockPlacement(supply, household, now);
     assert.equal(["order_now", "coming_up", "stocked", "ordered"].includes(placement.bucket), true);
   }
+});
+
+test("a restock item whose one-off duty is done does not sit in Order now for ever", () => {
+  const oneOff = duty({ id: "d-once", title: "Replace porch bulb", frequency: "once", dueDate: "2026-06-01" });
+  const household = {
+    duties: [oneOff],
+    completions: [
+      { id: "c1", dutyId: "d-once", actor: "me" as const, visitId: null, completedAt: "2026-06-01T12:00:00.000Z" },
+    ],
+  };
+  const stale = item({
+    dutyId: "d-once",
+    linkedDutyIds: ["d-once"],
+    onHand: 0,
+    orderByDate: "2026-06-01",
+    nextOrderDate: "2026-06-01",
+    lifespanValue: 12,
+    lifespanUnit: "months",
+    reorderAt: 0,
+  });
+  // The duty yields no future dates, so the stale stored date used to pin it to order_now.
+  assert.equal(restockPlacement(stale, household, modelNow).bucket, "order_now");
+
+  const received = receiveConsumable(stale, 1, modelNow);
+  assert.ok(received.orderByDate && received.orderByDate > toISODate(modelNow));
+  assert.equal(received.nextOrderDate, received.orderByDate);
+  assert.equal(restockPlacement(received, household, modelNow).bucket, "stocked");
+
+  // And it stays stocked a month later, instead of snapping back to "Order now".
+  const later = new Date(2026, 8, 24);
+  assert.equal(restockPlacement(received, household, later).bucket, "stocked");
+});
+
+test("a restock item whose duty was deleted falls back to its lifespan runway", () => {
+  const orphan = item({
+    dutyId: "d-gone",
+    linkedDutyIds: ["d-gone"],
+    onHand: 1,
+    orderByDate: "2026-06-01",
+    nextOrderDate: "2026-06-01",
+    lifespanValue: 12,
+    lifespanUnit: "months",
+    installedAt: toISODate(modelNow),
+    lastConfirmedLevel: 1,
+    lastConfirmedAt: toISODate(modelNow),
+    reorderAt: 0,
+  });
+  const household = { duties: [] as Duty[], completions: [] };
+  // A full unit with a year of life left is not "order now", whatever the stale date says.
+  const placement = restockPlacement(orphan, household, modelNow);
+  assert.equal(placement.bucket, "stocked");
+  assert.ok((placement.runwayDays ?? 0) > 300);
 });

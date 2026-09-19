@@ -69,10 +69,17 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("languagechange", refreshDeviceLocale);
 
+    let cancelled = false;
     let removeResume: (() => void) | undefined;
     void import("@capacitor/app")
       .then(async ({ App }) => {
         const handle = await App.addListener("resume", refreshDeviceLocale);
+        // Cleanup can run before this resolves (StrictMode mounts twice);
+        // without the guard the native listener is never removed.
+        if (cancelled) {
+          void handle.remove();
+          return;
+        }
         removeResume = () => {
           void handle.remove();
         };
@@ -80,6 +87,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
 
     return () => {
+      cancelled = true;
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("languagechange", refreshDeviceLocale);
       removeResume?.();

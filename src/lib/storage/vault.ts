@@ -1,3 +1,4 @@
+import { tActive } from "@/i18n";
 import {
   decryptJson,
   encryptJson,
@@ -21,7 +22,7 @@ import {
   loadDeviceKey,
   loadOrCreateDeviceKey,
 } from "@/lib/native/device-key";
-import { kvGet, kvRemove, kvSet } from "@/lib/native/kv";
+import { kvGet, kvKeys, kvRemove, kvSet } from "@/lib/native/kv";
 import { clearWidgetSnapshot, syncWidgetSnapshot } from "@/lib/native/widget";
 import { clearWeatherWatch, syncWeatherWatch } from "@/lib/native/weatherkit";
 import { syncScheduledNotifications } from "@/lib/notifications";
@@ -64,6 +65,7 @@ type VaultIO = {
   kvGet: typeof kvGet;
   kvSet: typeof kvSet;
   kvRemove: typeof kvRemove;
+  kvKeys: typeof kvKeys;
   loadDeviceKey: typeof loadDeviceKey;
   createDeviceKey: typeof createDeviceKey;
   loadOrCreateDeviceKey: typeof loadOrCreateDeviceKey;
@@ -75,6 +77,7 @@ const defaultIO = (): VaultIO => ({
   kvGet,
   kvSet,
   kvRemove,
+  kvKeys,
   loadDeviceKey,
   createDeviceKey,
   loadOrCreateDeviceKey,
@@ -171,7 +174,7 @@ async function resolveDeviceKeyForPersist(): Promise<CryptoKey> {
   if (!existingVault) {
     // Uninstall often leaves the Keychain item. Reuse it when there is
     // nothing to decrypt; mint only when the item is genuinely absent.
-    const minted = await io.loadOrCreateDeviceKey({ reason: "Save your home on this iPhone", keyId: keyId ?? undefined });
+    const minted = await io.loadOrCreateDeviceKey({ reason: tActive("vault.reason.save"), keyId: keyId ?? undefined });
     keyId = getLastMintedKeyId() ?? keyId ?? "v2";
     return minted;
   }
@@ -182,7 +185,7 @@ async function resolveDeviceKeyForPersist(): Promise<CryptoKey> {
   let existingKey: CryptoKey | null = null;
   try {
     existingKey = await io.loadDeviceKey({
-      reason: "Save your home on this iPhone",
+      reason: tActive("vault.reason.save"),
       keyId: envelopeKeyId,
     });
   } catch (error) {
@@ -305,7 +308,7 @@ export async function lockHouseholdSession(): Promise<void> {
  * ACL Keychain get → decrypt → hydrate UI.
  * Cancel stays locked and must not quarantine or mint.
  */
-export async function unlockHousehold(reason = "Unlock Cuidala"): Promise<UnlockHouseholdResult> {
+export async function unlockHousehold(reason = tActive("biometrics.unlockCuidala")): Promise<UnlockHouseholdResult> {
   await persistChain.catch(() => {});
   try {
     let raw = await io.kvGet(VAULT_STORAGE_KEY);
@@ -510,7 +513,7 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
         lastLoad = { ok: true, legacyLockedVault: false, pendingUnlock: true };
         return lastLoad;
       }
-      return decryptVaultRaw(raw, fromPreviousKey, "Unlock Cuidala");
+      return decryptVaultRaw(raw, fromPreviousKey, tActive("biometrics.unlockCuidala"));
     }
 
     // First launch on this build: pick up a plaintext household from the
@@ -566,7 +569,17 @@ export async function eraseHousehold(): Promise<{ ok: boolean }> {
   try {
     await io.kvRemove(VAULT_STORAGE_KEY);
     await io.kvRemove(PREVIOUS_VAULT_KEY);
-    await io.kvRemove(QUARANTINED_VAULT_KEY);
+    // Quarantine and pre-restore copies are written under timestamped names, so
+    // they have to be enumerated: removing the two well-known keys used to leave
+    // every `…-unreadable.<ts>` and `…-snapshot.<ts>` envelope on the device
+    // after the user asked for everything to be erased. A failure here must fail
+    // the erase — memory and the key are only cleared once the disk is clean.
+    const doomed = (await io.kvKeys()).filter(
+      (name) => name.startsWith(QUARANTINED_VAULT_KEY) || name.startsWith(RESTORE_SNAPSHOT_KEY_PREFIX),
+    );
+    for (const name of doomed) {
+      await io.kvRemove(name);
+    }
     await io.deleteDeviceKey();
   } catch {
     return { ok: false };
@@ -610,6 +623,42 @@ export async function exportHouseholdBackup(passphrase: string): Promise<string>
   return sealBackup(JSON.stringify(memory ?? cloneEmpty()), passphrase);
 }
 
+/**
+ * How many timestamped copies of each kind to keep. An unreadable vault is
+ * forensic, not a backlog: without a cap every failed open added another
+ * multi-megabyte envelope that nothing ever removed.
+ */
+const MAX_RETAINED_SLOTS = 3;
+
+function slotTimestamp(name: string, base: string): number {
+  const parsed = Number(name.slice(base.length).replace(/^\./, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** Stored keys that belong to a timestamped family (`base`, `base.<ts>`, `base<ts>`). */
+async function keysWithBase(base: string): Promise<string[]> {
+  try {
+    return (await io.kvKeys()).filter((name) => name.startsWith(base));
+  } catch {
+    // Enumeration is best effort: never fail a quarantine or a restore over it.
+    return [];
+  }
+}
+
+/** Drops all but the newest `MAX_RETAINED_SLOTS` copies, keeping `pinned` whatever its age. */
+async function pruneSlots(base: string, pinned: string | null = null): Promise<void> {
+  const slots = (await keysWithBase(base)).filter((name) => name !== pinned);
+  if (slots.length <= MAX_RETAINED_SLOTS) return;
+  const ordered = slots.sort((a, b) => slotTimestamp(a, base) - slotTimestamp(b, base));
+  for (const name of ordered.slice(0, ordered.length - MAX_RETAINED_SLOTS)) {
+    try {
+      await io.kvRemove(name);
+    } catch {
+      // best effort
+    }
+  }
+}
+
 async function quarantineUnreadableVault() {
   const current = (await io.kvGet(VAULT_STORAGE_KEY)) ?? (await io.kvGet(PREVIOUS_VAULT_KEY));
   if (!current) return;
@@ -619,6 +668,8 @@ async function quarantineUnreadableVault() {
   await io.kvSet(QUARANTINED_VAULT_KEY, current);
   await io.kvRemove(VAULT_STORAGE_KEY);
   await io.kvRemove(PREVIOUS_VAULT_KEY);
+  // The legacy single slot is pinned; only the timestamped copies are capped.
+  await pruneSlots(QUARANTINED_VAULT_KEY, QUARANTINED_VAULT_KEY);
   // Never delete Keychain items here — quarantine must leave every key account intact.
 }
 
@@ -633,6 +684,7 @@ async function snapshotCurrentVaultBeforeRestore(): Promise<string | null> {
   if (!current) return null;
   const slot = `${RESTORE_SNAPSHOT_KEY_PREFIX}${Date.now()}`;
   await io.kvSet(slot, current);
+  await pruneSlots(RESTORE_SNAPSHOT_KEY_PREFIX, slot);
   return slot;
 }
 
@@ -648,30 +700,30 @@ export function canUndoLastRestore(): boolean {
 export async function undoLastRestore(): Promise<{ ok: true } | { ok: false; error: string }> {
   const slot = lastRestoreSnapshotKey;
   if (!slot) {
-    return { ok: false, error: "Nothing to undo." };
+    return { ok: false, error: tActive("vault.err.nothingToUndo") };
   }
   await persistChain.catch(() => {});
   try {
     const raw = await io.kvGet(slot);
     if (!raw) {
       lastRestoreSnapshotKey = null;
-      return { ok: false, error: "The restore snapshot is gone." };
+      return { ok: false, error: tActive("vault.err.snapshotGone") };
     }
     const envelope = parseEnvelopeJson(raw);
     if (!envelope) {
       lastRestoreSnapshotKey = null;
-      return { ok: false, error: "The restore snapshot is unreadable." };
+      return { ok: false, error: tActive("vault.err.snapshotUnreadable") };
     }
     const snapshotKeyId = envelope.keyId ?? "v2";
     let snapshotKey = key;
     if (!snapshotKey || snapshotKeyId !== (keyId ?? "v2")) {
       snapshotKey = await io.loadDeviceKey({
-        reason: "Undo last restore",
+        reason: tActive("vault.reason.undoRestore"),
         keyId: snapshotKeyId,
       });
     }
     if (!snapshotKey) {
-      return { ok: false, error: "Couldn’t unlock the previous home." };
+      return { ok: false, error: tActive("vault.err.previousLocked") };
     }
     const household = parseStored(await decryptJson(snapshotKey, envelope));
     if (!key) {
@@ -693,7 +745,7 @@ export async function undoLastRestore(): Promise<{ ok: true } | { ok: false; err
     return { ok: true };
   } catch {
     persistOk = false;
-    return { ok: false, error: "Couldn’t undo that restore. Try again." };
+    return { ok: false, error: tActive("vault.err.undoFailed") };
   }
 }
 
@@ -729,7 +781,7 @@ export async function importHouseholdBackup(
       persistOk = false;
       return {
         ok: false,
-        error: "Restored, but it couldn’t be saved to this iPhone. Try again.",
+        error: tActive("vault.err.restoredNotSaved"),
       };
     }
     lastLoad = { ok: true, legacyLockedVault: false };
@@ -738,7 +790,7 @@ export async function importHouseholdBackup(
     void syncScheduledNotifications(household).catch(() => {});
     return { ok: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Couldn’t open that backup.";
+    const message = error instanceof Error ? error.message : tActive("vault.err.openBackup");
     return { ok: false, error: message };
   }
 }

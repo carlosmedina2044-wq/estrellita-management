@@ -343,3 +343,51 @@ test("migrates purchases and a maintenance fund from stored JSON", () => {
   assert.equal(householdData.purchases[0]?.actualCost, 18.5);
   assert.equal(householdData.assets[0]?.deferredUntil, "2027-03-01");
 });
+
+test("a costed completion is not swallowed by an unrelated purchase later the same month", () => {
+  const home = household({
+    duties: [
+      {
+        id: "duty-filt1",
+        title: "Replace HVAC filter",
+        notes: "",
+        room: "kitchen",
+        nodeId: "kitchen",
+        nodeType: "room",
+        audience: "me",
+        effort: "small",
+        frequency: "quarterly",
+        kind: "replacement",
+        weekday: 0,
+        monthDay: 1,
+        dueDate: null,
+        priority: "medium",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        archived: false,
+      },
+    ],
+    completions: [
+      {
+        id: "comp-aug03",
+        dutyId: "duty-filt1",
+        actor: "me",
+        visitId: null,
+        completedAt: "2026-08-03T12:00:00.000Z",
+        actualCost: 19,
+      },
+    ],
+    purchases: [
+      {
+        id: "purchase-aug20",
+        completedAt: "2026-08-20T12:00:00.000Z",
+        actualCost: 22,
+        label: "HVAC filter",
+        kind: "consumable",
+        dutyId: "duty-filt1",
+      },
+    ],
+  });
+  const summary = spendingSummary(home, { months: 6, plannedMonthly: 200, now });
+  assert.equal(summary.entries.length, 2);
+  assert.equal(summary.actual, 41);
+});

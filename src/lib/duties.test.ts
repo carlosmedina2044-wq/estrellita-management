@@ -8,6 +8,8 @@ import {
   doneThisWeek,
   doneToday,
   dutySubtitle,
+  isDoneThisPeriod,
+  isDueToday,
   isOverdue,
   lastDoneInRoom,
   nextDueDate,
@@ -408,4 +410,18 @@ test("shareDoneText appends a month recap after five completions", () => {
   const text = shareDoneText(home, [], now);
   assert.match(text, /Nothing completed yet/);
   assert.match(text, /5 finished this month · 50 min/);
+});
+
+test("a weekly chore finished the evening before its weekday counts for that week", () => {
+  const trash = duty({ title: "Trash", frequency: "weekly", weekday: 1 });
+  const monday = new Date(2026, 8, 21, 8, 0); // Monday
+  const sundayNight = [
+    { id: "c1", dutyId: trash.id, actor: "me" as const, visitId: null, completedAt: new Date(2026, 8, 20, 21, 30).toISOString() },
+  ];
+  assert.equal(isDoneThisPeriod(trash, sundayNight, monday), true);
+  assert.equal(isDueToday(trash, sundayNight, monday), false);
+  // The following Monday it is due again.
+  const nextMonday = new Date(2026, 8, 28, 8, 0);
+  assert.equal(isDoneThisPeriod(trash, sundayNight, nextMonday), false);
+  assert.equal(isDueToday(trash, sundayNight, nextMonday), true);
 });

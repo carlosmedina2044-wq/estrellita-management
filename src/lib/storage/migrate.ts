@@ -92,7 +92,17 @@ function take(value: unknown, limit: number): unknown[] {
   return asArray(value).slice(0, limit);
 }
 
-const FREQUENCIES: Frequency[] = ["once", "daily", "weekly", "monthly", "quarterly", "yearly"];
+// Must list every Frequency: an unlisted value is coerced to "weekly" by
+// `asEnum`, which would silently re-cadence a stored duty on load.
+const FREQUENCIES: Frequency[] = [
+  "once",
+  "daily",
+  "weekly",
+  "monthly",
+  "quarterly",
+  "semiannual",
+  "yearly",
+];
 const LIFESPAN_UNITS: LifespanUnit[] = ["days", "months", "years"];
 const AUDIENCES: Audience[] = ["me", "cleaner", "anyone"];
 const EFFORTS = ["small", "medium", "large"] as const;

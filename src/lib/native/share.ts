@@ -1,7 +1,10 @@
 import { tActive } from "@/i18n";
 import { isNative } from "@/lib/native/platform";
 
-export async function shareText(title: string, text: string): Promise<"shared" | "copied" | "failed"> {
+export async function shareText(
+  title: string,
+  text: string,
+): Promise<"shared" | "cancelled" | "copied" | "failed"> {
   try {
     if (isNative()) {
       const { Share } = await import("@capacitor/share");
@@ -12,13 +15,28 @@ export async function shareText(title: string, text: string): Promise<"shared" |
       await navigator.share({ title, text });
       return "shared";
     }
-  } catch {
-    // user cancelled or share unavailable; fall through to clipboard
+  } catch (error) {
+    // A dismissed share sheet is not a failure to share: falling through to the
+    // clipboard would claim "Copied" for something the user chose not to send,
+    // and the 60s wipe below would then clear whatever they copied since.
+    const message = error instanceof Error ? error.message : String(error);
+    const name = error instanceof Error ? error.name : "";
+    if (name === "AbortError" || /abort|cancel/i.test(message)) return "cancelled";
+    // otherwise the share sheet is unavailable; fall through to the clipboard
   }
   try {
     await navigator.clipboard.writeText(text);
     window.setTimeout(() => {
-      void navigator.clipboard.writeText("").catch(() => {});
+      void (async () => {
+        try {
+          // Only clear what we put there; the user may have copied something else since.
+          const current = await navigator.clipboard.readText();
+          if (current !== text) return;
+          await navigator.clipboard.writeText("");
+        } catch {
+          // clipboard unreadable (permission) — leave it alone rather than wipe it
+        }
+      })();
     }, 60_000);
     return "copied";
   } catch {

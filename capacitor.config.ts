@@ -21,14 +21,23 @@ const config: CapacitorConfig = {
     limitsNavigationsToAppBoundDomains: false,
     scheme: "Cuidala",
     loggingBehavior: "none",
+    // Capacitor's iOS default is YES: a long-press on any link renders the
+    // third-party page inside the app's own WebKit process. Nothing here
+    // benefits from a peek, so it stays off.
+    allowsLinkPreview: false,
   },
   plugins: {
     LocalNotifications: {
       iconColor: "#9A5A35",
     },
     SplashScreen: {
+      // No `backgroundColor` on purpose. The plugin re-instantiates the
+      // LaunchScreen storyboard and, when this key is set, overwrites the
+      // storyboard's background with that one static hex — which defeated the
+      // `LaunchBackground` colour set (cream / #1f1a16) and flashed cream on a
+      // dark launch. Left unset, the storyboard's own dynamic colour applies,
+      // and `Splash.imageset` carries a matching dark artwork.
       launchAutoHide: false,
-      backgroundColor: "#faf6ef",
       showSpinner: false,
     },
     CapacitorHttp: { enabled: false },
