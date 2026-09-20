@@ -49,7 +49,7 @@ export function QuestCard({ quest, now = new Date() }: { quest: Quest; now?: Dat
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
     >
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex items-center justify-between gap-3">
         <p className={cn("ui-caption", quest.done ? "text-done" : "text-muted-foreground")}>
           {t("quest.title")}
           {/* The deadline belongs with the week, not under the body: a goal

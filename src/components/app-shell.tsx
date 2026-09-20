@@ -72,6 +72,9 @@ export function AppShell() {
     markSupplyOrdered,
     markSupplyReceived,
     checkinSupply,
+    addAnotherSize,
+    addHaul,
+    removeHaul,
     saveSupplyLink,
     preferSupplyRetailer,
     stillWaitingSupply,
@@ -112,6 +115,10 @@ export function AppShell() {
   const [stack, setStack] = useState<AppNavigateTarget[]>([]);
   const [nav, setNav] = useState<AppNavigateTarget | null>(null);
   const [roomOpen, setRoomOpen] = useState<string | null>(null);
+  // Window taps on Today open the room sheet via the Home tab. Remember to
+  // put the user back on Today when that sheet closes, instead of leaving
+  // them on Home.
+  const [roomReturnTab, setRoomReturnTab] = useState<RootTab | null>(null);
   const top = stack[stack.length - 1] ?? null;
   const backLabel = rootTab === "today" ? t("tabs.today") : rootTab === "restock" ? t("tabs.restock") : t("tabs.home");
   const reduceMotion = prefersReducedMotion();
@@ -159,9 +166,14 @@ export function AppShell() {
   const navigate = useCallback((target: AppNavigateTarget) => {
     setNav(target);
     if (isRootTab(target.tab)) {
-      setRootTab(target.tab);
       // A window tap on Today lands on Home with that room's sheet open.
-      if (target.tab === "home" && target.roomId) setRoomOpen(target.roomId);
+      if (target.tab === "home" && target.roomId) {
+        setRoomOpen(target.roomId);
+        setRoomReturnTab(rootTab === "today" ? "today" : null);
+      } else {
+        setRoomReturnTab(null);
+      }
+      setRootTab(target.tab);
       setStack((current) => {
         const leaving = current[current.length - 1];
         if (leaving) window.setTimeout(() => beginPushExit(leaving), 0);
@@ -175,7 +187,7 @@ export function AppShell() {
       if (last?.tab === target.tab) return [...current.slice(0, -1), target];
       return [...current, target];
     });
-  }, [beginPushExit, cancelPushExit]);
+  }, [beginPushExit, cancelPushExit, rootTab]);
 
   const clearPushStack = useCallback(() => {
     setStack((current) => {
@@ -304,8 +316,17 @@ export function AppShell() {
       }
       return next;
     });
+    setRoomReturnTab(null);
     clearPushStack();
   }, [clearPushStack, top, leavingPush]);
+
+  const closeRoomSheet = useCallback(() => {
+    setRoomOpen(null);
+    if (roomReturnTab) {
+      setRootTab(roomReturnTab);
+      setRoomReturnTab(null);
+    }
+  }, [roomReturnTab]);
   const handleFocusHandled = useCallback(() => {
     setNav((current) =>
       current
@@ -777,6 +798,9 @@ export function AppShell() {
     onChangeArrival: changeSupplyArrival,
     onApplyLeadTime: applySupplyLeadTime,
     onCheckin: checkinSupply,
+    onAddAnotherSize: addAnotherSize,
+    onAddHaulItem: addHaul,
+    onRemoveHaulItem: removeHaul,
     onMarkTip: (tip: string) => updateTree((current) => markTipSeen(current, tip)),
   };
 
@@ -868,7 +892,7 @@ export function AppShell() {
         <div
           hidden={!homeActive}
           inert={!homeActive}
-          className="app-keep-alive"
+          className="app-keep-alive app-keep-alive-inset"
           data-entering={homeFirstReveal ? "true" : undefined}
           ref={(node) => {
             tabPaneRefs.current.home = node;
@@ -894,6 +918,7 @@ export function AppShell() {
               onNavigate={navigate}
               onAddInstallDate={() => {
                 const first = household.assets[0];
+                setRoomReturnTab(null);
                 setRoomOpen(first?.roomId ?? "whole-home");
               }}
             />
@@ -901,7 +926,10 @@ export function AppShell() {
               household={household}
               now={now}
               replacementRooms={nearReplacement}
-              onSelectRoom={(roomId) => setRoomOpen(roomId)}
+              onSelectRoom={(roomId) => {
+                setRoomReturnTab(null);
+                setRoomOpen(roomId);
+              }}
               onReorder={(floorId, ids) =>
                 updateTree((current) => ({
                   ...current,
@@ -920,7 +948,7 @@ export function AppShell() {
               now={now}
               filter="all"
               onOpenChange={(open) => {
-                if (!open) setRoomOpen(null);
+                if (!open) closeRoomSheet();
               }}
               onToggle={(duty, completed) => (completed ? undoCompletion(duty.id) : completeDuty(duty.id))}
               onSaveDuty={saveDuty}
@@ -933,7 +961,7 @@ export function AppShell() {
         <div
           hidden={!restockActive}
           inert={!restockActive}
-          className="app-keep-alive"
+          className="app-keep-alive app-keep-alive-inset"
           data-entering={restockFirstReveal ? "true" : undefined}
           ref={(node) => {
             tabPaneRefs.current.restock = node;
@@ -967,67 +995,69 @@ export function AppShell() {
               window.setTimeout(() => clearEdgeStyles(), 320);
             }}
           >
-            {pushScreen.tab === "budget" ? (
-              <BudgetView
-                household={household}
-                onChange={(updater) => updateTree(updater)}
-                onNavigate={navigate}
-                onBack={popStack}
-                backLabel={pushBackLabel}
-              />
-            ) : null}
-            {pushScreen.tab === "seasonal" ? (
-              <SeasonalView
-                household={household}
-                now={now}
-                weatherAttribution={weatherAttribution}
-                forecast={forecast}
-                weatherLine={weather.text}
-                needsZip={weather.needsZip}
-                weatherError={weatherError ?? household.weatherStatus.lastError}
-                onSavePostalCode={savePostalCode}
-                onAccept={acceptPlaybook}
-                onDecline={declinePlaybook}
-                onReconsider={reconsiderPlaybook}
-                onToggleAttribute={(key) =>
-                  updateHome({ attributes: { ...household.attributes, [key]: !household.attributes[key] } })
-                }
-                onBack={popStack}
-                backLabel={pushBackLabel}
-                focusPlaybookId={pushScreen.playbookId}
-              />
-            ) : null}
-            {pushScreen.tab === "settings" ? (
-              <HomeView
-                household={household}
-                onUpdate={updateHome}
-                onSavePostalCode={savePostalCode}
-                onStartCleanerVisit={startCleanerVisit}
-                onChangeTree={(next) => updateTree(() => next)}
-                onErase={eraseEverything}
-                onExportBackup={exportBackup}
-                onImportBackup={importBackup}
-                canUndoRestore={canUndoRestore}
-                onUndoRestore={undoRestore}
-                canLock={canLock === true}
-                lockMethod={lockMethod ?? "none"}
-                restockDigest={household.restockDigest}
-                onUpdateDigest={updateRestockDigest}
-                morningBrief={household.morningBrief}
-                onUpdateMorningBrief={updateMorningBrief}
-                eveningNudge={eveningNudgeSettings(household)}
-                onUpdateEveningNudge={updateEveningNudge}
-                onUpdateMomentum={updateMomentum}
-                focusAssetId={nav?.assetId}
-                onFocusHandled={handleFocusHandled}
-                onOpenYear={() => navigate({ tab: "year" })}
-                onBack={popStack}
-                backLabel={pushBackLabel}
-              />
-            ) : null}
-            {pushScreen.tab === "year" ? (
-              <YearView household={household} now={now} onBack={popStack} backLabel={pushBackLabel} />
-            ) : null}
+            <div className="app-shell-push-body">
+              {pushScreen.tab === "budget" ? (
+                <BudgetView
+                  household={household}
+                  onChange={(updater) => updateTree(updater)}
+                  onNavigate={navigate}
+                  onBack={popStack}
+                  backLabel={pushBackLabel}
+                />
+              ) : null}
+              {pushScreen.tab === "seasonal" ? (
+                <SeasonalView
+                  household={household}
+                  now={now}
+                  weatherAttribution={weatherAttribution}
+                  forecast={forecast}
+                  weatherLine={weather.text}
+                  needsZip={weather.needsZip}
+                  weatherError={weatherError ?? household.weatherStatus.lastError}
+                  onSavePostalCode={savePostalCode}
+                  onAccept={acceptPlaybook}
+                  onDecline={declinePlaybook}
+                  onReconsider={reconsiderPlaybook}
+                  onToggleAttribute={(key) =>
+                    updateHome({ attributes: { ...household.attributes, [key]: !household.attributes[key] } })
+                  }
+                  onBack={popStack}
+                  backLabel={pushBackLabel}
+                  focusPlaybookId={pushScreen.playbookId}
+                />
+              ) : null}
+              {pushScreen.tab === "settings" ? (
+                <HomeView
+                  household={household}
+                  onUpdate={updateHome}
+                  onSavePostalCode={savePostalCode}
+                  onStartCleanerVisit={startCleanerVisit}
+                  onChangeTree={(next) => updateTree(() => next)}
+                  onErase={eraseEverything}
+                  onExportBackup={exportBackup}
+                  onImportBackup={importBackup}
+                  canUndoRestore={canUndoRestore}
+                  onUndoRestore={undoRestore}
+                  canLock={canLock === true}
+                  lockMethod={lockMethod ?? "none"}
+                  restockDigest={household.restockDigest}
+                  onUpdateDigest={updateRestockDigest}
+                  morningBrief={household.morningBrief}
+                  onUpdateMorningBrief={updateMorningBrief}
+                  eveningNudge={eveningNudgeSettings(household)}
+                  onUpdateEveningNudge={updateEveningNudge}
+                  onUpdateMomentum={updateMomentum}
+                  focusAssetId={nav?.assetId}
+                  onFocusHandled={handleFocusHandled}
+                  onOpenYear={() => navigate({ tab: "year" })}
+                  onBack={popStack}
+                  backLabel={pushBackLabel}
+                />
+              ) : null}
+              {pushScreen.tab === "year" ? (
+                <YearView household={household} now={now} onBack={popStack} backLabel={pushBackLabel} />
+              ) : null}
+            </div>
           </div>
         ) : null}
       </main>

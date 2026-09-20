@@ -80,6 +80,54 @@ export async function shareBackupFile(
   }
 }
 
+/** Shares a .ics file so the OS calendar app can offer to add it — no
+ * EventKit permission, because nothing here reads or writes the calendar
+ * database, only hands the share sheet a file. On the web it downloads,
+ * since there's no share sheet for the browser to hand a file to. */
+export async function shareIcsFile(
+  ics: string,
+  filename: string,
+  title: string,
+): Promise<"shared" | "cancelled" | "failed"> {
+  if (isNative()) {
+    const { Directory, Encoding, Filesystem } = await import("@capacitor/filesystem");
+    const { Share } = await import("@capacitor/share");
+    try {
+      await Filesystem.writeFile({
+        path: filename,
+        data: ics,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+        recursive: true,
+      });
+      const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+      await Share.share({ title, files: [uri], dialogTitle: title });
+      return "shared";
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return /cancel/i.test(message) ? "cancelled" : "failed";
+    } finally {
+      try {
+        await Filesystem.deleteFile({ path: filename, directory: Directory.Cache });
+      } catch {
+        // already gone
+      }
+    }
+  }
+  try {
+    const blob = new Blob([ics], { type: "text/calendar" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    return "shared";
+  } catch {
+    return "failed";
+  }
+}
+
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

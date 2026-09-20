@@ -56,6 +56,8 @@ import { rememberRetailerLink } from "@/lib/retailer";
 import {
   applyLearnedLeadTime,
   applyCheckin,
+  addHaulItem,
+  addSupplySize,
   changeArrivalDate,
   consumeLinkedUnit,
   defaultConsumableFields,
@@ -63,9 +65,11 @@ import {
   markConsumableOrdered,
   neverCameConsumable,
   receiveConsumable,
+  removeHaulItem,
   restoreLinkedUnit,
   saveRetailerLink,
   stillWaitingConsumable,
+  type AddSupplySizeInput,
   type CheckinLevel,
   type MarkOrderedDetails,
 } from "@/lib/restock";
@@ -256,6 +260,27 @@ export function useHousehold() {
           item.id === id ? applyCheckin(item, level, current) : item,
         ),
       }));
+    },
+    [update],
+  );
+
+  const addAnotherSize = useCallback(
+    (input: AddSupplySizeInput) => {
+      update((current) => addSupplySize(current, input));
+    },
+    [update],
+  );
+
+  const addHaul = useCallback(
+    (name: string) => {
+      update((current) => addHaulItem(current, name));
+    },
+    [update],
+  );
+
+  const removeHaul = useCallback(
+    (id: string) => {
+      update((current) => removeHaulItem(current, id));
     },
     [update],
   );
@@ -822,6 +847,9 @@ export function useHousehold() {
     markSupplyOrdered,
     markSupplyReceived,
     checkinSupply,
+    addAnotherSize,
+    addHaul,
+    removeHaul,
     saveSupplyLink,
     preferSupplyRetailer,
     stillWaitingSupply,

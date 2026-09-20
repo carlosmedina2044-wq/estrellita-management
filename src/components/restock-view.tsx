@@ -13,7 +13,9 @@ import { RestockOrderButton, restockButtonProps } from "@/components/restock-ord
 import { SupplyCheckinSheet } from "@/components/supply-checkin-sheet";
 import { SupplyGauge } from "@/components/supply-gauge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { TeachingTip } from "@/components/teaching-tip";
+import { toast } from "sonner";
 import { formatDueDate } from "@/lib/dates";
 import { roomName } from "@/lib/home-model";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -31,6 +33,7 @@ import {
   checkinDue,
   digestCandidates,
   groupRestock,
+  matchTrackedSupply,
   orderNowCostCaption,
   restockPlacement,
   usedWhere,
@@ -66,6 +69,24 @@ export function RestockView({
   const [walkPicks, setWalkPicks] = useState<RestockPick[]>(SAMPLE_RESTOCK_PICKS);
   const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
   const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
+  const [haulDraft, setHaulDraft] = useState("");
+  const haulItems = household.haulItems ?? [];
+  const haulMatch = haulDraft.trim() ? matchTrackedSupply(household.supplyAutomations, haulDraft) : undefined;
+
+  function submitHaulDraft() {
+    const name = haulDraft.trim();
+    if (!name) return;
+    restock.onAddHaulItem?.(name);
+    toast.success(t("restock.pickedUpAdded", { name }));
+    setHaulDraft("");
+  }
+
+  function flagMatchLow() {
+    if (!haulMatch) return;
+    restock.onCheckin?.(haulMatch.id, "low");
+    toast.success(t("supply.updated"));
+    setHaulDraft("");
+  }
   const [quickAdd, setQuickAdd] = useState(false);
   const [focusSize, setFocusSize] = useState(false);
   const [checkinItem, setCheckinItem] = useState<SupplyAutomation | null>(null);
@@ -131,6 +152,64 @@ export function RestockView({
           ) : null
         }
       />
+
+      <div className="rounded-2xl bg-card px-4 py-4">
+        <p className="ui-card font-medium">{t("restock.needSomething")}</p>
+        <div className="mt-2 flex gap-2">
+          <Input
+            value={haulDraft}
+            onChange={(event) => setHaulDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !haulMatch) submitHaulDraft();
+            }}
+            placeholder={t("restock.needSomethingPlaceholder")}
+            className="h-11 flex-1"
+            maxLength={60}
+          />
+          {!haulMatch ? (
+            <Button type="button" variant="secondary" className="h-11" onClick={submitHaulDraft} disabled={!haulDraft.trim()}>
+              {t("common.add")}
+            </Button>
+          ) : null}
+        </div>
+        {haulMatch ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex h-9 items-center rounded-full bg-primary px-3 ui-caption font-medium text-primary-foreground"
+              onClick={flagMatchLow}
+            >
+              {t("restock.flagLowChip", { name: haulMatch.itemName })}
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center ui-caption font-medium text-primary"
+              onClick={submitHaulDraft}
+            >
+              {t("restock.addAsNew")}
+            </button>
+          </div>
+        ) : null}
+        {haulItems.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
+            <p className="ui-caption font-medium text-muted-foreground">{t("restock.pickUp")}</p>
+            {haulItems.map((haulItem) => (
+              <button
+                key={haulItem.id}
+                type="button"
+                className="flex min-h-11 items-center gap-2 text-left active:bg-foreground/6"
+                onClick={() => restock.onRemoveHaulItem?.(haulItem.id)}
+              >
+                <span
+                  aria-hidden
+                  className="flex size-5 shrink-0 items-center justify-center rounded-full border border-muted-foreground/40"
+                />
+                <span className="ui-body">{haulItem.name}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       {household.supplyAutomations.length === 0 ? (
         <div className="rounded-2xl bg-card px-5 py-10 text-center">

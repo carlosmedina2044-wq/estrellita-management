@@ -146,7 +146,7 @@ test("widgetSnapshotFor is empty when nothing is due or done", () => {
   assert.equal(snap.careLabel, "Settling in");
   // A clear day counts toward the closed-day run.
   assert.equal(snap.runLength, 1);
-  assert.equal(snap.runLabel, "Day 1");
+  assert.equal(snap.runLabel, "1-day streak");
 });
 
 test("widgetSnapshotFor clears momentum fields when momentum is off", () => {

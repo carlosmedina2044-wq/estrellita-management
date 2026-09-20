@@ -53,7 +53,7 @@ test("briefCopy prefixes a run of two or more when momentum is on", () => {
   const { current } = closedDayRun(home, now);
   assert.ok(current >= 2);
   const copy = briefCopy([{ title: "Wipe counters" }], false, home, now);
-  assert.equal(copy.title, `Day ${current} · 1 chore today`);
+  assert.equal(copy.title, `${current}-day streak · 1 chore today`);
   assert.equal(copy.body, "Wipe counters");
 });
 
@@ -71,7 +71,7 @@ test("briefCopy private mode keeps counts and hides duty titles", () => {
   const home = household();
   const { current } = closedDayRun(home, now);
   const copy = briefCopy([{ title: "Secret HVAC filter" }], true, home, now);
-  assert.equal(copy.title, `Day ${current} · 1 chore today`);
+  assert.equal(copy.title, `${current}-day streak · 1 chore today`);
   assert.equal(copy.body, "Open Cuidala for details.");
   assert.equal(copy.body.includes("Secret HVAC filter"), false);
 });
@@ -88,7 +88,7 @@ test("only today's brief carries the run count", () => {
   assert.ok(current >= 2);
   const notices = morningBriefNotifications(home, early);
   assert.ok(notices.length > 1, `expected several briefs, got ${notices.length}`);
-  assert.equal(notices[0]?.title, `Day ${current} · 1 chore today`);
+  assert.equal(notices[0]?.title, `${current}-day streak · 1 chore today`);
   // Day+1..+6 must not promise today's run, which may well be broken by then.
   for (const notice of notices.slice(1)) {
     assert.equal(notice.title, "1 chore today");

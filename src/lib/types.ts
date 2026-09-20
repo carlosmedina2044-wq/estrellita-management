@@ -254,6 +254,10 @@ export type SupplyAutomation = {
   lastConfirmedAt?: string;
   /** Learned consumption rate in units per day, from observed purchase intervals. */
   observedRatePerDay?: number;
+  /** ISO timestamp. Set by a "low" or "out" check-in (or saying "I'm low on
+   * X"); pins the item to Order now regardless of the rate model until it's
+   * received. Cleared on receive or a fuller check-in. */
+  flaggedLowAt?: string;
 };
 
 export type SupplyAutomationInput = {
@@ -469,6 +473,17 @@ export type Household = {
   /** ISO dates the app was opened, oldest first, capped at 400. On-device
    * only; it feeds the "days you opened the house" tile on the year view. */
   checkIns?: string[];
+  /** Untracked things to pick up — "milk", "toilet paper" — said once and
+   * gone once checked off. No cadence, no duty: a name matched to a tracked
+   * supply is flagged low there instead (see flaggedLowAt) and never becomes
+   * a haul item. */
+  haulItems?: HaulItem[];
+};
+
+export type HaulItem = {
+  id: string;
+  name: string;
+  addedAt: string;
 };
 
 export type TeachingProgress = {

@@ -362,6 +362,26 @@
 }
 
 /*
+ * Home / Restock pull up into the roots' safe-area padding (same trick Today
+ * uses for the sky) and pin an opaque shield so scrolled rows cannot sit under
+ * the Dynamic Island. Today keeps `.app-pane-bleed` and its own scene chrome.
+ */
+.app-keep-alive-inset {
+  margin-top: calc(-1 * max(0.75rem, env(safe-area-inset-top)));
+}
+
+.app-keep-alive-inset::before {
+  content: "";
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: block;
+  height: max(0.75rem, env(safe-area-inset-top));
+  background: var(--background);
+  pointer-events: none;
+}
+
+/*
  * Lets a pane's content run edge to edge. The shell pads its panes with px-4,
  * and `.app-keep-alive` clips overflow-x, so a child's negative margin could
  * not actually reach the screen edge — the Today sky sat inset with a strip of
@@ -376,14 +396,14 @@
 
 /* Hide scrollbar chrome; keep overflow scrolling. */
 .app-keep-alive,
-.app-shell-push,
+.app-shell-push-body,
 [data-keyboard-scroll],
 .app-h-scroll {
   scrollbar-width: none; /* Firefox */
 }
 
 .app-keep-alive::-webkit-scrollbar,
-.app-shell-push::-webkit-scrollbar,
+.app-shell-push-body::-webkit-scrollbar,
 [data-keyboard-scroll]::-webkit-scrollbar,
 .app-h-scroll::-webkit-scrollbar {
   width: 0;
@@ -439,6 +459,10 @@
   opacity: 0;
 }
 
+/*
+ * Safe-area padding lives on the outer chrome, not the scroller — otherwise
+ * Settings titles scroll under the Dynamic Island as soon as the page moves.
+ */
 .app-shell-push {
   position: absolute;
   inset: 0;
@@ -446,15 +470,21 @@
   display: flex;
   min-height: 0;
   flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  animation: app-shell-push-in var(--dur-base) var(--ease-out) both;
+}
+
+.app-shell-push-body {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
-  background: var(--background);
   padding-inline: 1rem;
-  padding-top: max(0.75rem, env(safe-area-inset-top));
   padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
-  animation: app-shell-push-in var(--dur-base) var(--ease-out) both;
 }
 
 .app-shell-push[data-leaving="true"] {
@@ -545,8 +575,16 @@ html.keyboard-open .app-shell-main {
   padding-bottom: calc(1.5rem + var(--keyboard-inset));
 }
 
+/*
+ * Hide the tab bar whenever a field is focused, not only when the soft
+ * keyboard has shrunk the visual viewport. WKWebView's accessory bar (↑↓ ✓)
+ * often appears with little or no inset, and otherwise sits on top of the
+ * tab labels.
+ */
 html.keyboard-open .app-tab-bar,
-html.keyboard-open .app-fab {
+html.keyboard-open .app-fab,
+html.field-focused .app-tab-bar,
+html.field-focused .app-fab {
   visibility: hidden;
   pointer-events: none;
 }

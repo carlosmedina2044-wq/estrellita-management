@@ -4,18 +4,23 @@ import { addDays, toISODate } from "@/lib/dates";
 import { digestCopy, shouldSendDigest } from "@/lib/digest";
 import { expectedArrivalFor } from "@/lib/supply";
 import { openBackup, sealBackup } from "@/lib/backup";
+import { withHouseholdDefaults } from "@/lib/household-defaults";
 import { parseStored } from "@/lib/storage";
 import {
+  addHaulItem,
+  addSupplySize,
   applyCheckin,
   applyLearnedLeadTime,
   changeArrivalDate,
   checkinDue,
   closestArrivalOffset,
+  consumablesForDuty,
   consumeLinkedUnit,
   digestCandidates,
   estimatedLevel,
   groupRestock,
   markConsumableOrdered,
+  matchTrackedSupply,
   orderNowCostCaption,
   orderNowOnHandCaption,
   neverCameConsumable,
@@ -24,6 +29,7 @@ import {
   rateBasedOrderByDate,
   ratePerDayFor,
   receiveConsumable,
+  removeHaulItem,
   restockPlacement,
   runwayDaysFor,
   runwayFor,
@@ -93,6 +99,27 @@ const household: Pick<Household, "duties" | "completions"> = {
   duties: [filterDuty],
   completions: [],
 };
+
+function fullHousehold(overrides: Partial<Household> = {}): Household {
+  return withHouseholdDefaults({
+    version: 8,
+    householdName: "Casa",
+    ownerName: "",
+    cleanerName: "",
+    onboarded: true,
+    mode: "owner",
+    activeVisitId: null,
+    homeId: "home",
+    floors: [],
+    rooms: [],
+    assets: [],
+    duties: [],
+    completions: [],
+    visits: [],
+    supplyAutomations: [],
+    ...overrides,
+  });
+}
 
 const now = new Date(2026, 7, 23);
 
@@ -406,6 +433,125 @@ test("replacement duties show part, arriving, order-first, and install-today chi
     partStatusForDuty(change, { ...house, supplyAutomations: [item({ onHand: 0 })] }, now)?.kind,
     "order_first",
   );
+});
+
+test("two AC units of different sizes: the missing one wins the chip", () => {
+  const change = duty({ id: "d1", title: "Change HVAC filter", kind: "replacement", frequency: "once", dueDate: "2026-08-23" });
+  const house = { duties: [change], completions: [] };
+  const sizeA = item({ id: "s-a", itemName: "HVAC filter", sizeSpec: "16x25x1", onHand: 1 });
+  const sizeB = item({ id: "s-b", itemName: "HVAC filter", sizeSpec: "20x25x1", onHand: 0 });
+  // One size on hand and ready, the other out — the chore can't be closed
+  // with just one filter, so the chip must say "order first", not "ready".
+  assert.equal(
+    partStatusForDuty(change, { ...house, supplyAutomations: [sizeA, sizeB] }, now)?.kind,
+    "order_first",
+  );
+  // Both on hand: the milder status shows.
+  assert.equal(
+    partStatusForDuty(change, { ...house, supplyAutomations: [sizeA, item({ ...sizeB, onHand: 1 }) ] }, now)?.kind,
+    "install_today",
+  );
+});
+
+test("addSupplySize tracks a second filter size on the same chore", () => {
+  const original = item({ id: "s-a", itemName: "HVAC filter", sizeSpec: "16x25x1" });
+  const home = fullHousehold({ duties: [filterDuty], supplyAutomations: [original] });
+  const next = addSupplySize(
+    home,
+    { dutyId: "d1", itemName: "HVAC filter", sizeSpec: "20x25x1", lifespanValue: 3, lifespanUnit: "months" },
+    now,
+  );
+  assert.equal(next.supplyAutomations.length, 2);
+  const linked = consumablesForDuty(next.supplyAutomations, "d1");
+  assert.equal(linked.length, 2);
+  const sizes = linked.map((entry) => entry.sizeSpec).sort();
+  assert.deepEqual(sizes, ["16x25x1", "20x25x1"]);
+  const added = linked.find((entry) => entry.sizeSpec === "20x25x1")!;
+  assert.equal(added.onHand, 1);
+  assert.equal(added.dutyId, "d1");
+  assert.deepEqual(added.linkedDutyIds, ["d1"]);
+  // The first size is untouched — this is what applyDutySave would have
+  // clobbered, since it treats a duty and its supply as 1:1.
+  const untouched = linked.find((entry) => entry.sizeSpec === "16x25x1")!;
+  assert.equal(untouched.id, "s-a");
+});
+
+test("addSupplySize is a no-op for a size already tracked on that chore", () => {
+  const original = item({ id: "s-a", itemName: "HVAC filter", sizeSpec: "20x25x1" });
+  const home = fullHousehold({ duties: [filterDuty], supplyAutomations: [original] });
+  // Same name and size, different case and spacing — still the same size.
+  const next = addSupplySize(home, { dutyId: "d1", itemName: "HVAC filter", sizeSpec: " 20X25X1 " }, now);
+  assert.equal(next.supplyAutomations.length, 1);
+  assert.equal(next, home);
+});
+
+test("addSupplySize does nothing for a missing or archived duty, or a blank size", () => {
+  const home = fullHousehold({ duties: [filterDuty], supplyAutomations: [] });
+  assert.equal(addSupplySize(home, { dutyId: "no-such-duty", itemName: "HVAC filter", sizeSpec: "20x25x1" }, now), home);
+  assert.equal(addSupplySize(home, { dutyId: "d1", itemName: "HVAC filter", sizeSpec: "  " }, now), home);
+  const archivedHome = fullHousehold({ duties: [{ ...filterDuty, archived: true }], supplyAutomations: [] });
+  assert.equal(addSupplySize(archivedHome, { dutyId: "d1", itemName: "HVAC filter", sizeSpec: "20x25x1" }, now), archivedHome);
+});
+
+test("a low or out check-in pins the item to Order now, ahead of the rate model", () => {
+  // Freshly installed today, three-month lifespan: the rate model alone
+  // would place this comfortably in Stocked.
+  const fresh = item({ installedAt: toISODate(now), orderByDate: toISODate(addDays(now, 90)), onHand: 1 });
+  const before = restockPlacement(fresh, household, now);
+  assert.equal(before.bucket, "stocked");
+
+  const low = applyCheckin(fresh, "low", household, now);
+  assert.ok(low.flaggedLowAt);
+  assert.equal(restockPlacement(low, household, now).bucket, "order_now");
+
+  // A fuller answer lifts the flag and the rate model applies again.
+  const restocked = applyCheckin(low, "plenty", household, now);
+  assert.equal(restocked.flaggedLowAt, undefined);
+  assert.equal(restockPlacement(restocked, household, now).bucket, "stocked");
+});
+
+test("receiving an item clears its low flag", () => {
+  const low = applyCheckin(item({ onHand: 0 }), "out", household, now);
+  assert.ok(low.flaggedLowAt);
+  const received = receiveConsumable(low, 1, now);
+  assert.equal(received.flaggedLowAt, undefined);
+});
+
+test("matchTrackedSupply finds the tracked item a typed name is probably about", () => {
+  const towels = item({ id: "s-towels", itemName: "Paper towels" });
+  const filter = item({ id: "s-filter", itemName: "HVAC filter" });
+  const tracked = [towels, filter];
+  assert.equal(matchTrackedSupply(tracked, "paper towels")?.id, "s-towels");
+  assert.equal(matchTrackedSupply(tracked, "towels")?.id, "s-towels");
+  assert.equal(matchTrackedSupply(tracked, "Towels")?.id, "s-towels");
+  // Too short to trust as a substring match — avoids over-matching everything.
+  assert.equal(matchTrackedSupply(tracked, "a"), undefined);
+  // Nothing tracked is about milk.
+  assert.equal(matchTrackedSupply(tracked, "milk"), undefined);
+});
+
+test("haul items: add once, dedupe by name, remove when bought", () => {
+  const home = fullHousehold({ haulItems: [] });
+  const withMilk = addHaulItem(home, "Milk", now);
+  assert.equal(withMilk.haulItems?.length, 1);
+  assert.equal(withMilk.haulItems?.[0].name, "Milk");
+
+  // Same name, different case and spacing — still the same thing to buy.
+  const stillOne = addHaulItem(withMilk, "  milk  ", now);
+  assert.equal(stillOne.haulItems?.length, 1);
+  assert.equal(stillOne, withMilk);
+
+  const withTwo = addHaulItem(withMilk, "Toilet paper", now);
+  assert.equal(withTwo.haulItems?.length, 2);
+
+  const id = withTwo.haulItems![0].id;
+  const afterBuying = removeHaulItem(withTwo, id);
+  assert.equal(afterBuying.haulItems?.length, 1);
+  assert.equal(afterBuying.haulItems?.[0].name, "Toilet paper");
+
+  // Blank input and an unknown id are no-ops.
+  assert.equal(addHaulItem(withTwo, "   ", now), withTwo);
+  assert.equal(removeHaulItem(withTwo, "no-such-id"), withTwo);
 });
 
 test("order now tile sums known prices and prefixes at least when some are missing", () => {

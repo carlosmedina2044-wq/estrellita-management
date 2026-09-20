@@ -16,3 +16,29 @@ For any review, audit, refactor, or new-feature request:
 2. Select the applicable ones for the task, **name them**, and apply them.
 3. Always prefer **XcodeBuildMCP** over raw `xcodebuild` / `simctl`.
 4. Always prefer **Sosumi** (`https://sosumi.ai/mcp`) over recalled Apple API details.
+
+## Plain language rule
+
+A tester could not parse "About 20 min to a closed day" — it took an explanation
+to learn it meant "finish the two things left and you're done for today." That
+sentence used a word the code invented (`DayArcState`'s `"closed"`) instead of
+a word a person would say. See `docs/FEEDBACK_PLAN_2026-09-19.md` for the full
+audit and the fix.
+
+Every user-facing string (in `src/i18n/messages/*.json`, and any inline copy)
+must be one you would say out loud to a friend who has never opened the app:
+
+- Use the words already on the buttons: things are **done** or **left**, a day
+  is **all done**, a streak is a **streak**.
+- Lead with **how many things are left** — that's what tells someone they're
+  finished. Minutes, dates and other stats are secondary.
+- Never reuse a model/type name as user-facing copy (`closed`, `run`, `arc`,
+  `asset`, `duty`, `fired`, `window`, `lead time`) unless a button already
+  uses that word for the same thing.
+- When a screen rotates between phrasings for variety, every phrasing must
+  independently pass this test — never rotate a clear line with an unclear
+  one.
+- Read new copy aloud once before committing it.
+
+All three locales (`en`, `es`, `pt-BR`) carry the same rule — a literal
+translation of jargon is still jargon.

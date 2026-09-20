@@ -203,7 +203,7 @@ test("weekly digest includes overdue chores even with nothing to order", () => {
   );
   const digest = notices.find((notice) => notice.id === 1);
   assert.ok(digest);
-  assert.match(digest!.title, /chore still open/);
+  assert.match(digest!.title, /chore still to do/);
   assert.equal(digest!.extra?.tab, "today");
   assert.equal("repeats" in digest!.schedule && digest!.schedule.repeats, true);
 });

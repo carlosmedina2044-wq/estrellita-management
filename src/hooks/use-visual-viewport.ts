@@ -53,6 +53,8 @@ function syncViewport() {
   root.style.setProperty("--keyboard-inset", `${Math.round(inset)}px`);
   root.style.setProperty("--visual-viewport-height", `${Math.round(visibleH)}px`);
   root.classList.toggle("keyboard-open", inset > KEYBOARD_OPEN_PX || (focused && alreadyShrunk));
+  // Accessory-only focus (no soft-keyboard resize) still covers the tab bar.
+  root.classList.toggle("field-focused", focused);
 }
 
 function scrollFocusedField(target: EventTarget | null) {

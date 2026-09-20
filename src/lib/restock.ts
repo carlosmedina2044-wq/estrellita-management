@@ -19,8 +19,8 @@ import { cadenceAverageDays } from "@/lib/constants";
 import { addCalendarMonths, addCalendarYears, addDays, getActiveDateLocale, parseISODate, startOfDay, toISODate } from "@/lib/dates";
 import { isDoneThisPeriod, isOverdue, lastCompletion, nextDueDate } from "@/lib/duties";
 import { retailerUrlFor } from "@/lib/retailer";
-import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, dateFromISO, isOrdered, leadTimeDaysFor } from "@/lib/supply";
-import type { Completion, Duty, Household, SupplyAutomation } from "@/lib/types";
+import { DEFAULT_LEAD_TIME_DAYS, DEFAULT_QUANTITY, dateFromISO, deriveOrderByDate, isOrdered, leadTimeDaysFor } from "@/lib/supply";
+import type { Completion, Duty, HaulItem, Household, LifespanUnit, SupplyAutomation } from "@/lib/types";
 
 export const DEFAULT_REORDER_AT = 0;
 export const COMING_UP_DAYS = 21;
@@ -81,11 +81,22 @@ export function linkedDutyIdsFor(item: Pick<SupplyAutomation, "dutyId" | "linked
   return [...new Set(ids)];
 }
 
+/** All supplies linked to a duty. A replacement duty usually has one (e.g.
+ * one HVAC filter), but a house with two AC units of different sizes tracks
+ * both filters as separate supplies on the same chore — see addAnotherSize. */
+export function consumablesForDuty(
+  items: SupplyAutomation[],
+  dutyId: string,
+): SupplyAutomation[] {
+  return items.filter((item) => linkedDutyIdsFor(item).includes(dutyId));
+}
+
+/** @deprecated Prefer consumablesForDuty() — a duty can have more than one linked supply. */
 export function consumableForDuty(
   items: SupplyAutomation[],
   dutyId: string,
 ): SupplyAutomation | undefined {
-  return items.find((item) => linkedDutyIdsFor(item).includes(dutyId));
+  return consumablesForDuty(items, dutyId)[0];
 }
 
 export type PartStatus = {
@@ -93,14 +104,15 @@ export type PartStatus = {
   label: string;
 };
 
-export function partStatusForDuty(
+/** Most urgent first: if any linked size is missing, that's what the chip should say. */
+const PART_STATUS_URGENCY: PartStatus["kind"][] = ["order_first", "arriving", "install_today", "part_on_hand"];
+
+function partStatusForItem(
   duty: Duty,
+  item: SupplyAutomation,
   household: Pick<Household, "duties" | "completions" | "supplyAutomations" | "restockSafetyBufferDays">,
-  now = new Date(),
+  now: Date,
 ): PartStatus | null {
-  if (duty.kind !== "replacement") return null;
-  const item = consumableForDuty(household.supplyAutomations, duty.id);
-  if (!item) return null;
   const placement = restockPlacement(item, household, now);
   if (placement.bucket === "ordered") {
     const day = item.expectedArrivalDate
@@ -120,6 +132,26 @@ export function partStatusForDuty(
     return { kind: "part_on_hand", label: tActive("supply.suppliesOnHand") };
   }
   return null;
+}
+
+/** A replacement chore usually has one linked supply, but a house with two AC
+ * units of different sizes links two — see addAnotherSize(). When sizes
+ * disagree on status, the most urgent one wins: if either size still needs
+ * ordering, the chip says so rather than reporting the other size is ready. */
+export function partStatusForDuty(
+  duty: Duty,
+  household: Pick<Household, "duties" | "completions" | "supplyAutomations" | "restockSafetyBufferDays">,
+  now = new Date(),
+): PartStatus | null {
+  if (duty.kind !== "replacement") return null;
+  const items = consumablesForDuty(household.supplyAutomations, duty.id);
+  if (items.length === 0) return null;
+  const statuses = items
+    .map((item) => partStatusForItem(duty, item, household, now))
+    .filter((status): status is PartStatus => status != null);
+  if (statuses.length === 0) return null;
+  statuses.sort((a, b) => PART_STATUS_URGENCY.indexOf(a.kind) - PART_STATUS_URGENCY.indexOf(b.kind));
+  return statuses[0];
 }
 
 export function normalizeConsumable(item: SupplyAutomation): SupplyAutomation {
@@ -406,12 +438,16 @@ export function applyCheckin(
     observedRatePerDay = storedRate(blended) ?? observedRatePerDay;
   }
 
+  const binding = level === "low" || level === "out";
   return normalizeConsumable({
     ...current,
     lastConfirmedLevel: confirmedLevel,
     lastConfirmedAt: toISODate(now),
     observedRatePerDay,
     ...(level === "out" ? { onHand: 0 } : {}),
+    // "Low" or "out" pins the item to Order now (see restockPlacement); a
+    // fuller answer means the household is stocked again, so the flag lifts.
+    flaggedLowAt: binding ? now.toISOString() : undefined,
   });
 }
 
@@ -500,6 +536,15 @@ export function restockPlacement(
       return { bucket: "ordered", nudgeArrive: false, ...base };
     }
     return { bucket: "order_now", nudgeArrive: true, ...base };
+  }
+
+  // A "low" or "out" answer — from the quick check, the item detail, or
+  // saying "I'm low on X" — is a fact the household reported, not an
+  // estimate. It wins over the rate model until the item is received: the
+  // model would otherwise keep predicting toilet paper lasts two more weeks
+  // right after being told it doesn't.
+  if (current.flaggedLowAt) {
+    return { bucket: "order_now", nudgeArrive: false, ...base };
   }
 
   const rate = ratePerDayFor(current, household);
@@ -624,6 +669,14 @@ export type RestockFlowHandlers = {
   onApplyLeadTime?: (id: string, days: number) => void;
   onCheckin?: (id: string, level: CheckinLevel) => void;
   onMarkTip?: (tip: string) => void;
+  /** Tracks a second size (or third) on an existing replacement chore — two
+   * AC units of different filter sizes, two fridges with different water
+   * filters. See addSupplySize(). */
+  onAddAnotherSize?: (input: AddSupplySizeInput) => void;
+  /** "I'm low on X" for something not tracked — no cadence, no duty. Gone
+   * once bought. See addHaulItem(). */
+  onAddHaulItem?: (name: string) => void;
+  onRemoveHaulItem?: (id: string) => void;
 };
 
 export function arrivalOffsets(): { id: string; days: number; label: string }[] {
@@ -686,6 +739,7 @@ export function receiveConsumable(
     ...learnedRate,
     lastConfirmedLevel: newLevel,
     lastConfirmedAt: toISODate(now),
+    flaggedLowAt: undefined,
   };
 }
 
@@ -808,4 +862,111 @@ export function defaultConsumableFields(now = new Date()): Pick<
     state: "stocked",
     expectedArrivalDate: null,
   };
+}
+
+export type AddSupplySizeInput = {
+  dutyId: string;
+  itemName: string;
+  sizeSpec: string;
+  lifespanValue?: number;
+  lifespanUnit?: LifespanUnit;
+  leadTimeDays?: number;
+  unitCost?: number;
+  preferredRetailer?: string;
+};
+
+/** A house with two AC units of different sizes needs two filters tracked on
+ * the same "Replace HVAC filter" chore, each orderable on its own. This adds
+ * a second (or third) SupplyAutomation linked to an existing replacement
+ * duty, alongside whatever is already tracked for it — it does not touch
+ * applyDutySave, which treats a duty and its supply as 1:1 and would
+ * overwrite the first size instead of adding a second. A no-op if this exact
+ * name+size is already tracked on this duty. */
+export function addSupplySize(
+  household: Household,
+  input: AddSupplySizeInput,
+  now = new Date(),
+): Household {
+  const sizeSpec = input.sizeSpec.trim();
+  const itemName = input.itemName.trim();
+  if (!sizeSpec || !itemName) return household;
+  const duty = household.duties.find((entry) => entry.id === input.dutyId && !entry.archived);
+  if (!duty) return household;
+  const base = itemName.toLowerCase();
+  const already = consumablesForDuty(household.supplyAutomations, duty.id).some(
+    (entry) => entry.itemName.trim().toLowerCase() === base && (entry.sizeSpec ?? "").trim().toLowerCase() === sizeSpec.toLowerCase(),
+  );
+  if (already) return household;
+  const defaults = defaultConsumableFields(now);
+  const orderByDate = deriveOrderByDate(
+    toISODate(now),
+    input.lifespanValue ?? defaults.lifespanValue,
+    input.lifespanUnit ?? defaults.lifespanUnit,
+  );
+  const created: SupplyAutomation = normalizeConsumable({
+    ...defaults,
+    id: crypto.randomUUID(),
+    dutyId: duty.id,
+    linkedDutyIds: [duty.id],
+    room: duty.room,
+    nodeId: duty.nodeId,
+    nodeType: duty.nodeType,
+    itemName,
+    sku: sizeSpec,
+    sizeSpec,
+    onHand: 1,
+    qtyPerOrder: 1,
+    lifespanValue: input.lifespanValue ?? defaults.lifespanValue,
+    lifespanUnit: input.lifespanUnit ?? defaults.lifespanUnit,
+    leadTimeDays: input.leadTimeDays ?? defaults.leadTimeDays,
+    installedAt: toISODate(now),
+    orderByDate,
+    nextOrderDate: orderByDate,
+    unitCost: input.unitCost,
+    preferredRetailer: input.preferredRetailer,
+    createdAt: now.toISOString(),
+  });
+  return { ...household, supplyAutomations: [...household.supplyAutomations, created] };
+}
+
+function normalizeItemName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** Finds the already-tracked supply a typed name is probably talking about,
+ * so "I'm low on towels" flags the existing "Paper towels" instead of
+ * silently creating a second, disconnected thing to buy. Exact name match
+ * first; otherwise the typed word has to actually appear in the tracked
+ * name, which is directional on purpose — matching in the other direction
+ * ("HVAC filter" containing a query of "h") over-matches on short names. */
+export function matchTrackedSupply(
+  items: SupplyAutomation[],
+  query: string,
+): SupplyAutomation | undefined {
+  const needle = normalizeItemName(query);
+  if (needle.length < 3) return undefined;
+  const exact = items.find((item) => normalizeItemName(item.itemName) === needle);
+  if (exact) return exact;
+  return items.find((item) => normalizeItemName(item.itemName).includes(needle));
+}
+
+/** Something to pick up that isn't tracked — milk, toilet paper. See
+ * matchTrackedSupply(): a name that matches a tracked item is flagged low
+ * there instead and never becomes a haul item. A no-op if the same name
+ * (case- and space-insensitive) is already on the list. */
+export function addHaulItem(household: Household, name: string, now = new Date()): Household {
+  const trimmed = name.trim();
+  if (!trimmed) return household;
+  const existing = household.haulItems ?? [];
+  const already = existing.some((entry) => normalizeItemName(entry.name) === normalizeItemName(trimmed));
+  if (already) return household;
+  const item: HaulItem = { id: crypto.randomUUID(), name: trimmed, addedAt: now.toISOString() };
+  return { ...household, haulItems: [...existing, item] };
+}
+
+/** Bought it, or decided against it — either way it's off the list. */
+export function removeHaulItem(household: Household, id: string): Household {
+  const existing = household.haulItems ?? [];
+  if (!existing.some((entry) => entry.id === id)) return household;
+  return { ...household, haulItems: existing.filter((entry) => entry.id !== id) };
 }

@@ -2,15 +2,19 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useLocale } from "@/i18n/locale-provider";
 import { tDutyTitle } from "@/i18n/content";
-import { formatDueDate } from "@/lib/dates";
+import { icsFileContent, icsFilenameFor, googleCalendarUrl } from "@/lib/calendar-export";
+import { formatDueDate, toISODate } from "@/lib/dates";
 import { dutySubtitle, nextDueDate, relativeDayLabel, wasCompletedToday } from "@/lib/duties";
 import { costSummary, lastDoneInfo, recentRhythm } from "@/lib/duty-history";
 import { formatMoney } from "@/lib/forecast";
 import { DUR_QUICK, EASE_OUT, STAGGER_CHILD } from "@/lib/motion";
+import { openExternalUrl } from "@/lib/native/open-url";
+import { shareIcsFile } from "@/lib/native/share";
 import type { Duty, Household } from "@/lib/types";
 
 function Row({ label, value, index }: { label: string; value: string; index: number }) {
@@ -87,12 +91,39 @@ function DutyDetailBody({
   onEdit: (duty: Duty) => void;
 }) {
   const { t } = useLocale();
+  const [addingToCalendar, setAddingToCalendar] = useState(false);
+  const [calendarDutyId, setCalendarDutyId] = useState(duty.id);
+  if (duty.id !== calendarDutyId) {
+    setCalendarDutyId(duty.id);
+    setAddingToCalendar(false);
+  }
   const completions = household.completions;
   const doneToday = wasCompletedToday(duty, completions, now);
   const last = lastDoneInfo(duty.id, completions);
   const next = nextDueDate(duty, completions, now);
   const rhythm = recentRhythm(duty, completions, now);
   const cost = costSummary(duty.id, completions);
+
+  function calendarEvent() {
+    return {
+      title: tDutyTitle(duty.title),
+      details: duty.notes.trim() ? [duty.notes.trim()] : [],
+      date: toISODate(next ?? now),
+      recurYearly: duty.frequency === "yearly",
+    };
+  }
+
+  async function addToGoogleCalendar() {
+    setAddingToCalendar(false);
+    await openExternalUrl(googleCalendarUrl(calendarEvent()));
+  }
+
+  async function addToAppleCalendar() {
+    setAddingToCalendar(false);
+    const event = calendarEvent();
+    const result = await shareIcsFile(icsFileContent(event), icsFilenameFor(event.title), event.title);
+    if (result === "failed") toast.error(t("duty.calendarShareFailed"));
+  }
 
   const lastDoneLine = last
     ? t("today.doneBy", {
@@ -146,20 +177,36 @@ function DutyDetailBody({
             </motion.div>
           ) : null}
         </div>
-        <SheetFooter className="grid grid-cols-2 gap-2 pt-2">
+        <SheetFooter className="grid grid-cols-3 gap-2 pt-2">
           <Button
             variant={doneToday ? "secondary" : "default"}
-            className="col-span-2 h-12"
+            className="col-span-3 h-12"
             onClick={() => (doneToday ? onUndo(duty) : onComplete(duty))}
           >
             {doneToday ? t("common.undo") : t("chore.complete")}
           </Button>
-          <Button variant="secondary" className="h-12" onClick={() => onSnooze(duty)}>
-            {t("chore.snoozeWeek")}
-          </Button>
-          <Button variant="secondary" className="h-12" onClick={() => onEdit(duty)}>
-            {t("common.edit")}
-          </Button>
+          {addingToCalendar ? (
+            <>
+              <Button variant="secondary" className="h-12" onClick={addToGoogleCalendar}>
+                {t("duty.addToGoogleCalendar")}
+              </Button>
+              <Button variant="secondary" className="col-span-2 h-12" onClick={addToAppleCalendar}>
+                {t("duty.addToAppleCalendar")}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="secondary" className="h-12" onClick={() => onSnooze(duty)}>
+                {t("chore.snoozeWeek")}
+              </Button>
+              <Button variant="secondary" className="h-12" onClick={() => onEdit(duty)}>
+                {t("common.edit")}
+              </Button>
+              <Button variant="secondary" className="h-12" onClick={() => setAddingToCalendar(true)}>
+                {t("duty.addToCalendar")}
+              </Button>
+            </>
+          )}
         </SheetFooter>
     </SheetContent>
   );

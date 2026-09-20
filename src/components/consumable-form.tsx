@@ -99,6 +99,8 @@ export function ConsumableForm({
   const [draft, setDraft] = useState<Draft>(emptyDraft(defaultRoom));
   const [formError, setFormError] = useState<string | null>(null);
   const [advanced, setAdvanced] = useState(false);
+  const [addingSize, setAddingSize] = useState(false);
+  const [anotherSize, setAnotherSize] = useState("");
 
   const resetKey = `${open}:${duty?.id ?? ""}:${automation?.id ?? ""}:${defaultRoom}`;
   const [prevResetKey, setPrevResetKey] = useState<string | null>(null);
@@ -106,6 +108,8 @@ export function ConsumableForm({
     setPrevResetKey(resetKey);
     setFormError(null);
     setAdvanced(false);
+    setAddingSize(false);
+    setAnotherSize("");
     setDraft(
       automation
         ? {
@@ -213,6 +217,55 @@ export function ConsumableForm({
               autoFocus={focusField === "sizeSpec"}
             />
           </Field>
+          {automation && duty && duty.kind === "replacement" ? (
+            addingSize ? (
+              <div className="grid gap-1.5">
+                <p className="ui-caption font-medium">{t("restock.anotherSizeLabel")}</p>
+                <div className="flex gap-2">
+                  <Input
+                    value={anotherSize}
+                    onChange={(event) => setAnotherSize(event.target.value)}
+                    placeholder={sizePlaceholder(automation.itemName)}
+                    maxLength={40}
+                    className="h-12 flex-1"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    className="h-12"
+                    onClick={() => {
+                      const size = anotherSize.trim();
+                      if (!size) return;
+                      restock.onAddAnotherSize?.({
+                        dutyId: duty.id,
+                        itemName: automation.itemName,
+                        sizeSpec: size,
+                        lifespanValue: automation.lifespanValue,
+                        lifespanUnit: automation.lifespanUnit,
+                        leadTimeDays: automation.leadTimeDays,
+                        unitCost: automation.unitCost,
+                        preferredRetailer: automation.preferredRetailer,
+                      });
+                      toast.success(t("restock.anotherSizeAdded", { size }));
+                      setAddingSize(false);
+                      setAnotherSize("");
+                      closeAfterClick();
+                    }}
+                  >
+                    {t("common.add")}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center self-start ui-caption font-medium text-primary"
+                onClick={() => setAddingSize(true)}
+              >
+                {t("restock.addAnotherSize")}
+              </button>
+            )
+          ) : null}
           <div className="grid gap-1.5">
             <p className="ui-caption font-medium">{t("consumable.oneUsuallyLasts")}</p>
             <div className="flex flex-wrap gap-1.5">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { getActiveAppLocale, localeDateTag, tActive, type MessageKey } from "@/i18n";
 import { tDutyTitle, tPlaybookName, tPlaybookWhy, tTriggerName } from "@/i18n/content";
 import { useLocale } from "@/i18n/locale-provider";
@@ -11,7 +12,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { ZipSheet } from "@/components/zip-prompt";
 import { climateLabel, deriveClimate } from "@/lib/climate";
 import { metricValue, weatherWatch, type WeatherForecast, type WeatherWatchItem } from "@/lib/weather/provider";
-import { parseISODate } from "@/lib/dates";
+import { googleCalendarUrl, icsFileContent, icsFilenameFor } from "@/lib/calendar-export";
+import { parseISODate, toISODate } from "@/lib/dates";
+import { openExternalUrl } from "@/lib/native/open-url";
+import { shareIcsFile } from "@/lib/native/share";
 import { scrollIntoViewVertically } from "@/lib/scroll";
 import {
   matchingPlaybooks,
@@ -337,6 +341,21 @@ export function SeasonalView({
   );
 }
 
+/** One calendar event for a whole accepted playbook, not one per task — five
+ * EventKit-style edit sheets in a row would be unusable, and Google's link
+ * only ever opens one at a time. The task titles live in the description. */
+function playbookCalendarEvent(playbook: Playbook, household: Household, now: Date) {
+  const tasks = household.duties.filter((duty) => duty.playbookId === playbook.id && !duty.archived);
+  const dueDates = tasks.map((duty) => duty.dueDate).filter((date): date is string => Boolean(date)).sort();
+  const name = tPlaybookName(playbook.id, playbook.name);
+  return {
+    title: tActive("season.calendarTitle", { name, count: tasks.length }),
+    details: tasks.map((duty) => tDutyTitle(duty.title)),
+    date: dueDates[0] ?? toISODate(now),
+    recurYearly: playbook.season !== "any",
+  };
+}
+
 function DoNowCard({
   playbook,
   state,
@@ -357,9 +376,22 @@ function DoNowCard({
   onReconsider: (playbookId: string) => void;
 }) {
   const { t } = useLocale();
+  const [addingToCalendar, setAddingToCalendar] = useState(false);
   const chip = stateChip(state);
   const progress = playbookProgress(household, playbook.id, seasonYearFor(playbook, now));
   const fraction = progress.total > 0 ? progress.done / progress.total : 0;
+
+  async function addToGoogleCalendar() {
+    setAddingToCalendar(false);
+    await openExternalUrl(googleCalendarUrl(playbookCalendarEvent(playbook, household, now)));
+  }
+
+  async function addToAppleCalendar() {
+    setAddingToCalendar(false);
+    const event = playbookCalendarEvent(playbook, household, now);
+    const result = await shareIcsFile(icsFileContent(event), icsFilenameFor(event.title), event.title);
+    if (result === "failed") toast.error(t("duty.calendarShareFailed"));
+  }
   // What Add would actually add. A task another list already covers (a
   // starter chore, an earlier playbook this season) is shown, but marked, so
   // the card never promises five things and delivers three.
@@ -389,6 +421,32 @@ function DoNowCard({
           <div className="mt-2 h-1 overflow-hidden rounded-full bg-secondary">
             <div className="h-full bg-primary" style={{ width: `${Math.round(fraction * 100)}%` }} />
           </div>
+          {addingToCalendar ? (
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-secondary px-3 ui-caption font-medium"
+                onClick={addToGoogleCalendar}
+              >
+                {t("duty.addToGoogleCalendar")}
+              </button>
+              <button
+                type="button"
+                className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-secondary px-3 ui-caption font-medium"
+                onClick={addToAppleCalendar}
+              >
+                {t("duty.addToAppleCalendar")}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="mt-2 inline-flex min-h-11 items-center ui-caption font-medium text-primary"
+              onClick={() => setAddingToCalendar(true)}
+            >
+              {t("duty.addToCalendar")}
+            </button>
+          )}
         </div>
       ) : decided && progress.total === 0 ? (
         <div className="mt-3 flex items-center justify-between gap-3">
