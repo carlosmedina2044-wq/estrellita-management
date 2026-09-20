@@ -41,6 +41,12 @@ const PANEL = "#faf6ef";
 const INK = "#1d1d1f";
 const INK_SOFT = "rgba(29, 29, 31, 0.62)";
 const CREAM_TEXT = "#f7f3ec";
+/** Matches `--primary` / `--brand` in light mode (globals.css) — the card's
+ * panel is always the light cream regardless of the app's own theme, so the
+ * accent is fixed rather than read from CSS. */
+const ACCENT = "#9a5a35";
+const DIVIDER = "rgba(29, 29, 31, 0.12)";
+const BRAND_MARK_SRC = "/brand/cuidala-mark.webp";
 
 export type StackBox = { x: number; y: number; w: number; h: number };
 
@@ -197,41 +203,91 @@ export async function renderShareCard(scene: ShareCardScene, model: ShareCardMod
   let y = SKY_HEIGHT + 96;
   ctx.fillStyle = INK;
   ctx.textBaseline = "alphabetic";
-  const headlinePx = fitText(ctx, model.headline, CARD_WIDTH - pad * 2, 72, 44, "700");
+  const headlinePx = fitText(ctx, model.headline, CARD_WIDTH - pad * 2, 76, 44, "700");
   ctx.fillText(model.headline, pad, y);
   y += Math.round(headlinePx * 0.8);
   ctx.fillStyle = INK_SOFT;
   fitText(ctx, model.subline, CARD_WIDTH - pad * 2, 34, 24, "500");
   ctx.fillText(model.subline, pad, y);
 
-  // Stats
-  y += 120;
+  // A thin rule separates the headline from the numbers, so the card reads
+  // as one thing said, then the count of it — not a wall of equal-weight text.
+  y += 56;
+  ctx.strokeStyle = DIVIDER;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pad, y);
+  ctx.lineTo(CARD_WIDTH - pad, y);
+  ctx.stroke();
+
+  // Stats: the number carries the brand color, so the eye lands on what was
+  // accomplished before it reads what the number means. A vertical rule
+  // between columns keeps three numbers from reading as one long one.
+  y += 108;
   const colWidth = (CARD_WIDTH - pad * 2) / model.stats.length;
   model.stats.forEach((stat, index) => {
     const x = pad + colWidth * index;
-    ctx.fillStyle = INK;
-    fitText(ctx, stat.value, colWidth - 16, 84, 40, "700");
+    if (index > 0) {
+      ctx.strokeStyle = DIVIDER;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 8, y - 84);
+      ctx.lineTo(x - 8, y + 40);
+      ctx.stroke();
+    }
+    ctx.fillStyle = ACCENT;
+    fitText(ctx, stat.value, colWidth - 24, 88, 40, "700");
     ctx.fillText(stat.value, x, y);
     ctx.fillStyle = INK_SOFT;
-    fitText(ctx, stat.label, colWidth - 16, 30, 20, "500");
+    fitText(ctx, stat.label, colWidth - 24, 30, 20, "500");
     ctx.fillText(stat.label, x, y + 44);
   });
 
-  // Footnote and brand
-  const baseline = CARD_HEIGHT - 72;
+  // Footnote, drawn as an earned badge — a streak is worth more than a line
+  // of small text can say, and a plain sentence here read as an
+  // afterthought rather than something to be glad about.
+  const baseline = CARD_HEIGHT - 76;
   if (model.footnote) {
-    ctx.fillStyle = INK;
-    fitText(ctx, model.footnote, CARD_WIDTH / 2, 34, 22, "600");
-    ctx.fillText(model.footnote, pad, baseline);
+    ctx.font = "600 32px ui-rounded, -apple-system, system-ui, sans-serif";
+    const textWidth = ctx.measureText(model.footnote).width;
+    const badgeH = 64;
+    const badgeW = textWidth + 56;
+    const badgeY = baseline - badgeH + 16;
+    const radius = badgeH / 2;
+    ctx.fillStyle = ACCENT;
+    ctx.beginPath();
+    ctx.moveTo(pad + radius, badgeY);
+    ctx.arcTo(pad + badgeW, badgeY, pad + badgeW, badgeY + badgeH, radius);
+    ctx.arcTo(pad + badgeW, badgeY + badgeH, pad, badgeY + badgeH, radius);
+    ctx.arcTo(pad, badgeY + badgeH, pad, badgeY, radius);
+    ctx.arcTo(pad, badgeY, pad + badgeW, badgeY, radius);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = CREAM_TEXT;
+    ctx.fillText(model.footnote, pad + 28, baseline - 16);
   }
-  ctx.fillStyle = INK_SOFT;
-  ctx.font = "600 30px ui-rounded, -apple-system, system-ui, sans-serif";
-  const brandWidth = ctx.measureText(model.brand).width;
-  ctx.fillText(model.brand, CARD_WIDTH - pad - brandWidth, baseline);
 
-  // Sky text tone is only used for the headline over the sky in the live
-  // scene; the card keeps words on the panel, so nothing else to do here.
-  void CREAM_TEXT;
+  // Brand lockup: the real mark, not just its name in small type — a shared
+  // card with no visible logo reads as a generic screenshot, not something
+  // from an app the person is glad to be using.
+  try {
+    const mark = await loadImage(BRAND_MARK_SRC);
+    const markSize = 52;
+    ctx.font = "600 34px ui-rounded, -apple-system, system-ui, sans-serif";
+    const brandWidth = ctx.measureText(model.brand).width;
+    const lockupWidth = markSize + 16 + brandWidth;
+    const markX = CARD_WIDTH - pad - lockupWidth;
+    ctx.drawImage(mark, markX, baseline - markSize + 10, markSize, markSize);
+    ctx.fillStyle = INK;
+    ctx.fillText(model.brand, markX + markSize + 16, baseline);
+  } catch {
+    // No mark (offline asset load failed, or a non-browser test runner) —
+    // the wordmark alone still identifies the card.
+    ctx.fillStyle = INK;
+    ctx.font = "600 34px ui-rounded, -apple-system, system-ui, sans-serif";
+    const brandWidth = ctx.measureText(model.brand).width;
+    ctx.fillText(model.brand, CARD_WIDTH - pad - brandWidth, baseline);
+  }
 
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("toBlob failed"))), "image/png");

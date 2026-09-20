@@ -72,11 +72,14 @@ export function RunStrip({
               "size-2 rounded-full",
               day.outcome === "closed" && "bg-done",
               // A 1px ring on an 8px dot read as an empty bubble rather than a
-              // day. Filled at low opacity it reads as "a day, nothing asked".
-              day.outcome === "rest" && "bg-done/45",
+              // day. Filled at low opacity it reads as "a day, nothing asked" —
+              // 45% still read as faded against a whole week of these, so it
+              // moved up a step; `closed` is the only one meant to pop.
+              day.outcome === "rest" && "bg-done/60",
               // `bg-border` is 12% cream in the evening look, which left the
-              // unfilled days as barely-there ghosts next to the minutes line.
-              day.outcome === "open" && "bg-foreground/25",
+              // unfilled days as barely-there ghosts next to the minutes line;
+              // 25% was still too close to that.
+              day.outcome === "open" && "bg-foreground/45",
               day.outcome === "grace" && "bg-soon/60",
               day.isToday && day.outcome === "open" && "today-dot-open",
             )}

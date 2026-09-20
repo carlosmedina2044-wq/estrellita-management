@@ -382,16 +382,24 @@
 }
 
 /*
- * Lets a pane's content run edge to edge. The shell pads its panes with px-4,
- * and `.app-keep-alive` clips overflow-x, so a child's negative margin could
- * not actually reach the screen edge — the Today sky sat inset with a strip of
- * page background down both sides instead of being full-bleed. Shifting the
- * padding from the shell onto the pane itself widens the clipping box to the
- * full screen while keeping the same inset for ordinary content.
+ * Lets a pane's content run edge to edge. The shell pads its panes with px-4
+ * and pt-[safe-area-inset-top], and `.app-keep-alive` clips overflow on both
+ * axes, so a child's negative margin could not actually reach the screen
+ * edge — the Today sky sat inset with a strip of page background down both
+ * sides, AND a strip of it behind the status bar and Dynamic Island, instead
+ * of being full-bleed. Shifting the padding from the shell onto the pane
+ * itself widens the clipping box to the full screen on both axes while
+ * keeping the same inset for ordinary content. `today-scene-root`'s own
+ * negative top margin (today-view.tsx) then cancels this pane's padding-top,
+ * exactly as `today-scene-root`'s negative side margins already cancel
+ * padding-inline here — the vertical half of this was missing entirely,
+ * which is what left the sky short of the true top of the screen.
  */
 .app-pane-bleed {
   margin-inline: -1rem;
   padding-inline: 1rem;
+  margin-top: calc(-1 * max(0.75rem, env(safe-area-inset-top)));
+  padding-top: max(0.75rem, env(safe-area-inset-top));
 }
 
 /* Hide scrollbar chrome; keep overflow scrolling. */

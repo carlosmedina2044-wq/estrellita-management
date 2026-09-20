@@ -41,10 +41,15 @@ import type { CareState, Household } from "@/lib/types";
 import { valueLedger } from "@/lib/value-ledger";
 import { cn } from "@/lib/utils";
 
+// `future`/`before` stay near-invisible on purpose — nothing happened on
+// those days yet. `rest` and `open` were faint enough (45% / 25%) to read as
+// washed out across a grid where most days are one of those two, so both
+// moved up a step; `closed` is unchanged, since that's the one day worth
+// standing out.
 const DOT: Record<YearDay["outcome"], string> = {
   closed: "bg-done",
-  rest: "bg-done/45",
-  open: "bg-foreground/25",
+  rest: "bg-done/60",
+  open: "bg-foreground/45",
   grace: "bg-soon/60",
   future: "bg-foreground/8",
   before: "bg-foreground/8",

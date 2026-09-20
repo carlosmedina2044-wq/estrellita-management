@@ -1662,10 +1662,15 @@ export function TodayView({
               <Share2 className="size-4" />
               {t("today.shareList")}
             </Button>
-            <Button variant="secondary" className="h-12 rounded-full" onClick={shareDone}>
-              <Share2 className="size-4" />
-              {t("today.shareDone")}
-            </Button>
+            {arc.state === "closed" ? null : (
+              // Once the day is closed, the hero's own Share button above
+              // already covers "what got done today" — as a picture, not
+              // just text. Keeping this one too was the same offer twice.
+              <Button variant="secondary" className="h-12 rounded-full" onClick={shareDone}>
+                <Share2 className="size-4" />
+                {t("today.shareDone")}
+              </Button>
+            )}
             {hasCleaner ? (
               <Button variant="secondary" className="h-12 rounded-full" onClick={onStartCleanerVisit}>
                 <UserRound className="size-4" />

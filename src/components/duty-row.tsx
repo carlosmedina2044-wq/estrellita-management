@@ -299,7 +299,12 @@ export function DutyRow({
         </>
       ) : null}
       <motion.div
-        className={cn("ui-group-row relative flex items-stretch bg-card px-1", showDone && "opacity-60")}
+        // The title already recedes on its own (text-muted-foreground +
+        // line-through, below). Fading the whole row on top of that also
+        // dimmed the checkmark badge — the one thing that should look
+        // satisfying, not washed out — and made a "Done today" list read as
+        // faint across the board instead of just quietly finished.
+        className="ui-group-row relative flex items-stretch bg-card px-1"
         style={{ x: dragX }}
       >
         <motion.button

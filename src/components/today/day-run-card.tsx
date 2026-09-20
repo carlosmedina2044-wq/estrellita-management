@@ -109,8 +109,8 @@ function RunDots({ days, celebrate }: { days: RunDay[]; celebrate: boolean }) {
             className={cn(
               "size-2 rounded-full",
               day.outcome === "closed" && "bg-done",
-              day.outcome === "rest" && "bg-done/45",
-              day.outcome === "open" && "bg-foreground/30",
+              day.outcome === "rest" && "bg-done/60",
+              day.outcome === "open" && "bg-foreground/45",
               day.outcome === "grace" && "bg-soon/60",
               day.isToday && day.outcome === "open" && "today-dot-open",
             )}
