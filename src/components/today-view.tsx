@@ -1058,7 +1058,7 @@ export function TodayView({
           <SceneBoundary
             // Same box the scene would have filled, so the sheet's negative
             // margin and the compact bar keep their geometry if the art fails.
-            fallback={<div aria-hidden style={{ height: "calc(env(safe-area-inset-top) + 232px)" }} />}
+            fallback={<div aria-hidden style={{ height: "calc(env(safe-area-inset-top) + clamp(232px, 13.65rem, 340px))" }} />}
           >
             <PortraitScene
               household={household}
@@ -1135,7 +1135,7 @@ export function TodayView({
       <div
         className={
           sceneMode
-            ? "today-sheet relative z-10 -mt-7 flex flex-col gap-5 rounded-t-[28px] bg-background px-5 pt-4"
+            ? "today-sheet relative z-10 -mt-[28px] flex flex-col gap-5 rounded-t-[28px] bg-background px-5 pt-4"
             : "contents"
         }
         style={

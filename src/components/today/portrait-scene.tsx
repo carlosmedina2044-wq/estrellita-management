@@ -520,7 +520,12 @@ export function PortraitScene({
         // sky and the roof. 272px was fine in a browser pane, but on a real
         // iPhone the safe area and the four cards above the list left one
         // chore showing, so the art gives up another 40px.
-        height: insetTop ? "calc(env(safe-area-inset-top) + 232px)" : "232px",
+        // 232px at the default text size, growing with Dynamic Type (rem) up
+        // to a cap, so a larger greeting has sky of its own instead of
+        // landing on the roof.
+        height: insetTop
+          ? "calc(env(safe-area-inset-top) + clamp(232px, 13.65rem, 340px))"
+          : "clamp(232px, 13.65rem, 340px)",
         background:
           "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}
@@ -836,8 +841,10 @@ export function PortraitScene({
           animate={{ opacity: sweep.sweeping ? 0 : 1 }}
           transition={{ duration: DUR_BASE, ease: EASE_OUT }}
         >
-          <p className="ui-title text-[1.35rem] font-semibold tracking-tight">{greeting}</p>
-          <p className="ui-caption mt-0.5 opacity-80">{secondaryLine}</p>
+          {/* Over the art, so the type grows with Dynamic Type only up to a
+              cap: past it the greeting would land on the roof. */}
+          <p className="ui-title text-[min(1.35rem,26px)] font-semibold tracking-tight">{greeting}</p>
+          <p className="ui-caption mt-0.5 text-[min(0.8rem,14px)] opacity-80">{secondaryLine}</p>
         </motion.div>
         <div className="flex shrink-0 gap-2">
           {onOpenSettings ? (
@@ -845,7 +852,7 @@ export function PortraitScene({
               type="button"
               aria-label={t("common.settings")}
               onClick={onOpenSettings}
-              className="flex size-11 items-center justify-center rounded-full bg-background/25 backdrop-blur-sm"
+              className="flex size-[44px] items-center justify-center rounded-full bg-background/25 backdrop-blur-sm"
             >
               <Settings className="size-5" />
             </button>

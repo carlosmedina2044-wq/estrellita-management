@@ -411,7 +411,7 @@ export function DutyRow({
                 />
               ) : null}
             </span>
-            <span className={cn("mt-0.5 block truncate ui-caption num", metaTone)}>
+            <span className={cn("mt-0.5 block text-pretty ui-caption num", metaTone)}>
               {showDone && doneMeta ? (
                 doneMeta
               ) : (

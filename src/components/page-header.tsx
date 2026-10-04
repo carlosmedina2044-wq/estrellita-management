@@ -47,7 +47,7 @@ export function PageHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
       <div aria-hidden className="app-nav-bar" data-visible={collapsed ? "true" : "false"}>
-        <span className="truncate ui-card font-semibold">{title}</span>
+        <span className="app-nav-bar-title">{title}</span>
       </div>
       <div className="flex min-w-min flex-1 basis-0 items-start gap-1">
         {onBack ? (

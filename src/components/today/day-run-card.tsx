@@ -171,10 +171,10 @@ export function DayRunCard({
           type="button"
           onClick={onOpenList}
           aria-label={t("today.runOpenList")}
-          className="flex w-full items-center gap-3 px-4 py-3 text-left ui-press"
+          className="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-left ui-press"
         >
           <DayRing arc={arc} />
-          <span className="min-w-0 flex-1">
+          <span className="min-w-0 flex-1 basis-[60%]">
             <span className="block ui-card font-semibold leading-snug text-foreground">{headline}</span>
             {showCount || showEffort ? (
               <span

@@ -622,6 +622,18 @@
   transition: opacity var(--dur-quick) var(--ease-out);
 }
 
+/* Follows Dynamic Type, but capped: like a system navigation bar, the bar is a
+ * fixed height, so its title may grow a little and then stops. */
+.app-nav-bar-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(15px, 1rem, 19px);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
 .app-nav-bar[data-visible="true"] {
   opacity: 1;
 }
