@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
   loggingBehavior: "none",
   // Match brand cream so the status-bar / Dynamic Island region is never white
   // when contentInset is never (edge-to-edge WebView).
-  backgroundColor: "#faf6ef",
+  backgroundColor: "#f5f3ee",
   ios: {
     contentInset: "never",
     preferredContentMode: "recommended",
@@ -28,13 +28,13 @@ const config: CapacitorConfig = {
   },
   plugins: {
     LocalNotifications: {
-      iconColor: "#9A5A35",
+      iconColor: "#A8481F",
     },
     SplashScreen: {
       // No `backgroundColor` on purpose. The plugin re-instantiates the
       // LaunchScreen storyboard and, when this key is set, overwrites the
       // storyboard's background with that one static hex — which defeated the
-      // `LaunchBackground` colour set (cream / #1f1a16) and flashed cream on a
+      // `LaunchBackground` colour set (#f5f3ee / #121110) and flashed the light colour on a
       // dark launch. Left unset, the storyboard's own dynamic colour applies,
       // and `Splash.imageset` carries a matching dark artwork.
       launchAutoHide: false,

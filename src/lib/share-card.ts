@@ -37,14 +37,14 @@ export const CARD_HEIGHT = 1350;
 /** The sky takes the top of the card; the panel below carries the words. */
 export const SKY_HEIGHT = Math.round(CARD_HEIGHT * 0.62);
 const STACK_WIDTH_FRACTION = 0.78;
-const PANEL = "#faf6ef";
+const PANEL = "#f5f3ee";
 const INK = "#1d1d1f";
 const INK_SOFT = "rgba(29, 29, 31, 0.62)";
 const CREAM_TEXT = "#f7f3ec";
 /** Matches `--primary` / `--brand` in light mode (globals.css) — the card's
  * panel is always the light cream regardless of the app's own theme, so the
  * accent is fixed rather than read from CSS. */
-const ACCENT = "#9a5a35";
+const ACCENT = "#a8481f";
 const DIVIDER = "rgba(29, 29, 31, 0.12)";
 const BRAND_MARK_SRC = "/brand/cuidala-mark.webp";
 

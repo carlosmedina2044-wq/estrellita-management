@@ -7,10 +7,10 @@ export default function manifest() {
     description: "Home maintenance, restock, and seasonal checklists.",
     start_url: "/",
     display: "standalone",
-    background_color: "#faf6ef",
+    background_color: "#f5f3ee",
     theme_color: [
-      { media: "(prefers-color-scheme: light)", color: "#faf6ef" },
-      { media: "(prefers-color-scheme: dark)", color: "#1f1a16" },
+      { media: "(prefers-color-scheme: light)", color: "#f5f3ee" },
+      { media: "(prefers-color-scheme: dark)", color: "#121110" },
     ],
     orientation: "portrait",
     icons: [
