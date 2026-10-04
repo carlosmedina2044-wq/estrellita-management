@@ -1,9 +1,8 @@
 "use client";
 
 import { useLocale } from "@/i18n/locale-provider";
-import { fundHealth } from "@/lib/budget";
-import { Gauge } from "@/components/gauge";
-import { buildForecast, forecastCardSummary, formatMoney, monthsUntil } from "@/lib/forecast";
+import { ChevronRight } from "lucide-react";
+import { forecastCardSummary, formatMoney, monthsUntil } from "@/lib/forecast";
 import type { AppNavigateTarget, Household } from "@/lib/types";
 
 export function ForecastCard({
@@ -20,8 +19,6 @@ export function ForecastCard({
   const { t } = useLocale();
   const at = now ?? new Date();
   const summary = forecastCardSummary(household, at);
-  const health = fundHealth(household, buildForecast(household, 12, at));
-  const covered = health.coveragePct != null ? health.coveragePct / 100 : null;
 
   if (summary.empty) {
     return (
@@ -49,22 +46,18 @@ export function ForecastCard({
   return (
     <button
       type="button"
-      className="w-full rounded-[var(--r-container)] border border-border/60 bg-accent px-4 py-4 text-left"
+      className="ui-group flex w-full items-center gap-3 px-4 py-3 text-left ui-press"
       onClick={() => onNavigate?.({ tab: "budget" })}
     >
-      <p className="ui-caption font-medium text-muted-foreground">{t("budget.moneyForRepairs")}</p>
-      <p className="ui-heading mt-1 ui-title font-semibold num">
-        {t("forecast.next90", { amount: formatMoney(Math.round(summary.next90)) })}
-      </p>
-      {nextLine ? <p className="mt-1 ui-caption num text-muted-foreground">{nextLine}</p> : null}
-      {covered != null ? (
-        <div className="mt-3 pointer-events-none">
-          <Gauge fraction={covered} showCaption={false} aria-label={t("budget.fundTitle")} />
-        </div>
-      ) : null}
-      <span className="mt-3 inline-flex min-h-11 items-center ui-caption font-medium text-primary">
-        {t("forecast.open")}
+      <span className="min-w-0 flex-1">
+        <span className="block ui-caption text-muted-foreground">{t("budget.moneyForRepairs")}</span>
+        <span className="block ui-card num">
+          {t("forecast.next90", { amount: formatMoney(Math.round(summary.next90)) })}
+        </span>
+        {nextLine ? <span className="mt-0.5 block ui-caption num text-muted-foreground">{nextLine}</span> : null}
       </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="sr-only">{t("forecast.open")}</span>
     </button>
   );
 }

@@ -326,7 +326,7 @@ export function Onboarding({
               {t("onboarding.setupCta")}
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               className="mt-3 h-14 w-full text-base"
               disabled={busy}
               onClick={() => void finish(sampleHomeAnswers())}

@@ -56,7 +56,7 @@ export function CareLadder({
               <span
                 className={cn(
                   "truncate ui-caption leading-tight",
-                  done ? "font-medium text-foreground" : "text-muted-foreground/70",
+                  done ? "font-medium text-foreground" : "text-muted-foreground",
                 )}
               >
                 {t(`care.level.${step}` as MessageKey)}

@@ -144,7 +144,7 @@ export function RestockView({
           household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
               type="button"
-              className="inline-flex h-11 items-center rounded-full px-3 ui-caption font-medium text-primary ui-press"
+              className="inline-flex h-11 items-center whitespace-nowrap rounded-full border border-border px-4 ui-body font-medium text-primary ui-press"
               onClick={startWalk}
             >
               {t("restock.walkHouseShort")}
@@ -591,6 +591,7 @@ function RestockRow({
           fraction={placement.estimatedLevelFraction}
           runwayDays={placement.runwayDays}
           onTap={onOpenCheckin}
+          hideBarWhenCalm
         />
       ) : null}
       {placement.bucket === "stocked" ? null : (

@@ -108,7 +108,7 @@ function MilestoneGlyph({ item }: { item: MilestoneProgress }) {
     <span
       className={cn(
         "flex size-8 shrink-0 items-center justify-center rounded-full",
-        item.earned ? "bg-done-soft text-done" : "bg-foreground/8 text-muted-foreground/80",
+        item.earned ? "bg-done-soft text-done" : "bg-foreground/8 text-muted-foreground",
       )}
     >
       <Icon className="size-4" aria-hidden />

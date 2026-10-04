@@ -87,7 +87,7 @@ export function RunStrip({
         ))}
       </motion.span>
       {run.best > run.current ? (
-        <span className="ui-caption text-muted-foreground/60">
+        <span className="ui-caption text-muted-foreground">
           {t("today.runBest", { count: run.best })}
         </span>
       ) : null}

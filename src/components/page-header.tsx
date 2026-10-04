@@ -41,7 +41,7 @@ export function PageHeader({
           {subtitle ? <div className="mt-1 ui-caption text-muted-foreground">{subtitle}</div> : null}
         </div>
       </div>
-      <div className="flex size-11 shrink-0 items-center justify-center">{action ?? null}</div>
+      <div className="flex h-11 min-w-11 shrink-0 items-center justify-center">{action ?? null}</div>
     </header>
   );
 }

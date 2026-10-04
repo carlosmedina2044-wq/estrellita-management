@@ -40,10 +40,9 @@ export function QuestCard({ quest, now = new Date() }: { quest: Quest; now?: Dat
     <motion.section
       aria-label={t("quest.title")}
       className={cn(
-        "rounded-2xl px-4 py-3 ring-1",
-        // A met quest is the one reward this card has to give, so it stops
-        // looking like every other card on the screen until Sunday.
-        quest.done ? "bg-done-soft ring-done/25" : "bg-card ring-border",
+        // Plain until it is met: a goal row, not a second card. A met quest is
+        // the one reward this has to give, so only then does it take a fill.
+        quest.done ? "rounded-2xl bg-done-soft px-4 py-3" : "px-1 py-1",
       )}
       initial={{ y: -8, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
@@ -56,7 +55,7 @@ export function QuestCard({ quest, now = new Date() }: { quest: Quest; now?: Dat
               with no horizon in sight is just another list item, and hung on
               the right of a wrapping body line it read as a stray number. */}
           {quest.done ? null : (
-            <span className="num text-muted-foreground/70">
+            <span className="num text-muted-foreground">
               {" · "}
               {left === 1 ? t("quest.lastDay") : t("quest.daysLeft", { count: left })}
             </span>
@@ -94,9 +93,7 @@ export function QuestCard({ quest, now = new Date() }: { quest: Quest; now?: Dat
         <span className="min-w-0">{title}</span>
       </p>
       <ProgressTrack fraction={quest.fraction} segments={quest.target} className="mt-2" />
-      <p className={cn("mt-2 ui-caption", quest.done ? "text-done" : "text-muted-foreground")}>
-        {quest.done ? t("quest.doneBody") : t(`quest.${quest.id}.body` as MessageKey)}
-      </p>
+      {quest.done ? <p className="mt-2 ui-caption text-done">{t("quest.doneBody")}</p> : null}
       <span className="sr-only">
         {quest.done ? "" : t("quest.remainingAria", { count: remaining })}
       </span>

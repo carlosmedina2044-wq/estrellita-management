@@ -108,7 +108,7 @@ export function roomCaption(
       className: "text-done",
     };
   }
-  return { text: tActive("home.allCaughtUp"), className: "text-done" };
+  return { text: tActive("home.allCaughtUp"), className: "text-muted-foreground" };
 }
 
 function TileGrid({
@@ -138,9 +138,21 @@ function TileGrid({
   }, []);
   const canDrag = Boolean(onReorder) && finePointer;
 
+  // Rooms that need something come first, so the list opens on what to act on
+  // and the "all caught up" rooms trail behind. Stable, so each group keeps its
+  // own order. Skipped where rooms can be dragged, since the order is then the
+  // person's own.
+  const needsAttention = (room: HomeRoom) => {
+    const status = nodeStatus(household, room.id, "room", now);
+    return status.overdue + status.dueSoon + status.reorderPending > 0 || Boolean(replacementRooms?.has(room.id));
+  };
+  const shown = canDrag
+    ? rooms
+    : [...rooms.filter(needsAttention), ...rooms.filter((room) => !needsAttention(room))];
+
   return (
     <div className="ui-group">
-      {rooms.map((room) => {
+      {shown.map((room) => {
         const status = nodeStatus(household, room.id, "room", now);
         const nearReplacement = Boolean(replacementRooms?.has(room.id));
         const caption = roomCaption(status, nearReplacement, lastDoneInRoom(household, room.id), now);

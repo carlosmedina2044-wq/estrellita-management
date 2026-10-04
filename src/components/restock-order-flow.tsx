@@ -375,7 +375,7 @@ export function RestockOrderButton({
       {embedded && sheet !== "closed" ? null : (
         <Button
           type="button"
-          variant={early ? "ghost" : subdued ? "secondary" : "default"}
+          variant={early ? "outline" : subdued ? "secondary" : "default"}
           className={actionClass}
           onClick={() => setSheet("picker")}
         >

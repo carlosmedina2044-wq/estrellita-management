@@ -99,7 +99,7 @@ function RunDots({ days, celebrate }: { days: RunDay[]; celebrate: boolean }) {
           <span
             className={cn(
               "ui-caption leading-none",
-              day.isToday ? "font-semibold text-foreground" : "text-muted-foreground/70",
+              day.isToday ? "font-semibold text-foreground" : "text-muted-foreground",
             )}
             aria-hidden
           >
@@ -224,7 +224,7 @@ export function DayRunCard({
               {runParts[1] ?? null}
             </span>
           ) : run.best > run.current ? (
-            <span className="block ui-caption text-muted-foreground/60">
+            <span className="block ui-caption text-muted-foreground">
               {t("today.runBest", { count: run.best })}
             </span>
           ) : null}

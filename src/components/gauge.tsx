@@ -39,6 +39,7 @@ export function Gauge({
   onTap,
   className,
   showCaption = true,
+  hideBarWhenCalm = false,
   "aria-label": ariaLabel,
 }: {
   fraction: number | null;
@@ -48,6 +49,8 @@ export function Gauge({
   onTap?: () => void;
   className?: string;
   showCaption?: boolean;
+  /** A well-stocked supply needs words, not a bar: only draw the bar when it is low or on the way. */
+  hideBarWhenCalm?: boolean;
   "aria-label"?: string;
 }) {
   const reduce = useReducedMotion();
@@ -61,7 +64,11 @@ export function Gauge({
   const haveClass =
     urgent === "out" ? "bg-overdue" : urgent === "soon" ? "bg-soon" : "bg-foreground/25";
 
-  const body = (
+  const calm = hideBarWhenCalm && !urgent && transit <= 0 && have >= 0.5 && caption != null;
+
+  const body = calm ? (
+    <span className="block ui-caption num text-muted-foreground">{caption}</span>
+  ) : (
     <>
       <span className={cn("relative block h-2.5 w-full overflow-hidden rounded-full bg-secondary", className)}>
         <motion.span
@@ -109,6 +116,7 @@ export function SupplyGauge(props: {
   fraction: number | null;
   runwayDays: number | null;
   onTap?: () => void;
+  hideBarWhenCalm?: boolean;
 }) {
   return <Gauge {...props} />;
 }
