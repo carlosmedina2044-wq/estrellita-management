@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Home, Package, Settings, Sun } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
+import { HomeHouse } from "@/components/home-house";
 import { PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
 import { BudgetView } from "@/components/budget-view";
@@ -913,6 +914,7 @@ export function AppShell() {
                 </button>
               }
             />
+            <HomeHouse household={household} now={now} />
             <ForecastCard
               household={household}
               onNavigate={navigate}
