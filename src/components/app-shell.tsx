@@ -1070,19 +1070,19 @@ export function AppShell() {
         >
           <NavButton
             label={t("tabs.today")}
-            icon={<Sun className={cn("size-5", rootTab === "today" && "fill-current")} />}
+            icon={<Sun className={cn("size-6", rootTab === "today" && "fill-current")} />}
             active={rootTab === "today"}
             onClick={() => selectRootTab("today")}
           />
           <NavButton
             label={t("tabs.home")}
-            icon={<Home className={cn("size-5", rootTab === "home" && "fill-current")} />}
+            icon={<Home className={cn("size-6", rootTab === "home" && "fill-current")} />}
             active={rootTab === "home"}
             onClick={() => selectRootTab("home")}
           />
           <NavButton
             label={t("tabs.restock")}
-            icon={<Package className={cn("size-5", rootTab === "restock" && "fill-current")} />}
+            icon={<Package className={cn("size-6", rootTab === "restock" && "fill-current")} />}
             active={rootTab === "restock"}
             badge={restockGroups?.order_now.length ?? 0}
             onClick={() => selectRootTab("restock")}

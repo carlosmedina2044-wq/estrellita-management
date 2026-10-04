@@ -69,6 +69,7 @@
 }
 
 :root {
+  color-scheme: light;
   --background: #f5f3ee;
   --foreground: #1c1b19;
   --card: #ffffff;
@@ -144,6 +145,7 @@
 }
 
 .dark {
+  color-scheme: dark;
   --background: #121110;
   --foreground: #f4f1ea;
   --card: #1c1a18;
@@ -286,6 +288,27 @@
     overscroll-behavior-y: auto;
     -webkit-overflow-scrolling: touch;
     -webkit-tap-highlight-color: transparent;
+    /* An app, not a page: long-pressing a label or image should not raise
+     * the web's selection handles or link callout. Typing and anything
+     * marked .selectable keep the normal behaviour, below. */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"],
+  .selectable {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* One stroke weight for every icon, close to SF Symbols' regular at these
+   * sizes, so the set reads as a single family rather than a library default. */
+  svg.lucide {
+    stroke-width: 1.75;
   }
 
   button,
@@ -577,6 +600,60 @@
   border-top: 1px solid var(--border);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-shadow: inset 0 1px 0 color-mix(in oklab, var(--ambient, transparent) 18%, transparent);
+}
+
+/* Compact title bar that a page header raises once its large title has
+ * scrolled away. Fixed to the top, under the status bar, never tappable. */
+.app-nav-bar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 30;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: calc(env(safe-area-inset-top, 0px) + 44px);
+  padding: 0 4.5rem 0.55rem;
+  background-color: color-mix(in oklab, var(--background) 86%, transparent);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-quick) var(--ease-out);
+}
+
+.app-nav-bar[data-visible="true"] {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-nav-bar {
+    transition-duration: var(--dur-reduced);
+  }
+}
+
+/* Blur is a courtesy, not a requirement: with Reduce Transparency on, the bar
+ * is solid. Increase Contrast strengthens hairlines and secondary text. */
+@media (prefers-reduced-transparency: reduce) {
+  .app-tab-bar,
+  .app-nav-bar {
+    background-color: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border: rgb(28 24 18 / 38%);
+    --input: rgb(28 24 18 / 45%);
+    --muted-foreground: #4a463f;
+  }
+  .dark {
+    --border: rgb(255 245 230 / 40%);
+    --input: rgb(255 245 230 / 48%);
+    --muted-foreground: #cfcac1;
+  }
 }
 
 html.keyboard-open .app-shell-main {

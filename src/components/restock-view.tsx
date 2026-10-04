@@ -176,14 +176,14 @@ export function RestockView({
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className="inline-flex h-9 items-center rounded-full bg-primary px-3 ui-caption font-medium text-primary-foreground"
+              className="inline-flex min-h-11 items-center rounded-full bg-primary px-4 ui-caption font-medium text-primary-foreground"
               onClick={flagMatchLow}
             >
               {t("restock.flagLowChip", { name: haulMatch.itemName })}
             </button>
             <button
               type="button"
-              className="inline-flex h-9 items-center ui-caption font-medium text-primary"
+              className="inline-flex min-h-11 items-center ui-caption font-medium text-primary"
               onClick={submitHaulDraft}
             >
               {t("restock.addAsNew")}

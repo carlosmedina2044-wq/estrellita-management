@@ -425,14 +425,14 @@ function DoNowCard({
             <div className="mt-2 flex gap-2">
               <button
                 type="button"
-                className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-secondary px-3 ui-caption font-medium"
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-secondary px-3 ui-caption font-medium"
                 onClick={addToGoogleCalendar}
               >
                 {t("duty.addToGoogleCalendar")}
               </button>
               <button
                 type="button"
-                className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-secondary px-3 ui-caption font-medium"
+                className="inline-flex min-h-11 flex-1 items-center justify-center rounded-full bg-secondary px-3 ui-caption font-medium"
                 onClick={addToAppleCalendar}
               >
                 {t("duty.addToAppleCalendar")}
@@ -473,7 +473,7 @@ function DoNowCard({
           <div className="mt-3 flex items-center gap-2">
             {nothingToAdd ? null : (
               <Button
-                className="h-9 flex-1 rounded-full bg-primary/12 text-primary shadow-none hover:bg-primary/18"
+                className="min-h-11 flex-1 rounded-full bg-primary/12 text-primary shadow-none hover:bg-primary/18"
                 variant="secondary"
                 onClick={() => onAccept(playbook.id)}
               >
@@ -482,7 +482,7 @@ function DoNowCard({
             )}
             <button
               type="button"
-              className="inline-flex h-9 min-w-11 items-center justify-center rounded-full px-3 ui-caption font-medium text-muted-foreground active:bg-foreground/6"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full px-3 ui-caption font-medium text-muted-foreground active:bg-foreground/6"
               onClick={() => onDecline(playbook.id)}
             >
               {t("seasonal.skipCompact")}
