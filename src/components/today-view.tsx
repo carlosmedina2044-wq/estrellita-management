@@ -1017,7 +1017,14 @@ export function TodayView({
         // and the whole list down by that much — and because every row is
         // layout-animated, they sprang after it. First child so its flow
         // position is 0 and `sticky` has it pinned from the start.
-        <div className="sticky top-0 z-30 h-0">
+        <div
+          className="sticky z-30 h-0"
+          // The scroll area starts below the safe-area padding, so `top: 0`
+          // pinned this bar that far below the top of the screen and left a
+          // gap above it where scrolled rows showed over the clock. Same
+          // offset the scene below uses to sit at its true flow position.
+          style={{ top: "calc(-1 * max(0.75rem, env(safe-area-inset-top)))" }}
+        >
           <div
             className={cn(
               "absolute inset-x-0 top-0 flex h-[calc(env(safe-area-inset-top)+52px)] items-end justify-between bg-background/90 px-5 pb-1 backdrop-blur-md transition-opacity duration-200",

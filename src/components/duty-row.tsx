@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { useLocale } from "@/i18n/locale-provider";
 import { tDutyTitle } from "@/i18n/content";
@@ -415,12 +415,24 @@ export function DutyRow({
               {showDone && doneMeta ? (
                 doneMeta
               ) : (
-                <>
-                  {metaLabel && !showDone ? `${metaLabel} · ${subtitle}` : subtitle}
-                  {duty.audience === "cleaner" && !showDone
-                    ? ` · ${t("audience.cleaner")}`
-                    : ""}
-                </>
+                // Each segment is kept whole and carries its own trailing dot,
+                // so a wrapped line breaks between segments and never starts
+                // with a stray "·".
+                (
+                  `${metaLabel && !showDone ? `${metaLabel} · ${subtitle}` : subtitle}${
+                    duty.audience === "cleaner" && !showDone ? ` · ${t("audience.cleaner")}` : ""
+                  }`
+                )
+                  .split(" · ")
+                  .map((segment, index, all) => (
+                    <Fragment key={index}>
+                      <span className="whitespace-nowrap">
+                        {segment}
+                        {index < all.length - 1 ? " ·" : ""}
+                      </span>
+                      {index < all.length - 1 ? " " : null}
+                    </Fragment>
+                  ))
               )}
             </span>
           </span>
