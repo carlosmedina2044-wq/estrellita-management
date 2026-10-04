@@ -459,7 +459,7 @@ function DoNowCard({
         <>
           <ul className="mt-2 grid gap-1 ui-body text-muted-foreground">
             {playbook.tasks.map((task) => (
-              <li key={task.title} className={covered.has(task.title) ? "text-muted-foreground/60" : undefined}>
+              <li key={task.title} className={covered.has(task.title) ? "text-muted-foreground" : undefined}>
                 {tDutyTitle(task.title)}
                 {covered.has(task.title) ? (
                   <span className="ml-1.5 ui-caption text-done">{t("seasonal.alreadyCovered")}</span>

@@ -59,7 +59,7 @@ export function SeasonSection({
             </button>
           </li>
         ))}
-        {model.open.map((entry) => {
+        {model.open.slice(0, 3).map((entry) => {
           const month = entry.playbook.triggerMonth ?? now.getMonth() + 1;
           return (
             <li key={entry.playbook.id}>
@@ -69,7 +69,7 @@ export function SeasonSection({
                 onClick={() => onNavigate?.({ tab: "seasonal", playbookId: entry.playbook.id })}
               >
                 <Illustration name={seasonThumbForMonth(month)} size={32} className="shrink-0" />
-                <span className="min-w-0 flex-1 truncate font-medium">
+                <span className="min-w-0 flex-1 break-words font-medium">
                   {tPlaybookName(entry.playbook.id, entry.playbook.name)}
                 </span>
                 <span className="shrink-0 ui-caption text-muted-foreground">

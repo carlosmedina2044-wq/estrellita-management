@@ -1279,7 +1279,7 @@ function HomeStatusLine({ summary }: { summary: ReturnType<typeof homeSummary> |
       {parts.map((part, index) => (
         <span key={part.key}>
           {index > 0 ? " · " : null}
-          <span className={part.urgent ? "text-destructive" : undefined}>{part.text}</span>
+          <span className={part.urgent ? "font-semibold text-foreground" : undefined}>{part.text}</span>
         </span>
       ))}
     </span>

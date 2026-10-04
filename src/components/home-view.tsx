@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import { ChevronRight } from "lucide-react";
 import { HomeEditor } from "@/components/home-editor";
 import { HouseLookSheet } from "@/components/house-look-sheet";
 import {
@@ -381,8 +382,9 @@ export function HomeView({
                 {t("settings.houseLookHelp")}
               </span>
             </span>
-            <span className="shrink-0 ui-caption font-medium text-muted-foreground">
+            <span className="flex shrink-0 items-center gap-1.5 ui-caption font-medium text-muted-foreground">
               {t(`portrait.palette.${currentHomeSpec.palette}` as "portrait.palette.classic")}
+              <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
             </span>
           </button>
         </div>

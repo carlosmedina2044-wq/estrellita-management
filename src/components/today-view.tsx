@@ -1204,18 +1204,6 @@ export function TodayView({
         </motion.div>
       ) : null}
 
-      {/* Between the day ring and the care level: the week. Sits under the day
-          card so progress and what is still open keep the top of the screen. */}
-      {sceneMode && quest ? (
-        <motion.div
-          initial={playArrival ? { opacity: 0, y: 8 } : false}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: playArrival ? STAGGER_CHILD : 0 }}
-        >
-          <QuestCard quest={quest} />
-        </motion.div>
-      ) : null}
-
       {/* An empty wrapper still takes a slot in the sheet's `gap-5` column, which
           is how a quiet day grew ~100px of dead space under the scene. */}
       {(momentumOn && (activeNotice || getAhead)) || zipBannerVisible ? (
@@ -1486,6 +1474,9 @@ export function TodayView({
           >
             {t("today.addChore")}
           </Button>
+          {/* The week's goal sits after the day's list: what is left today
+              comes first, and the longer goal is context, not a gate. */}
+          {sceneMode && quest ? <QuestCard quest={quest} /> : null}
         </>
       )}
 

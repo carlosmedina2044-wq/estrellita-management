@@ -49,10 +49,25 @@ typography:
     fontFamily: "-apple-system, SF Pro Text, system-ui, sans-serif"
     fontSize: "0.8rem"
     lineHeight: 1.35
+  hero:
+    fontFamily: "-apple-system, SF Pro Display, system-ui, sans-serif"
+    fontSize: "2rem"
+    fontWeight: 700
+    lineHeight: 1.15
+    letterSpacing: "-0.022em"
+  hero-serif:
+    fontFamily: "ui-serif, New York, Georgia, serif"
+    fontSize: "2rem"
+    fontWeight: 600
+    lineHeight: 1.05
+  numerals:
+    fontFamily: "ui-rounded, SF Pro Rounded, system-ui, sans-serif"
+    fontVariantNumeric: "tabular-nums"
 rounded:
   control: "8px"
   input: "12px"
   container: "20px"
+  card: "16px"
   pill: "9999px"
 spacing:
   gutter: "20px"
@@ -96,12 +111,19 @@ governs every user-facing string.
 - **Neutral**: `canvas` behind, `card` on top, `secondary` for controls resting
   on a card (segmented track, quiet buttons). `ink-muted` is the lowest-strength
   text; do not fade text further with opacity.
+- Illustration colours (lantern and hearth glows, sun, moon, ember particles in
+  the Today scene) are exempt: they belong to the art, not the interface, and
+  are not tokens. Everything else is a token.
 - Light and Dark are both first-class. Every colour is a token in
   `src/app/globals.css` (`:root` and `.dark`); never write a raw hex in a
   component. Text and status colours are checked at 4.5:1 on their surfaces.
   Increase Contrast strengthens borders and muted text.
 
 ## Typography
+
+System fonts only: SF Pro (the `-apple-system` stack), New York (`ui-serif`)
+for the one serif hero line, and SF Pro Rounded (`ui-rounded`) for changing
+numbers. None are bundled webfonts.
 
 San Francisco via the system stack, so text follows Dynamic Type. Five named
 styles (`ui-display`, `ui-title`, `ui-card`, `ui-body`, `ui-caption`) are the

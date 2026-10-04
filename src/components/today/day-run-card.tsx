@@ -152,12 +152,11 @@ export function DayRunCard({
   const closedDays = days.filter((day) => day.outcome === "closed" || day.outcome === "rest").length;
   const openDays = days.filter((day) => day.outcome === "open" || day.outcome === "grace").length;
 
-  // Split around the number rather than interpolated, so both halves of the
-  // subline can roll when a chore is ticked instead of the whole line being
-  // replaced under the user. Same shape as `runParts` above.
-  const countParts = t("today.runCount", { count: "%%" }).split("%%");
+  // Split around the number rather than interpolated, so the subline can roll
+  // when a chore is ticked instead of being replaced under the user. Same shape
+  // as `runParts` above. The headline already says how many are left, so the
+  // subline carries only the time, not the same number a second time.
   const effortParts = t("today.effort", { minutes: "%%" }).split("%%");
-  const showCount = arc.open > 0;
   const showEffort = arc.minutesLeft > 0;
 
   return (
@@ -176,7 +175,7 @@ export function DayRunCard({
           <DayRing arc={arc} />
           <span className="min-w-0 flex-1 basis-[60%]">
             <span className="block ui-card font-semibold leading-snug text-foreground">{headline}</span>
-            {showCount || showEffort ? (
+            {showEffort ? (
               <span
                 // Not a flex container: CSS strips the collapsible whitespace
                 // at the edges of each flex item, so " to do" and "about "
@@ -185,14 +184,6 @@ export function DayRunCard({
                 // aligned, so plain inline flow is all this needs.
                 className="mt-0.5 block ui-caption num text-muted-foreground"
               >
-                {showCount ? (
-                  <>
-                    {countParts[0]}
-                    <RollingNumber value={arc.open} />
-                    {countParts[1] ?? null}
-                  </>
-                ) : null}
-                {showCount && showEffort ? <>&nbsp;·&nbsp;</> : null}
                 {showEffort ? (
                   <>
                     {effortParts[0]}
