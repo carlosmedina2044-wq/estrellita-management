@@ -392,7 +392,7 @@ export function RestockView({
       </section>
       ) : null}
 
-      <Button className="h-12 rounded-full" onClick={() => createGuard.tryOpen(() => {
+      <Button variant="outline" className="h-12 rounded-full" onClick={() => createGuard.tryOpen(() => {
         setEditingCustom(null);
         setAddGroup("whole-home");
         setQuickAdd(true);

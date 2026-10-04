@@ -53,19 +53,19 @@ export function ClosingReward({
 
   return (
     <motion.div
-      className="flex items-center gap-[12px] rounded-2xl bg-secondary/60 px-[12px] py-[8px]"
+      className="flex items-center justify-between gap-[12px] rounded-2xl bg-card px-[12px] py-[6px] ring-1 ring-border"
       initial={instant ? false : { opacity: 0, y: 12, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: DUR_BASE, delay: instant ? 0 : CEREMONY_BEAT.reward, ease: EASE_OUT }}
     >
       <div
-        className="flex size-[88px] shrink-0 items-center justify-center"
+        className="flex size-[64px] shrink-0 items-center justify-center"
         style={{
           background:
             "radial-gradient(closest-side, var(--brand-cream), color-mix(in oklab, var(--brand-cream) 20%, transparent))",
         }}
       >
-        <IllustratedMoment kind="shelf-scene" size={88} loop autoplay />
+        <IllustratedMoment kind="shelf-scene" size={64} loop autoplay />
       </div>
       {onShare ? (
         <button

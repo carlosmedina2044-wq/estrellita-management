@@ -323,12 +323,12 @@ export function DutyRow({
           {showDone ? (
             <span className="relative flex size-6 items-center justify-center">
               <motion.span
-                className="absolute inset-0 rounded-full bg-primary"
+                className="absolute inset-0 rounded-full bg-done"
                 initial={completing && !done ? { scale: 0 } : false}
                 animate={{ scale: 1 }}
                 transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
               />
-              <svg viewBox="0 0 24 24" className="relative size-3.5 text-primary-foreground" aria-hidden>
+              <svg viewBox="0 0 24 24" className="relative size-3.5 text-card" aria-hidden>
                 <motion.path
                   d="M5 13l4 4L19 7"
                   fill="none"

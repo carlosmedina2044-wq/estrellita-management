@@ -825,7 +825,7 @@ export function TodayView({
   // In scene mode the day card already names today's count and its clear state,
   // so the row only earns its slot when it has something else to say.
   const showAttention =
-    !sceneMode || summary.overdue > 0 || summary.orderNow > 0 || summary.arriving > 0;
+    !sceneMode || summary.orderNow > 0 || summary.arriving > 0;
   const sceneStops = useMemo(
     () => skyGradient(scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover),
     [scenePhaseEffective.phase, scenePhaseEffective.t, sceneWx.kind, sceneWx.cloudCover],
@@ -1178,6 +1178,7 @@ export function TodayView({
             run={sceneRun}
             graceUsed={sceneRun.graceUsed}
             headline={sceneHeadline}
+            overdue={summary.overdue}
             stats={ceremonyStats}
             celebrate={arc.state === "closed"}
             instant={!ceremonyActive}
@@ -1244,7 +1245,7 @@ export function TodayView({
         transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: playArrival ? STAGGER_CHILD * 2 : 0 }}
       >
       <AttentionTiles
-        overdue={summary.overdue}
+        overdue={sceneMode ? 0 : summary.overdue}
         dueToday={summary.dueToday}
         orderNow={summary.orderNow}
         orderNowCost={orderNowCostCaption(restock.order_now)}
@@ -1303,7 +1304,7 @@ export function TodayView({
                   // does instead of teleporting between positions.
                   <motion.span
                     layoutId="today-scope-pill"
-                    className="absolute inset-0 rounded-full bg-brand-cream shadow-sm ring-1 ring-primary/40"
+                    className="absolute inset-0 rounded-full bg-brand-cream shadow-sm ring-1 ring-border"
                     transition={SPRING_SETTLE}
                   />
                 ) : null}
@@ -1318,7 +1319,7 @@ export function TodayView({
           className={cn(
             "flex size-11 shrink-0 items-center justify-center rounded-full ui-press",
             calendarOpen || viewingCalendar
-              ? "bg-brand-cream text-brand-cream-foreground ring-1 ring-primary/40"
+              ? "bg-brand-cream text-brand-cream-foreground ring-1 ring-border"
               : "bg-secondary text-secondary-foreground",
           )}
           aria-label={t("today.pickDay")}
@@ -1349,7 +1350,7 @@ export function TodayView({
             onClick={() => setFilter(item)}
             className={
               filter === item
-                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 ui-caption font-medium text-brand-cream-foreground shadow-sm ring-1 ring-primary/40 ui-press"
+                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 ui-caption font-medium text-brand-cream-foreground shadow-sm ring-1 ring-border ui-press"
                 : "h-11 shrink-0 rounded-full bg-secondary px-3.5 ui-caption font-medium text-secondary-foreground ui-press"
             }
           >

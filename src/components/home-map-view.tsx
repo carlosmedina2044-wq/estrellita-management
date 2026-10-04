@@ -190,9 +190,16 @@ function TileGrid({
             )}
           >
             <RoomTypeIcon room={room} className="size-6 shrink-0 text-muted-foreground" />
-            <span className="min-w-[7rem] flex-1 break-words ui-body font-medium">{room.name}</span>
+            <span className="min-w-[7rem] flex-1 break-words ui-body font-medium">
+              {room.name}
+              {status.reorderPending > 0 ? (
+                <span className="mt-0.5 flex items-center gap-1 ui-caption font-normal text-muted-foreground">
+                  <Package className="size-3.5" aria-hidden />
+                  {tActive("home.toReorderCount", { count: status.reorderPending })}
+                </span>
+              ) : null}
+            </span>
             <span className={cn("ml-auto flex items-center gap-1.5 text-right ui-caption font-medium num", caption.className)}>
-              {status.reorderPending > 0 ? <Package className="size-3.5" aria-hidden /> : null}
               {caption.text}
             </span>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground/70" aria-hidden />

@@ -127,6 +127,7 @@ export function DayRunCard({
   run,
   graceUsed,
   headline,
+  overdue,
   stats,
   celebrate,
   instant,
@@ -138,6 +139,8 @@ export function DayRunCard({
   run: { current: number; best: number };
   graceUsed: boolean;
   headline: string;
+  /** How many of today's list are late; said in the status line, not a pill. */
+  overdue: number;
   stats: { done: number; minutes: number; rooms: number };
   celebrate: boolean;
   instant: boolean;
@@ -163,7 +166,10 @@ export function DayRunCard({
     <div className="ui-group">
       {closed ? (
         <div className="px-4 py-3">
-          <ClosingStats stats={stats} instant={instant} />
+          <p className="ui-card font-semibold text-foreground">{t("today.allDoneLine")}</p>
+          <div className="mt-2">
+            <ClosingStats stats={stats} instant={instant} />
+          </div>
         </div>
       ) : (
         <button
@@ -175,7 +181,7 @@ export function DayRunCard({
           <DayRing arc={arc} />
           <span className="min-w-0 flex-1 basis-[60%]">
             <span className="block ui-card font-semibold leading-snug text-foreground">{headline}</span>
-            {showEffort ? (
+            {showEffort || overdue > 0 ? (
               <span
                 // Not a flex container: CSS strips the collapsible whitespace
                 // at the edges of each flex item, so " to do" and "about "
@@ -184,6 +190,14 @@ export function DayRunCard({
                 // aligned, so plain inline flow is all this needs.
                 className="mt-0.5 block ui-caption num text-muted-foreground"
               >
+                {overdue > 0 ? (
+                  <span className="font-medium text-destructive">
+                    <RollingNumber value={overdue} />
+                    {" "}
+                    {t("today.overdue")}
+                  </span>
+                ) : null}
+                {overdue > 0 && showEffort ? <>&nbsp;·&nbsp;</> : null}
                 {showEffort ? (
                   <>
                     {effortParts[0]}
@@ -207,7 +221,7 @@ export function DayRunCard({
         className="flex w-full items-center gap-3 border-t border-border px-4 py-2.5 text-left ui-press"
       >
         <span className="min-w-0">
-          <span className="block ui-caption text-muted-foreground">{t("year.title")}</span>
+          <span className="block ui-caption text-muted-foreground">{t("today.weekLabel")}</span>
           {showRun ? (
             <span className="block ui-body font-semibold num text-foreground">
               {runParts[0]}
@@ -221,7 +235,7 @@ export function DayRunCard({
           ) : null}
           {/* The one forgiven day in seven is real in `walkRun`; naming it is
               what makes a missed day feel fair rather than fatal. */}
-          {graceUsed ? (
+          {graceUsed && !closed ? (
             <span className="block ui-caption text-soon">{t("today.runGrace")}</span>
           ) : null}
         </span>
