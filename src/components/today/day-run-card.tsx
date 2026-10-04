@@ -223,7 +223,7 @@ export function DayRunCard({
               <RollingNumber value={run.current} />
               {runParts[1] ?? null}
             </span>
-          ) : run.best > run.current ? (
+          ) : run.best >= 2 && run.best > run.current ? (
             <span className="block ui-caption text-muted-foreground">
               {t("today.runBest", { count: run.best })}
             </span>

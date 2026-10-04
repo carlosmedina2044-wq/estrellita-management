@@ -42,7 +42,7 @@ export function QuestCard({ quest, now = new Date() }: { quest: Quest; now?: Dat
       className={cn(
         // Plain until it is met: a goal row, not a second card. A met quest is
         // the one reward this has to give, so only then does it take a fill.
-        quest.done ? "rounded-2xl bg-done-soft px-4 py-3" : "px-1 py-1",
+        quest.done ? "rounded-2xl bg-done-soft px-4 py-3" : "px-4 py-1",
       )}
       initial={{ y: -8, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}

@@ -1058,7 +1058,7 @@ export function TodayView({
           <SceneBoundary
             // Same box the scene would have filled, so the sheet's negative
             // margin and the compact bar keep their geometry if the art fails.
-            fallback={<div aria-hidden style={{ height: "calc(env(safe-area-inset-top) + 272px)" }} />}
+            fallback={<div aria-hidden style={{ height: "calc(env(safe-area-inset-top) + 232px)" }} />}
           >
             <PortraitScene
               household={household}
@@ -1152,7 +1152,7 @@ export function TodayView({
         // all against a saturated sky.
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-24 rounded-t-[28px]"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-24 rounded-t-[28px]"
           style={{
             background:
               "linear-gradient(color-mix(in oklab, var(--ambient) 20%, var(--background)), transparent)",

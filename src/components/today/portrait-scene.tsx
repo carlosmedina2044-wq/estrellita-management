@@ -517,9 +517,10 @@ export function PortraitScene({
         ...skyVars,
         // 300px put the first chore 611px down a 716px pane — one visible task
         // row. 256px freed the fold but left nothing between the header, the
-        // sky and the roof. 272px keeps three chores above the fold and gives
-        // the composition room to breathe.
-        height: insetTop ? "calc(env(safe-area-inset-top) + 272px)" : "272px",
+        // sky and the roof. 272px was fine in a browser pane, but on a real
+        // iPhone the safe area and the four cards above the list left one
+        // chore showing, so the art gives up another 40px.
+        height: insetTop ? "calc(env(safe-area-inset-top) + 232px)" : "232px",
         background:
           "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}
