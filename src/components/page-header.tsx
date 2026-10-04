@@ -23,8 +23,8 @@ export function PageHeader({
   const resolvedBackLabel = backLabel ?? t("common.back");
 
   return (
-    <header className="flex items-start justify-between gap-3">
-      <div className="flex min-w-0 items-start gap-1">
+    <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+      <div className="flex min-w-min flex-1 basis-0 items-start gap-1">
         {onBack ? (
           <button
             type="button"
@@ -41,7 +41,7 @@ export function PageHeader({
           {subtitle ? <div className="mt-1 ui-caption text-muted-foreground">{subtitle}</div> : null}
         </div>
       </div>
-      <div className="flex h-11 min-w-11 shrink-0 items-center justify-center">{action ?? null}</div>
+      <div className="flex min-h-11 min-w-11 shrink-0 items-center justify-center">{action ?? null}</div>
     </header>
   );
 }

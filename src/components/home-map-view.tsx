@@ -185,13 +185,13 @@ function TileGrid({
             }}
             onClick={() => onSelectRoom(room.id)}
             className={cn(
-              "ui-group-row flex w-full items-center gap-3 px-4 text-left transition-colors active:bg-foreground/6",
+              "ui-group-row flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-left transition-colors active:bg-foreground/6",
               selectedId === room.id && "bg-primary/5",
             )}
           >
             <RoomTypeIcon room={room} className="size-6 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1 truncate ui-body font-medium">{room.name}</span>
-            <span className={cn("flex shrink-0 items-center gap-1.5 ui-caption font-medium num", caption.className)}>
+            <span className="min-w-[7rem] flex-1 break-words ui-body font-medium">{room.name}</span>
+            <span className={cn("ml-auto flex items-center gap-1.5 text-right ui-caption font-medium num", caption.className)}>
               {status.reorderPending > 0 ? <Package className="size-3.5" aria-hidden /> : null}
               {caption.text}
             </span>

@@ -144,7 +144,7 @@ export function RestockView({
           household.supplyAutomations.length > 0 && onWalkHouse ? (
             <button
               type="button"
-              className="inline-flex h-11 items-center whitespace-nowrap rounded-full border border-border px-4 ui-body font-medium text-primary ui-press"
+              className="inline-flex min-h-11 items-center rounded-full border border-border px-4 py-1 text-center ui-body font-medium text-primary ui-press"
               onClick={startWalk}
             >
               {t("restock.walkHouseShort")}
@@ -155,7 +155,7 @@ export function RestockView({
 
       <div className="rounded-2xl bg-card px-4 py-4">
         <p className="ui-card font-medium">{t("restock.needSomething")}</p>
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-wrap gap-2">
           <Input
             value={haulDraft}
             onChange={(event) => setHaulDraft(event.target.value)}
@@ -163,7 +163,7 @@ export function RestockView({
               if (event.key === "Enter" && !haulMatch) submitHaulDraft();
             }}
             placeholder={t("restock.needSomethingPlaceholder")}
-            className="h-11 flex-1"
+            className="h-11 min-w-[9rem] flex-1"
             maxLength={60}
           />
           {!haulMatch ? (
