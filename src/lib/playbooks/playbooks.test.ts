@@ -27,7 +27,7 @@ import { withHouseholdDefaults } from "@/lib/household-defaults";
 
 function home(partial: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "Cleaner",

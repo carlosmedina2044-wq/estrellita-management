@@ -52,6 +52,9 @@ import {
   type PurchaseKind,
   type RetailerId,
   type SavedRetailerLink,
+  type SyncEntityType,
+  type SyncState,
+  type SyncTombstone,
   type SupplyAutomation,
   type Tenure,
   type Visit,
@@ -59,7 +62,7 @@ import {
 } from "@/lib/types";
 
 export const EMPTY_HOUSEHOLD: Household = withHouseholdDefaults({
-  version: 8,
+  version: 9,
   householdName: "Home",
   ownerName: "",
   cleanerName: "",
@@ -142,6 +145,25 @@ function asIsoDateTime(value: unknown, fallback: string): string {
   return Number.isFinite(time) ? new Date(time).toISOString() : fallback;
 }
 
+/** What an entity with no stamp and no creation time is worth: older than any real edit. */
+export const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
+
+/**
+ * The entity's own `updatedAt`, else the first creation-like time it carries
+ * (createdAt, completedAt, addedAt, earnedAt), else the epoch. Deliberately
+ * not "the time of this migration": that value changes on every launch until
+ * the next write persists it, and would make an unedited entity look newer
+ * than an edit made on another phone. See docs/ICLOUD_SYNC_DESIGN.md, P1 notes.
+ */
+function asUpdatedAt(raw: Record<string, unknown>, ...fallbacks: unknown[]): string {
+  for (const candidate of [raw.updatedAt, ...fallbacks]) {
+    if (typeof candidate !== "string") continue;
+    const time = Date.parse(candidate);
+    if (Number.isFinite(time)) return new Date(time).toISOString();
+  }
+  return EPOCH_ISO;
+}
+
 function migrateDuty(raw: unknown): Duty | null {
   if (!isPlainObject(raw)) return null;
   const id = asId(raw.id);
@@ -187,6 +209,7 @@ function migrateDuty(raw: unknown): Duty | null {
         ? Math.min(10_000, Math.round(raw.rolledCompletions))
         : undefined,
     snoozedUntil: asIsoDate(raw.snoozedUntil) ?? undefined,
+    updatedAt: asUpdatedAt(raw, raw.createdAt),
   };
 }
 
@@ -222,6 +245,7 @@ function migrateCompletion(raw: unknown): Completion | null {
     completedAt: asIsoDateTime(raw.completedAt, new Date().toISOString()),
     actualCost,
     costSkipped: raw.costSkipped === true ? true : undefined,
+    updatedAt: asUpdatedAt(raw, raw.completedAt),
   };
 }
 
@@ -247,6 +271,7 @@ function migratePurchase(raw: unknown): Purchase | null {
     laborKind,
     notes: sanitizeText(raw.notes, TEXT_LIMITS.notes) || undefined,
     plannedCost,
+    updatedAt: asUpdatedAt(raw, raw.completedAt),
   };
 }
 
@@ -271,6 +296,7 @@ function migrateVisit(raw: unknown): Visit | null {
     cleanerName: sanitizeText(raw.cleanerName, TEXT_LIMITS.name) || "",
     startedAt: asIsoDateTime(raw.startedAt, new Date().toISOString()),
     endedAt: typeof raw.endedAt === "string" ? asIsoDateTime(raw.endedAt, "") || null : null,
+    updatedAt: asUpdatedAt(raw, raw.endedAt, raw.startedAt),
   };
 }
 
@@ -358,6 +384,7 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
       raw.observedRatePerDay <= 100
         ? raw.observedRatePerDay
         : undefined,
+    updatedAt: asUpdatedAt(raw, raw.createdAt),
   };
 }
 
@@ -402,7 +429,7 @@ function migrateFloor(raw: unknown, index: number): HomeFloor | null {
   const id = asSlugId(raw.id, `floor-${index}`);
   const name = sanitizeText(raw.name, TEXT_LIMITS.name);
   if (!name) return null;
-  return { id, name, sortOrder: asInt(raw.sortOrder, index, 0, 99) };
+  return { id, name, sortOrder: asInt(raw.sortOrder, index, 0, 99), updatedAt: asUpdatedAt(raw) };
 }
 
 const LEGACY_SYSTEM_ROOM_NAMES: Record<string, string> = {
@@ -431,6 +458,7 @@ function migrateHomeRoom(raw: unknown, index: number): HomeRoom | null {
     tileH: raw.tileH !== undefined ? asInt(raw.tileH, 1, 1, 24) : undefined,
     tileX: raw.tileX !== undefined ? asInt(raw.tileX, 0, 0, 48) : undefined,
     tileY: raw.tileY !== undefined ? asInt(raw.tileY, 0, 0, 48) : undefined,
+    updatedAt: asUpdatedAt(raw),
   };
 }
 
@@ -457,6 +485,7 @@ function migrateAsset(raw: unknown): HomeAsset | null {
     notes: sanitizeText(raw.notes, TEXT_LIMITS.notes) || undefined,
     deferredUntil: asIsoDate(raw.deferredUntil) ?? undefined,
     deferReason: sanitizeText(raw.deferReason, TEXT_LIMITS.notes) || undefined,
+    updatedAt: asUpdatedAt(raw),
   };
 }
 
@@ -478,6 +507,7 @@ function migrateConsumable(raw: unknown): Consumable | null {
     lastPaidPrice: asActualCost(raw.lastPaidPrice),
     lastReplacedAt: asIsoDate(raw.lastReplacedAt) ?? undefined,
     sizeSpec: sanitizeText(raw.sizeSpec, TEXT_LIMITS.sizeSpec) || undefined,
+    updatedAt: asUpdatedAt(raw),
   };
 }
 
@@ -613,7 +643,7 @@ function rollOldCompletions(
   };
 }
 
-export function migrateHousehold(raw: Record<string, unknown>): Household {
+export function migrateHousehold(raw: Record<string, unknown>, options: { now?: Date; merging?: boolean } = {}): Household {
   const duties = take(raw.duties, COLLECTION_LIMITS.duties)
     .map(migrateDuty)
     .filter((item): item is Duty => Boolean(item));
@@ -630,15 +660,25 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     .map(migrateVisit)
     .filter((item): item is Visit => Boolean(item));
 
-  const { completions, duties: dutiesWithRollup } = rollOldCompletions(duties, rawCompletions);
+  // Merging two homes must not drop anything the other phone still shows
+  // (completions that would roll up, restock items whose chore is absent from
+  // THIS copy): a merge has to be associative, and a half-state that forgets
+  // something cannot be repaired by a later one. `merging` keeps them; the next
+  // ordinary load rolls and prunes as before.
+  const { completions, duties: dutiesWithRollup } =
+    options.merging === true
+      ? { completions: rawCompletions, duties }
+      : rollOldCompletions(duties, rawCompletions, options.now);
 
   const supplyAutomations = take(raw.supplyAutomations ?? raw.reorderRules, COLLECTION_LIMITS.supplyAutomations)
     .map((item) => migrateAutomation(item, dutiesWithRollup))
     .filter((item): item is SupplyAutomation => Boolean(item))
-    .filter((item) => dutiesWithRollup.some((duty) => duty.id === item.dutyId));
+    .filter((item) => options.merging === true || dutiesWithRollup.some((duty) => duty.id === item.dutyId));
 
+  // (Not while merging: which copy of a chore carries `kind` is part of the merge,
+  // and rewriting it per input copy would make the result depend on grouping.)
   const withKind = dutiesWithRollup.map((duty) =>
-    supplyAutomations.some((item) => item.dutyId === duty.id)
+    options.merging !== true && supplyAutomations.some((item) => item.dutyId === duty.id)
       ? { ...duty, kind: "replacement" as DutyKind }
       : duty,
   );
@@ -697,8 +737,8 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       ? (raw.tenure as Tenure)
       : undefined;
 
-  return ensureHomeTree({
-    version: 8,
+  const migrated: Household = ensureHomeTree<Household>({
+    version: 9,
     householdName,
     ownerName: sanitizeText(raw.ownerName, TEXT_LIMITS.name) || firstPerson || "",
     cleanerName: sanitizeText(raw.cleanerName, TEXT_LIMITS.name) || "",
@@ -776,6 +816,7 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     ...migrateHouseNotes(raw.houseNotes),
     ...migrateHaulItems(raw.haulItems),
     ...migrateEveningNudge(raw.eveningNudge),
+    ...migrateSyncFields(raw),
     momentum: isPlainObject(raw.momentum)
       ? {
           enabled: raw.momentum.enabled !== false,
@@ -786,6 +827,111 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
         }
       : { ...DEFAULT_MOMENTUM },
   });
+  // The generated tree (the default floor, the two system rooms) has no stamp
+  // of its own; give it the same floor value every other entity gets so a
+  // reload of a reload is identical.
+  return {
+    ...migrated,
+    floors: migrated.floors.map((floor) => (floor.updatedAt ? floor : { ...floor, updatedAt: EPOCH_ISO })),
+    rooms: migrated.rooms.map((room) => (room.updatedAt ? room : { ...room, updatedAt: EPOCH_ISO })),
+  };
+}
+
+const SYNC_ENTITY_TYPES: readonly SyncEntityType[] = [
+  "duty",
+  "completion",
+  "purchase",
+  "asset",
+  "room",
+  "floor",
+  "consumable",
+  "supply",
+  "houseNote",
+  "haulItem",
+  "visit",
+];
+export const TOMBSTONE_LIMIT = 2_000;
+
+type KeptCount = NonNullable<SyncTombstone["keep"]>;
+
+/** The later stock count (day, then level); a total order, so the choice never depends on argument order. */
+export function bestCount(a: KeptCount | undefined, b: KeptCount | undefined): KeptCount | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  if (a.lastConfirmedAt !== b.lastConfirmedAt) return a.lastConfirmedAt > b.lastConfirmedAt ? a : b;
+  return (a.lastConfirmedLevel ?? -1) >= (b.lastConfirmedLevel ?? -1) ? a : b;
+}
+
+function migrateTombstones(raw: unknown): SyncTombstone[] {
+  const byKey = new Map<string, SyncTombstone>();
+  for (const item of take(raw, TOMBSTONE_LIMIT * 2)) {
+    if (!isPlainObject(item)) continue;
+    if (typeof item.type !== "string" || !(SYNC_ENTITY_TYPES as readonly string[]).includes(item.type)) continue;
+    if (typeof item.id !== "string" || item.id.length === 0 || item.id.length > 80) continue;
+    if (typeof item.deletedAt !== "string" || !Number.isFinite(Date.parse(item.deletedAt))) continue;
+    const keep = isPlainObject(item.keep) ? asIsoDate(item.keep.lastConfirmedAt) : null;
+    const keepLevel =
+      isPlainObject(item.keep) &&
+      typeof item.keep.lastConfirmedLevel === "number" &&
+      Number.isFinite(item.keep.lastConfirmedLevel) &&
+      item.keep.lastConfirmedLevel >= 0 &&
+      item.keep.lastConfirmedLevel <= 999
+        ? item.keep.lastConfirmedLevel
+        : undefined;
+    const entry: SyncTombstone = {
+      type: item.type as SyncEntityType,
+      id: item.id,
+      deletedAt: new Date(item.deletedAt).toISOString(),
+      ...(keep && item.type === "supply"
+        ? { keep: { lastConfirmedAt: keep, ...(keepLevel !== undefined ? { lastConfirmedLevel: keepLevel } : {}) } }
+        : {}),
+    };
+    const key = `${entry.type}:${entry.id}`;
+    const existing = byKey.get(key);
+    if (!existing) byKey.set(key, entry);
+    else {
+      const later = existing.deletedAt < entry.deletedAt ? entry : existing;
+      const keepBest = bestCount(existing.keep, entry.keep);
+      byKey.set(key, { ...later, ...(keepBest ? { keep: keepBest } : {}) });
+    }
+  }
+  return [...byKey.values()]
+    .sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : a.deletedAt > b.deletedAt ? -1 : a.id < b.id ? -1 : 1))
+    .slice(0, TOMBSTONE_LIMIT);
+}
+
+function migrateSyncState(raw: unknown): SyncState | undefined {
+  if (!isPlainObject(raw)) return undefined;
+  const deviceId = sanitizeText(raw.deviceId, TEXT_LIMITS.id);
+  if (!deviceId) return undefined;
+  const homeId = sanitizeText(raw.homeId, TEXT_LIMITS.id);
+  const lastSyncAt =
+    typeof raw.lastSyncAt === "string" && Number.isFinite(Date.parse(raw.lastSyncAt))
+      ? new Date(raw.lastSyncAt).toISOString()
+      : undefined;
+  return {
+    enabled: raw.enabled === true,
+    deviceId,
+    ...(homeId ? { homeId } : {}),
+    ...(lastSyncAt ? { lastSyncAt } : {}),
+  };
+}
+
+/** Optional sync bookkeeping: absent stays absent, so a household that never synced reloads unchanged. */
+function migrateSyncFields(
+  raw: Record<string, unknown>,
+): Pick<Household, "tombstones" | "profileUpdatedAt" | "sync"> {
+  const tombstones = migrateTombstones(raw.tombstones);
+  const sync = migrateSyncState(raw.sync);
+  const profileUpdatedAt =
+    typeof raw.profileUpdatedAt === "string" && Number.isFinite(Date.parse(raw.profileUpdatedAt))
+      ? new Date(raw.profileUpdatedAt).toISOString()
+      : undefined;
+  return {
+    ...(tombstones.length > 0 ? { tombstones } : {}),
+    ...(profileUpdatedAt ? { profileUpdatedAt } : {}),
+    ...(sync ? { sync } : {}),
+  };
 }
 
 function migrateEveningNudge(raw: unknown): { eveningNudge?: { enabled: boolean; hour: number } } {
@@ -809,6 +955,7 @@ function migrateHouseNote(raw: unknown): HouseNote | null {
     body,
     kind: asEnum(raw.kind, ["breaker", "shutoff", "paint", "other"] as const, "other"),
     createdAt: asIsoDateTime(raw.createdAt, new Date().toISOString()),
+    updatedAt: asUpdatedAt(raw, raw.createdAt),
   };
 }
 
@@ -826,7 +973,12 @@ function migrateHaulItems(raw: unknown): { haulItems?: HaulItem[] } {
       const id = typeof item.id === "string" && item.id.length > 0 && item.id.length < 80 ? item.id : null;
       const name = typeof item.name === "string" ? item.name.trim().slice(0, 120) : "";
       if (!id || !name) return null;
-      return { id, name, addedAt: asIsoDateTime(item.addedAt, new Date().toISOString()) };
+      return {
+        id,
+        name,
+        addedAt: asIsoDateTime(item.addedAt, new Date().toISOString()),
+        updatedAt: asUpdatedAt(item, item.addedAt),
+      };
     })
     .filter((item): item is HaulItem => Boolean(item));
   return items.length > 0 ? { haulItems: items } : {};

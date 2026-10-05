@@ -30,7 +30,7 @@ test("fetchWeatherAttribution resolves a fixture via the test hook", async () =>
 test("migrate drops weatherStatus.attribution so marks never persist", () => {
   const household = parseStored(
     JSON.stringify({
-      version: 8,
+      version: 9,
       onboarded: true,
       householdName: "Home",
       weatherStatus: {

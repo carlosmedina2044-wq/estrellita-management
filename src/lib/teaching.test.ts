@@ -14,7 +14,7 @@ import type { Household } from "@/lib/types";
 
 function home(partial: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "Cleaner",
@@ -56,7 +56,7 @@ test("walk-after-day-one is false on the start day", () => {
 
 test("the year intro plays once, only for a home set up within the last day", () => {
   const base = withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa",
     ownerName: "",
     cleanerName: "",

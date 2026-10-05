@@ -934,15 +934,19 @@ html.keyboard-open [data-slot="sheet-footer"] {
   84% { opacity: 0.9; }
   100% { opacity: 1; }
 }
-.detail-puff {
-  background: rgba(235, 232, 226, 0.75);
-  animation: detail-rise 4s ease-out infinite;
-  opacity: 0;
+/*
+ * Rendered loops (tools/blender/fx): a sprite strip stepped one frame at a
+ * time. background-size makes the strip N frames wide inside a one-frame box;
+ * the keyframe walks it left by exactly that width in N hard steps.
+ */
+.sprite-loop {
+  background-repeat: no-repeat;
+  background-size: calc(var(--sprite-width) * var(--sprite-frames)) 100%;
+  animation: sprite-run var(--sprite-seconds, 4s) steps(var(--sprite-frames)) infinite;
 }
-@keyframes detail-rise {
-  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
-  15% { opacity: 0.7; }
-  100% { transform: translate(-30%, -34px) scale(1.5); opacity: 0; }
+@keyframes sprite-run {
+  from { background-position-x: 0; }
+  to { background-position-x: calc(var(--sprite-width) * var(--sprite-frames) * -1); }
 }
 .detail-bulb {
   background: #ffd9a0;

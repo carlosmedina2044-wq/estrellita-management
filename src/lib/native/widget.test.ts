@@ -6,7 +6,7 @@ import type { Household } from "@/lib/types";
 
 function household(): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa",
     ownerName: "Me",
     cleanerName: "Ana",

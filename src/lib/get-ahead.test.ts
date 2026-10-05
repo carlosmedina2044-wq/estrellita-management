@@ -31,7 +31,7 @@ function duty(partial: Partial<Duty> & Pick<Duty, "id" | "title">): Duty {
 
 function home(duties: Duty[]): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa",
     ownerName: "",
     cleanerName: "",

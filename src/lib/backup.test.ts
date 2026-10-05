@@ -59,7 +59,7 @@ test("opens a backup sealed at the previous 210k iteration count", async () => {
   assert.equal(await openBackup(file, "correct horse"), payload);
 });
 
-test("restoring a v7 backup migrates to v8 with empty preferredRetailers", async () => {
+test("restoring a v7 backup migrates to v9 with empty preferredRetailers", async () => {
   const payload = JSON.stringify({
     householdName: "Home",
     version: 7,
@@ -96,7 +96,7 @@ test("restoring a v7 backup migrates to v8 with empty preferredRetailers", async
   const file = await sealBackup(payload, "correct horse");
   const opened = await openBackup(file, "correct horse");
   const household = parseStored(opened);
-  assert.equal(household.version, 8);
+  assert.equal(household.version, 9);
   assert.deepEqual(household.preferredRetailers, []);
   assert.equal(household.supplyAutomations[0]?.preferredRetailer, undefined);
   assert.equal(household.supplyAutomations[0]?.orderedAt, undefined);

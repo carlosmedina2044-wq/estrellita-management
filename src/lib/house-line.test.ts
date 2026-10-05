@@ -33,7 +33,7 @@ function done(dutyId: string, at: Date): Completion {
 
 function home(partial: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa",
     ownerName: "",
     cleanerName: "",

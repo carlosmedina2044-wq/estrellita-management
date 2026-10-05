@@ -16,7 +16,7 @@ import type { Household } from "@/lib/types";
 
 function home(overrides: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa Luz",
     ownerName: "Ana",
     cleanerName: "Rosa",

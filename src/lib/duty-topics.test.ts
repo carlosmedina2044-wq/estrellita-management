@@ -43,7 +43,7 @@ function done(dutyId: string, at = "2026-03-01T12:00:00.000Z"): Completion {
 function sampleHome(now: Date): Household {
   const generated = generateHomeFromAnswers(sampleHomeAnswers(), now);
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: generated.householdName,
     ownerName: "",
     cleanerName: "",

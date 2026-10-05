@@ -23,7 +23,7 @@ function asset(partial: Partial<HomeAsset> & Pick<HomeAsset, "id" | "name" | "ty
 
 function household(overrides: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "Cleaner",

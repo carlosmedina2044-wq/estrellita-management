@@ -26,8 +26,9 @@ import type {
 
 const ISO = "2026-09-01T12:00:00.000Z";
 
-const floor: Required<HomeFloor> = { id: "main", name: "Main", sortOrder: 0 };
+const floor: Required<HomeFloor> = { id: "main", name: "Main", sortOrder: 0, updatedAt: ISO };
 const room: Required<HomeRoom> = {
+  updatedAt: ISO,
   id: "kitchen",
   floorId: "main",
   name: "Kitchen",
@@ -40,6 +41,7 @@ const room: Required<HomeRoom> = {
   tileY: 1,
 };
 const asset: Required<HomeAsset> = {
+  updatedAt: ISO,
   id: "furnace-1",
   roomId: "kitchen",
   name: "Furnace",
@@ -55,6 +57,7 @@ const asset: Required<HomeAsset> = {
   deferReason: "Saving up",
 };
 const consumable: Required<Consumable> = {
+  updatedAt: ISO,
   id: "cons-0001",
   assetId: "furnace-1",
   nodeId: "furnace-1",
@@ -67,6 +70,7 @@ const consumable: Required<Consumable> = {
   sizeSpec: "16x25x1",
 };
 const duty: Required<Duty> = {
+  updatedAt: ISO,
   id: "duty-0001",
   title: "Replace furnace filter",
   notes: "Quarterly",
@@ -96,6 +100,7 @@ const duty: Required<Duty> = {
   snoozedUntil: "2026-10-09",
 };
 const completion: Required<Completion> = {
+  updatedAt: ISO,
   id: "comp-0001",
   dutyId: "duty-0001",
   actor: "me",
@@ -105,6 +110,7 @@ const completion: Required<Completion> = {
   costSkipped: true,
 };
 const purchase: Required<Purchase> = {
+  updatedAt: ISO,
   id: "purch-01",
   completedAt: ISO,
   actualCost: 20,
@@ -117,8 +123,9 @@ const purchase: Required<Purchase> = {
   notes: "Hardware store",
   plannedCost: 18,
 };
-const visit: Required<Visit> = { id: "visit-01", cleanerName: "Ana", startedAt: ISO, endedAt: ISO };
+const visit: Required<Visit> = { id: "visit-01", cleanerName: "Ana", startedAt: ISO, endedAt: ISO, updatedAt: ISO };
 const supply: Required<SupplyAutomation> = {
+  updatedAt: ISO,
   id: "sup-00001",
   dutyId: "duty-0001",
   linkedDutyIds: ["duty-0001"],
@@ -156,8 +163,9 @@ const supply: Required<SupplyAutomation> = {
   observedRatePerDay: 0.01,
   flaggedLowAt: ISO,
 };
-const haul: Required<HaulItem> = { id: "haul-001", name: "Milk", addedAt: ISO };
+const haul: Required<HaulItem> = { id: "haul-001", name: "Milk", addedAt: ISO, updatedAt: ISO };
 const note: Required<HouseNote> = {
+  updatedAt: ISO,
   id: "note-001",
   roomId: "kitchen",
   title: "Breaker",
@@ -167,7 +175,7 @@ const note: Required<HouseNote> = {
 };
 
 const FULL: Required<Household> = {
-  version: 8,
+  version: 9,
   householdName: "Casa",
   ownerName: "Ana",
   cleanerName: "Rosa",
@@ -238,6 +246,12 @@ const FULL: Required<Household> = {
   checkIns: ["2026-09-01", "2026-09-02"],
   haulItems: [haul],
   houseNotes: [note],
+  tombstones: [
+    { type: "supply", id: "sup-gone-1", deletedAt: ISO, keep: { lastConfirmedAt: "2026-09-20", lastConfirmedLevel: 1 } },
+    { type: "duty", id: "duty-gone-1", deletedAt: ISO },
+  ],
+  profileUpdatedAt: ISO,
+  sync: { enabled: true, deviceId: "device-abc", homeId: "home-xyz", lastSyncAt: ISO },
 };
 
 function keysOf(value: unknown): string[] {
@@ -254,11 +268,11 @@ test("every field of the records and settings inside a Household survives a relo
   const out = parseStored(JSON.stringify(FULL)) as unknown as Record<string, unknown>;
   const lists = [
     "floors", "rooms", "assets", "consumables", "duties", "completions", "purchases", "visits",
-    "supplyAutomations", "savedRetailerLinks", "playbookDecisions", "weatherFires", "houseNotes", "haulItems", "milestones",
+    "supplyAutomations", "savedRetailerLinks", "playbookDecisions", "weatherFires", "houseNotes", "haulItems", "milestones", "tombstones",
   ] as const;
   const objects = [
     "location", "attributes", "homeSpec", "maintenanceFund", "weatherStatus", "lockSettings", "restockDigest",
-    "morningBrief", "eveningNudge", "teaching", "momentum",
+    "morningBrief", "eveningNudge", "teaching", "momentum", "sync",
   ] as const;
   const dropped: string[] = [];
   for (const name of lists) {

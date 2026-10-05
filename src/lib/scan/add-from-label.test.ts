@@ -11,7 +11,7 @@ const NOW = new Date(2026, 9, 4);
 
 function household(overrides: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "",

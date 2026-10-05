@@ -177,3 +177,97 @@ and the device matrix are the long poles, not the CloudKit calls.
 6. Foreground-only sync feeling broken.
 7. Supply counter conflicts (accepted).
 8. iOS 16 users excluded.
+
+## P1 implementation notes (schema, stamping, merge; no UI, no CloudKit)
+
+Built 2026-10-04. Inert: nothing in the product reads `sync`, and
+`SYNC_ENABLED = false` (`src/lib/sync/flags.ts`) is there for P2 and later.
+
+Files: `src/lib/sync/{flags,model,stamp,merge}.ts`, tests beside them
+(`stamp`, `merge`, `merge.property`, `vault-stamp`, plus `test-helpers.ts`),
+`migrate.ts` (v9), `types.ts`, `vault.ts` (one call), `migrate-fields.test.ts`.
+
+### Decisions
+
+- **Version 8 to 9.** Every synced entity (floor, room, asset, consumable, duty,
+  completion, purchase, visit, supply, house note, haul item) gets optional
+  `updatedAt`. Household gets optional `tombstones`, `sync` and one extra,
+  `profileUpdatedAt` (the shared "home profile" needs a clock; see below). Old
+  saves and backups load unchanged; backups never carry `sync` (restore strips it).
+- **Backfill is not "migration time".** A missing stamp becomes the entity's own
+  creation-like time, else the epoch. "Now" changes on every launch until a write
+  persists it and would make an unedited room on phone A beat an edit made on
+  phone B. Epoch loses to any real edit.
+- **Stamping is a strict no-op while `sync.enabled` is not true** (one property
+  read, about 2.5 microseconds per update including the in-memory write). Chosen
+  over stamping always because it changes nothing in anyone's vault and keeps no
+  deleted-id trail for people who never use sync. Cost: an edit made before sync
+  was ever on can carry an old stamp. The first-enable combine-or-replace sheet
+  is the mitigation. P2 should decide whether first enable stamps the whole home
+  "now" (the enabling phone wins every first conflict) or leaves the backfill.
+- **When on**, `stampChanges` costs about 11 ms at the hard limits (5,000 chores,
+  20,000 completions, one array rebuilt) and microseconds for a typical edit
+  (unchanged arrays are skipped by reference). `updateHousehold(updater, {
+  fromSync: true })` skips it for applied merge results.
+- **Tie-break is by content, not deviceId.** Equal stamps pick the entity with the
+  greater stable JSON string. It is symmetric and needs no per-entity device
+  field. `deviceId` stays in the signatures for the engine; the merge ignores it.
+- **Profile is one record.** Names, home type, location, attributes, scene,
+  threshold, safety buffer and preferred retailers are last-writer-wins as a
+  whole by `profileUpdatedAt`. The design listed singletons without a clock; this
+  is the smallest one that makes them mergeable.
+- **Stock counts are a register, not part of entity LWW.** The latest
+  `lastConfirmedAt` (then level) across every copy wins, including deleted
+  copies: a deleted supply's tombstone carries `keep: { lastConfirmedAt,
+  lastConfirmedLevel }`. Without that, the merge was not associative when a supply
+  is deleted on one phone and edited later on another (found by the property
+  test, seed 219).
+- **The merge never forgets, `settleMerge` cleans up.** Completions of a chore
+  deleted elsewhere, and restock items whose every chore is gone, stay in the
+  merge result so that "deleted on A, edited later on B" brings the chore back
+  with its history (and keeps the merge associative). P2 calls
+  `settleMerge(household, now)` after applying a merge, as a normal stamped edit,
+  to remove them and record tombstones.
+- **Merge sanitises both sides** with `migrateHousehold(..., { merging: true })`:
+  same validation as a load, but no completion roll-up, no dropping of restock
+  items whose chore is absent from that copy, no kind rewrite. Those three
+  rewrote data per input copy and broke associativity.
+- Output arrays are put in a canonical order (creation time, then id) so two
+  phones end up byte-equal. Per-device fields (`lockSettings`, `restockDigest`,
+  `morningBrief`, `eveningNudge`, `mode`, `activeVisitId`, `weatherStatus`,
+  `householdRole`, `sync`, plus momentum `enabled`/`care`/`careHistory`/
+  `nightFollowsSky`) keep the local value. `onboarded` ORs.
+- `dedupeDuties` matches on title (case and spacing insensitive), room,
+  frequency and kind, not title and room alone: "Water plants" weekly and monthly
+  in one room are different chores. It re-points completions, purchases and restock
+  links and tombstones the extras. Intended for the one-off combine step only.
+- `describeMerge` also reports shared/only-here counts, the combined size and
+  `looksLikeDifferentHomes` for the combine-or-replace sheet.
+
+### Limits found
+
+- Deleting a chore deletes its history. If another phone edits the chore later it
+  comes back without the completions that were already settled away.
+- Tombstones are pruned at 90 days and capped at 2,000. A phone offline longer
+  than 90 days can resurrect things it deleted-then-forgot on others; a very large
+  delete can push older tombstones out of the cap.
+- Restore from backup, undo-restore and erase write `memory` directly and are not
+  stamped. P2 must treat them as "edit everything" (restore) or stop the engine
+  first (erase), as the design says.
+- Lists keep their union size past the migrate caps (5,000 chores and so on); the
+  next load truncates oldest-first by array order, which is now creation order.
+- Not synced, by decision: `momentum.enabled`, `savedRetailerLinks` use max rules,
+  `playbookDecisions` OR `disabled` (a re-enable does not propagate), `seenTips`
+  keeps the first 32 alphabetically. Re-enabling a playbook on one phone is the one
+  edit that cannot yet reach the other.
+- Merge cost: roughly 6 ms per merge on a small home in the property test; not
+  measured at the 40,000-record limits.
+
+### Tests
+
+Unit tests for every rule, plus 300 seeds per property (about 2 s each, a seeded
+mulberry32 generator, 3 replicas, random operations, stale and duplicated
+deliveries): convergence, commutativity, idempotence, associativity (any order
+of three), no completion lost while its chore lives, edit-after-delete resurrects
+and delete-after-edit wins, settle stability. `SYNC_SEEDS=3000` runs 3,000 seeds
+(about 50 s) and passed.

@@ -204,7 +204,7 @@ test("absent tenure stays absent and invalid tenure is dropped", () => {
   assert.equal(kept.tenure, "new");
 });
 
-test("v7 households migrate to v8 with empty preferredRetailers", () => {
+test("v7 households migrate to v9 with empty preferredRetailers", () => {
   const household = parseStored(
     JSON.stringify({
       version: 7,
@@ -233,7 +233,7 @@ test("v7 households migrate to v8 with empty preferredRetailers", () => {
       ],
     }),
   );
-  assert.equal(household.version, 8);
+  assert.equal(household.version, 9);
   assert.deepEqual(household.preferredRetailers, ["walmart", "amazon"]);
   assert.equal(household.supplyAutomations[0]?.preferredRetailer, "ebay.com");
   assert.equal(household.supplyAutomations[0]?.orderedAt, "2026-08-20");
@@ -244,7 +244,7 @@ test("v7 households migrate to v8 with empty preferredRetailers", () => {
 test("costco survives preferredRetailers migration", () => {
   const household = parseStored(
     JSON.stringify({
-      version: 8,
+      version: 9,
       onboarded: true,
       householdName: "Home",
       preferredRetailers: ["amazon", "costco", "bogus"],

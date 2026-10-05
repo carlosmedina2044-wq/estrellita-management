@@ -19,7 +19,7 @@ import type { Completion, Duty, Household } from "@/lib/types";
 function seededHousehold(overrides: Partial<Household> = {}): Household {
   const generated = generateHomeFromAnswers(sampleHomeAnswers(), new Date(2026, 5, 1));
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: generated.householdName,
     ownerName: "",
     cleanerName: "Cleaner",

@@ -20,7 +20,7 @@ const money = (v: number) => `$${v}`;
 
 function home(overrides: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Test",
     ownerName: "Me",
     cleanerName: "",

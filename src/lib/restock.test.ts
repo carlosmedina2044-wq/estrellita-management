@@ -102,7 +102,7 @@ const household: Pick<Household, "duties" | "completions"> = {
 
 function fullHousehold(overrides: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa",
     ownerName: "",
     cleanerName: "",

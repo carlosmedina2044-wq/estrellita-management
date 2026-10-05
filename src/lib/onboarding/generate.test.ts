@@ -15,7 +15,7 @@ const DAY_ONE_TITLES = ["Tidy the living room", "Wipe kitchen counters", "Take o
 function seededHousehold(now: Date): Household {
   const generated = generateHomeFromAnswers(sampleHomeAnswers(), now);
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: generated.householdName,
     ownerName: "",
     cleanerName: "Cleaner",

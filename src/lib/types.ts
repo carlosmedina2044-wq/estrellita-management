@@ -82,6 +82,8 @@ export type HomeFloor = {
   id: string;
   name: string;
   sortOrder: number;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type HomeRoom = {
@@ -95,6 +97,8 @@ export type HomeRoom = {
   tileH?: number;
   tileX?: number;
   tileY?: number;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type HomeAsset = {
@@ -111,6 +115,8 @@ export type HomeAsset = {
   notes?: string;
   deferredUntil?: string;
   deferReason?: string;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type HomeLocation = {
@@ -152,6 +158,8 @@ export type Consumable = {
   lastPaidPrice?: number;
   lastReplacedAt?: string;
   sizeSpec?: string;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type Duty = {
@@ -183,6 +191,8 @@ export type Duty = {
   rolledCompletions?: number;
   /** ISO date; hide from Today until this day (inclusive end = day after). */
   snoozedUntil?: string;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type DutyCaution = "gas" | "electrical" | "roof" | "ladder" | "structural" | "pest";
@@ -264,6 +274,8 @@ export type SupplyAutomation = {
    * X"); pins the item to Order now regardless of the rate model until it's
    * received. Cleared on receive or a fuller check-in. */
   flaggedLowAt?: string;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type SupplyAutomationInput = {
@@ -296,6 +308,8 @@ export type Completion = {
   completedAt: string;
   actualCost?: number;
   costSkipped?: true;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type PurchaseKind = "consumable" | "task" | "replacement";
@@ -313,6 +327,8 @@ export type Purchase = {
   laborKind?: LaborKind;
   notes?: string;
   plannedCost?: number;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type MaintenanceFund = {
@@ -326,6 +342,8 @@ export type Visit = {
   cleanerName: string;
   startedAt: string;
   endedAt: string | null;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type LockSettings = {
@@ -435,7 +453,7 @@ export type HomeSpec = {
 };
 
 export type Household = {
-  version: 8;
+  version: 9;
   householdName: string;
   ownerName: string;
   cleanerName: string;
@@ -487,6 +505,46 @@ export type Household = {
    * colours). Optional so every older saved household and backup still loads;
    * see src/lib/house-notes.ts. Contents are never logged. */
   houseNotes?: HouseNote[];
+  /** Deletions kept so a sync can tell "deleted" from "never seen". Pruned
+   * after 90 days, capped at 2000. Only written while sync is on. */
+  tombstones?: SyncTombstone[];
+  /** ISO instant of the last edit to the shared home profile (names, home
+   * type, location, attributes, scene, thresholds). Written only while sync is on. */
+  profileUpdatedAt?: string;
+  /** Per-device sync state. Never synced, never restored from a backup. */
+  sync?: SyncState;
+};
+
+export type SyncEntityType =
+  | "duty"
+  | "completion"
+  | "purchase"
+  | "asset"
+  | "room"
+  | "floor"
+  | "consumable"
+  | "supply"
+  | "houseNote"
+  | "haulItem"
+  | "visit";
+
+export type SyncTombstone = {
+  type: SyncEntityType;
+  id: string;
+  deletedAt: string;
+  /**
+   * Restock items only: the last stock count the deleted item carried. A count
+   * is merged by "latest wins" across every copy, including copies that were
+   * deleted and brought back, so it has to outlive the delete.
+   */
+  keep?: { lastConfirmedAt: string; lastConfirmedLevel?: number };
+};
+
+export type SyncState = {
+  enabled: boolean;
+  deviceId: string;
+  homeId?: string;
+  lastSyncAt?: string;
 };
 
 export type HouseNoteKind = "breaker" | "shutoff" | "paint" | "other";
@@ -498,12 +556,16 @@ export type HouseNote = {
   body: string;
   kind: HouseNoteKind;
   createdAt: string;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type HaulItem = {
   id: string;
   name: string;
   addedAt: string;
+  /** ISO instant of the last local edit (hybrid logical clock). Optional: only sync reads it. See src/lib/sync/stamp.ts. */
+  updatedAt?: string;
 };
 
 export type TeachingProgress = {

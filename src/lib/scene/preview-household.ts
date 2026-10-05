@@ -49,7 +49,7 @@ export function previewHousehold(
   const noon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
 
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: name,
     ownerName: "",
     cleanerName: "",

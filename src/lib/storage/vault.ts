@@ -27,6 +27,7 @@ import { clearWidgetSnapshot, syncWidgetSnapshot } from "@/lib/native/widget";
 import { clearWeatherWatch, syncWeatherWatch } from "@/lib/native/weatherkit";
 import { syncScheduledNotifications } from "@/lib/notifications";
 import { isPlainObject } from "@/lib/sanitize";
+import { isSyncActive, stampChanges } from "@/lib/sync/stamp";
 import { EMPTY_HOUSEHOLD, migrateHousehold, parseStored } from "@/lib/storage/migrate";
 import type { Household, LockAfter } from "@/lib/types";
 
@@ -547,7 +548,36 @@ export async function hydrateHousehold(): Promise<HouseholdLoad> {
   }
 }
 
-export function updateHousehold(updater: (current: Household) => Household) {
+export type UpdateHouseholdOptions = {
+  /** The change is a merge result from another phone: apply it without re-stamping, or it would look like a fresh local edit. */
+  fromSync?: boolean;
+};
+
+/**
+ * Change stamping (`updatedAt`, tombstones) runs here, once, for every local
+ * edit, and only while this household has sync switched on
+ * (`household.sync?.enabled`). Decision (P1): not while sync is off.
+ *
+ * - Off is a strict no-op: no field is added to anyone's vault, no deleted id
+ *   is kept, shipping this changes nothing for people who never turn sync on.
+ *   The check is one property read.
+ * - The cost of not stamping while off is small and bounded: entities carry the
+ *   stamp the v9 migration backfilled (their creation time, else the epoch), so
+ *   an edit made before sync was ever enabled can look older than it is. The
+ *   first-enable step is a combine-or-replace choice the person sees, never a
+ *   silent merge, so that window is visible rather than guessed at.
+ * - Stamping while off would also keep a 90-day trail of deleted ids for
+ *   everyone, for a feature most will not use.
+ *
+ * With sync on, the diff is skipped for collections whose array is the same
+ * object (most edits touch one), so the cost is proportional to what changed
+ * plus one pass over the stamps to find the clock (about a millisecond at the
+ * 40,000-record limits).
+ */
+export function updateHousehold(
+  updater: (current: Household) => Household,
+  options: UpdateHouseholdOptions = {},
+) {
   didHydrate = true;
   if (!sessionUnlocked) return;
   if (memory == null && lastLoad === null) {
@@ -559,7 +589,12 @@ export function updateHousehold(updater: (current: Household) => Household) {
     // over" and the sample home can quarantine an unreadable vault.
     return;
   }
-  write(updater(memory ?? cloneEmpty()));
+  const prev = memory ?? cloneEmpty();
+  let next = updater(prev);
+  if (!options.fromSync && prev.sync && isSyncActive(prev)) {
+    next = stampChanges(prev, next, new Date().toISOString(), prev.sync.deviceId);
+  }
+  write(next);
 }
 
 /** Erases the household, its encryption key, and pending notifications on this device. */
@@ -756,8 +791,12 @@ export async function importHouseholdBackup(
   try {
     const { openBackup } = await import("@/lib/backup");
     const plaintext = await openBackup(raw, passphrase);
-    const household = {
-      ...parseStored(plaintext),
+    // Sync state belongs to one phone: a backup (even one taken with sync on)
+    // never switches it on here or carries another phone's device id.
+    const { sync: _sync, ...restored } = parseStored(plaintext);
+    void _sync;
+    const household: Household = {
+      ...restored,
       mode: "owner" as const,
       activeVisitId: null,
       onboarded: true,

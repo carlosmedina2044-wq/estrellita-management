@@ -21,6 +21,7 @@ export {
   unlockHousehold,
   updateHousehold,
   type HouseholdLoad,
+  type UpdateHouseholdOptions,
   type UnlockHouseholdResult,
   type VaultSessionMeta,
 } from "@/lib/storage/vault";

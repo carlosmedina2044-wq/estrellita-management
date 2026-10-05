@@ -113,7 +113,7 @@ function fixtureHousehold(state: ShotState, now: Date): Household {
   }
 
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa",
     ownerName: "Alex",
     cleanerName: "Ana",

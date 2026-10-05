@@ -8,7 +8,7 @@ import { weatherWatchList } from "@/lib/weather/watch";
 
 function home(partial: Partial<Household> = {}): Household {
   return withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa",
     ownerName: "",
     cleanerName: "",

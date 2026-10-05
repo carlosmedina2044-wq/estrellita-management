@@ -39,7 +39,7 @@ test("handledYourselfAmount excludes actualCost diy false and short frequencies"
 
 test("valueLedger hours round to half and amount threshold", () => {
   const home = withHouseholdDefaults({
-    version: 8,
+    version: 9,
     householdName: "Casa",
     ownerName: "Me",
     cleanerName: "",
