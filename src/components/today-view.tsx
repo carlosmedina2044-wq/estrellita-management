@@ -1462,9 +1462,6 @@ export function TodayView({
           >
             {t("today.addChore")}
           </Button>
-          {/* The week's goal sits after the day's list: what is left today
-              comes first, and the longer goal is context, not a gate. */}
-          {sceneMode && quest ? <QuestCard quest={quest} /> : null}
         </>
       )}
 
@@ -1475,23 +1472,6 @@ export function TodayView({
           }}
           instant
         />
-      ) : null}
-
-      {/* A quiet reminder below the day's work rather than a card above it:
-          weather sharpens the list, it is not the reason to open the app. */}
-      {zipBannerVisible ? (
-        <button
-          type="button"
-          onClick={() => setZipOpen(true)}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl bg-secondary px-3 py-2.5 text-left active:bg-foreground/6"
-        >
-          <span className="min-w-0 ui-caption text-muted-foreground">{t("today.addZipHint")}</span>
-          <span className="shrink-0 ui-caption font-semibold text-primary">{t("today.addZipCta")}</span>
-        </button>
-      ) : null}
-
-      {scope === "daily" && !viewingCalendar ? (
-        <SeasonSection household={household} now={now} onNavigate={onNavigate} />
       ) : null}
 
       {household.supplyAutomations.length === 0 ? (
@@ -1666,6 +1646,28 @@ export function TodayView({
           </div>
         ) : null}
       </div>
+
+      {/* The longer-range things live behind More: the week's goal, the
+          seasonal jobs and the weather nudge. After the day's list there should
+          be a place to rest, not a feed. */}
+      {moreOptionsOpen ? (
+        <div className="flex flex-col gap-5">
+          {sceneMode && quest ? <QuestCard quest={quest} /> : null}
+          {scope === "daily" && !viewingCalendar ? (
+            <SeasonSection household={household} now={now} onNavigate={onNavigate} />
+          ) : null}
+          {zipBannerVisible ? (
+            <button
+              type="button"
+              onClick={() => setZipOpen(true)}
+              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-secondary px-3 py-2.5 text-left active:bg-foreground/6"
+            >
+              <span className="min-w-0 ui-caption text-muted-foreground">{t("today.addZipHint")}</span>
+              <span className="shrink-0 ui-caption font-semibold text-primary">{t("today.addZipCta")}</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {weatherLine && !needsZip ? (
         <AppleWeatherAttribution attribution={weatherAttribution} />

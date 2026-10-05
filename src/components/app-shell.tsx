@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { Capacitor } from "@capacitor/core";
+import { Dialog } from "@capacitor/dialog";
 import { Home, Package, Settings, Sun } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
 import { HomeHouse } from "@/components/home-house";
@@ -695,6 +697,28 @@ export function AppShell() {
     if (!Number.isFinite(startMs)) return false;
     return (nowMs - startMs) / 86_400_000 < 1;
   }, [canLock, requireFaceId, household, nowMs]);
+  // On the phone this is the system's own alert, not a lookalike: same
+  // buttons, same haptics, same Dark Mode and Dynamic Type as every other
+  // iPhone alert. The web dialog below remains the fallback for a browser.
+  const nativeLockPrompted = useRef(false);
+  const useNativeLockPrompt = Capacitor.isNativePlatform();
+  useEffect(() => {
+    if (!showLockKeepPrivate || !useNativeLockPrompt || nativeLockPrompted.current) return;
+    nativeLockPrompted.current = true;
+    void Dialog.confirm({
+      title: t("lock.keepPrivateTitle", { method: lockMethodLabel(lockMethod ?? "passcode", t).noun }),
+      message: t("lock.keepPrivateBody"),
+      okButtonTitle: t("lock.enable"),
+      cancelButtonTitle: t("lock.skipForNow"),
+    }).then(({ value }) => {
+      updateTree((current) => ({
+        ...markTipSeen(current, TIP_LOCK_KEEP_PRIVATE),
+        ...(value ? { lockSettings: { ...current.lockSettings, requireFaceId: true } } : {}),
+      }));
+    });
+    // The prompt is asked once; later renders must not re-open it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showLockKeepPrivate, useNativeLockPrompt]);
 
   if (!hydrated) {
     return <OpeningScreen />;
@@ -818,7 +842,7 @@ export function AppShell() {
   return (
     <div className="app-frame">
       <AlertDialog
-        open={showLockKeepPrivate}
+        open={showLockKeepPrivate && !useNativeLockPrompt}
         onOpenChange={(open) => {
           if (!open) {
             updateTree((current) => markTipSeen(current, TIP_LOCK_KEEP_PRIVATE));

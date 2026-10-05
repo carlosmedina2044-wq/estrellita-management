@@ -48,18 +48,34 @@ export function PageHeader({
     <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
       <div aria-hidden className="app-nav-bar" data-visible={collapsed ? "true" : "false"}>
         <span className="app-nav-bar-title">{title}</span>
-      </div>
-      <div className="flex min-w-min flex-1 basis-0 items-start gap-1">
         {onBack ? (
           <button
             type="button"
-            aria-label={resolvedBackLabel}
+            tabIndex={-1}
             onClick={onBack}
-            className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-full text-foreground"
+            className="app-nav-bar-back"
+            data-visible={collapsed ? "true" : "false"}
           >
-            <ChevronLeft className="size-6" />
+            <ChevronLeft className="size-6" aria-hidden />
+            <span className="ui-body">{t("common.back")}</span>
           </button>
         ) : null}
+      </div>
+      {onBack ? (
+        // A navigation bar's back control: chevron and word in the tint, on
+        // its own row above the large title, like every iPhone screen that
+        // was pushed. VoiceOver still hears where it goes.
+        <button
+          type="button"
+          aria-label={resolvedBackLabel}
+          onClick={onBack}
+          className="-ml-2 flex min-h-11 basis-full items-center gap-0.5 self-start rounded-lg pr-3 pl-1 text-primary ui-press"
+        >
+          <ChevronLeft className="size-6" aria-hidden />
+          <span className="ui-body">{t("common.back")}</span>
+        </button>
+      ) : null}
+      <div className="flex min-w-min flex-1 basis-0 items-start gap-1">
         <div className="min-w-0">
           {eyebrow ? <p className="ui-caption text-muted-foreground">{eyebrow}</p> : null}
           <h1 ref={titleRef} className="ui-heading ui-display font-semibold tracking-tight">{title}</h1>
