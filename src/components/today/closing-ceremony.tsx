@@ -26,18 +26,6 @@ export function ClosingStats({
           {t("today.ceremonyThings")}
         </p>
       </div>
-      <div className="min-w-0">
-        <CountUp to={stats.minutes} duration={duration} delay={delay} className="ui-title font-semibold" />
-        <p className="ui-caption truncate leading-tight text-muted-foreground">
-          {t("today.ceremonyMinutes")}
-        </p>
-      </div>
-      <div className="min-w-0">
-        <CountUp to={stats.rooms} duration={duration} delay={delay} className="ui-title font-semibold" />
-        <p className="ui-caption truncate leading-tight text-muted-foreground">
-          {t("today.ceremonyRooms")}
-        </p>
-      </div>
     </div>
   );
 }

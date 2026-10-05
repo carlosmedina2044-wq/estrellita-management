@@ -1,6 +1,5 @@
 "use client";
 
-import { Illustration } from "@/components/illustration";
 import { useLocale } from "@/i18n/locale-provider";
 import { tPlaybookName } from "@/i18n/content";
 import type { IllustrationName } from "@/lib/illustrations";
@@ -27,7 +26,6 @@ export function SeasonSection({
   const { t } = useLocale();
   const model = seasonSectionModel(household, now);
   if (model.fires.length === 0 && model.open.length === 0) return null;
-  const fallbackThumb = seasonThumbForMonth(now.getMonth() + 1);
 
   return (
     <section className="rounded-2xl bg-card px-4 py-4">
@@ -49,7 +47,6 @@ export function SeasonSection({
               className="flex min-h-11 w-full items-center gap-3 text-left ui-body"
               onClick={() => onNavigate?.({ tab: "seasonal" })}
             >
-              <Illustration name={fallbackThumb} size={32} className="shrink-0" />
               <span className="min-w-0">
                 {t("season.fireAdded", {
                   name: fire.name,
@@ -60,7 +57,6 @@ export function SeasonSection({
           </li>
         ))}
         {model.open.slice(0, 3).map((entry) => {
-          const month = entry.playbook.triggerMonth ?? now.getMonth() + 1;
           return (
             <li key={entry.playbook.id}>
               <button
@@ -68,7 +64,6 @@ export function SeasonSection({
                 className="flex min-h-11 w-full items-center gap-3 text-left ui-body"
                 onClick={() => onNavigate?.({ tab: "seasonal", playbookId: entry.playbook.id })}
               >
-                <Illustration name={seasonThumbForMonth(month)} size={32} className="shrink-0" />
                 <span className="min-w-0 flex-1 break-words font-medium">
                   {tPlaybookName(entry.playbook.id, entry.playbook.name)}
                 </span>

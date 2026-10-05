@@ -686,6 +686,9 @@ export function AppShell() {
   const summary = useMemo(() => (hydrated ? homeSummary(household) : null), [household, hydrated]);
   const showLockKeepPrivate = useMemo(() => {
     if (canLock !== true || requireFaceId || hasSeenTip(household, TIP_LOCK_KEEP_PRIVATE)) return false;
+    // Not before there is anything worth protecting: ask once the first chore
+    // has been done, not on a first look at a sample home.
+    if (household.completions.length === 0) return false;
     const start = household.teaching?.startedAt;
     if (!start) return false;
     const startMs = Date.parse(`${start}T00:00:00`);

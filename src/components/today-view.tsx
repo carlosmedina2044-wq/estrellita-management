@@ -28,7 +28,6 @@ import { GetAheadCard } from "@/components/today/get-ahead-card";
 import { QuestCard } from "@/components/today/quest-card";
 import { HouseSheet } from "@/components/today/house-sheet";
 import { ShareCardSheet } from "@/components/today/share-card-sheet";
-import { YearIntroSheet } from "@/components/today/year-intro-sheet";
 import { TodayHero } from "@/components/today/today-hero";
 import { TodayNoticeCard, type TodayNotice } from "@/components/today/today-notice-card";
 import { WholeHouseCard } from "@/components/today/whole-house-card";
@@ -39,7 +38,7 @@ import { addDays, formatLongDate, formatTime, isFirstOfMonth, sameDay, startOfDa
 import { keptRooms, wholeHouseKept } from "@/lib/kept-rooms";
 import { doneLineKey } from "@/lib/done-lines";
 import { payoffKeyFor } from "@/lib/payoff-lines";
-import { hasSeenTip, markTipSeen, shouldShowYearIntro, TIP_HOUSE_REVEAL, TIP_YEAR_INTRO } from "@/lib/teaching";
+import { hasSeenTip, markTipSeen, TIP_HOUSE_REVEAL } from "@/lib/teaching";
 import { dismissGetAhead, getAheadCandidate, isGetAheadDismissed } from "@/lib/get-ahead";
 import { houseLine } from "@/lib/house-line";
 import { weeklyQuest } from "@/lib/quest";
@@ -192,7 +191,6 @@ export function TodayView({
     filename: string;
     fallback: string;
   } | null>(null);
-  const [yearIntroOpen, setYearIntroOpen] = useState(false);
   const particlesRef = useRef<ParticleLayerHandle>(null);
   const celebratedDays = useRef<Set<string>>(new Set());
   const wholeHouseShownWeeks = useRef<Set<string>>(new Set());
@@ -609,7 +607,6 @@ export function TodayView({
     houseOpen ||
     calendarOpen ||
     zipOpen ||
-    yearIntroOpen ||
     moreOptionsOpen ||
     detail !== null ||
     shareCard !== null ||
@@ -677,22 +674,9 @@ export function TodayView({
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [houseReveal]);
-  // "Here's your year" (E2-05): once, on a home's first Today, after the
-  // house reveal has had its moment.
-  const wantsYearIntro = momentumOn && shouldShowYearIntro(household, now);
-  useEffect(() => {
-    if (!wantsYearIntro) return;
-    const timer = window.setTimeout(() => setYearIntroOpen(true), houseReveal ? CEREMONY_MS + 400 : 300);
-    return () => window.clearTimeout(timer);
-    // Only the first render decides; later household changes must not re-open it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  function finishYearIntro() {
-    setYearIntroOpen(false);
-    const mark = (current: Household) => markTipSeen(current, TIP_YEAR_INTRO);
-    if (onUpdateTree) onUpdateTree(mark);
-    else onChangeTree?.(mark(household));
-  }
+  // The "Here's your year" sheet used to open on a home's first Today. It
+  // stood between the welcome and the first chore, so it is gone: the year is
+  // one tap away on the "Your week" row, when someone wants it.
   const ceremonyStats = {
     done: todayDoneForCeremony.length,
     minutes: todayEffort(todayDoneForCeremony.map((entry) => entry.duty)),
@@ -1470,6 +1454,7 @@ export function TodayView({
             </LayoutGroup>
           </div>
           <Button
+            variant="outline"
             className="h-12 rounded-full"
             onClick={() => createGuard.tryOpen(() => setCreating(true))}
           >
@@ -1713,8 +1698,6 @@ export function TodayView({
           onSave={onSavePostalCode}
         />
       ) : null}
-
-      <YearIntroSheet open={yearIntroOpen} household={household} now={now} onStart={finishYearIntro} />
 
       <ShareCardSheet
         open={Boolean(shareCard)}
