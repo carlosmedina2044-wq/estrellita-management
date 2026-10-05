@@ -128,6 +128,7 @@ export function DayRunCard({
   graceUsed,
   headline,
   overdue,
+  onShare,
   stats,
   celebrate,
   instant,
@@ -141,6 +142,8 @@ export function DayRunCard({
   headline: string;
   /** How many of today's list are late; said in the status line, not a pill. */
   overdue: number;
+  /** Offered on a finished day, in the same card as the news rather than in a second one. */
+  onShare?: () => void;
   stats: { done: number; minutes: number; rooms: number };
   celebrate: boolean;
   instant: boolean;
@@ -165,11 +168,22 @@ export function DayRunCard({
   return (
     <div className="ui-group">
       {closed ? (
-        <div className="px-4 py-3">
-          <p className="ui-card font-semibold text-foreground">{t("today.allDoneLine")}</p>
-          <div className="mt-2">
-            <ClosingStats stats={stats} instant={instant} />
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <div className="min-w-0">
+            <p className="ui-card font-semibold text-foreground">{t("today.allDoneLine")}</p>
+            <div className="mt-2">
+              <ClosingStats stats={stats} instant={instant} />
+            </div>
           </div>
+          {onShare ? (
+            <button
+              type="button"
+              onClick={onShare}
+              className="min-h-11 shrink-0 rounded-full border border-border px-4 ui-body font-medium text-primary ui-press"
+            >
+              {t("today.ceremonyShare")}
+            </button>
+          ) : null}
         </div>
       ) : (
         <button

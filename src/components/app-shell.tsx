@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
+import { dayOutcome } from "@/lib/momentum";
 import { Dialog } from "@capacitor/dialog";
 import { Home, Package, Settings, Sun } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
 import { HomeHouse } from "@/components/home-house";
-import { PageHeader } from "@/components/page-header";
+import { BackTitleContext, PageHeader } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
 import { BudgetView } from "@/components/budget-view";
 import { CleanerVisit } from "@/components/cleaner-visit";
@@ -688,14 +689,15 @@ export function AppShell() {
   const summary = useMemo(() => (hydrated ? homeSummary(household) : null), [household, hydrated]);
   const showLockKeepPrivate = useMemo(() => {
     if (canLock !== true || requireFaceId || hasSeenTip(household, TIP_LOCK_KEEP_PRIVATE)) return false;
-    // Not before there is anything worth protecting: ask once the first chore
-    // has been done, not on a first look at a sample home.
-    if (household.completions.length === 0) return false;
+    // Not before there is anything worth protecting: ask once the person has
+    // finished a whole day, when there is a streak to keep, not in the middle
+    // of the first chore and not on a first look at a sample home.
+    if (dayOutcome(household, new Date(nowMs)) !== "closed") return false;
     const start = household.teaching?.startedAt;
     if (!start) return false;
     const startMs = Date.parse(`${start}T00:00:00`);
     if (!Number.isFinite(startMs)) return false;
-    return (nowMs - startMs) / 86_400_000 < 1;
+    return (nowMs - startMs) / 86_400_000 < 7;
   }, [canLock, requireFaceId, household, nowMs]);
   // On the phone this is the system's own alert, not a lookalike: same
   // buttons, same haptics, same Dark Mode and Dynamic Type as every other
@@ -704,6 +706,8 @@ export function AppShell() {
   const useNativeLockPrompt = Capacitor.isNativePlatform();
   useEffect(() => {
     if (!showLockKeepPrivate || !useNativeLockPrompt || nativeLockPrompted.current) return;
+    // Let the day's celebration finish before anything stands over it.
+    const timer = window.setTimeout(() => {
     nativeLockPrompted.current = true;
     void Dialog.confirm({
       title: t("lock.keepPrivateTitle", { method: lockMethodLabel(lockMethod ?? "passcode", t).noun }),
@@ -716,6 +720,8 @@ export function AppShell() {
         ...(value ? { lockSettings: { ...current.lockSettings, requireFaceId: true } } : {}),
       }));
     });
+    }, 4500);
+    return () => window.clearTimeout(timer);
     // The prompt is asked once; later renders must not re-open it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showLockKeepPrivate, useNativeLockPrompt]);
@@ -1025,6 +1031,7 @@ export function AppShell() {
             }}
           >
             <div className="app-shell-push-body">
+              <BackTitleContext.Provider value={backLabel}>
               {pushScreen.tab === "budget" ? (
                 <BudgetView
                   household={household}
@@ -1086,6 +1093,7 @@ export function AppShell() {
               {pushScreen.tab === "year" ? (
                 <YearView household={household} now={now} onBack={popStack} backLabel={pushBackLabel} />
               ) : null}
+              </BackTitleContext.Provider>
             </div>
           </div>
         ) : null}

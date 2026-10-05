@@ -228,6 +228,7 @@
   "restock.emptyBody2": "Ou adicione um item a qualquer momento.",
   "restock.walkHouse": "Percorrer a casa",
   "restock.addItem": "Adicionar item",
+  "restock.toOrderBy": "{count} para pedir até {date}",
   "restock.nextUp": "Peça {name} por volta de {date}.",
   "restock.thisWeek": "Esta semana",
   "restock.quickCheck": "Como está?",

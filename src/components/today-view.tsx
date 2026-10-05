@@ -18,7 +18,6 @@ import { DutyContextMenu, type DutyMenuAction } from "@/components/duty-context-
 import { ZipSheet } from "@/components/zip-prompt";
 import { Button } from "@/components/ui/button";
 import { AttentionTiles } from "@/components/today/attention-tiles";
-import { ClosingReward } from "@/components/today/closing-ceremony";
 import { DayRunCard } from "@/components/today/day-run-card";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
 import { WindowZoomLayer, type WindowZoom } from "@/components/today/window-zoom";
@@ -484,7 +483,11 @@ export function TodayView({
     : [];
   const greeting = todayGreeting(household.ownerName, clock.getHours());
   const headingDate = viewingCalendar ? formatLongDate(viewDate) : formatLongDate(now);
-  const zipBannerVisible = Boolean(needsZip && onSavePostalCode);
+  // A reminder, not a permanent fixture: it stands for the first two weeks and
+  // then steps aside. Settings still has the field.
+  const teachingStartedMs = household.teaching?.startedAt ? Date.parse(`${household.teaching.startedAt}T00:00:00`) : NaN;
+  const zipStillFresh = !Number.isFinite(teachingStartedMs) || (now.getTime() - teachingStartedMs) / 86_400_000 < 14;
+  const zipBannerVisible = Boolean(needsZip && onSavePostalCode && zipStillFresh);
   const showTeachingCard = Boolean(showTeaching && !teachingHidden && !zipBannerVisible && summary.overdue === 0);
   const arc = dayArc(household, viewDate, filter);
   const momentumOn = household.momentum.enabled && household.mode === "owner";
@@ -1165,6 +1168,9 @@ export function TodayView({
             graceUsed={sceneRun.graceUsed}
             headline={sceneHeadline}
             overdue={summary.overdue}
+            onShare={() => {
+              shareClosedDay();
+            }}
             stats={ceremonyStats}
             celebrate={arc.state === "closed"}
             instant={!ceremonyActive}
@@ -1177,17 +1183,6 @@ export function TodayView({
             }}
             onOpenYear={() => (onNavigate ? onNavigate({ tab: "year" }) : setCalendarOpen(true))}
           />
-          {/* Only in the moment it is earned. On a cold open of an
-              already-closed day the share card led the screen, ahead of the
-              day's own progress and whatever is still on the list. */}
-          {arc.state === "closed" && ceremonyActive ? (
-            <ClosingReward
-              onShare={() => {
-                shareClosedDay();
-              }}
-              instant={false}
-            />
-          ) : null}
         </motion.div>
       ) : null}
 
@@ -1464,15 +1459,6 @@ export function TodayView({
           </Button>
         </>
       )}
-
-      {arc.state === "closed" && !ceremonyActive && sceneMode ? (
-        <ClosingReward
-          onShare={() => {
-            shareClosedDay();
-          }}
-          instant
-        />
-      ) : null}
 
       {household.supplyAutomations.length === 0 ? (
         <section className="rounded-2xl bg-card px-4 py-4">

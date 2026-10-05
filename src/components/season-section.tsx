@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import { useLocale } from "@/i18n/locale-provider";
 import { tPlaybookName } from "@/i18n/content";
 import type { IllustrationName } from "@/lib/illustrations";
@@ -70,6 +71,7 @@ export function SeasonSection({
                 <span className="shrink-0 ui-caption text-muted-foreground">
                   {t("season.doneOf", { done: entry.done, total: entry.total })}
                 </span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
               </button>
             </li>
           );

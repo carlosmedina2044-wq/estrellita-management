@@ -235,8 +235,14 @@ export function RestockView({
       {household.supplyAutomations.length > 0 ? (
         weekItems.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {t("restock.nothingThisWeek")}
-            {nextUp ? ` ${t("restock.nextUp", { name: nextUp.item.itemName, date: formatDueDate(nextUp.date) })}` : ""}
+            {groups.coming_up.length > 0 && nextUp
+              ? t("restock.toOrderBy", { count: groups.coming_up.length, date: formatDueDate(nextUp.date) })
+              : (
+                <>
+                  {t("restock.nothingThisWeek")}
+                  {nextUp ? ` ${t("restock.nextUp", { name: nextUp.item.itemName, date: formatDueDate(nextUp.date) })}` : ""}
+                </>
+              )}
           </p>
         ) : (
           <div className="rounded-2xl bg-card px-4 py-4">
@@ -569,32 +575,38 @@ function RestockRow({
 
   return (
     <div id={`restock-item-${item.id}`} className="ui-group-row flex w-full min-w-0 flex-col gap-2 px-4 py-3">
-      <button type="button" className="w-full min-w-0 text-left active:bg-foreground/6" onClick={onOpen}>
-        <span className="block text-pretty ui-body font-medium leading-snug">
-          <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
-        </span>
-        {meta ? (
-          <span className="mt-0.5 block text-pretty ui-caption text-muted-foreground">{meta}</span>
-        ) : null}
-      </button>
-      {needsSize && onAddSize ? (
-        <button
-          type="button"
-          className="inline-flex min-h-11 items-center self-start ui-caption font-medium text-primary"
-          onClick={onAddSize}
-        >
-          {t("restock.addSize")}
-        </button>
-      ) : null}
-      {placement.estimatedLevelFraction != null ? (
-        <SupplyGauge
-          fraction={placement.estimatedLevelFraction}
-          runwayDays={placement.runwayDays}
-          onTap={onOpenCheckin}
-          hideBarWhenCalm
-        />
-      ) : null}
-      {placement.bucket === "stocked" ? null : (
+      {/* One row: the item on the left, its action on the right. The action
+          drops below only when the order is already placed and the full-width
+          "arrived" control is what is wanted. */}
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <button type="button" className="w-full min-w-0 text-left active:bg-foreground/6" onClick={onOpen}>
+            <span className="block text-pretty ui-body font-medium leading-snug">
+              <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
+            </span>
+            {meta ? (
+              <span className="mt-0.5 block text-pretty ui-caption text-muted-foreground">{meta}</span>
+            ) : null}
+          </button>
+          {needsSize && onAddSize ? (
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center self-start ui-caption font-medium text-primary"
+              onClick={onAddSize}
+            >
+              {t("restock.addSize")}
+            </button>
+          ) : null}
+          {placement.estimatedLevelFraction != null ? (
+            <SupplyGauge
+              fraction={placement.estimatedLevelFraction}
+              runwayDays={placement.runwayDays}
+              onTap={onOpenCheckin}
+              hideBarWhenCalm
+            />
+          ) : null}
+        </div>
+        {placement.bucket === "stocked" || arrivingAction ? null : (
         <RestockOrderButton
           item={item}
           household={household}
@@ -603,14 +615,24 @@ function RestockRow({
           subdued={placement.bucket !== "order_now"}
           early={isComingUp}
           compact={!arrivingAction}
-          className={
-            arrivingAction
-              ? "h-11 w-full max-w-full whitespace-normal"
-              : "h-11 w-auto max-w-full shrink-0 self-start rounded-full px-4"
-          }
+          className="h-11 w-auto max-w-[45%] shrink-0 rounded-full px-4"
           {...restockButtonProps(item, restock)}
         />
-      )}
+        )}
+      </div>
+      {placement.bucket !== "stocked" && arrivingAction ? (
+        <RestockOrderButton
+          item={item}
+          household={household}
+          onAddSize={onAddSize ?? onOpen}
+          autoReceive={autoReceive}
+          subdued={placement.bucket !== "order_now"}
+          early={isComingUp}
+          compact={!arrivingAction}
+          className="h-11 w-full max-w-full whitespace-normal"
+          {...restockButtonProps(item, restock)}
+        />
+      ) : null}
     </div>
   );
 }

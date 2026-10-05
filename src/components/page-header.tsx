@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useLocale } from "@/i18n/locale-provider";
+
+/**
+ * What the back control calls the screen it returns to ("Today", "Home"), the
+ * way an iPhone navigation bar names the previous screen. The shell provides
+ * it around pushed pages; anywhere else the control just says "Back".
+ */
+export const BackTitleContext = createContext<string | null>(null);
 
 export function PageHeader({
   title,
@@ -21,6 +28,7 @@ export function PageHeader({
 }) {
   const { t } = useLocale();
   const resolvedBackLabel = backLabel ?? t("common.back");
+  const backTitle = useContext(BackTitleContext) ?? t("common.back");
   const titleRef = useRef<HTMLHeadingElement>(null);
   // The large title collapses into a compact bar once it scrolls away, the way
   // a navigation bar does. Observed rather than scroll-listened: no per-frame
@@ -57,7 +65,7 @@ export function PageHeader({
             data-visible={collapsed ? "true" : "false"}
           >
             <ChevronLeft className="size-6" aria-hidden />
-            <span className="ui-body">{t("common.back")}</span>
+            <span className="ui-body">{backTitle}</span>
           </button>
         ) : null}
       </div>
@@ -72,7 +80,7 @@ export function PageHeader({
           className="-ml-2 flex min-h-11 basis-full items-center gap-0.5 self-start rounded-lg pr-3 pl-1 text-primary ui-press"
         >
           <ChevronLeft className="size-6" aria-hidden />
-          <span className="ui-body">{t("common.back")}</span>
+          <span className="ui-body">{backTitle}</span>
         </button>
       ) : null}
       <div className="flex min-w-min flex-1 basis-0 items-start gap-1">

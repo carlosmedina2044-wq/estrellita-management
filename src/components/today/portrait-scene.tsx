@@ -50,9 +50,9 @@ import type { DayArc } from "@/lib/momentum";
 import type { CareLevelId, Household, KitType, PaletteId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** What the hearth settles to once its ceremony flare is over: present, but
- * far enough down that it never competes with the windows. */
-const HEARTH_HOLD = 0.16;
+/** What the hearth settles to once its ceremony flare is over: warm enough to
+ * read as "the house is lit" hours later, still below the windows' own light. */
+const HEARTH_HOLD = 0.42;
 const HEARTH_GRADIENT = "radial-gradient(closest-side, rgba(255, 196, 128, 0.55), transparent 72%)";
 /* Hoisted, not inline: a fresh keyframe array on every render is a new target
  * as far as motion is concerned, so a long beat like this one restarts before
