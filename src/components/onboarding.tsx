@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { BrandLockup } from "@/components/brand-logo";
@@ -339,6 +340,7 @@ export function Onboarding({
               onClick={() => setLegalDoc("how-it-works")}
             >
               {t("onboarding.howItWorksLink")}
+              <ChevronRight className="ml-0.5 size-4" aria-hidden />
             </button>
             <p className="mt-3 text-sm leading-5 text-muted-foreground">{t("onboarding.privacyHint")}</p>
           </Screen>

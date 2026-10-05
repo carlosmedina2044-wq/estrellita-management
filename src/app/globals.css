@@ -748,7 +748,7 @@ html.keyboard-open [data-slot="sheet-footer"] {
   color: var(--muted-foreground);
   border-radius: 999px;
   padding: 0.15rem 0.5rem;
-  font-size: 0.765rem;
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;

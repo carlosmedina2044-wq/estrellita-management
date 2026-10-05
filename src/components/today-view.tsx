@@ -580,11 +580,13 @@ export function TodayView({
       : t("today.doneToday");
 
   function doneMetaFor(entry: DoneEntry): string {
-    const name =
+    // Only name who did it when it was someone else. "Done by Me" on every row
+    // of a one-person home says nothing.
+    const doneLabel =
       entry.completion.actor === "cleaner"
-        ? household.cleanerName.trim() || t("audience.cleaner")
-        : t("audience.me");
-    const parts = [t("today.doneBy", { name }), formatTime(new Date(entry.completion.completedAt))];
+        ? t("today.doneBy", { name: household.cleanerName.trim() || t("audience.cleaner") })
+        : t("common.done");
+    const parts = [doneLabel, formatTime(new Date(entry.completion.completedAt))];
     if (includeDoneDay) {
       parts.push(relativeDayLabel(new Date(entry.completion.completedAt), now));
     }
