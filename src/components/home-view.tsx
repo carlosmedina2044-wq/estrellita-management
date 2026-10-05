@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
-import { ChevronRight } from "lucide-react";
+import { Lock } from "lucide-react";
 import { HomeEditor } from "@/components/home-editor";
 import { HouseLookSheet } from "@/components/house-look-sheet";
 import {
@@ -16,18 +16,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectContent, SelectItem } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Switch } from "@/components/ui/switch";
 import { lockMethodLabel, type LockMethod } from "@/lib/native/lock-labels";
 import { verifyDeviceOwner } from "@/lib/native/biometrics";
 import { hapticDestructive } from "@/lib/native/haptics";
@@ -38,6 +30,16 @@ import type { EveningNudgeSettings, Household, MomentumSettings, MorningBriefSet
 import { buildHomeSpec, resolveHomeSpec } from "@/lib/scene/portrait";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
+import {
+  INLINE_INPUT,
+  NavRow,
+  SelectRow,
+  SettingsGroup,
+  SettingsRow,
+  SettingsSection,
+  TextRow,
+  ToggleRow,
+} from "@/components/settings-rows";
 import { BackupPanel } from "@/components/backup-panel";
 import { ZipSheet } from "@/components/zip-prompt";
 import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
@@ -316,87 +318,65 @@ export function HomeView({
 
   return (
     <div className="mx-auto flex w-full max-w-[32rem] flex-col gap-5 pb-8">
-      <PageHeader
-        title={t("settings.title")}
-        subtitle={t("settings.subtitle")}
-        onBack={onBack}
-        backLabel={backLabel ?? t("settings.backHome")}
-      />
-      <section>
-        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.language")}</h2>
-        <div className="ui-group">
-          <div className="ui-group-row px-4 py-3">
-            <p className="mb-2 ui-caption text-muted-foreground">{t("settings.languageHelp")}</p>
-            <Select
-              value={preference}
-              onValueChange={(value) => {
-                if (value === "system" || value === "en" || value === "es" || value === "pt-BR") {
-                  setPreference(value as AppLocale | "system");
-                }
-              }}
-            >
-              <SelectTrigger className="h-12 w-full" aria-label={t("settings.language")}>
-                <SelectValue placeholder={languageValueLabel}>{languageValueLabel}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="system">{t("settings.languageSystem")}</SelectItem>
-                <SelectItem value="en">{t("settings.languageEn")}</SelectItem>
-                <SelectItem value="es">{t("settings.languageEs")}</SelectItem>
-                <SelectItem value="pt-BR">{t("settings.languagePtBr")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </section>
-      <section>
-        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.appearance")}</h2>
-        <div className="ui-group">
-          <div className="ui-group-row px-4 py-3">
-            <p className="mb-2 ui-caption text-muted-foreground">{t("settings.appearanceHelp")}</p>
-            <Select value={appearance} onValueChange={applyAppearance}>
-              <SelectTrigger className="h-12 w-full" aria-label={t("settings.appearance")}>
-                <SelectValue placeholder={appearanceLabel}>{appearanceLabel}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {skyAppearanceAvailable ? (
-                  <SelectItem value="sky">{t("settings.appearanceSky")}</SelectItem>
-                ) : null}
-                <SelectItem value="system">{t("settings.appearanceSystem")}</SelectItem>
-                <SelectItem value="light">{t("settings.appearanceLight")}</SelectItem>
-                <SelectItem value="dark">{t("settings.appearanceDark")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </section>
-      <section>
-        <div className="ui-group">
-          <button
-            type="button"
-            className="ui-group-row flex w-full items-center justify-between gap-3 px-4 py-3 text-left active:bg-foreground/6"
+      <PageHeader title={t("settings.title")} onBack={onBack} backLabel={backLabel ?? t("settings.backHome")} />
+      <p className="-mt-3 flex items-center gap-2 px-1 ui-body font-medium text-foreground">
+        <Lock className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        {t("settings.subtitle")}
+      </p>
+
+      <SettingsSection
+        title={t("settings.groupLook")}
+        footer={
+          <>
+            <p>{t("settings.languageHelp")}</p>
+            <p className="mt-1">{t("settings.appearanceHelp")}</p>
+          </>
+        }
+      >
+        <SettingsGroup>
+          <SelectRow
+            label={t("settings.language")}
+            value={preference}
+            display={languageValueLabel}
+            onValueChange={(value) => {
+              if (value === "system" || value === "en" || value === "es" || value === "pt-BR") {
+                setPreference(value as AppLocale | "system");
+              }
+            }}
+          >
+            <SelectContent>
+              <SelectItem value="system">{t("settings.languageSystem")}</SelectItem>
+              <SelectItem value="en">{t("settings.languageEn")}</SelectItem>
+              <SelectItem value="es">{t("settings.languageEs")}</SelectItem>
+              <SelectItem value="pt-BR">{t("settings.languagePtBr")}</SelectItem>
+            </SelectContent>
+          </SelectRow>
+          <SelectRow
+            label={t("settings.appearance")}
+            value={appearance}
+            display={appearanceLabel}
+            onValueChange={applyAppearance}
+          >
+            <SelectContent>
+              {skyAppearanceAvailable ? (
+                <SelectItem value="sky">{t("settings.appearanceSky")}</SelectItem>
+              ) : null}
+              <SelectItem value="system">{t("settings.appearanceSystem")}</SelectItem>
+              <SelectItem value="light">{t("settings.appearanceLight")}</SelectItem>
+              <SelectItem value="dark">{t("settings.appearanceDark")}</SelectItem>
+            </SelectContent>
+          </SelectRow>
+          <NavRow
+            title={t("settings.houseLook")}
+            value={t(`portrait.palette.${currentHomeSpec.palette}` as "portrait.palette.classic")}
             onClick={() => setHouseLookOpen(true)}
-          >
-            <span className="min-w-0">
-              <span className="block ui-body font-medium">{t("settings.houseLook")}</span>
-              <span className="mt-0.5 block ui-caption text-muted-foreground">
-                {t("settings.houseLookHelp")}
-              </span>
-            </span>
-            <span className="flex shrink-0 items-center gap-1.5 ui-caption font-medium text-muted-foreground">
-              {t(`portrait.palette.${currentHomeSpec.palette}` as "portrait.palette.classic")}
-              <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
-            </span>
-          </button>
-        </div>
-      </section>
-      <section>
-        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.household")}</h2>
-        <div className="ui-group">
-          <Field
-            label={t("settings.homeName")}
-            className="ui-group-row px-4 py-3"
-            labelClassName="ui-caption font-medium text-muted-foreground"
-          >
+          />
+        </SettingsGroup>
+      </SettingsSection>
+
+      <SettingsSection title={t("settings.household")} footer={t("settings.zipHelp")}>
+        <SettingsGroup>
+          <TextRow label={t("settings.homeName")}>
             <Input
               value={home}
               onChange={(event) => {
@@ -406,14 +386,10 @@ export function HomeView({
               }}
               onBlur={() => flushPersist(home, owner, cleaner)}
               placeholder={t("settings.homeNamePlaceholder")}
-              className="h-12"
+              className={INLINE_INPUT}
             />
-          </Field>
-          <Field
-            label={t("settings.yourName")}
-            className="ui-group-row px-4 py-3"
-            labelClassName="ui-caption font-medium text-muted-foreground"
-          >
+          </TextRow>
+          <TextRow label={t("settings.yourName")}>
             <Input
               value={owner}
               onChange={(event) => {
@@ -423,14 +399,10 @@ export function HomeView({
               }}
               onBlur={() => flushPersist(home, owner, cleaner)}
               placeholder={t("settings.yourNamePlaceholder")}
-              className="h-12"
+              className={INLINE_INPUT}
             />
-          </Field>
-          <Field
-            label={t("settings.cleaner")}
-            className="ui-group-row px-4 py-3"
-            labelClassName="ui-caption font-medium text-muted-foreground"
-          >
+          </TextRow>
+          <TextRow label={t("settings.cleaner")}>
             <Input
               value={cleaner}
               onChange={(event) => {
@@ -440,326 +412,70 @@ export function HomeView({
               }}
               onBlur={() => flushPersist(home, owner, cleaner)}
               placeholder={t("settings.cleanerPlaceholder")}
-              className="h-12"
+              className={INLINE_INPUT}
             />
-          </Field>
-        </div>
-      </section>
-      <section>
-        <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.location")}</h2>
-        <div className="ui-group">
-          <button type="button" className="ui-group-row w-full px-4 py-3 text-left active:bg-foreground/6" onClick={() => setZipOpen(true)}>
-            <p className="ui-body font-medium">{t("settings.zip")}</p>
-            <p className="mt-0.5 ui-caption text-muted-foreground">
-              {household.location.postalCode
-                ? `${household.location.placeName ? `${household.location.placeName} · ` : ""}${climateLabel(deriveClimate(household.location))}`
-                : t("settings.zipNotSet")}
-            </p>
-            <p className="mt-1 ui-caption text-muted-foreground">{t("settings.zipHelp")}</p>
-          </button>
-          <div className="ui-group-row grid gap-2 px-4 py-3">
-            <Label className="ui-caption font-medium text-muted-foreground">{t("settings.climate")}</Label>
-            <Select
-              value={household.location.climateZoneOverride ?? "auto"}
-              onValueChange={(value) => {
-                if (value === "auto") {
-                  void onUpdate({
-                    location: {
-                      ...household.location,
-                      climateZoneOverride: undefined,
-                      climateZone: deriveClimate({ ...household.location, climateZoneOverride: undefined }),
-                    },
-                  });
-                  return;
-                }
-                const zone = value as (typeof CLIMATE_ZONES)[number];
+          </TextRow>
+          <NavRow
+            title={t("settings.zip")}
+            value={
+              household.location.postalCode
+                ? [household.location.placeName, household.location.postalCode].filter(Boolean).join(" · ")
+                : t("settings.zipNotSet")
+            }
+            onClick={() => setZipOpen(true)}
+          />
+          <SelectRow
+            label={t("settings.climate")}
+            value={household.location.climateZoneOverride ?? "auto"}
+            display={
+              household.location.climateZoneOverride
+                ? climateLabel(household.location.climateZoneOverride)
+                : t("settings.climateAuto", {
+                    zone: climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined })),
+                  })
+            }
+            onValueChange={(value) => {
+              if (value === "auto") {
                 void onUpdate({
                   location: {
                     ...household.location,
-                    climateZoneOverride: zone,
-                    climateZone: zone,
+                    climateZoneOverride: undefined,
+                    climateZone: deriveClimate({ ...household.location, climateZoneOverride: undefined }),
                   },
                 });
-              }}
-            >
-              <SelectTrigger className="h-12 w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">
-                  {t("settings.climateAuto", {
-                    zone: climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined })),
-                  })}
+                return;
+              }
+              const zone = value as (typeof CLIMATE_ZONES)[number];
+              void onUpdate({
+                location: {
+                  ...household.location,
+                  climateZoneOverride: zone,
+                  climateZone: zone,
+                },
+              });
+            }}
+          >
+            <SelectContent>
+              <SelectItem value="auto">
+                {t("settings.climateAuto", {
+                  zone: climateLabel(deriveClimate({ ...household.location, climateZoneOverride: undefined })),
+                })}
+              </SelectItem>
+              {CLIMATE_ZONES.map((zone) => (
+                <SelectItem key={zone} value={zone}>
+                  {climateLabel(zone)}
                 </SelectItem>
-                {CLIMATE_ZONES.map((zone) => (
-                  <SelectItem key={zone} value={zone}>
-                    {climateLabel(zone)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </section>
-
-      {restockDigest && onUpdateDigest ? (
-        <section>
-          <h2 className="ui-heading mb-2 ui-title font-semibold">{t("settings.notifications")}</h2>
-          <div className="ui-group">
-            <div className="ui-group-row px-4 py-3">
-              {morningBrief && onUpdateMorningBrief ? (
-                <>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p id="brief-switch-label" className="ui-body font-medium">
-                        {t("settings.briefTitle")}
-                      </p>
-                      <p className="mt-0.5 ui-caption text-muted-foreground">
-                        {t("settings.briefHelp")}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={morningBrief.enabled && permission === "granted"}
-                      aria-labelledby="brief-switch-label"
-                      onCheckedChange={(enabled) => {
-                        void (async () => {
-                          if (!enabled) {
-                            onUpdateMorningBrief({ enabled: false });
-                            return;
-                          }
-                          const next = await requestNotifyPermission();
-                          setPermission(next);
-                          onUpdateMorningBrief({ enabled: next === "granted" });
-                        })();
-                      }}
-                    />
-                  </div>
-                  {morningBrief.enabled && permission === "granted" ? (
-                    <div className="mt-3 grid gap-3">
-                      {hourPresets(morningBrief.hour, (hour) => onUpdateMorningBrief({ hour }), "brief")}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p id="brief-weekdays-label" className="ui-body font-medium">
-                            {t("settings.briefWeekdays")}
-                          </p>
-                          <p className="mt-0.5 ui-caption text-muted-foreground">
-                            {t("settings.briefWeekdaysHelp")}
-                          </p>
-                        </div>
-                        <Switch
-                          checked={morningBrief.weekdaysOnly}
-                          aria-labelledby="brief-weekdays-label"
-                          onCheckedChange={(weekdaysOnly) => onUpdateMorningBrief({ weekdaysOnly })}
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-                </>
-              ) : null}
-              {eveningNudge && onUpdateEveningNudge ? (
-                <div className={cn(morningBrief && onUpdateMorningBrief && "mt-3")}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p id="evening-switch-label" className="ui-body font-medium">
-                        {t("settings.eveningTitle")}
-                      </p>
-                      <p className="mt-0.5 ui-caption text-muted-foreground">
-                        {t("settings.eveningHelp")}
-                      </p>
-                    </div>
-                    <Switch
-                      checked={eveningNudge.enabled && permission === "granted"}
-                      aria-labelledby="evening-switch-label"
-                      onCheckedChange={(enabled) => {
-                        void (async () => {
-                          if (!enabled) {
-                            onUpdateEveningNudge({ enabled: false });
-                            return;
-                          }
-                          const next = await requestNotifyPermission();
-                          setPermission(next);
-                          onUpdateEveningNudge({ enabled: next === "granted" });
-                        })();
-                      }}
-                    />
-                  </div>
-                  {eveningNudge.enabled && permission === "granted" ? (
-                    <div className="mt-3">
-                      {hourPresets(eveningNudge.hour, (hour) => onUpdateEveningNudge({ hour }), "evening")}
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              <div className={cn("flex items-start justify-between gap-3", (morningBrief && onUpdateMorningBrief) || (eveningNudge && onUpdateEveningNudge) ? "mt-3" : undefined)}>
-                <div className="min-w-0">
-                  <p id="digest-switch-label" className="ui-body font-medium">
-                    {t("settings.digestTitle")}
-                  </p>
-                  <p className="mt-0.5 ui-caption text-muted-foreground">
-                    {t("settings.digestHelp")}
-                  </p>
-                </div>
-                <Switch
-                  checked={restockDigest.enabled && permission === "granted"}
-                  aria-labelledby="digest-switch-label"
-                  onCheckedChange={(enabled) => {
-                    void (async () => {
-                      if (!enabled) {
-                        onUpdateDigest({ enabled: false });
-                        return;
-                      }
-                      const next = await requestNotifyPermission();
-                      setPermission(next);
-                      onUpdateDigest({ enabled: next === "granted" });
-                    })();
-                  }}
-                />
-              </div>
-              <div className="mt-3 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p id="private-notif-label" className="ui-body font-medium">
-                    {t("settings.privateNotifTitle")}
-                  </p>
-                  <p className="mt-0.5 ui-caption text-muted-foreground">
-                    {t("settings.privateNotifHelp")}
-                  </p>
-                </div>
-                <Switch
-                  checked={restockDigest.privateNotifications === true}
-                  aria-labelledby="private-notif-label"
-                  onCheckedChange={(next) => onUpdateDigest({ privateNotifications: next })}
-                />
-              </div>
-              {permission === "denied" ? (
-                <p className="mt-3 ui-caption text-destructive">
-                  {t("settings.notifDenied")}
-                </p>
-              ) : permission === "prompt" && !restockDigest.enabled && !morningBrief?.enabled ? (
-                <p className="mt-3 ui-caption text-muted-foreground">
-                  {t("settings.notifPrompt")}
-                </p>
-              ) : null}
-              {restockDigest.enabled && permission === "granted" ? (
-                <div className="mt-3 grid gap-3">
-                  <div className="app-h-scroll -mx-1 flex flex-nowrap gap-1.5 overflow-x-auto px-1 pb-1">
-                    {weekdayLabels.map((day, index) => (
-                      <button
-                        key={`${day}-${index}`}
-                        type="button"
-                        className={cn(
-                          "h-11 min-w-11 shrink-0 rounded-full px-2.5 ui-caption font-medium",
-                          restockDigest.weekday === index
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-secondary-foreground",
-                        )}
-                        onClick={() => onUpdateDigest({ weekday: index })}
-                      >
-                        {day}
-                      </button>
-                    ))}
-                  </div>
-                  {hourPresets(restockDigest.hour, (hour) => onUpdateDigest({ hour }), "digest")}
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <div className="ui-group">
-        <div className="ui-group-row px-4 py-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="ui-body font-medium">{lockCopy.toggle}</p>
-              <p className="mt-0.5 ui-caption text-muted-foreground">
-                {canLock
-                  ? t("settings.lockHelpOn")
-                  : t("settings.lockHelpOff")}
-              </p>
-            </div>
-            <Switch
-              checked={Boolean(household.lockSettings.requireFaceId && canLock)}
-              disabled={!canLock}
-              aria-label={lockCopy.toggle}
-              onCheckedChange={(next) => {
-                void (async () => {
-                  if (!next && canLock) {
-                    const ok = await verifyDeviceOwner(t("settings.turnOffLock"));
-                    if (!ok) return;
-                  }
-                  await onUpdate({
-                    lockSettings: { ...household.lockSettings, requireFaceId: next },
-                  });
-                })();
-              }}
-            />
-          </div>
-          {household.lockSettings.requireFaceId && canLock ? (
-          <div className="mt-3 flex gap-2">
-            {(["immediate", "2min", "15min"] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={
-                  household.lockSettings.lockAfter === item
-                    ? "h-11 flex-1 rounded-full bg-primary ui-caption text-primary-foreground"
-                    : "h-11 flex-1 rounded-full bg-secondary ui-caption"
-                }
-                onClick={() => void onUpdate({ lockSettings: { ...household.lockSettings, lockAfter: item } })}
-              >
-                {item === "immediate"
-                  ? t("settings.lockImmediate")
-                  : item === "2min"
-                    ? t("settings.lock2min")
-                    : t("settings.lock15min")}
-              </button>
-            ))}
-          </div>
-          ) : null}
-        </div>
-      </div>
-
-      {onUpdateMomentum ? (
-        <div className="ui-group">
-          <div className="ui-group-row px-4 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p id="momentum-switch-label" className="ui-body font-medium">
-                  {t("settings.momentumTitle")}
-                </p>
-                <p className="mt-0.5 ui-caption text-muted-foreground">
-                  {t("settings.momentumHelp")}
-                </p>
-              </div>
-              <Switch
-                checked={household.momentum.enabled}
-                aria-labelledby="momentum-switch-label"
-                onCheckedChange={(enabled) => onUpdateMomentum({ enabled })}
-              />
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {onOpenYear ? (
-        <section>
-          <div className="ui-group">
-            <button
-              type="button"
-              className="ui-group-row flex w-full items-center justify-between gap-3 px-4 py-3 text-left active:bg-foreground/6"
-              onClick={onOpenYear}
-            >
-              <span className="min-w-0">
-                <span className="block ui-body font-medium">{t("settings.yourYear")}</span>
-                <span className="mt-0.5 block ui-caption text-muted-foreground">{t("settings.yourYearHelp")}</span>
-              </span>
-              <span className="shrink-0 ui-caption font-medium text-muted-foreground num">
-                {t("today.milestonesEarned", { count: household.milestones.length })}
-              </span>
-            </button>
-          </div>
-        </section>
-      ) : null}
+              ))}
+            </SelectContent>
+          </SelectRow>
+          <NavRow
+            title={t("settings.handToCleaner", {
+              name: household.cleanerName || t("settings.cleanerFallback"),
+            })}
+            onClick={onStartCleanerVisit}
+          />
+        </SettingsGroup>
+      </SettingsSection>
 
       {onChangeTree ? (
         <HomeEditor
@@ -770,87 +486,245 @@ export function HomeView({
         />
       ) : null}
 
-      <Button variant="secondary" className="h-12" onClick={onStartCleanerVisit}>
-        {t("settings.handToCleaner", {
-          name: household.cleanerName || t("settings.cleanerFallback"),
-        })}
-      </Button>
-
-      {onImportBackup ? (
-        <BackupPanel
-          mode={onExportBackup ? "full" : "import-only"}
-          onExport={onExportBackup}
-          onImport={onImportBackup}
-          replaceCounts={{
-            chores: household.duties.filter((duty) => !duty.archived).length,
-            items: household.supplyAutomations.length,
-          }}
-        />
+      {restockDigest && onUpdateDigest ? (
+        <SettingsSection
+          title={t("settings.notifications")}
+          footer={
+            permission === "denied" ? (
+              <p className="text-destructive">{t("settings.notifDenied")}</p>
+            ) : permission === "prompt" && !restockDigest.enabled && !morningBrief?.enabled ? (
+              <p>{t("settings.notifPrompt")}</p>
+            ) : null
+          }
+        >
+          <SettingsGroup>
+            {morningBrief && onUpdateMorningBrief ? (
+              <>
+                <ToggleRow
+                  title={t("settings.briefTitle")}
+                  help={t("settings.briefHelp")}
+                  checked={morningBrief.enabled && permission === "granted"}
+                  onCheckedChange={(enabled) => {
+                    void (async () => {
+                      if (!enabled) {
+                        onUpdateMorningBrief({ enabled: false });
+                        return;
+                      }
+                      const next = await requestNotifyPermission();
+                      setPermission(next);
+                      onUpdateMorningBrief({ enabled: next === "granted" });
+                    })();
+                  }}
+                />
+                {morningBrief.enabled && permission === "granted" ? (
+                  <>
+                    <SettingsRow>
+                      {hourPresets(morningBrief.hour, (hour) => onUpdateMorningBrief({ hour }), "brief")}
+                    </SettingsRow>
+                    <ToggleRow
+                      title={t("settings.briefWeekdays")}
+                      help={t("settings.briefWeekdaysHelp")}
+                      checked={morningBrief.weekdaysOnly}
+                      onCheckedChange={(weekdaysOnly) => onUpdateMorningBrief({ weekdaysOnly })}
+                    />
+                  </>
+                ) : null}
+              </>
+            ) : null}
+            {eveningNudge && onUpdateEveningNudge ? (
+              <>
+                <ToggleRow
+                  title={t("settings.eveningTitle")}
+                  help={t("settings.eveningHelp")}
+                  checked={eveningNudge.enabled && permission === "granted"}
+                  onCheckedChange={(enabled) => {
+                    void (async () => {
+                      if (!enabled) {
+                        onUpdateEveningNudge({ enabled: false });
+                        return;
+                      }
+                      const next = await requestNotifyPermission();
+                      setPermission(next);
+                      onUpdateEveningNudge({ enabled: next === "granted" });
+                    })();
+                  }}
+                />
+                {eveningNudge.enabled && permission === "granted" ? (
+                  <SettingsRow>
+                    {hourPresets(eveningNudge.hour, (hour) => onUpdateEveningNudge({ hour }), "evening")}
+                  </SettingsRow>
+                ) : null}
+              </>
+            ) : null}
+            <ToggleRow
+              title={t("settings.digestTitle")}
+              help={t("settings.digestHelp")}
+              checked={restockDigest.enabled && permission === "granted"}
+              onCheckedChange={(enabled) => {
+                void (async () => {
+                  if (!enabled) {
+                    onUpdateDigest({ enabled: false });
+                    return;
+                  }
+                  const next = await requestNotifyPermission();
+                  setPermission(next);
+                  onUpdateDigest({ enabled: next === "granted" });
+                })();
+              }}
+            />
+            {restockDigest.enabled && permission === "granted" ? (
+              <SettingsRow className="grid gap-3">
+                <div className="app-h-scroll -mx-1 flex flex-nowrap gap-1.5 overflow-x-auto px-1 pb-1">
+                  {weekdayLabels.map((day, index) => (
+                    <button
+                      key={`${day}-${index}`}
+                      type="button"
+                      className={cn(
+                        "h-11 min-w-11 shrink-0 rounded-full px-2.5 ui-caption font-medium",
+                        restockDigest.weekday === index
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground",
+                      )}
+                      onClick={() => onUpdateDigest({ weekday: index })}
+                    >
+                      {day}
+                    </button>
+                  ))}
+                </div>
+                {hourPresets(restockDigest.hour, (hour) => onUpdateDigest({ hour }), "digest")}
+              </SettingsRow>
+            ) : null}
+            <ToggleRow
+              title={t("settings.privateNotifTitle")}
+              help={t("settings.privateNotifHelp")}
+              checked={restockDigest.privateNotifications === true}
+              onCheckedChange={(next) => onUpdateDigest({ privateNotifications: next })}
+            />
+          </SettingsGroup>
+        </SettingsSection>
       ) : null}
 
-      {canUndoRestore && onUndoRestore ? (
-        <Button
-          variant="secondary"
-          className="h-12"
-          onClick={() => {
-            void onUndoRestore().then((result) => {
-              if (result.ok) {
-                toast.success(t("backup.undoRestoreDone"));
-              } else {
-                toast.error(result.error);
-              }
-            });
-          }}
-        >
-          {t("backup.undoLastRestore")}
-        </Button>
+      {onUpdateMomentum || onOpenYear ? (
+        <SettingsSection title={t("settings.groupStreaks")}>
+          <SettingsGroup>
+            {onUpdateMomentum ? (
+              <ToggleRow
+                title={t("settings.momentumTitle")}
+                help={t("settings.momentumHelp")}
+                checked={household.momentum.enabled}
+                onCheckedChange={(enabled) => onUpdateMomentum({ enabled })}
+              />
+            ) : null}
+            {onOpenYear ? (
+              <NavRow title={t("settings.yourYear")} help={t("settings.yourYearHelp")} onClick={onOpenYear} />
+            ) : null}
+          </SettingsGroup>
+        </SettingsSection>
       ) : null}
 
-      <div className="rounded-2xl bg-card p-4">
-        <p className="font-medium">{t("settings.yourData")}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("settings.yourDataBody")}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium text-primary">
-          <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("how-it-works")}>
-            {t("settings.howItWorks")}
-          </button>
-          <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("privacy")}>
-            {t("settings.privacy")}
-          </button>
-          <button type="button" className="inline-flex min-h-11 items-center" onClick={() => setLegalDoc("terms")}>
-            {t("settings.terms")}
-          </button>
-        </div>
-        <a
-          className="mt-3 flex h-12 w-full items-center justify-center rounded-xl bg-secondary text-sm font-medium"
-          href={`mailto:support@cuidala.app?subject=${encodeURIComponent(t("settings.helpSubject"))}`}
-        >
-          {t("settings.helpContact")}
-        </a>
-        <details className="mt-3 rounded-xl bg-secondary/60 px-3 py-2">
-          <summary className="cursor-pointer py-2 text-sm font-medium">{t("settings.advanced")}</summary>
-          <p className="pb-2 text-xs text-muted-foreground">
-            {t("settings.advancedHelp")}
-          </p>
-          <a
-            className="mb-2 flex h-11 w-full items-center justify-center rounded-xl bg-secondary text-sm font-medium"
-            href={problemMailto(household)}
-          >
-            {t("settings.reportProblem")}
-          </a>
-          <Button
-            variant="secondary"
-            className="h-12 w-full text-destructive"
-            onClick={() => setConfirmErase(true)}
-          >
-            {t("settings.eraseAll")}
-          </Button>
-          <p className="mt-3 ui-caption text-muted-foreground">
+      <SettingsSection title={t("settings.groupPrivacy")} footer={t("settings.yourDataBody")}>
+        <SettingsGroup>
+          <ToggleRow
+            title={lockCopy.toggle}
+            help={canLock ? t("settings.lockHelpOn") : t("settings.lockHelpOff")}
+            checked={Boolean(household.lockSettings.requireFaceId && canLock)}
+            disabled={!canLock}
+            ariaLabel={lockCopy.toggle}
+            onCheckedChange={(next) => {
+              void (async () => {
+                if (!next && canLock) {
+                  const ok = await verifyDeviceOwner(t("settings.turnOffLock"));
+                  if (!ok) return;
+                }
+                await onUpdate({
+                  lockSettings: { ...household.lockSettings, requireFaceId: next },
+                });
+              })();
+            }}
+          />
+          {household.lockSettings.requireFaceId && canLock ? (
+            <SettingsRow className="flex gap-2">
+              {(["immediate", "2min", "15min"] as const).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={
+                    household.lockSettings.lockAfter === item
+                      ? "h-11 flex-1 rounded-full bg-primary ui-caption text-primary-foreground"
+                      : "h-11 flex-1 rounded-full bg-secondary ui-caption"
+                  }
+                  onClick={() => void onUpdate({ lockSettings: { ...household.lockSettings, lockAfter: item } })}
+                >
+                  {item === "immediate"
+                    ? t("settings.lockImmediate")
+                    : item === "2min"
+                      ? t("settings.lock2min")
+                      : t("settings.lock15min")}
+                </button>
+              ))}
+            </SettingsRow>
+          ) : null}
+        </SettingsGroup>
+        {onImportBackup ? (
+          <BackupPanel
+            mode={onExportBackup ? "full" : "import-only"}
+            onExport={onExportBackup}
+            onImport={onImportBackup}
+            replaceCounts={{
+              chores: household.duties.filter((duty) => !duty.archived).length,
+              items: household.supplyAutomations.length,
+            }}
+          />
+        ) : null}
+        {canUndoRestore && onUndoRestore ? (
+          <SettingsGroup>
+            <NavRow
+              title={t("backup.undoLastRestore")}
+              chevron={false}
+              onClick={() => {
+                void onUndoRestore().then((result) => {
+                  if (result.ok) {
+                    toast.success(t("backup.undoRestoreDone"));
+                  } else {
+                    toast.error(result.error);
+                  }
+                });
+              }}
+            />
+          </SettingsGroup>
+        ) : null}
+      </SettingsSection>
+
+      <SettingsSection
+        title={t("settings.groupHelp")}
+        footer={
+          <>
             {t("brand.name")} {APP_VERSION}
-          </p>
-        </details>
-      </div>
+          </>
+        }
+      >
+        <SettingsGroup>
+          <NavRow title={t("settings.howItWorks")} onClick={() => setLegalDoc("how-it-works")} />
+          <NavRow title={t("settings.privacy")} onClick={() => setLegalDoc("privacy")} />
+          <NavRow title={t("settings.terms")} onClick={() => setLegalDoc("terms")} />
+          <NavRow
+            title={t("settings.helpContact")}
+            href={`mailto:support@cuidala.app?subject=${encodeURIComponent(t("settings.helpSubject"))}`}
+          />
+          <NavRow title={t("settings.reportProblem")} href={problemMailto(household)} />
+        </SettingsGroup>
+      </SettingsSection>
+
+      <SettingsSection title={t("settings.groupErase")} footer={t("settings.advancedHelp")}>
+        <SettingsGroup>
+          <NavRow
+            title={t("settings.eraseAll")}
+            tone="destructive"
+            chevron={false}
+            onClick={() => setConfirmErase(true)}
+          />
+        </SettingsGroup>
+      </SettingsSection>
 
       <AlertDialog open={confirmErase} onOpenChange={setConfirmErase}>
         <AlertDialogContent>
@@ -864,7 +738,7 @@ export function HomeView({
           <AlertDialogFooter>
             <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-white"
+              className="bg-destructive text-primary-foreground"
               onClick={() => {
                 void (async () => {
                   if (canLock) {

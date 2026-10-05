@@ -46,7 +46,7 @@ export function WholeHouseCard({
 
   return (
     <div className={cn("rounded-2xl bg-card px-4 py-3", className)}>
-      <div className="relative overflow-hidden rounded-2xl bg-[var(--brand-cream)]">
+      <div className="relative overflow-hidden bg-[var(--brand-cream)]">
         <Illustration
           name="house-cutaway"
           size={720}

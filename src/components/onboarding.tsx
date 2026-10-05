@@ -8,14 +8,12 @@ import { CircleCheck } from "@/components/circle-check";
 import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
-import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
-import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLocale } from "@/i18n/locale-provider";
 import type { MessageKey } from "@/i18n";
 import { useClock } from "@/hooks/use-clock";
-import { deriveClimate, isValidUsZip, normalizeUsZip, roundCoord } from "@/lib/climate";
+import { deriveClimate } from "@/lib/climate";
 import { toISODate } from "@/lib/dates";
 import { DUR_INSTANT, DUR_NONE, DUR_QUICK, EASE_OUT, SPRING_SETTLE } from "@/lib/motion";
 import { hapticSuccess, hapticTab } from "@/lib/native/haptics";
@@ -25,25 +23,12 @@ import { previewHousehold } from "@/lib/scene/preview-household";
 import { skyPhase } from "@/lib/scene/sun";
 import { sceneWeather } from "@/lib/scene/weather";
 import {
-  generateHomeFromAnswers,
   sampleHomeAnswers,
   type FeatureKey,
   type OnboardingAnswers,
 } from "@/lib/onboarding/generate";
 import { ADD_ROOM_TYPES, addRoomTypeLabel, nextRoomKey, roomTemplateFor, type RoomChoice } from "@/lib/onboarding/rooms";
-import {
-  defaultWalkPicks,
-  newCustomPick,
-  SAMPLE_RESTOCK_PICKS,
-  type CustomRestockPick,
-  type RestockPick,
-  type RestockWalkGroup,
-} from "@/lib/onboarding/restock-walk";
-import { RETAILER_CHIPS } from "@/lib/retailer";
-import { geocodeUsZip } from "@/lib/weather/client";
-import { isNative } from "@/lib/native/platform";
-import { weatherKitReverseGeocode } from "@/lib/native/weatherkit";
-import type { HomeLocation, HomeType, KitType, PaletteId, RetailerId, Tenure } from "@/lib/types";
+import type { HomeLocation, HomeType, KitType, PaletteId, Tenure } from "@/lib/types";
 import { HouseLookPicker } from "@/components/house-look-picker";
 import { rankKits } from "@/lib/scene/infer-kit";
 import { cn } from "@/lib/utils";
@@ -68,33 +53,15 @@ export function Onboarding({
   const [tenure, setTenure] = useState<Tenure | undefined>();
   const [rooms, setRooms] = useState<RoomChoice[]>(() => roomTemplateFor("house"));
   const [adding, setAdding] = useState(false);
-  const [postalCode, setPostalCode] = useState("");
-  const [lat, setLat] = useState<number | undefined>();
-  const [lng, setLng] = useState<number | undefined>();
-  const [placeName, setPlaceName] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
-  const [zipError, setZipError] = useState("");
   const [extraFeatures, setExtraFeatures] = useState<FeatureKey[]>([]);
-  const [restockPicks, setRestockPicks] = useState<RestockPick[]>(SAMPLE_RESTOCK_PICKS);
-  const [walkPhase, setWalkPhase] = useState<"items" | "stores">("items");
-  const [sizeBanner, setSizeBanner] = useState(false);
-  const [preferredRetailers, setPreferredRetailers] = useState<RetailerId[]>(["amazon", "home-depot"]);
-  const [walkContext, setWalkContext] = useState(() => generateHomeFromAnswers(sampleHomeAnswers()));
-  const [addGroup, setAddGroup] = useState<RestockWalkGroup | null>(null);
-  const [editingCustom, setEditingCustom] = useState<CustomRestockPick | null>(null);
   const [legalDoc, setLegalDoc] = useState<LegalDocId | null>(null);
-  const [locationDeniedHint, setLocationDeniedHint] = useState(false);
   const [ownerName, setOwnerName] = useState("");
-  const [walkRoomKeys, setWalkRoomKeys] = useState<string | null>(null);
   const [homeLook, setHomeLook] = useState<{ kitType: KitType; palette: PaletteId } | undefined>();
 
-  const location: HomeLocation = {
-    postalCode: postalCode || undefined,
-    lat,
-    lng,
-    placeName,
-    climateZone: deriveClimate({ postalCode, lat, lng }),
-  };
+  // Where the house is gets asked later, on Today, the first time weather or
+  // seasonal chores need it. The same goes for the supply walk and stores.
+  const location: HomeLocation = { climateZone: deriveClimate({}) };
   const answers: OnboardingAnswers = {
     homeType,
     tenure,
@@ -102,8 +69,8 @@ export function Onboarding({
     nickname: t("onboarding.nicknameHome"),
     rooms,
     features: extraFeatures,
-    restockPicks,
-    preferredRetailers,
+    restockPicks: [],
+    preferredRetailers: ["amazon", "home-depot"],
     homeLook,
   };
   // Best guess first, computed from what's known by the time this step is
@@ -116,7 +83,7 @@ export function Onboarding({
     kitType: kitOrder[0] ?? "a",
     palette: "classic",
   };
-  const lastStep = 5;
+  const lastStep = 3;
   const progress = step / lastStep;
 
   function go(next: number) {
@@ -138,14 +105,6 @@ export function Onboarding({
     }
   }
 
-  function enabledRoomKeysSignature(list: RoomChoice[]): string {
-    return list
-      .filter((room) => room.enabled)
-      .map((room) => room.key)
-      .sort()
-      .join("\0");
-  }
-
   function applyType(next: HomeType) {
     setHomeType(next);
     setRooms(roomTemplateFor(next));
@@ -164,125 +123,6 @@ export function Onboarding({
       },
     ]);
     setAdding(false);
-  }
-
-  function enterWalk(nextLocation: HomeLocation = location) {
-    const preview = generateHomeFromAnswers({
-      homeType,
-      tenure,
-      location: nextLocation,
-      nickname: t("onboarding.nicknameHome"),
-      rooms,
-      features: extraFeatures,
-    });
-    setWalkContext(preview);
-    const nextKeys = enabledRoomKeysSignature(rooms);
-    if (walkRoomKeys !== nextKeys) {
-      setRestockPicks(defaultWalkPicks(preview));
-      setWalkRoomKeys(nextKeys);
-    }
-    setWalkPhase("items");
-    setSizeBanner(false);
-    go(5);
-  }
-
-  function afterLocation(nextLocation: HomeLocation) {
-    const resolvedLocation = { ...nextLocation, climateZone: deriveClimate(nextLocation) };
-    go(4);
-    return {
-      ...answers,
-      location: resolvedLocation,
-    };
-  }
-
-  function continueFromWalk() {
-    setWalkPhase("stores");
-  }
-
-  function toggleRetailer(id: RetailerId) {
-    setPreferredRetailers((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
-  }
-
-  async function requestLocation() {
-    setBusy(true);
-    setLocationDeniedHint(false);
-    try {
-      if (isNative()) {
-        const { Geolocation } = await import("@capacitor/geolocation");
-        const position = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 8000 });
-        const nextLat = roundCoord(position.coords.latitude);
-        const nextLng = roundCoord(position.coords.longitude);
-        const city = await weatherKitReverseGeocode(nextLat, nextLng);
-        setLat(nextLat);
-        setLng(nextLng);
-        if (city) setPlaceName(city);
-        afterLocation({
-          ...location,
-          lat: nextLat,
-          lng: nextLng,
-          placeName: city,
-          climateZone: deriveClimate({ postalCode, lat: nextLat, lng: nextLng }),
-        });
-        return;
-      }
-      if (!navigator.geolocation) {
-        setLocationDeniedHint(true);
-        return;
-      }
-      await new Promise<void>((resolve) => {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const nextLat = roundCoord(position.coords.latitude);
-            const nextLng = roundCoord(position.coords.longitude);
-            setLat(nextLat);
-            setLng(nextLng);
-            afterLocation({ ...location, lat: nextLat, lng: nextLng, climateZone: deriveClimate({ postalCode, lat: nextLat, lng: nextLng }) });
-            resolve();
-          },
-          () => {
-            setLocationDeniedHint(true);
-            resolve();
-          },
-          { enableHighAccuracy: false, timeout: 8000 },
-        );
-      });
-    } catch {
-      setLocationDeniedHint(true);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function continueFromZip() {
-    const zip = normalizeUsZip(postalCode);
-    if (zip && !isValidUsZip(zip)) {
-      setZipError(t("onboarding.zipError"));
-      return;
-    }
-    if (!zip) {
-      afterLocation({ ...location, postalCode: undefined });
-      return;
-    }
-    setBusy(true);
-    const coords = await geocodeUsZip(zip);
-    setBusy(false);
-    if (coords) {
-      setLat(coords.lat);
-      setLng(coords.lng);
-      setPlaceName(coords.placeName);
-      afterLocation({
-        ...location,
-        postalCode: zip,
-        lat: coords.lat,
-        lng: coords.lng,
-        placeName: coords.placeName,
-        climateZone: deriveClimate({ postalCode: zip, lat: coords.lat, lng: coords.lng }),
-      });
-      return;
-    }
-    afterLocation({ ...location, postalCode: zip });
   }
 
   return (
@@ -313,7 +153,7 @@ export function Onboarding({
 
         <AnimatePresence mode="wait">
         <motion.div
-          key={`${step}-${walkPhase}`}
+          key={step}
           className="flex flex-1 flex-col"
           initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
@@ -382,9 +222,9 @@ export function Onboarding({
 
         {step === 2 ? (
           <Screen title={t("onboarding.buildTitle")} copy={t("onboarding.buildCopy")}>
-            <div className="grid gap-2">
+            <div className="ui-group">
               {rooms.map((room) => (
-                <label key={room.key} className="flex items-center gap-3 rounded-[var(--r-container)] bg-card px-3 py-2">
+                <label key={room.key} className="ui-group-row flex items-center gap-3 px-3 py-1">
                   <span className="relative flex size-11 shrink-0 items-center justify-center">
                     <input
                       type="checkbox"
@@ -410,7 +250,7 @@ export function Onboarding({
                         current.map((item) => (item.key === room.key ? { ...item, name: event.target.value } : item)),
                       )
                     }
-                    className="h-11"
+                    className="h-11 bg-transparent px-1 dark:bg-transparent"
                     aria-label={t("onboarding.roomNameAria", { name: room.name })}
                   />
                 </label>
@@ -477,157 +317,14 @@ export function Onboarding({
         ) : null}
 
         {step === 3 ? (
-          <Screen
-            title={t("onboarding.whereTitle")}
-            copy={t("onboarding.whereCopy")}
-            onSkip={() => {
-              afterLocation({ ...location, postalCode: undefined });
-            }}
-            skipLabel={t("common.skip")}
-          >
-            <Button className="h-14 w-full" disabled={busy} onClick={() => void requestLocation()}>
-              {t("onboarding.allowLocation")}
-            </Button>
-            {locationDeniedHint ? (
-              <p className="mt-3 text-sm text-muted-foreground">{t("onboarding.locationDeniedZip")}</p>
-            ) : null}
-            <p className="mt-3 text-sm text-muted-foreground">{t("onboarding.orZip")}</p>
-            <Input
-              inputMode="numeric"
-              autoComplete="postal-code"
-              value={postalCode}
-              onChange={(event) => {
-                setPostalCode(normalizeUsZip(event.target.value));
-                setZipError("");
-              }}
-              placeholder={t("onboarding.zipPlaceholder")}
-              className="mt-2 h-14"
-              aria-label={t("onboarding.zipPlaceholder")}
-            />
-            {zipError ? <p className="mt-2 text-sm text-destructive">{zipError}</p> : null}
-            <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(2)}>
-                {t("common.back")}
-              </Button>
-              <Button className="h-14 flex-1" disabled={busy} onClick={() => void continueFromZip()}>
-                {t("common.continue")}
-              </Button>
-            </div>
-          </Screen>
-        ) : null}
-
-        {step === 4 ? (
           <Screen title={t("onboarding.houseTitle")} copy={t("onboarding.houseCopy")}>
             <HouseLookPicker
               kitType={selectedLook.kitType}
               palette={selectedLook.palette}
               order={kitOrder}
               now={new Date()}
-              lat={lat}
-              lng={lng}
               onChange={setHomeLook}
             />
-            <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(3)}>
-                {t("common.back")}
-              </Button>
-              <Button className="h-14 flex-1" disabled={busy} onClick={() => enterWalk()}>
-                {t("common.continue")}
-              </Button>
-            </div>
-          </Screen>
-        ) : null}
-
-        {step === 5 && walkPhase === "items" ? (
-          <Screen
-            title={t("onboarding.walkTitle")}
-            copy={t("onboarding.walkCopy")}
-            onSkip={() => void finish({ ...answers, restockPicks: [], preferredRetailers: ["amazon", "home-depot"] })}
-            skipLabel={t("onboarding.skipWalk")}
-          >
-            <p className="mb-3 ui-caption text-muted-foreground">{t("onboarding.walkOptional")}</p>
-            <RestockWalkPicker
-              picks={restockPicks}
-              onChange={(next) => {
-                setRestockPicks(next);
-                setSizeBanner(false);
-              }}
-              context={walkContext}
-              sizeWarning={sizeBanner}
-              onSkipSizes={() => setWalkPhase("stores")}
-              onAddCustom={(group) => {
-                setEditingCustom(null);
-                setAddGroup(group);
-              }}
-              onEditCustom={(pick) => {
-                setEditingCustom(pick);
-                setAddGroup(pick.custom.group);
-              }}
-            />
-            <RestockWalkAddSheet
-              open={addGroup !== null}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setAddGroup(null);
-                  setEditingCustom(null);
-                }
-              }}
-              group={addGroup ?? "whole-home"}
-              household={walkContext}
-              initial={editingCustom?.custom}
-              onSave={(item) => {
-                setRestockPicks((current) => {
-                  if (editingCustom) {
-                    return current.map((pick) =>
-                      pick.id === editingCustom.id ? { ...editingCustom, custom: item } : pick,
-                    );
-                  }
-                  return [...current, newCustomPick(item)];
-                });
-                setSizeBanner(false);
-              }}
-            />
-            <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(4)}>
-                {t("common.back")}
-              </Button>
-              <Button className="h-14 flex-1" disabled={busy} onClick={continueFromWalk}>
-                {t("common.continue")}
-              </Button>
-            </div>
-          </Screen>
-        ) : null}
-
-        {step === 5 && walkPhase === "stores" ? (
-          <Screen
-            title={t("onboarding.storesTitle")}
-            copy={t("onboarding.storesCopy")}
-            onSkip={() => void finish({ ...answers, restockPicks, preferredRetailers: ["amazon", "home-depot"] })}
-            skipLabel={t("onboarding.skipWalk")}
-          >
-            <p className="mb-3 ui-caption text-muted-foreground">{t("onboarding.walkOptional")}</p>
-            <div className="flex flex-wrap gap-1.5">
-              {RETAILER_CHIPS.map((chip) => {
-                const index = preferredRetailers.indexOf(chip.id);
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    className={cn(
-                      "h-11 rounded-full px-3 ui-body font-medium",
-                      index >= 0 ? "bg-primary text-primary-foreground" : "bg-secondary",
-                    )}
-                    onClick={() => {
-                      void hapticTab();
-                      toggleRetailer(chip.id);
-                    }}
-                  >
-                    {chip.label}
-                    {index >= 0 ? ` · ${index + 1}` : ""}
-                  </button>
-                );
-              })}
-            </div>
             <label className="mt-6 block">
               <span className="ui-caption font-medium text-muted-foreground">{t("onboarding.ownerNameLabel")}</span>
               <Input
@@ -639,14 +336,15 @@ export function Onboarding({
                 aria-label={t("onboarding.ownerNameLabel")}
               />
             </label>
+            <p className="mt-4 ui-caption text-muted-foreground">{t("onboarding.laterNote")}</p>
             <div className="mt-auto flex gap-3 pt-6">
-              <Button variant="secondary" className="h-14 flex-1" onClick={() => setWalkPhase("items")}>
+              <Button variant="secondary" className="h-14 flex-1" onClick={() => go(2)}>
                 {t("common.back")}
               </Button>
               <Button
                 className="h-14 flex-1"
                 disabled={busy}
-                onClick={() => void finish({ ...answers, restockPicks, preferredRetailers })}
+                onClick={() => void finish({ ...answers })}
               >
                 {t("onboarding.showChores")}
               </Button>
@@ -764,12 +462,16 @@ function ChoiceGrid({
             onChange(item.id);
           }}
           className={cn(
-            "min-h-14 rounded-2xl border px-4 py-3 text-left ui-card font-medium transition-transform active:scale-[0.99]",
-            value === item.id ? "border-brand bg-brand-cream/60" : "border-border bg-card",
+            "flex min-h-14 items-center gap-3 rounded-2xl px-4 py-3 text-left ui-card font-medium transition-transform active:scale-[0.99]",
+            value === item.id ? "bg-primary/10" : "bg-card",
           )}
+          aria-pressed={value === item.id}
         >
-          <span className="block">{item.label}</span>
-          {item.hint ? <span className="mt-0.5 block ui-caption font-normal text-muted-foreground">{item.hint}</span> : null}
+          <span className="min-w-0 flex-1">
+            <span className="block">{item.label}</span>
+            {item.hint ? <span className="mt-0.5 block ui-caption font-normal text-muted-foreground">{item.hint}</span> : null}
+          </span>
+          <CircleCheck checked={value === item.id} />
         </button>
       ))}
     </div>

@@ -14,25 +14,25 @@ import {
 export const TYPE_TO_GLYPH: Record<RoomType, RoomGlyphKind> = {
   kitchen: "kitchen",
   living: "living",
-  dining: "living",
+  dining: "dining",
   primary_bedroom: "bedroom",
   bedroom: "bedroom",
   bathroom: "bath",
-  office: "living",
+  office: "office",
   laundry: "laundry",
-  garage: "systems",
-  hallway: "systems",
-  closet: "bedroom",
-  basement: "systems",
-  attic: "systems",
+  garage: "garage",
+  hallway: "hallway",
+  closet: "closet",
+  basement: "basement",
+  attic: "attic",
   patio: "outdoors",
-  other: "systems",
+  other: "other",
 };
 
 export function RoomTypeIcon({ room, className }: { room: HomeRoom; className?: string }) {
   if (room.system === "exterior") return <OutdoorsGlyph className={className} />;
   if (room.system === "whole-home") return <SystemsGlyph className={className} />;
-  const kind = TYPE_TO_GLYPH[room.type] ?? "systems";
+  const kind = TYPE_TO_GLYPH[room.type] ?? "other";
   return <RoomGlyph kind={kind} className={className} />;
 }
 

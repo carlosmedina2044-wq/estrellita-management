@@ -234,6 +234,10 @@ export function DutyForm({
         side="bottom"
         size="form"
         className="gap-0 rounded-t-3xl pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        onOpenAutoFocus={(event) => {
+          // Editing: don't throw the keyboard up or select the title on open.
+          if (duty) event.preventDefault();
+        }}
       >
         <SheetHeader className="shrink-0 pb-2">
           <SheetTitle>
@@ -276,7 +280,7 @@ export function DutyForm({
               autoFocus={!duty}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3">
             <Field label={t("duty.field.room")}>
               <Select
                 value={draft.room}
@@ -309,25 +313,29 @@ export function DutyForm({
                 </SelectContent>
               </Select>
             </Field>
-            <Field label={t("chore.whoDoes")}>
-              <Select
-                value={draft.audience}
-                onValueChange={(value) =>
-                  setDraft((current) => ({ ...current, audience: value as Audience }))
-                }
-              >
-                <SelectTrigger className="h-12 w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {audienceOptions().map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+          </div>
+          <div role="radiogroup" aria-label={t("chore.whoDoes")} className="grid gap-1.5">
+            <span className="text-sm font-medium">{t("chore.whoDoes")}</span>
+            <div className="flex flex-wrap gap-2">
+              {audienceOptions().map((item) => {
+                const selected = draft.audience === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    className={cn(
+                      "min-h-11 rounded-full px-4 py-2 text-sm font-medium",
+                      selected ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
+                    )}
+                    onClick={() => setDraft((current) => ({ ...current, audience: item.id }))}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <Field label={t("chore.repeats")}>
             <Select
@@ -564,23 +572,22 @@ export function DutyForm({
         </div>
         )}
         {orderStep ? null : (
-        <SheetFooter className="shrink-0 flex-row items-center gap-2 border-t border-border/70 bg-popover/95 py-2.5 backdrop-blur-md">
+        <SheetFooter className="shrink-0 gap-1 border-t border-border/70 bg-popover/95 py-2.5 backdrop-blur-md">
+          <Button type="button" className="h-12 w-full" onClick={submit}>
+            {duty ? t("chore.saveChanges") : t("chore.add")}
+          </Button>
           {duty && onDelete ? (
-            <Button
+            <button
               type="button"
-              variant="destructive"
-              className="h-11 min-w-24"
+              className="mx-auto flex min-h-11 items-center px-4 text-sm font-medium text-destructive"
               onClick={() => {
                 closeAfterClick();
                 onDelete(duty.id);
               }}
             >
-              {t("common.delete")}
-            </Button>
+              {t("chore.deleteThis")}
+            </button>
           ) : null}
-          <Button type="button" className="h-11 min-w-0 flex-1" onClick={submit}>
-            {duty ? t("chore.saveChanges") : t("chore.add")}
-          </Button>
         </SheetFooter>
         )}
       </SheetContent>
@@ -602,7 +609,7 @@ function Disclosure({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-muted/70">
+    <div className="rounded-2xl bg-card">
       <button
         type="button"
         className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"

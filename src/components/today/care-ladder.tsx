@@ -37,7 +37,7 @@ export function CareLadder({
           const isNext = index === reached + 1;
           return (
             <li key={step} className="flex min-w-0 flex-1 flex-col gap-1">
-              <span className="relative block h-1 overflow-hidden rounded-full bg-foreground/12">
+              <span className="relative block h-1 overflow-hidden rounded-full bg-foreground/25">
                 {done ? (
                   <span className="block h-full rounded-full bg-done" />
                 ) : isNext ? (

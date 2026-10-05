@@ -37,16 +37,24 @@ export function PageHeader({
   useEffect(() => {
     const node = titleRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
+    // The title counts as gone once its top edge crosses the bottom of the
+    // status bar, not once it is wholly off screen: panes that run full-bleed
+    // under the Dynamic Island (Home) keep the title "visible" there while it
+    // slides under the clock. Measure the inset, then watch that edge.
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top, 0px)";
+    document.body.appendChild(probe);
+    const inset = parseFloat(getComputedStyle(probe).paddingTop) || 0;
+    probe.remove();
     const observer = new IntersectionObserver(
       ([entry]) => {
         // Only a title that has left through the top counts. A hidden pane
-        // measures zero-height, and the scroller clips the title below the
-        // safe-area padding (so its own box can still sit at a positive y),
-        // hence "above the middle of the screen" rather than "above zero".
+        // measures zero-height, hence "above the middle of the screen" and a
+        // positive height rather than just "not fully visible".
         const box = entry.boundingClientRect;
-        setCollapsed(!entry.isIntersecting && box.height > 0 && box.top < window.innerHeight / 2);
+        setCollapsed(entry.intersectionRatio < 1 && box.height > 0 && box.top < window.innerHeight / 2);
       },
-      { threshold: 0 },
+      { threshold: [0, 1], rootMargin: `-${Math.round(inset)}px 0px 0px 0px` },
     );
     observer.observe(node);
     return () => observer.disconnect();
@@ -86,7 +94,7 @@ export function PageHeader({
       <div className="flex min-w-min flex-1 basis-0 items-start gap-1">
         <div className="min-w-0">
           {eyebrow ? <p className="ui-caption text-muted-foreground">{eyebrow}</p> : null}
-          <h1 ref={titleRef} className="ui-heading ui-display font-semibold tracking-tight">{title}</h1>
+          <h1 ref={titleRef} className="ui-heading ui-display ui-page-title font-semibold">{title}</h1>
           {subtitle ? <div className="mt-1 ui-caption text-muted-foreground">{subtitle}</div> : null}
         </div>
       </div>

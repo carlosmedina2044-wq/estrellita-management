@@ -9,7 +9,7 @@ import {
 import { createPortal } from "react-dom";
 import { PARTICLE_CAP, prefersReducedMotion } from "@/lib/motion";
 
-const COLORS = ["#a8481f", "#c4531f", "#f5ebd8"] as const;
+const COLORS = ["#2f5d8a", "#8fb6e0", "#f5ebd8"] as const;
 /** Fireflies are light, not confetti, so they keep their own warm set. */
 const EMBER_COLORS = ["#ffd9a0", "#ffc27a", "#f5ebd8"] as const;
 

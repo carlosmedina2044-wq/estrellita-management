@@ -5,6 +5,8 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { SPRING_SETTLE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
+const ZERO_DIGIT = String(0);
+
 export function RollingNumber({
   value,
   className,
@@ -57,7 +59,7 @@ export function RollingNumber({
                 A fixed `h-[1lh]` plus `overflow-hidden` remaps the CSS
                 baseline to the box bottom, so absolute digits sat above
                 adjacent plain text ("4 of 5"). */}
-            <span className="invisible">0</span>
+            <span className="invisible">{ZERO_DIGIT}</span>
             <AnimatePresence initial={false} mode="popLayout">
               {/* `absolute inset-0`, not `block`: with normal flow, the entering
                 digit would stack below the exiting one (the box only gets its

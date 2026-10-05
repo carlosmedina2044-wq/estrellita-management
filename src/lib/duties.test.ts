@@ -204,7 +204,7 @@ test("todayGreeting hides Me and empty names", () => {
 });
 
 test("statusText joins non-zero parts", () => {
-  assert.equal(statusText({ overdue: 0, dueSoon: 0, total: 0, reorderPending: 0 }), "All caught up");
+  assert.equal(statusText({ overdue: 0, dueSoon: 0, total: 0, reorderPending: 0 }), "All done");
   assert.equal(
     statusText({ overdue: 11, dueSoon: 2, total: 13, reorderPending: 4 }),
     "11 overdue · 2 due soon · 4 to reorder",

@@ -121,6 +121,28 @@ function RunDots({ days, celebrate }: { days: RunDay[]; celebrate: boolean }) {
   );
 }
 
+/** "3 left · 2 done", split around the numbers so each can roll. */
+function ProgressLine({ left, done }: { left: number; done: number }) {
+  const { t } = useLocale();
+  const template =
+    done > 0
+      ? t("today.progressLeftDone", { left: "%%l", done: "%%d" })
+      : t("today.progressLeft", { left: "%%l" });
+  return (
+    <>
+      {template.split(/(%%l|%%d)/).map((part, index) =>
+        part === "%%l" ? (
+          <RollingNumber key={index} value={left} />
+        ) : part === "%%d" ? (
+          <RollingNumber key={index} value={done} />
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
+
 export function DayRunCard({
   arc,
   days,
@@ -130,6 +152,7 @@ export function DayRunCard({
   overdue,
   onShare,
   stats,
+  note,
   celebrate,
   instant,
   onOpenList,
@@ -145,6 +168,8 @@ export function DayRunCard({
   /** Offered on a finished day, in the same card as the news rather than in a second one. */
   onShare?: () => void;
   stats: { done: number; minutes: number; rooms: number };
+  /** A milestone earned today, said inside the all-done message instead of in a second card. */
+  note?: string | null;
   celebrate: boolean;
   instant: boolean;
   onOpenList: () => void;
@@ -164,13 +189,15 @@ export function DayRunCard({
   // subline carries only the time, not the same number a second time.
   const effortParts = t("today.effort", { minutes: "%%" }).split("%%");
   const showEffort = arc.minutesLeft > 0;
+  const open = arc.state === "open";
 
   return (
     <div className="ui-group">
       {closed ? (
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
+          <div className="min-w-0 flex-1 basis-48">
             <p className="ui-card font-semibold text-foreground">{t("today.allDoneLine")}</p>
+            {note ? <p className="mt-0.5 ui-caption text-muted-foreground">{note}</p> : null}
             <div className="mt-2">
               <ClosingStats stats={stats} instant={instant} />
             </div>
@@ -179,7 +206,7 @@ export function DayRunCard({
             <button
               type="button"
               onClick={onShare}
-              className="min-h-11 shrink-0 rounded-full border border-border px-4 ui-body font-medium text-primary ui-press"
+              className="min-h-11 shrink-0 rounded-full bg-accent px-4 ui-body font-medium text-primary ui-press"
             >
               {t("today.ceremonyShare")}
             </button>
@@ -194,7 +221,15 @@ export function DayRunCard({
         >
           <DayRing arc={arc} />
           <span className="min-w-0 flex-1 basis-[60%]">
-            <span className="block ui-card font-semibold leading-snug text-foreground">{headline}</span>
+            {open ? (
+              // The one line the sheet opens on: how many are left first, then
+              // how many are done. Numbers roll when a chore is ticked.
+              <span className="block ui-card font-semibold leading-snug text-foreground num">
+                <ProgressLine left={arc.open} done={arc.done} />
+              </span>
+            ) : (
+              <span className="block ui-card font-semibold leading-snug text-foreground">{headline}</span>
+            )}
             {showEffort || overdue > 0 ? (
               <span
                 // Not a flex container: CSS strips the collapsible whitespace
@@ -205,7 +240,7 @@ export function DayRunCard({
                 className="mt-0.5 block ui-caption num text-muted-foreground"
               >
                 {overdue > 0 ? (
-                  <span className="font-medium text-destructive">
+                  <span className="font-medium text-overdue">
                     <RollingNumber value={overdue} />
                     {" "}
                     {t("today.overdue")}
@@ -232,9 +267,9 @@ export function DayRunCard({
         aria-label={`${t("year.title")} · ${
           showRun ? `${t("today.runDay", { count: run.current })} · ` : ""
         }${t("today.runStripAria", { closed: closedDays, open: openDays })}`}
-        className="flex w-full items-center gap-3 border-t border-border px-4 py-2.5 text-left ui-press"
+        className="flex min-h-11 w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 text-left ui-press"
       >
-        <span className="min-w-0">
+        <span className="min-w-0 flex-1 basis-32">
           <span className="block ui-caption text-muted-foreground">{t("today.weekLabel")}</span>
           {showRun ? (
             <span className="block ui-body font-semibold num text-foreground">
@@ -253,7 +288,7 @@ export function DayRunCard({
             <span className="block ui-caption text-soon">{t("today.runGrace")}</span>
           ) : null}
         </span>
-        <span className="ml-auto flex items-end gap-3">
+        <span className="ml-auto flex shrink-0 items-end gap-3">
           <RunDots days={days} celebrate={celebrate} />
           <ChevronRight className="mb-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
         </span>

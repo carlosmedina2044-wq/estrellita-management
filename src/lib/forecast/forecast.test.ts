@@ -7,6 +7,7 @@ import {
   forecastCardSummary,
   forecastSourceTag,
   installDateFromAge,
+  nextThreeMonthsTotal,
   roundUpTo,
 } from "@/lib/forecast";
 import { normalizeConsumable } from "@/lib/restock";
@@ -335,7 +336,7 @@ test("forecastCardSummary is empty when no asset has date or cost", () => {
   assert.deepEqual(forecastCardSummary(home, now), { empty: true });
 });
 
-test("forecastCardSummary returns next90 and next big-ticket when data exists", () => {
+test("forecastCardSummary returns next3 and next big-ticket when data exists", () => {
   const home = household({
     assets: [
       asset({
@@ -350,7 +351,9 @@ test("forecastCardSummary returns next90 and next big-ticket when data exists", 
   const summary = forecastCardSummary(home, now);
   assert.equal(summary.empty, false);
   if (summary.empty) return;
-  assert.ok(summary.next90 >= 0);
+  assert.ok(summary.next3 >= 0);
+  // Home and Budget must show the same "next 3 months" figure.
+  assert.equal(summary.next3, nextThreeMonthsTotal(buildForecast(home, 12, now)));
   assert.ok(summary.nextBigTicket);
   assert.equal(summary.nextBigTicket.mid, 7500);
 });

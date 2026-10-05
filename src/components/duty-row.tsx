@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState, type PointerEvent as ReactPointe
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { useLocale } from "@/i18n/locale-provider";
 import { tDutyTitle } from "@/i18n/content";
-import { Circle, Ellipsis } from "lucide-react";
+import { Check, Circle, Ellipsis } from "lucide-react";
 import { IllustratedMoment } from "@/components/illustrated-moment";
 import { dutySubtitle, installedAtFor } from "@/lib/duties";
 import { DUR_INSTANT, DUR_QUICK, EASE_OUT, SPRING_DRAG, SPRING_PRESS } from "@/lib/motion";
@@ -54,6 +54,7 @@ export function DutyRow({
   doneMeta,
   overdue,
   upcoming,
+  inRoom,
   partChip,
   onPartChip,
   missingPartHint,
@@ -74,6 +75,9 @@ export function DutyRow({
   doneMeta?: string;
   overdue?: boolean;
   upcoming?: boolean;
+  /** Shown inside its own room's sheet: the room's name and the "Upcoming"
+   * tag would only repeat the heading above, so both are dropped. */
+  inRoom?: boolean;
   partChip?: { kind: string; label: string } | null;
   onPartChip?: () => void;
   missingPartHint?: boolean;
@@ -106,6 +110,11 @@ export function DutyRow({
   ) {
     subtitle = t("chore.suppliesOnHand", { subtitle });
   }
+  if (inRoom && !missingPartHint) {
+    // The place always leads the subtitle; inside its own room it is noise.
+    const [, ...rest] = subtitle.split(" · ");
+    if (rest.length > 0) subtitle = rest.join(" · ");
+  }
 
   const metaTone = overdue && !hideOverdueChip
     ? "text-overdue"
@@ -120,14 +129,14 @@ export function DutyRow({
     ? "text-overdue"
     : partChip && partChip.kind === "install_today"
       ? "text-done"
-      : upcoming
+      : upcoming && !inRoom
         ? "text-soon"
         : "text-foreground/55";
   const metaLabel = overdue && !hideOverdueChip
     ? t("chore.overdue")
     : partChip && (partChip.kind === "arriving" || partChip.kind === "install_today")
       ? partChip.label
-      : upcoming
+      : upcoming && !inRoom
         ? t("chore.upcoming")
         : null;
 
@@ -320,7 +329,11 @@ export function DutyRow({
           className="relative flex size-11 shrink-0 items-center justify-center text-primary active:bg-foreground/6"
           aria-label={showDone ? t("chore.undoAria", { title }) : t("chore.completeAria", { title })}
         >
-          {showDone ? (
+          {done && !completing ? (
+            // Settled as done: a small quiet check, not a second green disc
+            // competing with the list above it.
+            <Check className="size-5 text-muted-foreground" strokeWidth={2.5} aria-hidden />
+          ) : showDone ? (
             <span className="relative flex size-6 items-center justify-center">
               <motion.span
                 className="absolute inset-0 rounded-full bg-done"
@@ -395,7 +408,7 @@ export function DutyRow({
               <span
                 className={cn(
                   "block w-full ui-body font-medium leading-snug",
-                  done && "text-muted-foreground line-through",
+                  done && "text-muted-foreground",
                   completing && !done && "text-muted-foreground",
                 )}
               >

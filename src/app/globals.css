@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 
 /* Type scale (rem of -apple-system-body): display 1.647 · title 1.176 · card 1 · body 0.882 · caption 0.765. 11px only for the WeatherKit legal mark. */
-/* Buttons: primary (terracotta) for the ONE main CTA per viewport; secondary for everything else. Never bg-foreground. */
+/* Buttons: primary (slate blue) for the ONE main CTA per viewport; secondary for everything else. Never bg-foreground. */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -70,55 +70,55 @@
 
 :root {
   color-scheme: light;
-  --background: #f5f3ee;
-  --foreground: #1c1b19;
-  --card: #ffffff;
-  --card-foreground: #1c1b19;
-  --popover: #ffffff;
-  --popover-foreground: #1c1b19;
-  --primary: #a8481f;
+  --background: #f4f1ec;
+  --foreground: #1b1f24;
+  --card: #fffdf9;
+  --card-foreground: #1b1f24;
+  --popover: #fffdf9;
+  --popover-foreground: #1b1f24;
+  --primary: #2f5d8a;
   --primary-foreground: #ffffff;
-  --brand: #a8481f;
-  --brand-cream: #ffffff;
-  --brand-cream-foreground: #1c1b19;
-  --signal: #c4531f;
-  --signal-soft: #fbe9df;
+  --brand: #2f5d8a;
+  --brand-cream: #fffdf9;
+  --brand-cream-foreground: #1b1f24;
+  --signal: #2f5d8a;
+  --signal-soft: #e3ecf5;
   --overdue: #b5352a;
   --overdue-soft: #fbe6e2;
   --soon: #8c5a00;
   --soon-soft: #f8eccd;
   --done: #277046;
   --done-soft: #e3f1e8;
-  --secondary: #ebe8e1;
-  --secondary-foreground: #1d1d1f;
-  --muted: #f0eee8;
-  --muted-foreground: #66625b;
-  --accent: #f3efe8;
-  --accent-foreground: #a8481f;
+  --secondary: #e8e6e1;
+  --secondary-foreground: #1b1f24;
+  --muted: #eeebe6;
+  --muted-foreground: #5d6670;
+  --accent: #e8eef5;
+  --accent-foreground: #2f5d8a;
   --destructive: #b5352a;
   --success: #277046;
   --warning: #8c5a00;
-  --border: rgb(28 24 18 / 10%);
-  --input: rgb(28 24 18 / 14%);
-  --ring: #a8481f;
-  --chart-1: #a8481f;
+  --border: rgb(27 31 36 / 9%);
+  --input: rgb(27 31 36 / 14%);
+  --ring: #2f5d8a;
+  --chart-1: #2f5d8a;
   --chart-2: #277046;
-  --chart-3: #c9a36b;
+  --chart-3: #9fb4c9;
   --chart-4: #8c5a00;
-  --chart-5: #9a958c;
+  --chart-5: #9a9fa6;
   --r-control: 8px;
   --r-input: 12px;
   --r-container: 20px;
   --gutter: 20px;
   --radius: 0.9rem;
-  --sidebar: #f5f3ee;
-  --sidebar-foreground: #1c1b19;
-  --sidebar-primary: #a8481f;
+  --sidebar: #f4f1ec;
+  --sidebar-foreground: #1b1f24;
+  --sidebar-primary: #2f5d8a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ebe8e1;
-  --sidebar-accent-foreground: #1c1b19;
-  --sidebar-border: rgb(28 24 18 / 10%);
-  --sidebar-ring: #a8481f;
+  --sidebar-accent: #e8e6e1;
+  --sidebar-accent-foreground: #1b1f24;
+  --sidebar-border: rgb(27 31 36 / 9%);
+  --sidebar-ring: #2f5d8a;
 
   /*
    * The motion scale, mirroring `src/lib/motion.ts` so CSS and `motion/react`
@@ -146,45 +146,45 @@
 
 .dark {
   color-scheme: dark;
-  --background: #121110;
-  --foreground: #f4f1ea;
-  --card: #1c1a18;
-  --card-foreground: #f4f1ea;
-  --popover: #1c1a18;
-  --popover-foreground: #f4f1ea;
-  --primary: #ee9a6c;
-  --primary-foreground: #1d1209;
-  --brand: #ee9a6c;
-  --brand-cream: #3a3632;
-  --brand-cream-foreground: #f4f1ea;
-  --signal: #f08a4b;
-  --signal-soft: #3a2214;
+  --background: #101418;
+  --foreground: #eef1f4;
+  --card: #1a2028;
+  --card-foreground: #eef1f4;
+  --popover: #1a2028;
+  --popover-foreground: #eef1f4;
+  --primary: #8fb6e0;
+  --primary-foreground: #0d1722;
+  --brand: #8fb6e0;
+  --brand-cream: #2a323c;
+  --brand-cream-foreground: #eef1f4;
+  --signal: #8fb6e0;
+  --signal-soft: #1a2736;
   --overdue: #f27d68;
   --overdue-soft: #33191a;
   --soon: #e6b450;
   --soon-soft: #33280f;
   --done: #72c58f;
   --done-soft: #1b2a20;
-  --secondary: #2a2724;
-  --secondary-foreground: #f7f3ec;
-  --muted: #24221f;
-  --muted-foreground: #a8a39a;
-  --accent: #2a221c;
-  --accent-foreground: #ee9a6c;
+  --secondary: #262e38;
+  --secondary-foreground: #eef1f4;
+  --muted: #1f262e;
+  --muted-foreground: #9aa4af;
+  --accent: #1c2733;
+  --accent-foreground: #8fb6e0;
   --destructive: #f27d68;
   --success: #72c58f;
   --warning: #e6b450;
-  --border: rgb(255 245 230 / 11%);
-  --input: rgb(255 245 230 / 15%);
-  --ring: #ee9a6c;
-  --sidebar: #121110;
-  --sidebar-foreground: #f4f1ea;
-  --sidebar-primary: #ee9a6c;
-  --sidebar-primary-foreground: #1d1209;
-  --sidebar-accent: #2a2724;
-  --sidebar-accent-foreground: #f4f1ea;
-  --sidebar-border: rgb(255 245 230 / 10%);
-  --sidebar-ring: #ee9a6c;
+  --border: rgb(220 235 255 / 10%);
+  --input: rgb(220 235 255 / 14%);
+  --ring: #8fb6e0;
+  --sidebar: #101418;
+  --sidebar-foreground: #eef1f4;
+  --sidebar-primary: #8fb6e0;
+  --sidebar-primary-foreground: #0d1722;
+  --sidebar-accent: #262e38;
+  --sidebar-accent-foreground: #eef1f4;
+  --sidebar-border: rgb(220 235 255 / 10%);
+  --sidebar-ring: #8fb6e0;
 }
 
 @layer base {
@@ -237,6 +237,12 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
+  }
+
+  /* Large titles speak in New York; everything else stays SF. */
+  .ui-page-title {
+    font-family: ui-serif, "New York", Georgia, serif;
+    letter-spacing: -0.012em;
   }
 
   .ui-display {
@@ -740,16 +746,12 @@ html.keyboard-open [data-slot="sheet-footer"] {
 
 .ui-bevel {
   background: var(--card);
-  border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
 }
 
 .ui-inset {
   background: var(--muted);
-  border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: none;
 }
 
 .ui-titlebar {
@@ -777,8 +779,6 @@ html.keyboard-open [data-slot="sheet-footer"] {
   overflow: hidden;
   border-radius: var(--r-container);
   background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--ambient, transparent) 18%, transparent);
 }
 
 /*
@@ -1042,37 +1042,37 @@ html.keyboard-open [data-slot="sheet-footer"] {
  * black on a near-black card — measured 1.02:1 against WCAG's 4.5:1 floor.
  */
 .today-night {
-  --background: #1f1a16;
-  --foreground: #f7f3ec;
-  --card: #2c2420;
-  --card-foreground: #f7f3ec;
-  --popover: #2c2420;
-  --popover-foreground: #f7f3ec;
-  --primary: #d4a574;
-  --primary-foreground: #231812;
-  --brand: #d4a574;
-  --brand-cream: #f4e6c8;
-  --brand-cream-foreground: #231812;
-  --signal: #f08a4b;
-  --signal-soft: #3d2818;
-  --overdue: #d75a3c;
-  --overdue-soft: #3a221c;
-  --soon: #d09a3e;
-  --soon-soft: #3a2e18;
-  --done: #7fae5c;
-  --done-soft: #24301e;
-  --secondary: #3b3129;
-  --secondary-foreground: #f7f3ec;
-  --muted: #3b3129;
-  --muted-foreground: #b8b0a8;
-  --accent: #3d2c1f;
-  --accent-foreground: #dba876;
-  --destructive: #d75a3c;
-  --success: #7fae5c;
-  --warning: #d09a3e;
-  --border: rgb(255 245 230 / 12%);
-  --input: rgb(255 245 230 / 14%);
-  --ring: #d4a574;
+  --background: #0f141c;
+  --foreground: #eef1f4;
+  --card: #1b222c;
+  --card-foreground: #eef1f4;
+  --popover: #1b222c;
+  --popover-foreground: #eef1f4;
+  --primary: #8fb6e0;
+  --primary-foreground: #0d1722;
+  --brand: #8fb6e0;
+  --brand-cream: #2a323c;
+  --brand-cream-foreground: #eef1f4;
+  --signal: #8fb6e0;
+  --signal-soft: #1a2736;
+  --overdue: #f27d68;
+  --overdue-soft: #33191a;
+  --soon: #e6b450;
+  --soon-soft: #33280f;
+  --done: #72c58f;
+  --done-soft: #1b2a20;
+  --secondary: #28313c;
+  --secondary-foreground: #eef1f4;
+  --muted: #28313c;
+  --muted-foreground: #a9b3be;
+  --accent: #1c2733;
+  --accent-foreground: #8fb6e0;
+  --destructive: #f27d68;
+  --success: #72c58f;
+  --warning: #e6b450;
+  --border: rgb(220 235 255 / 12%);
+  --input: rgb(220 235 255 / 14%);
+  --ring: #8fb6e0;
 
   color: var(--foreground);
 }

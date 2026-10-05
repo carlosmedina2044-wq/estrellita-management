@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { BrandMark } from "@/components/brand-logo";
 import { Illustration } from "@/components/illustration";
 import { Button } from "@/components/ui/button";
 import type { MessageKey } from "@/i18n";
@@ -32,7 +31,7 @@ export function TodayNoticeCard({
 
   if (notice?.kind === "milestone") {
     key = `milestone-${notice.id}`;
-    title = t("milestone.cardTitle");
+    title = t(`milestone.${notice.id}.title` as MessageKey);
     body = t(`milestone.${notice.id}.body` as MessageKey);
   } else if (notice?.kind === "payoff") {
     key = `payoff-${notice.duty.id}`;
@@ -58,31 +57,14 @@ export function TodayNoticeCard({
       {notice && body ? (
         <motion.div
           key={key}
-          // Milestones get the branded treatment (the same cream used for the
-          // active scope pill and calendar) so a first-ever achievement reads
-          // as a celebration, not another nudge in the same gray card as
-          // "Add your ZIP" sitting right below it.
-          className={
-            isMilestone
-              ? "rounded-2xl bg-brand-cream px-4 py-3 text-brand-cream-foreground ring-1 ring-primary/20"
-              : "rounded-2xl bg-card px-4 py-3"
-          }
+          className="rounded-2xl bg-card px-4 py-3"
           initial={{ y: -8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: DUR_INSTANT } }}
           transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
         >
           <div className="flex items-start gap-3">
-            {isMilestone ? (
-              <motion.div
-                className="shrink-0"
-                initial={{ scale: 0.96 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: DUR_QUICK, ease: EASE_OUT }}
-              >
-                <BrandMark size="sm" />
-              </motion.div>
-            ) : art ? (
+            {art ? (
               <motion.div
                 className="shrink-0"
                 initial={{ scale: 0.96 }}
@@ -94,16 +76,10 @@ export function TodayNoticeCard({
             ) : null}
             <div className="min-w-0 flex-1">
               <p className="ui-body font-medium">{title}</p>
-              <p
-                className={
-                  isMilestone ? "mt-0.5 ui-caption opacity-80" : "mt-0.5 ui-caption text-muted-foreground"
-                }
-              >
-                {body}
-              </p>
+              <p className="mt-0.5 ui-caption text-muted-foreground">{body}</p>
               <div className="mt-2">
                 <Button
-                  variant={isMilestone ? "outline" : "ghost"}
+                  variant="ghost"
                   className="h-11 px-2"
                   onClick={() => {
                     if (isMilestone) void hapticSuccess();

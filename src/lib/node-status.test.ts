@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { homeSummary, nodeStatus, statusTone } from "@/lib/node-status";
+import { homeSummary, nodeStatus, roomLeftDuties, statusTone } from "@/lib/node-status";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import type { Duty, Household, SupplyAutomation } from "@/lib/types";
 
@@ -161,4 +161,19 @@ test("reorder pending flags a consumable that needs ordering", () => {
   });
   const status = nodeStatus(home, "kitchen", "room", now);
   assert.ok(status.reorderPending >= 1);
+});
+
+test("a room's left chores match its status count: late, due today and due this week", () => {
+  const home = household({
+    duties: [
+      duty({ id: "late", title: "Wipe", room: "kitchen", dueDate: "2026-08-01" }),
+      duty({ id: "today", title: "Sweep", room: "kitchen", dueDate: "2026-08-23" }),
+      duty({ id: "soon", title: "Mop", room: "kitchen", dueDate: "2026-08-26" }),
+      duty({ id: "far", title: "Descale", room: "kitchen", dueDate: "2026-12-01" }),
+      duty({ id: "other", title: "Scrub", room: "bath", dueDate: "2026-08-01" }),
+    ],
+  });
+  const left = roomLeftDuties(home, "kitchen", now).map((item) => item.id).sort();
+  assert.deepEqual(left, ["late", "soon", "today"]);
+  assert.equal(nodeStatus(home, "kitchen", "room", now).total, left.length);
 });

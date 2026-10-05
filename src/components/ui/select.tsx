@@ -135,7 +135,7 @@ function SelectTrigger({
       data-size={size}
       aria-hidden
       className={cn(
-        "flex w-fit items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors select-none data-[size=default]:h-11 data-[size=sm]:h-11 data-[size=sm]:rounded-[min(var(--radius-md),10px)] dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "flex w-fit items-center justify-between gap-1.5 rounded-lg border border-transparent bg-secondary py-2 pr-2 pl-3 text-sm whitespace-nowrap transition-colors select-none data-[size=default]:h-11 data-[size=sm]:h-11 data-[size=sm]:rounded-[min(var(--radius-md),10px)] dark:bg-input/30 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         disabled && "opacity-50",
         className,
       )}

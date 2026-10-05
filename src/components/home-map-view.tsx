@@ -1,220 +1,190 @@
 "use client";
 
 import { ChevronRight, Package } from "lucide-react";
-import { useEffect, useState } from "react";
 import { tActive } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { RoomTypeIcon } from "@/components/room-type-icon";
-import { lastDoneInRoom, relativeDayLabel } from "@/lib/duties";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
-import { nodeStatus, statusText, type NodeStatus } from "@/lib/node-status";
+import { nodeStatus, type NodeStatus } from "@/lib/node-status";
 import type { Completion, HomeRoom, Household } from "@/lib/types";
+import { relativeDayLabel } from "@/lib/duties";
 import { cn } from "@/lib/utils";
 
+type RoomEntry = { room: HomeRoom; status: NodeStatus; nearReplacement: boolean; left: number };
+
+/** Chores left in a room (see roomLeftDuties). Reorders and replacements are
+ * noted under the name but never added to this count. */
+function leftIn(status: NodeStatus): number {
+  return status.total;
+}
+
+function roomHasExtras(entry: RoomEntry): boolean {
+  return entry.status.reorderPending > 0 || entry.nearReplacement;
+}
+
+/**
+ * Every room in one group, ordered by what is left: overdue first, then the
+ * rooms with the most waiting, finished rooms last. Within a tie the home's own
+ * order (whole home, then floor by floor) is kept.
+ */
 export function HomeMapView({
   household,
   now,
   selectedId,
   replacementRooms,
   onSelectRoom,
-  onReorder,
 }: {
   household: Household;
   now: Date;
   selectedId?: string | null;
   replacementRooms?: Set<string>;
   onSelectRoom: (roomId: string) => void;
+  /** Kept so callers need not change; the list is ordered by need, not by hand. */
   onReorder?: (floorId: string | null, orderedIds: string[]) => void;
 }) {
   const { t } = useLocale();
-  const floors = floorsInOrder(household);
-  const system = systemRoomList(household);
-  const extraNullRooms = household.rooms.some((room) => room.floorId === null && !room.system);
-  const hideFloorHeader = floors.length === 1 && !extraNullRooms;
+  const seen = new Set<string>();
+  const ordered: HomeRoom[] = [];
+  const push = (room: HomeRoom) => {
+    if (seen.has(room.id)) return;
+    seen.add(room.id);
+    ordered.push(room);
+  };
+  systemRoomList(household).forEach(push);
+  floorsInOrder(household).forEach((floor) => roomsOnFloor(household, floor.id).forEach(push));
+  household.rooms.filter((room) => !room.system).forEach(push);
+
+  const entries: RoomEntry[] = ordered
+    .map((room) => {
+      const status = nodeStatus(household, room.id, "room", now);
+      const nearReplacement = Boolean(replacementRooms?.has(room.id));
+      return { room, status, nearReplacement, left: leftIn(status) };
+    })
+    .map((entry, index) => ({ entry, index }))
+    .sort((a, b) => {
+      const overdue = (b.entry.status.overdue > 0 ? 1 : 0) - (a.entry.status.overdue > 0 ? 1 : 0);
+      if (overdue !== 0) return overdue;
+      const left = b.entry.left + (roomHasExtras(b.entry) ? 0.5 : 0) - (a.entry.left + (roomHasExtras(a.entry) ? 0.5 : 0));
+      return left !== 0 ? left : a.index - b.index;
+    })
+    .map(({ entry }) => entry);
+
+  const done = entries.filter((entry) => entry.left === 0 && !roomHasExtras(entry)).length;
 
   return (
-    <div className="flex flex-col gap-5">
-      {system.length > 0 ? (
-        <section>
-          <h2 className="ui-heading mb-2 ui-card font-semibold">{t("map.wholeHome")}</h2>
-          <TileGrid
-            rooms={system}
-            household={household}
-            now={now}
-            selectedId={selectedId}
-            replacementRooms={replacementRooms}
-            onSelectRoom={onSelectRoom}
-            onReorder={onReorder ? (ids) => onReorder(null, ids) : undefined}
-          />
-        </section>
-      ) : null}
-      {floors.map((floor) => {
-        const rooms = roomsOnFloor(household, floor.id);
-        const floorStatus = nodeStatus(household, floor.id, "floor", now);
-        return (
-          <section key={floor.id}>
-            {hideFloorHeader ? null : (
-              <header className="mb-2 flex items-baseline justify-between gap-3">
-                <h2 className="ui-heading ui-card font-semibold">{floor.name}</h2>
-                <StatusLine status={floorStatus} />
-              </header>
-            )}
-            {rooms.length === 0 ? (
-              <p className="rounded-[var(--r-container)] bg-card px-4 py-6 text-center ui-body text-muted-foreground">
-                {t("map.noRoomsOnFloor")}
-              </p>
-            ) : (
-              <TileGrid
-                rooms={rooms}
-                household={household}
-                now={now}
-                selectedId={selectedId}
-                replacementRooms={replacementRooms}
-                onSelectRoom={onSelectRoom}
-                onReorder={onReorder ? (ids) => onReorder(floor.id, ids) : undefined}
-              />
-            )}
-          </section>
-        );
-      })}
-    </div>
+    <section>
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 px-1">
+        <h2 className="ui-heading ui-card font-semibold">{t("map.rooms")}</h2>
+        {entries.length > 0 ? (
+          <p className="ui-caption num text-muted-foreground">
+            {done === entries.length
+              ? t("map.roomsEvery")
+              : t("map.roomsAllDone", { done, total: entries.length })}
+          </p>
+        ) : null}
+      </div>
+      {entries.length === 0 ? (
+        <p className="rounded-[var(--r-container)] bg-card px-4 py-6 text-center ui-body text-muted-foreground">
+          {t("map.noRoomsOnFloor")}
+        </p>
+      ) : (
+        <div className="ui-group">
+          {entries.map((entry) => (
+            <RoomRow
+              key={entry.room.id}
+              entry={entry}
+              selected={selectedId === entry.room.id}
+              onSelect={() => onSelectRoom(entry.room.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
+/** One line under a room's name, used by the room sheet's heading. */
 export function roomCaption(
   status: NodeStatus,
   nearReplacement: boolean,
+  left: number,
   lastDone: Completion | null,
   now: Date,
 ) {
   if (status.overdue > 0) {
     return { text: tActive("map.overdueCount", { count: status.overdue }), className: "text-overdue" };
   }
-  if (status.dueSoon > 0) {
-    return { text: tActive("map.dueSoonCount", { count: status.dueSoon }), className: "text-soon" };
+  if (left > 0) {
+    return { text: tActive("map.leftCount", { count: left }), className: "text-muted-foreground" };
   }
   if (status.reorderPending > 0) {
-    return { text: tActive("map.reorderCount", { count: status.reorderPending }), className: "text-soon" };
+    return { text: tActive("map.reorderCount", { count: status.reorderPending }), className: "text-muted-foreground" };
   }
   if (nearReplacement) {
-    return { text: tActive("home.replacementSoon"), className: "text-soon" };
-  }
-  if (status.total > 0) {
-    return { text: tActive("map.toDoCount", { count: status.total }), className: "text-muted-foreground" };
+    return { text: tActive("home.replacementSoon"), className: "text-muted-foreground" };
   }
   if (lastDone) {
     return {
-      text: tActive("map.lastDone", { when: relativeDayLabel(new Date(lastDone.completedAt), now) }),
+      text: `${tActive("map.roomAllDone")} · ${tActive("map.lastDone", {
+        when: relativeDayLabel(new Date(lastDone.completedAt), now),
+      })}`,
       className: "text-done",
     };
   }
-  return { text: tActive("home.allCaughtUp"), className: "text-muted-foreground" };
+  return { text: tActive("map.roomAllDone"), className: "text-done" };
 }
 
-function TileGrid({
-  rooms,
-  household,
-  now,
-  selectedId,
-  replacementRooms,
-  onSelectRoom,
-  onReorder,
+function RoomRow({
+  entry,
+  selected,
+  onSelect,
 }: {
-  rooms: HomeRoom[];
-  household: Household;
-  now: Date;
-  selectedId?: string | null;
-  replacementRooms?: Set<string>;
-  onSelectRoom: (roomId: string) => void;
-  onReorder?: (orderedIds: string[]) => void;
+  entry: RoomEntry;
+  selected: boolean;
+  onSelect: () => void;
 }) {
-  const [finePointer, setFinePointer] = useState(false);
-  useEffect(() => {
-    const media = window.matchMedia("(pointer: fine)");
-    const sync = () => setFinePointer(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
-  const canDrag = Boolean(onReorder) && finePointer;
-
-  // Rooms that need something come first, so the list opens on what to act on
-  // and the "all caught up" rooms trail behind. Stable, so each group keeps its
-  // own order. Skipped where rooms can be dragged, since the order is then the
-  // person's own.
-  const needsAttention = (room: HomeRoom) => {
-    const status = nodeStatus(household, room.id, "room", now);
-    return status.overdue + status.dueSoon + status.reorderPending > 0 || Boolean(replacementRooms?.has(room.id));
-  };
-  const shown = canDrag
-    ? rooms
-    : [...rooms.filter(needsAttention), ...rooms.filter((room) => !needsAttention(room))];
-
+  const { t } = useLocale();
+  const { room, status, nearReplacement, left } = entry;
+  const finished = left === 0 && !roomHasExtras(entry);
+  const late = status.overdue > 0;
   return (
-    <div className="ui-group">
-      {shown.map((room) => {
-        const status = nodeStatus(household, room.id, "room", now);
-        const nearReplacement = Boolean(replacementRooms?.has(room.id));
-        const caption = roomCaption(status, nearReplacement, lastDoneInRoom(household, room.id), now);
-        return (
-          <button
-            key={room.id}
-            type="button"
-            draggable={canDrag}
-            onDragStart={(event) => {
-              if (!canDrag) return;
-              event.dataTransfer.setData("text/plain", room.id);
-              event.dataTransfer.effectAllowed = "move";
-            }}
-            onDragOver={(event) => {
-              if (!canDrag) return;
-              event.preventDefault();
-            }}
-            onDrop={(event) => {
-              if (!canDrag || !onReorder) return;
-              event.preventDefault();
-              const from = event.dataTransfer.getData("text/plain");
-              if (!from || from === room.id) return;
-              const ids = rooms.map((item) => item.id);
-              const fromIndex = ids.indexOf(from);
-              const toIndex = ids.indexOf(room.id);
-              if (fromIndex < 0 || toIndex < 0) return;
-              ids.splice(fromIndex, 1);
-              ids.splice(toIndex, 0, from);
-              onReorder(ids);
-            }}
-            onClick={() => onSelectRoom(room.id)}
-            className={cn(
-              "ui-group-row flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-left transition-colors active:bg-foreground/6",
-              selectedId === room.id && "bg-primary/5",
-            )}
-          >
-            <RoomTypeIcon room={room} className="size-6 shrink-0 text-muted-foreground" />
-            <span className="min-w-[7rem] flex-1 break-words ui-body font-medium">
-              {room.name}
-              {status.reorderPending > 0 ? (
-                <span className="mt-0.5 flex items-center gap-1 ui-caption font-normal text-muted-foreground">
-                  <Package className="size-3.5" aria-hidden />
-                  {tActive("home.toReorderCount", { count: status.reorderPending })}
-                </span>
-              ) : null}
-            </span>
-            <span className={cn("ml-auto flex items-center gap-1.5 text-right ui-caption font-medium num", caption.className)}>
-              {caption.text}
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground/70" aria-hidden />
-          </button>
-        );
-      })}
-    </div>
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "ui-group-row flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-left transition-colors active:bg-foreground/6",
+        selected && "bg-foreground/5",
+      )}
+    >
+      <RoomTypeIcon
+        room={room}
+        className={cn("size-6 shrink-0", finished ? "text-muted-foreground/50" : "text-muted-foreground")}
+      />
+      <span className="min-w-[7rem] flex-1 break-words">
+        <span className={cn("block ui-body font-medium", finished && "text-muted-foreground")}>{room.system === "whole-home" ? t("map.wholeHome") : room.system === "exterior" ? t("content.room.exterior") : room.name}</span>
+        {late ? (
+          <span className="block ui-caption font-medium text-overdue">
+            {t("map.overdueCount", { count: status.overdue })}
+          </span>
+        ) : status.reorderPending > 0 ? (
+          <span className="flex items-center gap-1 ui-caption text-muted-foreground">
+            <Package className="size-3.5" aria-hidden />
+            {t("home.toReorderCount", { count: status.reorderPending })}
+          </span>
+        ) : nearReplacement ? (
+          <span className="block ui-caption text-muted-foreground">{t("home.replacementSoon")}</span>
+        ) : null}
+      </span>
+      <span
+        className={cn(
+          "ml-auto text-right ui-caption num",
+          finished ? "text-muted-foreground/70" : "font-semibold",
+          late ? "text-overdue" : !finished && "text-foreground",
+        )}
+      >
+        {finished ? t("map.roomAllDone") : left > 0 ? t("map.leftCount", { count: left }) : ""}
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" aria-hidden />
+    </button>
   );
-}
-
-function StatusLine({
-  status,
-}: {
-  status: NodeStatus;
-}) {
-  const text = statusText(status);
-  return <span className="ui-caption text-muted-foreground">{text}</span>;
 }

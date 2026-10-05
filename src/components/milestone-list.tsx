@@ -42,7 +42,7 @@ function ProgressTrack({
             key={index}
             className={cn(
               "block h-1 min-w-0 flex-1 rounded-full",
-              index < filled ? fill : "bg-foreground/12",
+              index < filled ? fill : "bg-foreground/25",
             )}
             // Each pill lands after the one before it, so finishing a room
             // reads as the row advancing rather than the whole bar redrawing.
@@ -55,7 +55,7 @@ function ProgressTrack({
     );
   }
   return (
-    <span className={cn("block h-1 overflow-hidden rounded-full bg-foreground/12", className)}>
+    <span className={cn("block h-1 overflow-hidden rounded-full bg-foreground/25", className)}>
       <motion.span
         className={cn("block h-full rounded-full", fill)}
         initial={reduce ? false : { width: 0 }}
@@ -181,7 +181,7 @@ export function NextMilestone({ item }: { item: MilestoneProgress | null }) {
 
   const Icon = FAMILY_ICON[MILESTONE_FAMILY[item.id]];
   return (
-    <div className="rounded-2xl bg-card px-4 py-3 ring-1 ring-border">
+    <div className="rounded-2xl bg-card px-4 py-3">
       <div className="flex items-baseline justify-between gap-3">
         <p className="ui-caption text-muted-foreground">{t("milestone.nextTitle")}</p>
         <p className="shrink-0 ui-caption num text-muted-foreground">

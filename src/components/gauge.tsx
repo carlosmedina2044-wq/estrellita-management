@@ -62,7 +62,7 @@ export function Gauge({
   const urgent: "out" | "soon" | null =
     runwayDays === 0 || have <= 0.05 ? "out" : runwayDays != null && runwayDays <= 14 ? "soon" : null;
   const haveClass =
-    urgent === "out" ? "bg-overdue" : urgent === "soon" ? "bg-soon" : "bg-foreground/25";
+    urgent === "out" ? "bg-overdue" : urgent === "soon" ? "bg-soon" : "bg-foreground/50";
 
   const calm = hideBarWhenCalm && !urgent && transit <= 0 && have >= 0.5 && caption != null;
 
@@ -70,7 +70,7 @@ export function Gauge({
     <span className="block ui-caption num text-muted-foreground">{caption}</span>
   ) : (
     <>
-      <span className={cn("relative block h-2.5 w-full overflow-hidden rounded-full bg-secondary", className)}>
+      <span className={cn("relative block h-2.5 w-full overflow-hidden rounded-full bg-foreground/15", className)}>
         <motion.span
           className={cn("absolute inset-y-0 left-0 rounded-full", haveClass)}
           initial={reduce ? false : { width: 0 }}

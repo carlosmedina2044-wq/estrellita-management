@@ -3,12 +3,12 @@ import Capacitor
 
 /// Edge-to-edge bridge: theme background under Dynamic Island, no automatic safe-area inset on the scroll view.
 final class CuidalaBridgeViewController: CAPBridgeViewController {
-    /// Matches CSS `--background` (#f5f3ee / #121110) so overscroll is never the wrong cream in dark mode.
+    /// Matches CSS `--background` (#f4f1ec / #101418) so overscroll is never the wrong cream in dark mode.
     static let shellBackground = UIColor { traits in
         if traits.userInterfaceStyle == .dark {
-            return UIColor(red: 0.071, green: 0.067, blue: 0.063, alpha: 1) // #121110
+            return UIColor(red: 0.063, green: 0.078, blue: 0.094, alpha: 1) // #101418
         }
-        return UIColor(red: 0.961, green: 0.953, blue: 0.933, alpha: 1) // #f5f3ee
+        return UIColor(red: 0.957, green: 0.945, blue: 0.925, alpha: 1) // #f4f1ec
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle { .default }

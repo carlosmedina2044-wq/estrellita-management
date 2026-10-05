@@ -137,77 +137,82 @@ function DutyDetailBody({
   let rowIndex = 0;
 
   return (
-    <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <SheetHeader className="shrink-0 pb-2">
-          <SheetTitle>{tDutyTitle(duty.title)}</SheetTitle>
-        </SheetHeader>
-        <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4">
-          <p className="ui-caption text-muted-foreground">
-            {dutySubtitle(duty, completions, now, undefined, household)}
-          </p>
-          <div className="ui-group">
-            <Row label={t("duty.detail.lastDone")} value={lastDoneLine} index={rowIndex++} />
-            {next ? (
-              <Row label={t("duty.detail.nextDue")} value={formatDueDate(next)} index={rowIndex++} />
-            ) : null}
-            {rhythm ? (
-              <Row
-                label={t("duty.detail.rhythm")}
-                value={t("duty.detail.rhythmLine", { done: rhythm.done, of: rhythm.of, streak: rhythm.streak })}
-                index={rowIndex++}
-              />
-            ) : null}
-            {cost ? (
-              <Row
-                label={t("duty.detail.cost")}
-                value={t("duty.detail.costTotal", { total: formatMoney(cost.total), count: cost.count })}
-                index={rowIndex++}
-              />
-            ) : null}
-          </div>
-          {duty.notes ? (
-            <motion.div
-              className="ui-group px-4 py-3"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: rowIndex * STAGGER_CHILD }}
-            >
-              <p className="ui-caption text-muted-foreground">{t("chore.notes")}</p>
-              <p className="mt-1 ui-body">{duty.notes}</p>
-            </motion.div>
+    <SheetContent
+      side="bottom"
+      className="max-h-[88dvh] gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+    >
+      <SheetHeader className="shrink-0 gap-1 pb-2 pr-14">
+        <SheetTitle className="text-2xl font-semibold leading-tight">{tDutyTitle(duty.title)}</SheetTitle>
+        <p className="ui-caption text-muted-foreground">
+          {dutySubtitle(duty, completions, now, undefined, household)}
+        </p>
+      </SheetHeader>
+      <div data-keyboard-scroll className="flex min-h-0 flex-col gap-3 overflow-y-auto px-4 pb-3">
+        <div className="ui-group">
+          <Row label={t("duty.detail.lastDone")} value={lastDoneLine} index={rowIndex++} />
+          {next ? <Row label={t("duty.detail.nextDue")} value={formatDueDate(next)} index={rowIndex++} /> : null}
+          {last && rhythm ? (
+            <Row
+              label={t("duty.detail.rhythm")}
+              value={t("duty.detail.rhythmLine", { done: rhythm.done, of: rhythm.of, streak: rhythm.streak })}
+              index={rowIndex++}
+            />
+          ) : null}
+          {cost ? (
+            <Row
+              label={t("duty.detail.cost")}
+              value={t("duty.detail.costTotal", { total: formatMoney(cost.total), count: cost.count })}
+              index={rowIndex++}
+            />
           ) : null}
         </div>
-        <SheetFooter className="grid grid-cols-3 gap-2 pt-2">
-          <Button
-            variant={doneToday ? "secondary" : "default"}
-            className="col-span-3 h-12"
-            onClick={() => (doneToday ? onUndo(duty) : onComplete(duty))}
+        {duty.notes.trim() ? (
+          <motion.div
+            className="ui-group px-4 py-3"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: rowIndex * STAGGER_CHILD }}
           >
-            {doneToday ? t("common.undo") : t("chore.complete")}
-          </Button>
+            <p className="ui-caption text-muted-foreground">{t("chore.notes")}</p>
+            <p className="mt-1 ui-body whitespace-pre-wrap">{duty.notes.trim()}</p>
+          </motion.div>
+        ) : null}
+      </div>
+      <SheetFooter className="gap-2 pt-1">
+        <Button
+          variant={doneToday ? "secondary" : "default"}
+          className="h-12 w-full"
+          onClick={() => (doneToday ? onUndo(duty) : onComplete(duty))}
+        >
+          {doneToday ? t("common.undo") : t("chore.complete")}
+        </Button>
+        <div className="flex flex-wrap gap-2">
           {addingToCalendar ? (
             <>
-              <Button variant="secondary" className="h-12" onClick={addToGoogleCalendar}>
+              <Button variant="secondary" className={SECONDARY} onClick={addToGoogleCalendar}>
                 {t("duty.addToGoogleCalendar")}
               </Button>
-              <Button variant="secondary" className="col-span-2 h-12" onClick={addToAppleCalendar}>
+              <Button variant="secondary" className={SECONDARY} onClick={addToAppleCalendar}>
                 {t("duty.addToAppleCalendar")}
               </Button>
             </>
           ) : (
             <>
-              <Button variant="secondary" className="h-12" onClick={() => onSnooze(duty)}>
+              <Button variant="secondary" className={SECONDARY} onClick={() => onSnooze(duty)}>
                 {t("chore.snoozeWeek")}
               </Button>
-              <Button variant="secondary" className="h-12" onClick={() => onEdit(duty)}>
+              <Button variant="secondary" className={SECONDARY} onClick={() => onEdit(duty)}>
                 {t("common.edit")}
               </Button>
-              <Button variant="secondary" className="h-12" onClick={() => setAddingToCalendar(true)}>
+              <Button variant="secondary" className={SECONDARY} onClick={() => setAddingToCalendar(true)}>
                 {t("duty.addToCalendar")}
               </Button>
             </>
           )}
-        </SheetFooter>
+        </div>
+      </SheetFooter>
     </SheetContent>
   );
 }
+
+const SECONDARY = "h-auto min-h-11 min-w-[7rem] flex-1 whitespace-normal py-2 text-center";

@@ -106,48 +106,52 @@ export function BackupPanel({
   }
 
   return (
-    <div className="rounded-2xl bg-card p-4">
-      <div className="flex items-start gap-3">
-        <BrandMark size="sm" className="mt-0.5 shrink-0" />
-        <div className="min-w-0">
-          <p className="font-medium">{mode === "import-only" ? t("backup.restoreTitle") : t("backup.saveTitle")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {mode === "import-only"
-              ? t("backup.importHelp")
-              : t("backup.exportHelp")}
-          </p>
-        </div>
+    <div className="ui-group">
+      <div className="ui-group-row px-4 py-3">
+        <p className="ui-body font-medium">{mode === "import-only" ? t("backup.restoreTitle") : t("backup.saveTitle")}</p>
+        <p className="mt-0.5 ui-caption text-muted-foreground">
+          {mode === "import-only" ? t("backup.importHelp") : t("backup.exportHelp")}
+        </p>
       </div>
       {mode === "full" && onExport ? (
-        <div className="mt-3">
-          <p className="text-sm font-medium">{t("backup.memorablePassword")}</p>
-          <Input
-            type="password"
-            value={passphrase}
-            onChange={(event) => setPassphrase(event.target.value)}
-            placeholder={t("backup.password")}
-            className="mt-2 h-12"
-            autoComplete="new-password"
-          />
-          <Input
-            type="password"
-            value={confirm}
-            onChange={(event) => setConfirm(event.target.value)}
-            placeholder={t("backup.confirmPassword")}
-            className="mt-2 h-12"
-            autoComplete="new-password"
-          />
-          <p className="mt-2 text-xs text-muted-foreground">
-            {t("backup.writeItDown")}
-            {hint ? ` ${hint.replace(/passphrase/gi, t("backup.passwordHint"))}` : ""}
-          </p>
-          <Button className="mt-3 h-12 w-full" disabled={busy} onClick={() => void exportFile()}>
-            {t("backup.saveFile")}
-          </Button>
-        </div>
+        <>
+          <label className="ui-group-row flex items-center gap-3 px-4 py-1">
+            <span className="max-w-[40%] shrink-0 ui-body font-medium">{t("backup.password")}</span>
+            <Input
+              type="password"
+              value={passphrase}
+              onChange={(event) => setPassphrase(event.target.value)}
+              className="h-11 min-w-0 flex-1 rounded-lg bg-secondary px-3 ui-body"
+              placeholder={t("backup.choosePassword")}
+              autoComplete="new-password"
+            />
+          </label>
+          <label className="ui-group-row flex items-center gap-3 px-4 py-1">
+            <span className="max-w-[40%] shrink-0 ui-body font-medium">{t("backup.confirmPassword")}</span>
+            <Input
+              type="password"
+              value={confirm}
+              onChange={(event) => setConfirm(event.target.value)}
+              className="h-11 min-w-0 flex-1 rounded-lg bg-secondary px-3 ui-body"
+              placeholder={t("backup.typeAgain")}
+              autoComplete="new-password"
+            />
+          </label>
+          <div className="ui-group-row px-4 py-3">
+            <p className="ui-caption text-muted-foreground">
+              {t("backup.writeItDown")}
+              {hint ? ` ${hint.replace(/passphrase/gi, t("backup.passwordHint"))}` : ""}
+            </p>
+            <Button className="mt-3 h-12 w-full" disabled={busy} onClick={() => void exportFile()}>
+              {t("backup.saveFile")}
+            </Button>
+          </div>
+        </>
       ) : null}
-      <label className="mt-3 flex h-12 cursor-pointer items-center justify-center rounded-xl bg-secondary text-sm font-medium">
-        {mode === "import-only" ? t("backup.chooseFile") : t("backup.restoreFromFile")}
+      <label className="ui-group-row flex min-h-14 cursor-pointer items-center justify-between gap-3 px-4 py-3 active:bg-foreground/6">
+        <span className="ui-body font-medium text-primary">
+          {mode === "import-only" ? t("backup.chooseFile") : t("backup.restoreFromFile")}
+        </span>
         <input
           type="file"
           accept="application/json,.json"

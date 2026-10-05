@@ -6,19 +6,19 @@ import { detectDeviceLocale, translate } from "@/i18n";
 const GLOBAL_ERROR_THEME_CSS = `
 :root {
   color-scheme: light dark;
-  --ge-bg: #f5f3ee;
-  --ge-fg: #121110;
-  --ge-muted: #6b635c;
-  --ge-btn-bg: #121110;
-  --ge-btn-fg: #f5f3ee;
+  --ge-bg: #f4f1ec;
+  --ge-fg: #101418;
+  --ge-muted: #5d6670;
+  --ge-btn-bg: #101418;
+  --ge-btn-fg: #f4f1ec;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --ge-bg: #121110;
-    --ge-fg: #f5f3ee;
-    --ge-muted: #b7aea5;
-    --ge-btn-bg: #f5f3ee;
-    --ge-btn-fg: #121110;
+    --ge-bg: #101418;
+    --ge-fg: #f4f1ec;
+    --ge-muted: #9aa4af;
+    --ge-btn-bg: #f4f1ec;
+    --ge-btn-fg: #101418;
   }
 }
 `;

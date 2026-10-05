@@ -43,9 +43,9 @@ export function RunStrip({
           ? `${t("today.runDay", { count: run.current })} · ${t("today.runStripAria", { closed, open })}`
           : t("today.runStripAria", { closed, open })
       }
-      className="flex flex-col items-end gap-1 rounded-full py-1 text-left"
+      className="flex min-h-11 flex-col items-end justify-center gap-1 rounded-full py-1 text-left"
     >
-      <span className="flex items-center gap-2">
+      <span className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
       {showRun ? (
         <span className="ui-caption font-medium num">
           {runParts[0]}

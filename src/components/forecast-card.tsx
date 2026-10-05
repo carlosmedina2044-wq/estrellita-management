@@ -52,7 +52,7 @@ export function ForecastCard({
       <span className="min-w-0 flex-1">
         <span className="block ui-caption text-muted-foreground">{t("budget.moneyForRepairs")}</span>
         <span className="block ui-card num">
-          {t("forecast.next90", { amount: formatMoney(Math.round(summary.next90)) })}
+          {t("forecast.next3", { amount: formatMoney(Math.round(summary.next3)) })}
         </span>
         {nextLine ? <span className="mt-0.5 block ui-caption num text-muted-foreground">{nextLine}</span> : null}
       </span>

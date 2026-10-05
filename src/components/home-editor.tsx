@@ -4,7 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Field } from "@/components/ui/field";
+import {
+  INLINE_INPUT,
+  SelectRow,
+  SettingsGroup,
+  SettingsRow,
+  SettingsSection,
+  TextRow,
+} from "@/components/settings-rows";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -29,6 +36,9 @@ import {
 } from "@/lib/home-model";
 import { assetLabel, catalogLabel } from "@/lib/asset-catalog";
 import type { AssetType, HomeFloor, Household, RoomType } from "@/lib/types";
+
+/** A date sits in its own tonal field so an empty one is still a visible, tappable target. */
+const DATE_FIELD = "h-11 rounded-lg bg-secondary px-3 text-left ui-body dark:bg-secondary";
 
 export function HomeEditor({
   household,
@@ -180,44 +190,44 @@ export function HomeEditor({
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-medium">{t("home.floorsAndRooms")}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("home.floorsAndRoomsBody")}
-          </p>
-        </div>
-        <button
-          type="button"
-          className="inline-flex h-11 shrink-0 items-center px-2 ui-caption font-semibold text-primary"
-          onClick={() => {
-            setEditingRooms((current) => !current);
-            setDeleteId(null);
-          }}
-        >
-          {editingRooms ? t("common.done") : t("common.edit")}
-        </button>
-      </div>
-
-      {floors.map((floor) => (
-        <section key={floor.id} className="rounded-[var(--r-container)] bg-card p-4">
-          <DebouncedTextInput
-            value={floor.name}
-            onSchedule={(value) =>
-              scheduleChange((current) => ({
-                ...current,
-                floors: current.floors.map((item) =>
-                  item.id === floor.id ? { ...item, name: value } : item,
-                ),
-              }))
-            }
-            onFlush={() => flushChange()}
-            className="h-11 font-medium"
-          />
-          <div className="mt-3 grid gap-2">
+      <SettingsSection
+        title={
+          <span className="flex items-center justify-between gap-3">
+            <span>{t("home.floorsAndRooms")}</span>
+            <button
+              type="button"
+              className="-my-3 inline-flex h-11 shrink-0 items-center px-1 ui-caption font-semibold text-primary"
+              onClick={() => {
+                setEditingRooms((current) => !current);
+                setDeleteId(null);
+              }}
+            >
+              {editingRooms ? t("common.done") : t("common.edit")}
+            </button>
+          </span>
+        }
+        footer={t("home.floorsAndRoomsBody")}
+      >
+        {floors.map((floor) => (
+          <SettingsGroup key={floor.id}>
+            <div className="ui-group-row flex items-center px-4 py-1">
+              <DebouncedTextInput
+                value={floor.name}
+                onSchedule={(value) =>
+                  scheduleChange((current) => ({
+                    ...current,
+                    floors: current.floors.map((item) =>
+                      item.id === floor.id ? { ...item, name: value } : item,
+                    ),
+                  }))
+                }
+                onFlush={() => flushChange()}
+                className={`${ROW_INPUT} font-semibold`}
+              />
+            </div>
             {roomsOnFloor(household, floor.id).map((room) => (
-              <div key={room.id} className="grid gap-2">
-                <div className="flex items-center gap-2">
+              <div key={room.id} className="ui-group-row">
+                <div className="flex items-center gap-2 px-4 py-1">
                   <DebouncedTextInput
                     value={room.name}
                     onSchedule={(value) =>
@@ -229,28 +239,27 @@ export function HomeEditor({
                       }))
                     }
                     onFlush={() => flushChange()}
-                    className="h-11"
+                    className={ROW_INPUT}
                   />
                   {editingRooms ? (
-                    <Button
+                    <button
                       type="button"
-                      variant="secondary"
-                      className="h-11 shrink-0 text-destructive"
+                      className="inline-flex h-11 shrink-0 items-center px-1 ui-body font-medium text-destructive"
                       onClick={() => {
                         setDeleteId(room.id);
                         setReassignTo(userRooms(household).find((item) => item.id !== room.id)?.id ?? "");
                       }}
                     >
                       {t("home.delete")}
-                    </Button>
+                    </button>
                   ) : null}
                 </div>
                 {deleteId === room.id ? (
-                  <div className="rounded-[var(--r-container)] bg-accent p-4">
-                    <p className="font-medium">{t("home.deleteRoomTitle")}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{t("home.deleteRoomBody")}</p>
+                  <div className="px-4 pb-3">
+                    <p className="ui-body font-medium">{t("home.deleteRoomTitle")}</p>
+                    <p className="mt-0.5 ui-caption text-muted-foreground">{t("home.deleteRoomBody")}</p>
                     <Select value={reassignTo} onValueChange={setReassignTo}>
-                      <SelectTrigger className="mt-3 h-11 w-full">
+                      <SelectTrigger className="mt-2 h-11 w-full">
                         <SelectValue placeholder={t("home.moveJobsTo")} />
                       </SelectTrigger>
                       <SelectContent>
@@ -275,256 +284,278 @@ export function HomeEditor({
                 ) : null}
               </div>
             ))}
-          </div>
-        </section>
-      ))}
+          </SettingsGroup>
+        ))}
 
-      <div className="grid gap-2">
-        <Field label={t("home.addFloor")}>
-          <div className="flex gap-2">
+        <SettingsGroup>
+          <label className="ui-group-row flex items-center gap-3 px-4 py-1">
+            <span className="max-w-[40%] shrink-0 ui-body font-medium">{t("home.addFloor")}</span>
             <Input
               value={floorName}
               onChange={(event) => setFloorName(event.target.value)}
               placeholder={t("home.basementPlaceholder")}
-              className="h-11"
+              className={`${INLINE_INPUT} min-w-0 flex-1`}
             />
-            <Button type="button" variant="secondary" className="h-11" onClick={addFloor}>
+            <button
+              type="button"
+              className="inline-flex h-11 shrink-0 items-center px-1 ui-body font-semibold text-primary"
+              onClick={addFloor}
+            >
               {t("home.add")}
-            </Button>
-          </div>
-        </Field>
-      </div>
+            </button>
+          </label>
+        </SettingsGroup>
+      </SettingsSection>
 
-      <div className="grid gap-2">
-        <p className="text-xs font-medium text-muted-foreground">{t("home.addARoom")}</p>
-        <Select value={roomFloor} onValueChange={setRoomFloor}>
-          <SelectTrigger className="h-11 w-full">
-            <SelectValue placeholder={t("home.floorPlaceholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            {floors.map((floor) => (
-              <SelectItem key={floor.id} value={floor.id}>
-                {floor.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={roomType} onValueChange={(value) => setRoomType(value as RoomType)}>
-          <SelectTrigger className="h-11 w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ROOM_TYPES.map((item) => (
-              <SelectItem key={item.id} value={item.id}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Field label={t("home.optionalName")}>
-          <Input
-            value={roomName}
-            onChange={(event) => setRoomName(event.target.value)}
-            placeholder={t("home.optionalName")}
-            className="h-11"
-          />
-        </Field>
-        {roomHints.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {t("home.suggestedItems", { list: roomHints.map((item) => item.itemName).join(", ") })}
-          </p>
-        ) : null}
-        <Button type="button" className="h-11" onClick={addRoom}>
-          {t("home.addRoomCta")}
-        </Button>
-      </div>
-
-      <div className="grid gap-2">
-        <p className="text-xs font-medium text-muted-foreground">{t("home.addAnAsset")}</p>
-        <Select value={assetRoom} onValueChange={setAssetRoom}>
-          <SelectTrigger className="h-11 w-full">
-            <SelectValue placeholder={t("home.roomPlaceholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            {household.rooms.map((room) => (
-              <SelectItem key={room.id} value={room.id}>
-                {room.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={assetType} onValueChange={(value) => setAssetType(value as AssetType)}>
-          <SelectTrigger className="h-11 w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ASSET_TYPES.map((item) => (
-              <SelectItem key={item.id} value={item.id}>
-                {assetLabel(item.id)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Field label={t("home.optionalName")}>
-          <Input
-            value={assetName}
-            onChange={(event) => setAssetName(event.target.value)}
-            placeholder={t("home.optionalName")}
-            className="h-11"
-          />
-        </Field>
-        <Field label={t("home.installDate")}>
-          <Input
-            type="date"
-            value={assetInstall}
-            onChange={(event) => setAssetInstall(event.target.value)}
-            className="h-11"
-          />
-        </Field>
-        <Field label={t("home.warrantyUntil")}>
-          <Input
-            type="date"
-            value={assetWarranty}
-            onChange={(event) => setAssetWarranty(event.target.value)}
-            className="h-11"
-          />
-          {assetInstall ? (
-            <div className="flex flex-wrap gap-1.5">
-              {([1, 2, 5, 10] as const).map((years) => (
-                <button
-                  key={years}
-                  type="button"
-                  className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
-                  onClick={() => setAssetWarranty(warrantyFromInstall(assetInstall, years))}
-                >
-                  {t("home.yearsShort", { n: years })}
-                </button>
+      <SettingsSection
+        title={t("home.addARoom")}
+        footer={
+          roomHints.length > 0
+            ? t("home.suggestedItems", { list: roomHints.map((item) => item.itemName).join(", ") })
+            : null
+        }
+      >
+        <SettingsGroup>
+          <SelectRow
+            label={t("home.floorPlaceholder")}
+            value={roomFloor}
+            display={floors.find((floor) => floor.id === roomFloor)?.name ?? t("home.floorPlaceholder")}
+            onValueChange={setRoomFloor}
+          >
+            <SelectContent>
+              {floors.map((floor) => (
+                <SelectItem key={floor.id} value={floor.id}>
+                  {floor.name}
+                </SelectItem>
               ))}
-            </div>
+            </SelectContent>
+          </SelectRow>
+          <SelectRow
+            label={t("home.roomType")}
+            value={roomType}
+            display={ROOM_TYPES.find((item) => item.id === roomType)?.label ?? ""}
+            onValueChange={(value) => setRoomType(value as RoomType)}
+          >
+            <SelectContent>
+              {ROOM_TYPES.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </SelectRow>
+          <TextRow label={t("home.optionalName")}>
+            <Input
+              value={roomName}
+              onChange={(event) => setRoomName(event.target.value)}
+              className={INLINE_INPUT}
+            />
+          </TextRow>
+          <SettingsRow>
+            <Button type="button" className="h-11 w-full" onClick={addRoom}>
+              {t("home.addRoomCta")}
+            </Button>
+          </SettingsRow>
+        </SettingsGroup>
+      </SettingsSection>
+
+      <SettingsSection
+        title={t("home.addAnAsset")}
+        footer={
+          assetHints.length > 0
+            ? t("home.suggestedItems", { list: assetHints.map((item) => item.itemName).join(", ") })
+            : null
+        }
+      >
+        <SettingsGroup>
+          <SelectRow
+            label={t("home.roomPlaceholder")}
+            value={assetRoom}
+            display={household.rooms.find((room) => room.id === assetRoom)?.name ?? t("home.roomPlaceholder")}
+            onValueChange={setAssetRoom}
+          >
+            <SelectContent>
+              {household.rooms.map((room) => (
+                <SelectItem key={room.id} value={room.id}>
+                  {room.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </SelectRow>
+          <SelectRow
+            label={t("home.applianceType")}
+            value={assetType}
+            display={assetLabel(assetType)}
+            onValueChange={(value) => setAssetType(value as AssetType)}
+          >
+            <SelectContent>
+              {ASSET_TYPES.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {assetLabel(item.id)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </SelectRow>
+          <TextRow label={t("home.optionalName")}>
+            <Input
+              value={assetName}
+              onChange={(event) => setAssetName(event.target.value)}
+              className={INLINE_INPUT}
+            />
+          </TextRow>
+          <TextRow label={t("home.installDate")}>
+            <Input
+              type="date"
+              value={assetInstall}
+              onChange={(event) => setAssetInstall(event.target.value)}
+              className={DATE_FIELD}
+            />
+          </TextRow>
+          <TextRow label={t("home.warrantyUntil")}>
+            <Input
+              type="date"
+              value={assetWarranty}
+              onChange={(event) => setAssetWarranty(event.target.value)}
+              className={DATE_FIELD}
+            />
+          </TextRow>
+          {assetInstall ? (
+            <SettingsRow>
+              <WarrantyChips onPick={(years) => setAssetWarranty(warrantyFromInstall(assetInstall, years))} />
+            </SettingsRow>
           ) : null}
-        </Field>
-        {assetHints.length > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {t("home.suggestedItems", { list: assetHints.map((item) => item.itemName).join(", ") })}
-          </p>
-        ) : null}
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-11"
-          onClick={() => {
-            if (!assetRoom) {
-              toast.error(t("home.pickRoomFirst"));
-              return;
-            }
-            const current = takePending();
-            const name =
-              assetName.trim() || catalogLabel(assetType) || t("home.assetFallback");
-            onChange({
-              ...current,
-              assets: [
-                ...current.assets,
-                {
-                  id: crypto.randomUUID(),
-                  roomId: assetRoom,
-                  name,
-                  type: assetType,
-                  installDate: assetInstall || undefined,
-                  warrantyUntil: assetWarranty || undefined,
-                },
-              ],
-            });
-            setAssetName("");
-            setAssetInstall("");
-            setAssetWarranty("");
-            if (assetHints[0]) {
-              toast.message(t("home.suggestion", { name: assetHints[0].itemName }), { description: assetHints[0].hint });
-            } else {
-              toast.success(t("home.assetAdded"));
-            }
-          }}
-        >
-          {t("home.addAssetCta")}
-        </Button>
-      </div>
+          <SettingsRow>
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-11 w-full"
+              onClick={() => {
+                if (!assetRoom) {
+                  toast.error(t("home.pickRoomFirst"));
+                  return;
+                }
+                const current = takePending();
+                const name =
+                  assetName.trim() || catalogLabel(assetType) || t("home.assetFallback");
+                onChange({
+                  ...current,
+                  assets: [
+                    ...current.assets,
+                    {
+                      id: crypto.randomUUID(),
+                      roomId: assetRoom,
+                      name,
+                      type: assetType,
+                      installDate: assetInstall || undefined,
+                      warrantyUntil: assetWarranty || undefined,
+                    },
+                  ],
+                });
+                setAssetName("");
+                setAssetInstall("");
+                setAssetWarranty("");
+                if (assetHints[0]) {
+                  toast.message(t("home.suggestion", { name: assetHints[0].itemName }), { description: assetHints[0].hint });
+                } else {
+                  toast.success(t("home.assetAdded"));
+                }
+              }}
+            >
+              {t("home.addAssetCta")}
+            </Button>
+          </SettingsRow>
+        </SettingsGroup>
+      </SettingsSection>
 
       {household.assets.length > 0 ? (
-        <div className="grid gap-3">
-          <p className="font-medium">{t("home.assets")}</p>
+        <SettingsSection title={t("home.assets")}>
           {household.assets.map((asset) => {
             const badge = warrantyBadgeLabel(asset);
             const room = household.rooms.find((item) => item.id === asset.roomId);
             return (
-              <section key={asset.id} id={`home-asset-${asset.id}`} className="rounded-2xl bg-card p-4">
-                <p className="font-medium">{asset.name}</p>
-                <p className="mt-0.5 ui-caption text-muted-foreground">
-                  {room?.name ?? t("home.homeFallback")}
-                  {badge ? ` · ${badge}` : ""}
-                </p>
-                <div className="mt-3 grid gap-2">
-                  <Field label={t("home.installDate")}>
-                    <Input
-                      type="date"
-                      value={asset.installDate ?? ""}
-                      onChange={(event) => {
-                        const value = event.target.value || undefined;
-                        scheduleChange((current) => ({
-                          ...current,
-                          assets: current.assets.map((item) =>
-                            item.id === asset.id ? { ...item, installDate: value } : item,
-                          ),
-                        }));
-                      }}
-                      onBlur={() => flushChange()}
-                      className="h-11"
-                    />
-                  </Field>
-                  <Field label={t("home.warrantyUntil")}>
-                    <Input
-                      type="date"
-                      value={asset.warrantyUntil ?? ""}
-                      onChange={(event) => {
-                        const value = event.target.value || undefined;
-                        scheduleChange((current) => ({
-                          ...current,
-                          assets: current.assets.map((item) =>
-                            item.id === asset.id ? { ...item, warrantyUntil: value } : item,
-                          ),
-                        }));
-                      }}
-                      onBlur={() => flushChange()}
-                      className="h-11"
-                    />
-                    {asset.installDate ? (
-                      <div className="flex flex-wrap gap-1.5">
-                        {([1, 2, 5, 10] as const).map((years) => (
-                          <button
-                            key={years}
-                            type="button"
-                            className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
-                            onClick={() =>
-                              flushChange((current) => ({
-                                ...current,
-                                assets: current.assets.map((item) =>
-                                  item.id === asset.id
-                                    ? { ...item, warrantyUntil: warrantyFromInstall(asset.installDate!, years) }
-                                    : item,
-                                ),
-                              }))
-                            }
-                          >
-                            {t("home.yearsShort", { n: years })}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </Field>
+              <SettingsGroup key={asset.id} className="scroll-mt-24">
+                <div id={`home-asset-${asset.id}`} className="ui-group-row px-4 py-3">
+                  <p className="ui-body font-medium">{asset.name}</p>
+                  <p className="mt-0.5 ui-caption text-muted-foreground">
+                    {room?.name ?? t("home.homeFallback")}
+                    {badge ? ` · ${badge}` : ""}
+                  </p>
                 </div>
-              </section>
+                <TextRow label={t("home.installDate")}>
+                  <Input
+                    type="date"
+                    value={asset.installDate ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value || undefined;
+                      scheduleChange((current) => ({
+                        ...current,
+                        assets: current.assets.map((item) =>
+                          item.id === asset.id ? { ...item, installDate: value } : item,
+                        ),
+                      }));
+                    }}
+                    onBlur={() => flushChange()}
+                    className={DATE_FIELD}
+                  />
+                </TextRow>
+                <TextRow label={t("home.warrantyUntil")}>
+                  <Input
+                    type="date"
+                    value={asset.warrantyUntil ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value || undefined;
+                      scheduleChange((current) => ({
+                        ...current,
+                        assets: current.assets.map((item) =>
+                          item.id === asset.id ? { ...item, warrantyUntil: value } : item,
+                        ),
+                      }));
+                    }}
+                    onBlur={() => flushChange()}
+                    className={DATE_FIELD}
+                  />
+                </TextRow>
+                {asset.installDate ? (
+                  <SettingsRow>
+                    <WarrantyChips
+                      onPick={(years) =>
+                        flushChange((current) => ({
+                          ...current,
+                          assets: current.assets.map((item) =>
+                            item.id === asset.id
+                              ? { ...item, warrantyUntil: warrantyFromInstall(asset.installDate!, years) }
+                              : item,
+                          ),
+                        }))
+                      }
+                    />
+                  </SettingsRow>
+                ) : null}
+              </SettingsGroup>
             );
           })}
-        </div>
+        </SettingsSection>
       ) : null}
+    </div>
+  );
+}
+
+const ROW_INPUT = "h-11 min-w-0 flex-1 bg-transparent px-0 ui-body dark:bg-transparent";
+
+function WarrantyChips({ onPick }: { onPick: (years: 1 | 2 | 5 | 10) => void }) {
+  const { t } = useLocale();
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {([1, 2, 5, 10] as const).map((years) => (
+        <button
+          key={years}
+          type="button"
+          className="h-11 rounded-full bg-secondary px-3 ui-caption font-medium"
+          onClick={() => onPick(years)}
+        >
+          {t("home.yearsShort", { n: years })}
+        </button>
+      ))}
     </div>
   );
 }

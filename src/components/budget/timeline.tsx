@@ -77,6 +77,10 @@ export function QuarterTimeline({
   }, [forecast.monthly]);
   const max = Math.max(1, ...windowMonths.map((month) => month.total));
   const selected = forecast.monthly.find((month) => month.month === openMonth) ?? windowMonths[0];
+  const biggest = windowMonths.flatMap((month) => {
+    const label = month.total >= avg * 2 && month.total > 0 ? spikeLabel(month.items) : null;
+    return label ? [{ month: shortMonth(month.month, dateLocale), label }] : [];
+  });
   const defaultMonth = windowMonths.find((month) => month.total >= avg * 2 && month.total > 0)?.month ?? windowMonths[0]?.month ?? "";
   const monthInWindow = windowMonths.some((month) => month.month === openMonth);
   if (!monthInWindow && defaultMonth && openMonth !== defaultMonth) {
@@ -110,42 +114,49 @@ export function QuarterTimeline({
         </div>
       </div>
 
-      <div className="mt-3 rounded-2xl bg-card px-3 pb-4 pt-3">
-        <div className="flex h-52 items-end gap-3">
+      <div className="ui-group mt-3 px-3 pb-3 pt-3">
+        <div className="flex h-48 items-end gap-3">
           {windowMonths.map((month) => {
             const active = selected?.month === month.month;
-            const spike = month.total >= avg * 2 && month.total > 0;
-            const label = spike ? spikeLabel(month.items) : null;
-            const height = month.total ? Math.max(12, (month.total / max) * 100) : 6;
+            const urgent = month.items.some((item) => item.overdue);
+            const height = month.total ? Math.max(4, (month.total / max) * 100) : 6;
             return (
               <button
                 key={month.month}
                 type="button"
                 onClick={() => setOpenMonth(month.month)}
                 className={cn(
-                  "flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1 rounded-xl px-1",
-                  active && "bg-muted/70",
+                  "flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1 rounded-xl px-1 pb-1",
+                  active && "bg-secondary",
                 )}
                 aria-pressed={active}
                 aria-label={`${longMonth(month.month, dateLocale)} ${formatCostRange({ low: month.total, mid: month.total, high: month.total })}`}
               >
-                {label ? (
-                  <span className="line-clamp-2 text-center ui-caption leading-tight text-primary">{label}</span>
-                ) : (
-                  <span className="h-7" />
-                )}
                 <span className="ui-caption font-medium num">
                   {month.total ? `$${Math.round(month.total).toLocaleString(getActiveDateLocale())}` : "—"}
                 </span>
-                <span
-                  className={cn("w-full rounded-md", spike ? "bg-warning" : "bg-primary")}
-                  style={{ height: `${height}%` }}
-                />
+                {/* The track is the only thing the percentage is measured against, so
+                    a bar half the size of another really is half as tall. */}
+                <span className="flex min-h-0 w-full flex-1 items-end">
+                  <span
+                    className={cn("w-full rounded-md", urgent ? "bg-warning" : "bg-primary")}
+                    style={{ height: `${height}%` }}
+                  />
+                </span>
                 <span className="ui-caption text-muted-foreground">{shortMonth(month.month, dateLocale)}</span>
               </button>
             );
           })}
         </div>
+        {biggest.length > 0 ? (
+          <ul className="mt-2 grid gap-1 px-1">
+            {biggest.map((entry) => (
+              <li key={entry.month} className="ui-caption text-muted-foreground">
+                {t("budget.biggestIn", { month: entry.month, label: entry.label })}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
 
       {selected ? (
@@ -177,10 +188,11 @@ function MonthDetail({
   const replacements = month.items.filter((item) => item.kind === "replacement");
   const supplies = month.items.filter((item) => item.kind !== "replacement");
   const [open, setOpen] = useState({ replacements: true, supplies: true });
+  const [showAll, setShowAll] = useState({ replacements: false, supplies: false });
   const [editingId, setEditingId] = useState<string | null>(null);
 
   return (
-    <div className="mt-3 rounded-2xl bg-card px-4 py-4">
+    <div className="ui-group mt-3 px-4 py-4">
       <p className="font-medium">{longMonth(month.month, dateLocale)}</p>
       <p className="mt-1 text-sm text-muted-foreground">
         {month.total ? tActive("budget.aboutThisMonth", { amount: Math.round(month.total).toLocaleString(getActiveDateLocale()) }) : tActive("budget.nothingThisMonth")}
@@ -191,9 +203,12 @@ function MonthDetail({
             <Group
               title={tActive("budget.replacements", { amount: Math.round(replacements.reduce((sum, item) => sum + item.cost.mid, 0)).toLocaleString(getActiveDateLocale()) })}
               open={open.replacements}
+              total={replacements.length}
+              expanded={showAll.replacements}
+              onExpand={() => setShowAll((value) => ({ ...value, replacements: !value.replacements }))}
               onToggle={() => setOpen((value) => ({ ...value, replacements: !value.replacements }))}
             >
-              {replacements.map((item) => (
+              {(showAll.replacements ? byCost(replacements) : byCost(replacements).slice(0, 3)).map((item) => (
                 <ForecastRow
                   key={`${item.assetId}-${item.label}`}
                   item={item}
@@ -213,9 +228,12 @@ function MonthDetail({
             <Group
               title={tActive("budget.routineSupplies", { amount: Math.round(supplies.reduce((sum, item) => sum + item.cost.mid, 0)).toLocaleString(getActiveDateLocale()) })}
               open={open.supplies}
+              total={supplies.length}
+              expanded={showAll.supplies}
+              onExpand={() => setShowAll((value) => ({ ...value, supplies: !value.supplies }))}
               onToggle={() => setOpen((value) => ({ ...value, supplies: !value.supplies }))}
             >
-              {supplies.map((item) => (
+              {(showAll.supplies ? byCost(supplies) : byCost(supplies).slice(0, 3)).map((item) => (
                 <ForecastRow
                   key={`${item.kind}-${item.automationId ?? item.dutyId ?? item.nodeId}-${item.label}`}
                   item={item}
@@ -232,14 +250,24 @@ function MonthDetail({
   );
 }
 
+function byCost(items: ForecastItem[]): ForecastItem[] {
+  return [...items].sort((a, b) => b.cost.mid - a.cost.mid);
+}
+
 function Group({
   title,
   open,
+  total,
+  expanded,
+  onExpand,
   onToggle,
   children,
 }: {
   title: string;
   open: boolean;
+  total: number;
+  expanded: boolean;
+  onExpand: () => void;
   onToggle: () => void;
   children: ReactNode;
 }) {
@@ -250,7 +278,17 @@ function Group({
         <span className="text-sm font-medium">{title}</span>
         <span className="ui-caption text-muted-foreground">{open ? t("budget.hide") : t("budget.show")}</span>
       </button>
-      {open ? <ul className="mt-2 grid gap-3">{children}</ul> : null}
+      {open ? (
+        <>
+          <p className="mt-1 ui-caption text-muted-foreground">{t("budget.tapToLog")}</p>
+          <ul className="mt-1 grid gap-1">{children}</ul>
+          {total > 3 ? (
+            <button type="button" className="flex min-h-11 items-center ui-body font-medium text-primary" onClick={onExpand}>
+              {expanded ? t("budget.showFewer") : t("budget.seeAll", { count: total })}
+            </button>
+          ) : null}
+        </>
+      ) : null}
     </div>
   );
 }
@@ -275,20 +313,39 @@ function ForecastRow({
   const [estimate, setEstimate] = useState("");
 
   return (
-    <li className="border-t border-border/60 pt-3 first:border-t-0 first:pt-0">
-      <p className="text-sm font-medium">{item.label}</p>
-      <p className="text-sm text-muted-foreground">{formatCostRange(item.cost)}</p>
+    <li>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="min-h-11 min-w-0 flex-1 py-1.5 text-left"
+          onClick={onLogPurchase}
+        >
+          <span className="block text-sm font-medium">{item.label}</span>
+          <span className="block text-sm text-muted-foreground num">{formatCostRange(item.cost)}</span>
+          {item.source === "catalog" && item.kind === "replacement" ? null : (
+            <span className="block ui-caption text-muted-foreground">
+              {item.source === "catalog" ? tActive("budget.typicalSupply") : forecastSourceTag(item.source)}
+            </span>
+          )}
+        </button>
+        {target && onNavigate ? (
+          <button
+            type="button"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full text-primary"
+            aria-label={t("budget.open")}
+            onClick={() => onNavigate(target)}
+          >
+            <ChevronRight className="size-5" aria-hidden />
+          </button>
+        ) : null}
+      </div>
       {item.source === "catalog" && item.kind === "replacement" ? (
-        <button type="button" className="mt-1 inline-flex min-h-11 items-center text-left ui-caption leading-4 text-muted-foreground" onClick={onEdit}>
+        <button type="button" className="inline-flex min-h-11 items-center text-left ui-caption leading-4 text-muted-foreground" onClick={onEdit}>
           {forecastSourceBlurb(item.source)}
         </button>
-      ) : (
-        <p className="mt-1 ui-caption text-muted-foreground">
-          {item.source === "catalog" ? tActive("budget.typicalSupply") : forecastSourceTag(item.source)}
-        </p>
-      )}
+      ) : null}
       {editing && onSaveEstimate ? (
-        <div className="mt-2 flex gap-2">
+        <div className="mt-1 flex gap-2">
           <Input
             inputMode="decimal"
             className="h-11"
@@ -307,14 +364,6 @@ function ForecastRow({
           </Button>
         </div>
       ) : null}
-      <div className="mt-2 flex flex-wrap gap-2">
-        <Button variant="secondary" className="h-11" onClick={onLogPurchase}>{tActive("budget.logPurchase")}</Button>
-        {target && onNavigate ? (
-          <Button variant="ghost" className="h-11" onClick={() => onNavigate(target)}>
-            {t("budget.open")}
-          </Button>
-        ) : null}
-      </div>
     </li>
   );
 }

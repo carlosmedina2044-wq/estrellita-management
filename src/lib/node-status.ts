@@ -1,8 +1,8 @@
 import { tActive } from "@/i18n";
 import { addDays, startOfDay } from "@/lib/dates";
-import { isDueToday, isOverdue, nextDueDate } from "@/lib/duties";
+import { isDueToday, isOverdue, matchesAudience, nextDueDate } from "@/lib/duties";
 import { groupRestock, restockPlacement } from "@/lib/restock";
-import type { Household, NodeType } from "@/lib/types";
+import type { Audience, Duty, Household, NodeType } from "@/lib/types";
 
 export type NodeStatus = {
   overdue: number;
@@ -44,26 +44,54 @@ function attachedTo(
   return false;
 }
 
+/** A chore counts as left when it is late, due today, or due within a week. */
+function leftState(
+  household: Household,
+  duty: Household["duties"][number],
+  now: Date,
+): "overdue" | "today" | "soon" | null {
+  if (duty.archived) return null;
+  const installedAt = household.supplyAutomations.find((item) => item.dutyId === duty.id)?.installedAt ?? null;
+  if (isOverdue(duty, household.completions, now, installedAt)) return "overdue";
+  if (isDueToday(duty, household.completions, now, installedAt)) return "today";
+  const next = nextDueDate(duty, household.completions, now, installedAt);
+  if (
+    next &&
+    startOfDay(next) <= startOfDay(addDays(now, 7)) &&
+    startOfDay(next) >= startOfDay(now)
+  ) {
+    return "soon";
+  }
+  return null;
+}
+
+/**
+ * The chores still left in a room: the one definition behind the Home row's
+ * count, the room sheet's heading and the rows the sheet lists first.
+ */
+export function roomLeftDuties(
+  household: Household,
+  roomId: string,
+  now: Date,
+  audience: Audience | "all" = "all",
+): Duty[] {
+  return household.duties.filter(
+    (duty) =>
+      matchesAudience(duty, audience) &&
+      attachedTo(household, roomId, "room", duty) &&
+      leftState(household, duty, now) !== null,
+  );
+}
+
 function ownStatus(household: Household, nodeId: string, nodeType: NodeType, now: Date): NodeStatus {
-  const soonEnd = addDays(now, 7);
   const status = { ...EMPTY };
 
   for (const duty of household.duties) {
-    if (duty.archived) continue;
     if (!attachedTo(household, nodeId, nodeType, duty)) continue;
-    const installedAt = household.supplyAutomations.find((item) => item.dutyId === duty.id)?.installedAt ?? null;
-    const overdue = isOverdue(duty, household.completions, now, installedAt);
-    const dueToday = isDueToday(duty, household.completions, now, installedAt);
-    const next = nextDueDate(duty, household.completions, now, installedAt);
-    const dueSoon =
-      !overdue &&
-      !dueToday &&
-      Boolean(next) &&
-      startOfDay(next!) <= startOfDay(soonEnd) &&
-      startOfDay(next!) >= startOfDay(now);
-    if (overdue || dueToday || dueSoon) {
+    const state = leftState(household, duty, now);
+    if (state) {
       status.total += 1;
-      if (overdue) status.overdue += 1;
+      if (state === "overdue") status.overdue += 1;
       else status.dueSoon += 1;
     }
   }

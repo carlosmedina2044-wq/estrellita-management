@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Lock } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import type { MessageKey } from "@/i18n";
@@ -105,17 +105,34 @@ export function HouseLookPicker({
                 void hapticPress();
                 onChange({ kitType: kit, palette });
               }}
-              className="relative size-[104px] shrink-0 snap-center overflow-hidden rounded-2xl bg-secondary"
+              className="relative size-[116px] shrink-0 snap-center overflow-hidden rounded-2xl bg-secondary"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={thumb} alt="" draggable={false} className="size-full object-cover" />
               {selected ? (
                 <motion.div
                   layoutId="kit-ring"
-                  className="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-primary"
+                  className="pointer-events-none absolute inset-0 rounded-2xl bg-primary/10 ring-[3px] ring-inset ring-primary"
                   transition={SPRING_SETTLE}
                 />
               ) : null}
+              {selected ? (
+                <span
+                  aria-hidden
+                  className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                >
+                  <Check className="size-3.5" />
+                </span>
+              ) : null}
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute inset-x-0 bottom-0 bg-background/80 py-0.5 text-center ui-caption font-medium",
+                  selected ? "text-primary" : "text-foreground",
+                )}
+              >
+                {t("settings.houseLookOption", { index: index + 1, total: order.length })}
+              </span>
             </button>
           );
         })}
@@ -149,7 +166,7 @@ export function HouseLookPicker({
                   setExplained(null);
                   onChange({ kitType, palette: swatch.id });
                 }}
-                className="flex flex-col items-center gap-1.5"
+                className="flex min-h-11 flex-col items-center gap-1"
               >
                 <span className="relative block size-10">
                   <span
@@ -173,15 +190,23 @@ export function HouseLookPicker({
                 <span
                   className={cn(
                     "ui-caption",
-                    locked ? "text-muted-foreground/60" : "text-muted-foreground",
+                    palette === swatch.id ? "font-medium text-foreground" : "text-muted-foreground",
                   )}
                 >
                   {label}
                 </span>
+                {locked && lock?.needs ? (
+                  <span className="ui-caption text-muted-foreground">
+                    {t("portrait.paletteLockedChip", { level: t(`care.level.${lock.needs}` as MessageKey) })}
+                  </span>
+                ) : null}
               </button>
             );
           })}
         </div>
+        {locks.some((entry) => !entry.unlocked) && !explainedLock?.needs ? (
+          <p className="ui-caption text-center text-muted-foreground">{t("portrait.paletteLockedHelp")}</p>
+        ) : null}
         {explainedLock?.needs ? (
           <p className="ui-caption text-center text-muted-foreground">
             {t("portrait.paletteLocked", {

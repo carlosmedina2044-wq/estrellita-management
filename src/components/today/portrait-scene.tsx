@@ -524,8 +524,8 @@ export function PortraitScene({
         // to a cap, so a larger greeting has sky of its own instead of
         // landing on the roof.
         height: insetTop
-          ? "calc(env(safe-area-inset-top) + clamp(232px, 13.65rem, 340px))"
-          : "clamp(232px, 13.65rem, 340px)",
+          ? "calc(env(safe-area-inset-top) + min(clamp(232px, 13.65rem, 340px), 34dvh))"
+          : "min(clamp(232px, 13.65rem, 340px), 34dvh)",
         background:
           "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}

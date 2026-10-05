@@ -27,7 +27,7 @@ export function EmptyGuide({
 
   if (ranked.length === 0) {
     return (
-      <section className="rounded-2xl bg-card px-5 py-10 text-center">
+      <section className="ui-group px-5 py-10 text-center">
         <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-brand-cream">
           <BrandMark size="sm" />
         </span>
@@ -43,7 +43,7 @@ export function EmptyGuide({
   }
 
   return (
-    <section className="rounded-2xl bg-card px-4 py-5">
+    <section className="ui-group px-4 py-5">
       <p className="font-medium">{t("budget.priceBigItems")}</p>
       <p className="mt-1 text-sm text-muted-foreground">
         {t("budget.priceBigBody")}

@@ -784,8 +784,13 @@ export function TodayView({
     return () => window.clearTimeout(timer);
   }, [levelUpKey]);
 
+  // On a day that just finished, the milestone is part of the all-done card
+  // (one message, one Share) rather than a second card saying the same thing.
+  const mergedMilestone =
+    pendingMilestone && momentumOn && !viewingCalendar && arc.state === "closed" ? pendingMilestone : null;
+  const doneNote = mergedMilestone ? t(`milestone.${mergedMilestone.id}.body` as MessageKey) : null;
   let activeNotice: TodayNotice | null = null;
-  if (pendingMilestone) {
+  if (pendingMilestone && !mergedMilestone) {
     activeNotice = { kind: "milestone", id: pendingMilestone.id };
   } else if (careNotice) {
     activeNotice = { kind: "care", state: careNotice };
@@ -900,10 +905,14 @@ export function TodayView({
       }),
     });
   }
+  // Dark tokens are in force with the system dark theme or the evening look.
+  // The sky's colour has to be pushed harder into a dark page than a light one
+  // or the sheet's top edge reads as a flat cut.
   const nightFollows =
     sceneMode &&
     household.momentum.nightFollowsSky !== false &&
     (scenePhase.phase === "dusk" || scenePhase.phase === "night");
+  const sheetIsDark = resolvedTheme === "dark" || nightFollows;
 
   // The evening look has to sit on the document, not on the Today root. Scoped
   // to Today it produced a dark panel floating in a cream shell: the tab bar and
@@ -1021,21 +1030,34 @@ export function TodayView({
             )}
             aria-hidden={!compactBar}
           >
-            <p className="ui-caption font-medium">
+            <p className="min-w-0 flex-1 truncate pb-3 pr-2 ui-caption font-medium">
               {arc.state === "closed"
                 ? t("today.compactClosed")
                 : t("today.compactTitle", { count: arc.open })}
             </p>
-            {onOpenSettings ? (
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
-                aria-label={t("common.settings")}
-                onClick={onOpenSettings}
+                aria-label={t("today.calendar")}
+                onClick={() => {
+                  setCalendarOpen(true);
+                  listRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
+                }}
                 className="flex size-11 items-center justify-center rounded-full bg-secondary"
               >
-                <Settings className="size-5" />
+                <CalendarDays className="size-5" />
               </button>
-            ) : null}
+              {onOpenSettings ? (
+                <button
+                  type="button"
+                  aria-label={t("common.settings")}
+                  onClick={onOpenSettings}
+                  className="flex size-11 items-center justify-center rounded-full bg-secondary"
+                >
+                  <Settings className="size-5" />
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
       ) : null}
@@ -1054,7 +1076,7 @@ export function TodayView({
           <SceneBoundary
             // Same box the scene would have filled, so the sheet's negative
             // margin and the compact bar keep their geometry if the art fails.
-            fallback={<div aria-hidden style={{ height: "calc(env(safe-area-inset-top) + clamp(232px, 13.65rem, 340px))" }} />}
+            fallback={<div aria-hidden style={{ height: "calc(env(safe-area-inset-top) + min(clamp(232px, 13.65rem, 340px), 34dvh))" }} />}
           >
             <PortraitScene
               household={household}
@@ -1136,22 +1158,31 @@ export function TodayView({
         }
         style={
           sceneMode
-            ? { boxShadow: "inset 0 1px 0 color-mix(in oklab, var(--ambient) 18%, transparent)" }
+            ? {
+                // A soft glow in the sky's own colour above the edge instead
+                // of a hairline, so the picture hands over to the page rather
+                // than being cut off by it.
+                boxShadow: `0 -10px 28px -8px color-mix(in oklab, var(--ambient) ${
+                  sheetIsDark ? 45 : 30
+                }%, transparent)`,
+              }
             : undefined
         }
       >
       {sceneMode ? (
         // The sky's dominant color bleeds a short way into the sheet, the way
-        // Music/Photos let artwork color wash into the chrome below it — a
-        // real, visible link between the scene and the rest of the app instead
-        // of the 1px inset highlight above, which reads as no relationship at
-        // all against a saturated sky.
+        // Music/Photos let artwork color wash into the chrome below it. Three
+        // stops so it fades out rather than ending on a line, and a stronger
+        // mix in dark, where 20% of the sky into the page was invisible.
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-24 rounded-t-[28px]"
+          className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 rounded-t-[28px]"
           style={{
-            background:
-              "linear-gradient(color-mix(in oklab, var(--ambient) 20%, var(--background)), transparent)",
+            background: `linear-gradient(to bottom, color-mix(in oklab, var(--ambient) ${
+              sheetIsDark ? 42 : 22
+            }%, var(--background)) 0%, color-mix(in oklab, var(--ambient) ${
+              sheetIsDark ? 16 : 8
+            }%, var(--background)) 55%, transparent 100%)`,
           }}
         />
       ) : null}
@@ -1172,6 +1203,7 @@ export function TodayView({
               shareClosedDay();
             }}
             stats={ceremonyStats}
+            note={doneNote}
             celebrate={arc.state === "closed"}
             instant={!ceremonyActive}
             onOpenList={() => {
@@ -1262,51 +1294,24 @@ export function TodayView({
       </motion.div>
       ) : null}
 
-      <div className="flex items-center gap-2">
-        <div role="tablist" aria-label={t("today.scopeList")} className="flex min-w-0 flex-1 rounded-full bg-secondary p-1">
-          {scopes.map((item) => {
-            const active = scope === item.id && !viewingCalendar;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => selectScope(item.id)}
-                className={cn(
-                  "relative h-11 flex-1 rounded-full ui-caption font-medium ui-press",
-                  active ? "text-brand-cream-foreground" : "text-secondary-foreground",
-                )}
-              >
-                {active ? (
-                  // Shared layoutId: the pill is a single element that moves
-                  // between buttons rather than three that fade in and out, so
-                  // the segmented control slides the way UISegmentedControl
-                  // does instead of teleporting between positions.
-                  <motion.span
-                    layoutId="today-scope-pill"
-                    className="absolute inset-0 rounded-full bg-brand-cream shadow-sm ring-1 ring-border"
-                    transition={SPRING_SETTLE}
-                  />
-                ) : null}
-                <span className="relative">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SegmentedControl
+          label={t("today.scopeList")}
+          options={scopes}
+          value={viewingCalendar ? null : scope}
+          onChange={selectScope}
+        />
         <button
           type="button"
           onClick={() => setCalendarOpen((current) => !current)}
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-full ui-press",
-            calendarOpen || viewingCalendar
-              ? "bg-brand-cream text-brand-cream-foreground ring-1 ring-border"
-              : "bg-secondary text-secondary-foreground",
+            "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 ui-body font-medium ui-press",
+            calendarOpen || viewingCalendar ? "bg-accent text-primary" : "text-primary",
           )}
-          aria-label={t("today.pickDay")}
           aria-pressed={calendarOpen || viewingCalendar}
         >
-          <CalendarDays className="size-4" />
+          <CalendarDays className="size-4" aria-hidden />
+          {t("today.calendar")}
         </button>
       </div>
 
@@ -1331,7 +1336,7 @@ export function TodayView({
             onClick={() => setFilter(item)}
             className={
               filter === item
-                ? "h-11 shrink-0 rounded-full bg-brand-cream px-3.5 ui-caption font-medium text-brand-cream-foreground shadow-sm ring-1 ring-border ui-press"
+                ? "h-11 shrink-0 rounded-full bg-primary px-3.5 ui-caption font-medium text-primary-foreground ui-press"
                 : "h-11 shrink-0 rounded-full bg-secondary px-3.5 ui-caption font-medium text-secondary-foreground ui-press"
             }
           >
@@ -1346,8 +1351,8 @@ export function TodayView({
       ) : null}
 
       {firstOfMonth ? (
-        <section className="rounded-2xl bg-accent px-4 py-4">
-          <p className="ui-caption font-medium text-primary">{t("today.firstOfMonth")}</p>
+        <section className="rounded-2xl bg-card px-4 py-4">
+          <p className="ui-caption font-medium text-muted-foreground">{t("today.firstOfMonth")}</p>
           <p className="ui-heading mt-1 ui-title font-semibold">{t("today.monthList")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {monthPlan.length === 0
@@ -1451,8 +1456,8 @@ export function TodayView({
             </LayoutGroup>
           </div>
           <Button
-            variant="outline"
-            className="h-12 rounded-full"
+            variant="ghost"
+            className="h-12 w-full rounded-full text-primary"
             onClick={() => createGuard.tryOpen(() => setCreating(true))}
           >
             {t("today.addChore")}
@@ -1476,7 +1481,7 @@ export function TodayView({
           className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl bg-card px-4 py-3 text-left ui-press"
         >
           <span className="flex items-center gap-2">
-            <Package className="size-4 text-primary" aria-hidden />
+            <Package className="size-4 text-muted-foreground" aria-hidden />
             <span className="ui-body font-medium">
               {restock.order_now.length > 0
                 ? t("today.toOrderCount", { count: restock.order_now.length })
@@ -1488,12 +1493,12 @@ export function TodayView({
       ) : null}
 
       {wrap ? (
-        <section className="rounded-2xl bg-brand-cream px-4 py-4 text-brand-cream-foreground ring-1 ring-primary/20">
+        <section className="rounded-2xl bg-card px-4 py-4">
           <div className="flex items-start gap-3">
             <BrandMark size="sm" className="mt-0.5 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="ui-body font-medium">{t("today.yearWrappedTitle", { year: wrap.year })}</p>
-              <p className="mt-0.5 ui-caption opacity-80 num">
+              <p className="mt-0.5 ui-caption text-muted-foreground num">
                 {t("today.yearWrappedBody", { closed: wrap.closedDays, best: wrap.bestRun, hours: wrapHoursText })}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -1817,6 +1822,55 @@ function EmptyToday({
       <Button className="mt-5 h-11" onClick={onAdd}>
         {t("today.addChore")}
       </Button>
+    </div>
+  );
+}
+
+/**
+ * One standard segmented control: a tonal track with a single sliding thumb,
+ * the way UISegmentedControl reads. `value` may be null while another view
+ * (a picked calendar day) owns the list, so no segment claims to be active.
+ */
+function SegmentedControl<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { id: T; label: string }[];
+  value: T | null;
+  onChange: (next: T) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="flex min-w-0 flex-1 basis-72 rounded-[12px] bg-secondary p-0.5">
+      {options.map((item) => {
+        const active = value === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(item.id)}
+            className={cn(
+              "relative min-h-11 min-w-0 flex-1 rounded-[10px] px-1 py-1 ui-caption font-medium ui-press",
+              active ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {active ? (
+              // One thumb that moves between segments instead of three that
+              // fade in and out.
+              <motion.span
+                layoutId="today-scope-pill"
+                className="absolute inset-0 rounded-[10px] bg-card shadow-sm"
+                transition={SPRING_SETTLE}
+              />
+            ) : null}
+            <span className="relative break-words">{item.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

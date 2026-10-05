@@ -41,7 +41,7 @@ export function ClosingReward({
 
   return (
     <motion.div
-      className="flex items-center justify-between gap-[12px] rounded-2xl bg-card px-[12px] py-[6px] ring-1 ring-border"
+      className="flex items-center justify-between gap-[12px] rounded-2xl bg-card px-[12px] py-[6px]"
       initial={instant ? false : { opacity: 0, y: 12, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: DUR_BASE, delay: instant ? 0 : CEREMONY_BEAT.reward, ease: EASE_OUT }}
@@ -60,7 +60,7 @@ export function ClosingReward({
           type="button"
           onClick={onShare}
           className={cn(
-            "relative h-[40px] shrink-0 overflow-hidden rounded-full bg-card px-[16px] ui-caption font-medium ring-1 ring-border",
+            "relative h-[40px] shrink-0 overflow-hidden rounded-full bg-secondary px-[16px] ui-caption font-medium",
             // A single sweep as the card lands, never repeated: this is the
             // one button the ceremony is asking for, and a looping shine
             // would turn it into an advert.

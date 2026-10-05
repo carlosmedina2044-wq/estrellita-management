@@ -41,7 +41,7 @@ export function Switch({
         aria-hidden
         className={cn(
           "relative h-8 w-14 rounded-full transition-colors",
-          checked ? "bg-primary" : "bg-secondary ring-1 ring-foreground/15",
+          checked ? "bg-primary" : "bg-muted-foreground/70",
         )}
       >
         <span

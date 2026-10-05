@@ -25,6 +25,7 @@ export function RestockWalkPicker({
   onSkipSizes,
   onAddCustom,
   onEditCustom,
+  onClose,
 }: {
   picks: RestockPick[];
   onChange: (picks: RestockPick[]) => void;
@@ -34,6 +35,8 @@ export function RestockWalkPicker({
   onSkipSizes?: () => void;
   onAddCustom?: (group: RestockWalkGroup) => void;
   onEditCustom?: (pick: CustomRestockPick) => void;
+  /** Shows a Close control at the top so the walk can be left without scrolling to the bottom. */
+  onClose?: () => void;
 }) {
   const { t } = useLocale();
   const [typingId, setTypingId] = useState<string | null>(null);
@@ -75,6 +78,17 @@ export function RestockWalkPicker({
 
   return (
     <div className="grid gap-5">
+      {onClose ? (
+        <div className="sticky top-0 z-10 -mx-1 flex justify-end bg-background/90 px-1 backdrop-blur-sm">
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center px-2 ui-body font-medium text-brand ui-press"
+            onClick={onClose}
+          >
+            {t("common.close")}
+          </button>
+        </div>
+      ) : null}
       {missing.length > 0 ? (
         <div className="rounded-2xl bg-secondary px-3 py-3">
           <p className="ui-body font-medium">{t("restock.sizesToConfirm", { names: missing.join(", ") })}</p>
@@ -95,7 +109,7 @@ export function RestockWalkPicker({
         return (
           <section key={group.id}>
             <h2 className="mb-2 px-1 ui-caption font-medium text-muted-foreground">{tWalkGroupLabel(group.id)}</h2>
-            <div className="grid gap-2">
+            <div className="ui-group">
               {items.map((item) => {
                 const pick = catalogPick(item.id);
                 const tracked = isTracked(item.itemName);
@@ -103,7 +117,7 @@ export function RestockWalkPicker({
                 const typed = Boolean(pick?.variant && !chipLabels.includes(pick.variant));
                 const typing = typingId === item.id || typed;
                 return (
-                  <div key={item.id} className="rounded-2xl bg-card px-3 py-3">
+                  <div key={item.id} className="ui-group-row px-3 py-3">
                     <label className="flex items-start gap-3">
                       <span className="relative mt-0.5 flex size-6 shrink-0 items-center justify-center">
                         <input
@@ -171,7 +185,7 @@ export function RestockWalkPicker({
                 );
               })}
               {custom.map((pick) => (
-                <div key={pick.id} className="rounded-2xl bg-card px-3 py-3">
+                <div key={pick.id} className="ui-group-row px-3 py-3">
                   <label className="flex items-start gap-3">
                     <span className="relative mt-0.5 flex size-6 shrink-0 items-center justify-center">
                       <input
@@ -203,7 +217,7 @@ export function RestockWalkPicker({
               {onAddCustom ? (
                 <button
                   type="button"
-                  className="inline-flex min-h-11 items-center rounded-2xl border border-dashed border-border px-3 py-3 text-left ui-body font-medium text-brand"
+                  className="ui-group-row flex min-h-11 w-full items-center bg-secondary/60 px-3 py-3 text-left ui-body font-medium text-brand ui-press"
                   onClick={() => onAddCustom(group.id)}
                 >
                   {t("restock.addSomethingBuyFor", { group: tWalkGroupLabel(group.id) })}

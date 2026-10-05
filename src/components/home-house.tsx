@@ -7,12 +7,14 @@ import { useClock } from "@/hooks/use-clock";
 import { nodeStatus } from "@/lib/node-status";
 import { dayOpacityForPhase, portraitKit, resolveHomeSpec } from "@/lib/scene/portrait";
 import { seasonFor } from "@/lib/scene/season";
-import { skyPhase, sunTimes } from "@/lib/scene/sun";
+import { sceneCssVars } from "@/lib/scene/css";
+import { skyGradient } from "@/lib/scene/sky";
+import { skyPhase, sunTimes, type SkyPhase } from "@/lib/scene/sun";
 import type { Household } from "@/lib/types";
 
 /**
  * The house on the Home tab. Today's scene is the day's picture; this is the
- * home's: a small, still version of the same house whose windows are lit for
+ * home's: the same house, still, whose windows are lit for
  * each room that has nothing waiting, so a glance says how the house is doing
  * before any row is read. Decorative, so it is hidden from VoiceOver; the rows
  * below carry the same facts in words.
@@ -28,7 +30,7 @@ export function HomeHouse({ household, now }: { household: Household; now: Date 
     () => (lat != null && lng != null ? sunTimes(lat, lng, clock) : null),
     [lat, lng, clock],
   );
-  const { phase, t: phaseT } = useMemo(() => {
+  const { phase, t: phaseT } = useMemo((): { phase: SkyPhase; t: number } => {
     if (household.momentum.nightFollowsSky === false) {
       return { phase: resolvedTheme === "dark" ? "night" : "day", t: 0.5 };
     }
@@ -48,22 +50,21 @@ export function HomeHouse({ household, now }: { household: Household; now: Date 
   );
   const lit = Math.min(caughtUp, kit.windows.length);
 
+  // Same sky Today paints, minus the weather: the stops come from the same
+  // phase rule, so the two tabs can never show two different hours.
+  const skyVars = sceneCssVars(skyGradient(phase, phaseT, "clear", 0.2));
+
   return (
-    <div
+    <section
       aria-hidden
-      className="relative flex items-end justify-center overflow-hidden rounded-[var(--r-container)] border border-border"
+      data-home-scene
+      className="relative -mx-4 -mt-[max(0.75rem,env(safe-area-inset-top))] flex items-end justify-center overflow-hidden"
       style={{
-        height: 148,
-        background: "linear-gradient(#1b2740, #2f3b57 70%, #3a4660)",
+        ...skyVars,
+        height: "calc(env(safe-area-inset-top) + min(clamp(220px, 13rem, 320px), 38dvh))",
+        background: "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}
     >
-      <div
-        className="absolute inset-0 transition-opacity duration-700"
-        style={{
-          opacity: dayOpacity,
-          background: "linear-gradient(#a9c8ee, #d6e5f5 70%, #e9f0f7)",
-        }}
-      />
       <PortraitStack
         kitType={spec.kitType}
         palette={spec.palette}
@@ -71,9 +72,11 @@ export function HomeHouse({ household, now }: { household: Household; now: Date 
         dayOpacity={dayOpacity}
         litCount={lit}
         showSnow={false}
-        widthPx={200}
-        className="relative -mb-3"
+        widthPx={250}
+        className="relative mb-9"
       />
-    </div>
+      {/* The sheet below rounds over the scene, so no frame is needed: the
+          picture simply ends where the page begins. */}
+    </section>
   );
 }

@@ -47,8 +47,8 @@ export function AttentionTiles({
           count: overdue,
           label: labels.overdue,
           onClick: onOverdue,
-          countClass: "text-destructive",
-          className: "ring-destructive/40",
+          countClass: "text-overdue",
+          className: "bg-overdue-soft",
         }
       : null,
     showDueToday && dueToday > 0
@@ -67,7 +67,7 @@ export function AttentionTiles({
           label: labels.orderNow,
           costLine: orderNowCost,
           onClick: onOrder,
-          countClass: "text-warning",
+          countClass: "text-soon",
           icon: true,
         }
       : null,
@@ -106,7 +106,7 @@ export function AttentionTiles({
           onClick={tile.onClick}
           aria-label={`${tile.count} ${tile.label}`}
           className={cn(
-            "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 ring-1 ring-border ui-press",
+            "flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-card px-3.5 ui-press",
             "className" in tile ? tile.className : null,
           )}
         >

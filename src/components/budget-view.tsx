@@ -22,7 +22,7 @@ import {
   fundHealth,
   spendingSummary,
 } from "@/lib/budget";
-import { BIG_TICKET_THRESHOLD, buildForecast, formatCostRange, monthsUntil, type ForecastItem } from "@/lib/forecast";
+import { BIG_TICKET_THRESHOLD, buildForecast, formatCostRange, nextThreeMonthsTotal, monthsUntil, type ForecastItem } from "@/lib/forecast";
 import { shareText } from "@/lib/native/share";
 import { hasSeenTip, markTipSeen, TIP_BUDGET_PRICES } from "@/lib/teaching";
 import type { AppNavigateTarget, Household } from "@/lib/types";
@@ -71,6 +71,10 @@ export function BudgetView({
   const spending = useMemo(
     () => spendingSummary(household, { months: 6, plannedMonthly: forecast12.suggestedMonthlySetAside }),
     [household, forecast12],
+  );
+  const next3 = useMemo(
+    () => nextThreeMonthsTotal(forecast12),
+    [forecast12],
   );
   const empty = forecast.totals.total === 0;
   const updated = household.maintenanceFund?.updatedAt
@@ -140,9 +144,10 @@ export function BudgetView({
         </>
       ) : (
         <>
-          <FundHero health={health} onEditFund={() => setFundOpen(true)} />
+          <FundHero health={health} next3={next3} onEditFund={() => setFundOpen(true)} />
           <UpcomingExpenses
             items={forecast.bigTicket}
+            horizon={horizon}
             assets={household.assets}
             rooms={household.rooms}
             onReplace={(item) => setLogItem(item)}
@@ -177,7 +182,7 @@ export function BudgetView({
             {forecast.missingData.map((item) => {
               const asset = household.assets.find((entry) => entry.id === item.assetId);
               return (
-                <li key={item.assetId} className="rounded-2xl bg-card px-4 py-4">
+                <li key={item.assetId} className="ui-group px-4 py-4">
                   <p className="font-medium">{item.name}</p>
                   <div className="mt-3 grid gap-3">
                     {item.missing.includes("installDate") ? (

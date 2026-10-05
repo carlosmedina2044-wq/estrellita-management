@@ -17,12 +17,14 @@ function countdown(month: string): string {
 
 export function UpcomingExpenses({
   items,
+  horizon,
   assets,
   rooms,
   onReplace,
   onDefer,
 }: {
   items: ForecastItem[];
+  horizon: number;
   assets: HomeAsset[];
   rooms: HomeRoom[];
   onReplace: (item: ForecastItem) => void;
@@ -34,7 +36,7 @@ export function UpcomingExpenses({
       <h2 className="ui-heading ui-title font-semibold">{t("budget.upcomingTitle")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{t("budget.upcomingBody")}</p>
       {items.length === 0 ? (
-        <p className="mt-2 text-sm text-muted-foreground">{t("budget.noLarge")}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{t("budget.noLarge", { count: horizon })}</p>
       ) : (
         <ul className="mt-3 grid gap-3">
           {items.map((item) => {
@@ -42,7 +44,7 @@ export function UpcomingExpenses({
             const room = rooms.find((entry) => entry.id === asset?.roomId);
             const name = item.label.replace(/ replacement$/i, "");
             return (
-              <li key={`${item.assetId}-${item.month}`} className="rounded-2xl bg-card px-4 py-4">
+              <li key={`${item.assetId}-${item.month}`} className="ui-group px-4 py-4">
                 <p className="font-medium">{name}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {countdown(item.month)} · {formatCostRange(item.cost)}
@@ -55,21 +57,21 @@ export function UpcomingExpenses({
                   </p>
                 ) : null}
                 {item.assetId ? (
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <Button className="h-11" onClick={() => onReplace(item)}>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button className="h-auto min-h-11 flex-1 whitespace-normal py-2" onClick={() => onReplace(item)}>
                       {t("budget.iReplaced")}
                     </Button>
-                    <Button variant="secondary" className="h-11" onClick={() => onDefer(item)}>
+                    <Button variant="secondary" className="h-auto min-h-11 flex-1 whitespace-normal py-2" onClick={() => onDefer(item)}>
                       {t("budget.illWait")}
                     </Button>
                   </div>
                 ) : null}
-                <p className="mt-2 ui-caption text-muted-foreground">{t("budget.loggingHint")}</p>
               </li>
             );
           })}
         </ul>
       )}
+      {items.length > 0 ? <p className="mt-2 ui-caption text-muted-foreground">{t("budget.loggingHint")}</p> : null}
     </section>
   );
 }
@@ -88,7 +90,7 @@ export function InsightsList({
         {insights.map((insight) => (
           <li
             key={insight.id}
-            className="rounded-2xl bg-card px-4 py-4"
+            className="ui-group px-4 py-4"
             data-tone={insight.tone}
           >
             <p className="font-medium">{insight.title}</p>
@@ -129,12 +131,12 @@ export function SpendingSection({
         {planSuffix}
       </p>
       {!logged ? (
-        <p className="mt-3 rounded-2xl bg-card px-4 py-4 text-sm text-muted-foreground">
+        <p className="mt-3 ui-group px-4 py-4 text-sm text-muted-foreground">
           {t("budget.logHistoryHint")}
         </p>
       ) : (
         <div className="mt-3 grid gap-3">
-          <ul className="rounded-2xl bg-card px-4 py-4">
+          <ul className="ui-group px-4 py-4">
             {byMonth.map((month) => {
               const [year, mon] = month.month.split("-").map(Number);
               const label = new Date(year, (mon ?? 1) - 1, 1).toLocaleDateString(dateLocale, {
@@ -152,7 +154,7 @@ export function SpendingSection({
             })}
           </ul>
           {categories.length > 0 ? (
-            <ul className="rounded-2xl bg-card px-4 py-4">
+            <ul className="ui-group px-4 py-4">
               {categories.map((item) => (
                 <li key={item.category} className="py-2">
                   <div className="flex items-center justify-between text-sm">

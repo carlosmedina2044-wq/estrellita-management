@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
-import { ChevronDown, Package } from "lucide-react";
+import { ChevronDown, Package, Plus } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { ItemName } from "@/components/item-name";
@@ -11,12 +11,12 @@ import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { SupplyCheckinSheet } from "@/components/supply-checkin-sheet";
-import { SupplyGauge } from "@/components/supply-gauge";
+import { Gauge as SupplyGauge } from "@/components/gauge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TeachingTip } from "@/components/teaching-tip";
 import { toast } from "sonner";
-import { formatDueDate } from "@/lib/dates";
+import { formatDueDate, toISODate } from "@/lib/dates";
 import { roomName } from "@/lib/home-model";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { DUR_NONE, DUR_QUICK, EASE_OUT, scrollBehavior } from "@/lib/motion";
@@ -31,7 +31,6 @@ import {
 } from "@/lib/onboarding/restock-walk";
 import {
   checkinDue,
-  digestCandidates,
   groupRestock,
   matchTrackedSupply,
   orderNowCostCaption,
@@ -95,10 +94,6 @@ export function RestockView({
     () => groupRestock(household.supplyAutomations, household),
     [household],
   );
-  const weekItems = useMemo(
-    () => digestCandidates(household.supplyAutomations, household),
-    [household],
-  );
   const needsCheckin = useMemo(
     () => household.supplyAutomations.filter((item) => checkinDue(item, household)).slice(0, 3),
     [household],
@@ -110,7 +105,8 @@ export function RestockView({
       .sort((a, b) => a.date.localeCompare(b.date));
     return candidates[0] ?? null;
   }, [groups, household]);
-  const weekCost = useMemo(() => orderNowCostCaption(weekItems), [weekItems]);
+  const toOrder = useMemo(() => [...groups.order_now, ...groups.coming_up], [groups]);
+  const weekCost = useMemo(() => orderNowCostCaption(toOrder), [toOrder]);
   const editingAutomation = editingDuty
     ? household.supplyAutomations.find((item) => item.dutyId === editingDuty.id || item.linkedDutyIds.includes(editingDuty.id)) ?? null
     : null;
@@ -120,6 +116,14 @@ export function RestockView({
     setFocusSize(Boolean(opts?.size));
     if (duty) setEditingDuty(duty);
     else setCreating(true);
+  }
+
+  function openQuickAdd() {
+    createGuard.tryOpen(() => {
+      setEditingCustom(null);
+      setAddGroup("whole-home");
+      setQuickAdd(true);
+    });
   }
 
   function startWalk() {
@@ -141,75 +145,27 @@ export function RestockView({
       <PageHeader
         title={t("restock.title")}
         action={
-          household.supplyAutomations.length > 0 && onWalkHouse ? (
+          <div className="flex items-center gap-1">
+            {household.supplyAutomations.length > 0 && onWalkHouse ? (
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center rounded-full px-3 py-1 text-center ui-body font-medium text-primary ui-press"
+                onClick={startWalk}
+              >
+                {t("restock.walkHouseShort")}
+              </button>
+            ) : null}
             <button
               type="button"
-              className="inline-flex min-h-11 items-center rounded-full border border-border px-4 py-1 text-center ui-body font-medium text-primary ui-press"
-              onClick={startWalk}
+              aria-label={t("restock.addItem")}
+              className="inline-flex size-11 items-center justify-center rounded-full bg-secondary text-primary ui-press"
+              onClick={openQuickAdd}
             >
-              {t("restock.walkHouseShort")}
+              <Plus className="size-5" aria-hidden />
             </button>
-          ) : null
+          </div>
         }
       />
-
-      <div className="rounded-2xl bg-card px-4 py-4">
-        <p className="ui-card font-medium">{t("restock.needSomething")}</p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Input
-            value={haulDraft}
-            onChange={(event) => setHaulDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !haulMatch) submitHaulDraft();
-            }}
-            placeholder={t("restock.needSomethingPlaceholder")}
-            className="h-11 min-w-[9rem] flex-1"
-            maxLength={60}
-          />
-          {!haulMatch ? (
-            <Button type="button" variant="secondary" className="h-11" onClick={submitHaulDraft} disabled={!haulDraft.trim()}>
-              {t("common.add")}
-            </Button>
-          ) : null}
-        </div>
-        {haulMatch ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex min-h-11 items-center rounded-full bg-primary px-4 ui-caption font-medium text-primary-foreground"
-              onClick={flagMatchLow}
-            >
-              {t("restock.flagLowChip", { name: haulMatch.itemName })}
-            </button>
-            <button
-              type="button"
-              className="inline-flex min-h-11 items-center ui-caption font-medium text-primary"
-              onClick={submitHaulDraft}
-            >
-              {t("restock.addAsNew")}
-            </button>
-          </div>
-        ) : null}
-        {haulItems.length > 0 ? (
-          <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
-            <p className="ui-caption font-medium text-muted-foreground">{t("restock.pickUp")}</p>
-            {haulItems.map((haulItem) => (
-              <button
-                key={haulItem.id}
-                type="button"
-                className="flex min-h-11 items-center gap-2 text-left active:bg-foreground/6"
-                onClick={() => restock.onRemoveHaulItem?.(haulItem.id)}
-              >
-                <span
-                  aria-hidden
-                  className="flex size-5 shrink-0 items-center justify-center rounded-full border border-muted-foreground/40"
-                />
-                <span className="ui-body">{haulItem.name}</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
 
       {household.supplyAutomations.length === 0 ? (
         <div className="rounded-2xl bg-card px-5 py-10 text-center">
@@ -233,45 +189,51 @@ export function RestockView({
       ) : null}
 
       {household.supplyAutomations.length > 0 ? (
-        weekItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {groups.coming_up.length > 0 && nextUp
-              ? t("restock.toOrderBy", { count: groups.coming_up.length, date: formatDueDate(nextUp.date) })
-              : (
-                <>
-                  {t("restock.nothingThisWeek")}
-                  {nextUp ? ` ${t("restock.nextUp", { name: nextUp.item.itemName, date: formatDueDate(nextUp.date) })}` : ""}
-                </>
-              )}
+        toOrder.length === 0 ? (
+          <p className="ui-body text-muted-foreground">
+            {t("restock.nothingThisWeek")}
+            {nextUp ? ` ${t("restock.nextUp", { name: nextUp.item.itemName, date: formatDueDate(nextUp.date) })}` : ""}
           </p>
         ) : (
-          <div className="rounded-2xl bg-card px-4 py-4">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="ui-card font-medium">{t("restock.thisWeek")}</p>
+          <section id="restock-order_now">
+            <header className="mb-2 px-1">
+              <h2 className="ui-heading ui-card font-semibold">{t("restock.leftToOrder", { count: toOrder.length })}</h2>
               {weekCost ? <p className="ui-caption text-muted-foreground">{weekCost}</p> : null}
+            </header>
+            <div id="restock-coming_up" className="ui-group">
+              {toOrder.map((item) => (
+                <RestockRow
+                  key={item.id}
+                  household={household}
+                  item={item}
+                  onOpen={() => openItem(item)}
+                  onAddSize={() => openItem(item, { size: true })}
+                  onOpenCheckin={() => setCheckinItem(item)}
+                  autoReceive={focus?.action === "receive" && focus.itemId === item.id}
+                  primary={item.id === toOrder[0]?.id}
+                  {...restock}
+                />
+              ))}
             </div>
-            <div className="mt-2 flex flex-col gap-2">
-              {weekItems.map((item) => {
-                const placement = restockPlacement(item, household);
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="w-full text-left active:bg-foreground/6"
-                    onClick={() => openItem(item)}
-                  >
-                    <span className="block ui-body font-medium">{item.itemName}</span>
-                    {placement.orderByDate ? (
-                      <span className="mt-0.5 block ui-caption text-muted-foreground">
-                        {t("restock.orderByLower", { date: formatDueDate(placement.orderByDate) })}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          </section>
         )
+      ) : null}
+
+      {groups.ordered.length > 0 ? (
+        <Section id="restock-ordered" title={t("restock.onTheWay")}>
+          {groups.ordered.map((item) => (
+            <RestockRow
+              key={item.id}
+              household={household}
+              item={item}
+              onOpen={() => openItem(item)}
+              onAddSize={() => openItem(item, { size: true })}
+              onOpenCheckin={() => setCheckinItem(item)}
+              autoReceive={focus?.action === "receive" && focus.itemId === item.id}
+              {...restock}
+            />
+          ))}
+        </Section>
       ) : null}
 
       {needsCheckin.length > 0 ? (
@@ -307,52 +269,6 @@ export function RestockView({
           </div>
         </div>
       ) : null}
-
-      {groups.ordered.length > 0 ? (
-        <Section id="restock-ordered" title={t("restock.onTheWay")} count={groups.ordered.length}>
-          {groups.ordered.map((item) => (
-            <RestockRow
-              key={item.id}
-              household={household}
-              item={item}
-              onOpen={() => openItem(item)}
-              onAddSize={() => openItem(item, { size: true })}
-              onOpenCheckin={() => setCheckinItem(item)}
-              autoReceive={focus?.action === "receive" && focus.itemId === item.id}
-              {...restock}
-            />
-          ))}
-        </Section>
-      ) : null}
-
-      <Section id="restock-order_now" title={t("restock.orderNow")} count={groups.order_now.length}>
-        {groups.order_now.map((item) => (
-          <RestockRow
-            key={item.id}
-            household={household}
-            item={item}
-            onOpen={() => openItem(item)}
-            onAddSize={() => openItem(item, { size: true })}
-            onOpenCheckin={() => setCheckinItem(item)}
-            autoReceive={focus?.action === "receive" && focus.itemId === item.id}
-            {...restock}
-          />
-        ))}
-      </Section>
-
-      <Section id="restock-coming_up" title={t("restock.comingUp")} count={groups.coming_up.length}>
-        {groups.coming_up.map((item) => (
-          <RestockRow
-            key={item.id}
-            household={household}
-            item={item}
-            onOpen={() => openItem(item)}
-            onAddSize={() => openItem(item, { size: true })}
-            onOpenCheckin={() => setCheckinItem(item)}
-            {...restock}
-          />
-        ))}
-      </Section>
 
       {groups.stocked.length > 0 ? (
       <section id="restock-stocked">
@@ -398,13 +314,64 @@ export function RestockView({
       </section>
       ) : null}
 
-      <Button variant="outline" className="h-12 rounded-full" onClick={() => createGuard.tryOpen(() => {
-        setEditingCustom(null);
-        setAddGroup("whole-home");
-        setQuickAdd(true);
-      })}>
-        {t("restock.quickAdd")}
-      </Button>
+      <div className="ui-group px-4 py-4">
+        <p className="ui-card font-medium">{t("restock.needSomething")}</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Input
+            value={haulDraft}
+            onChange={(event) => setHaulDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !haulMatch) submitHaulDraft();
+            }}
+            placeholder={t("restock.needSomethingPlaceholder")}
+            className="h-11 min-w-[9rem] flex-1"
+            maxLength={60}
+          />
+          {!haulMatch ? (
+            <Button type="button" variant="secondary" className="h-11" onClick={submitHaulDraft} disabled={!haulDraft.trim()}>
+              {t("common.add")}
+            </Button>
+          ) : null}
+        </div>
+        {haulMatch ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center rounded-full bg-primary px-4 ui-caption font-medium text-primary-foreground"
+              onClick={flagMatchLow}
+            >
+              {t("restock.flagLowChip", { name: haulMatch.itemName })}
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center ui-caption font-medium text-primary"
+              onClick={submitHaulDraft}
+            >
+              {t("restock.addAsNew")}
+            </button>
+          </div>
+        ) : null}
+        {haulItems.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-1 pt-1">
+            <p className="ui-caption font-medium text-muted-foreground">{t("restock.pickUp")}</p>
+            {haulItems.map((haulItem) => (
+              <button
+                key={haulItem.id}
+                type="button"
+                className="flex min-h-11 items-center gap-2 text-left active:bg-foreground/6"
+                onClick={() => restock.onRemoveHaulItem?.(haulItem.id)}
+              >
+                <span
+                  aria-hidden
+                  className="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/40"
+                />
+                <span className="ui-body">{haulItem.name}</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+
       </div>
 
       {walking ? (
@@ -420,6 +387,7 @@ export function RestockView({
           ) : null}
           <div className="mt-3">
             <RestockWalkPicker
+              onClose={() => setWalking(false)}
               picks={walkPicks}
               onChange={setWalkPicks}
               context={household}
@@ -523,20 +491,16 @@ export function RestockView({
 function Section({
   id,
   title,
-  count,
   children,
 }: {
   id?: string;
   title: string;
-  count: number;
   children: React.ReactNode;
 }) {
-  if (count === 0) return null;
   return (
     <section id={id}>
-      <header className="mb-2 flex items-baseline justify-between gap-3 px-1">
+      <header className="mb-2 px-1">
         <h2 className="ui-heading ui-card font-semibold">{title}</h2>
-        <span className="ui-caption num text-muted-foreground">{count}</span>
       </header>
       <div className="ui-group">{children}</div>
     </section>
@@ -550,6 +514,7 @@ function RestockRow({
   onAddSize,
   onOpenCheckin,
   autoReceive,
+  primary,
   ...restock
 }: {
   household: Household;
@@ -558,6 +523,8 @@ function RestockRow({
   onAddSize?: () => void;
   onOpenCheckin?: () => void;
   autoReceive?: boolean;
+  /** The one most urgent order on the screen keeps the filled button. */
+  primary?: boolean;
 } & RestockFlowHandlers) {
   const { t } = useLocale();
   const where = usedWhere(item, household) || roomName(household, item.room);
@@ -565,21 +532,26 @@ function RestockRow({
   const catalog = catalogItemForSupply(item);
   const needsSize = Boolean(catalog?.variants?.length && !item.sku.trim());
   const orderBy = placement.orderByDate ? formatDueDate(placement.orderByDate) : null;
-  const meta = [where, orderBy ? t("restock.orderByLower", { date: orderBy }) : null]
-    .filter(Boolean)
-    .join(" · ");
+  const isLow = placement.bucket === "order_now" || placement.bucket === "coming_up";
+  // A supply can be nearly full and still due for an order (delivery takes
+  // days). The caption names the order date; the bar never reads as "Full" on
+  // a row that is asking to be ordered.
+  const status = isLow
+    ? orderBy && placement.orderByDate && placement.orderByDate > toISODate(new Date())
+      ? t("restock.lowOrderBy", { date: orderBy })
+      : t("restock.lowOrderNow")
+    : null;
+  const meta = isLow ? where : [where, orderBy ? t("restock.orderByLower", { date: orderBy }) : null].filter(Boolean).join(" · ");
 
   const arrivingAction = placement.bucket === "ordered" || placement.nudgeArrive;
-
-  const isComingUp = placement.bucket === "coming_up";
 
   return (
     <div id={`restock-item-${item.id}`} className="ui-group-row flex w-full min-w-0 flex-col gap-2 px-4 py-3">
       {/* One row: the item on the left, its action on the right. The action
           drops below only when the order is already placed and the full-width
           "arrived" control is what is wanted. */}
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex min-w-0 flex-1 basis-44 flex-col gap-1">
           <button type="button" className="w-full min-w-0 text-left active:bg-foreground/6" onClick={onOpen}>
             <span className="block text-pretty ui-body font-medium leading-snug">
               <ItemName name={item.itemName} sizeSpec={item.sizeSpec} />
@@ -597,7 +569,17 @@ function RestockRow({
               {t("restock.addSize")}
             </button>
           ) : null}
-          {placement.estimatedLevelFraction != null ? (
+          {isLow ? (
+            <div className="mt-1">
+              <SupplyGauge
+                fraction={Math.min(placement.estimatedLevelFraction ?? 0.25, placement.bucket === "order_now" ? 0.25 : 0.5)}
+                runwayDays={placement.runwayDays}
+                onTap={onOpenCheckin}
+                showCaption={false}
+              />
+              <p className="mt-1 text-pretty ui-caption font-medium text-foreground">{status}</p>
+            </div>
+          ) : placement.estimatedLevelFraction != null ? (
             <SupplyGauge
               fraction={placement.estimatedLevelFraction}
               runwayDays={placement.runwayDays}
@@ -612,10 +594,10 @@ function RestockRow({
           household={household}
           onAddSize={onAddSize ?? onOpen}
           autoReceive={autoReceive}
-          subdued={placement.bucket !== "order_now"}
-          early={isComingUp}
+          subdued={!primary}
+          early={isLow}
           compact={!arrivingAction}
-          className="h-11 w-auto max-w-[45%] shrink-0 rounded-full px-4"
+          className="ml-auto h-auto min-h-11 max-w-full shrink-0 whitespace-normal rounded-full px-4 py-2"
           {...restockButtonProps(item, restock)}
         />
         )}
@@ -626,8 +608,8 @@ function RestockRow({
           household={household}
           onAddSize={onAddSize ?? onOpen}
           autoReceive={autoReceive}
-          subdued={placement.bucket !== "order_now"}
-          early={isComingUp}
+          subdued={false}
+          early={isLow}
           compact={!arrivingAction}
           className="h-11 w-full max-w-full whitespace-normal"
           {...restockButtonProps(item, restock)}

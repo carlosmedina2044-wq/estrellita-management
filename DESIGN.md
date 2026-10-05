@@ -1,12 +1,12 @@
 ---
 name: Cuidala
-description: A calm, native-feeling iPhone home-care app. Neutral surfaces, white cards, one terracotta tint.
+description: A calm, native-feeling iPhone home-care app. Warm paper, borderless tonal cards, one slate-blue tint taken from the house roof.
 colors:
-  canvas: "#f5f3ee"
-  card: "#ffffff"
-  ink: "#1c1b19"
-  ink-muted: "#66625b"
-  tint: "#a8481f"
+  canvas: "#f4f1ec"
+  card: "#fffdf9"
+  ink: "#1b1f24"
+  ink-muted: "#5d6670"
+  tint: "#2f5d8a"
   tint-on: "#ffffff"
   done: "#277046"
   done-soft: "#e3f1e8"
@@ -14,13 +14,13 @@ colors:
   soon-soft: "#f8eccd"
   overdue: "#b5352a"
   overdue-soft: "#fbe6e2"
-  secondary: "#ebe8e1"
-  dark-canvas: "#121110"
-  dark-card: "#1c1a18"
-  dark-ink: "#f4f1ea"
-  dark-ink-muted: "#a8a39a"
-  dark-tint: "#ee9a6c"
-  dark-tint-on: "#1d1209"
+  secondary: "#e8e6e1"
+  dark-canvas: "#101418"
+  dark-card: "#1a2028"
+  dark-ink: "#eef1f4"
+  dark-ink-muted: "#9aa4af"
+  dark-tint: "#8fb6e0"
+  dark-tint-on: "#0d1722"
   dark-done: "#72c58f"
   dark-soon: "#e6b450"
   dark-overdue: "#f27d68"
@@ -93,7 +93,7 @@ components:
 ## Overview
 
 A home-care app should lower worry, so the interface stays quiet: a neutral warm
-canvas, white grouped lists, and a single terracotta tint for anything you can
+canvas, tonal grouped lists, and a single slate-blue tint for anything you can
 act on. It is an iPhone app first. Where the platform has an answer (system
 picker, tab bar, large title, Dynamic Type, Dark Mode, haptics), use it rather
 than inventing one. The illustrated house is the one place the app is allowed to
@@ -141,8 +141,9 @@ offset by the safe-area inset rather than pinning to `top: 0`.
 
 ## Elevation & Depth
 
-Flat. Depth comes from a white card on the canvas plus a 10% hairline border,
-not shadows. Blur is used only for the tab bar and the collapsed title bar, and
+Flat. Depth comes from a tonal card sitting on the canvas, with no stroke and
+no shadow. Hairlines only separate rows inside a group, and outline fields
+only where a field is the thing being edited. Blur is used only for the tab bar and the collapsed title bar, and
 both fall back to solid under Reduce Transparency.
 
 ## Shapes
@@ -167,7 +168,7 @@ pills. One stroke weight for icons (1.75).
 - Do lead each screen with what is left to do, then the rest.
 - Do wrap text for large type; check Dark and an accessibility text size.
 - Do use `min-h-11` on anything tappable.
-- Don't add a second accent colour or tint a card background.
+- Don't add a second accent colour or tint a card background. The old terracotta lives only in the illustration (door, fence); the UI tint is slate blue.
 - Don't nest cards, or add a card around a single line of text.
 - Don't use model words in copy (see `AGENTS.md`, plain-language rule).
 - Don't fix sizes in `px` for text, except where it sits over artwork or in a

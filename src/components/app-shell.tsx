@@ -926,13 +926,16 @@ export function AppShell() {
         <div
           hidden={!homeActive}
           inert={!homeActive}
-          className="app-keep-alive app-keep-alive-inset"
+          className="app-keep-alive app-pane-bleed"
           data-entering={homeFirstReveal ? "true" : undefined}
           ref={(node) => {
             tabPaneRefs.current.home = node;
           }}
         >
-          <div className="flex flex-col gap-4">
+          <HomeHouse household={household} now={now} />
+          <div
+            className="relative z-10 -mx-4 -mt-7 flex flex-col gap-4 rounded-t-[28px] bg-background px-4 pt-5"
+          >
             <PageHeader
               title={household.householdName}
               subtitle={<HomeStatusLine summary={summary} />}
@@ -947,7 +950,6 @@ export function AppShell() {
                 </button>
               }
             />
-            <HomeHouse household={household} now={now} />
             <ForecastCard
               household={household}
               onNavigate={navigate}
@@ -1107,19 +1109,19 @@ export function AppShell() {
         >
           <NavButton
             label={t("tabs.today")}
-            icon={<Sun className={cn("size-6", rootTab === "today" && "fill-current")} />}
+            icon={<Sun className={cn("size-6", rootTab === "today" && "[stroke-width:2.25]")} />}
             active={rootTab === "today"}
             onClick={() => selectRootTab("today")}
           />
           <NavButton
             label={t("tabs.home")}
-            icon={<Home className={cn("size-6", rootTab === "home" && "fill-current")} />}
+            icon={<Home className={cn("size-6", rootTab === "home" && "[stroke-width:2.25]")} />}
             active={rootTab === "home"}
             onClick={() => selectRootTab("home")}
           />
           <NavButton
             label={t("tabs.restock")}
-            icon={<Package className={cn("size-6", rootTab === "restock" && "fill-current")} />}
+            icon={<Package className={cn("size-6", rootTab === "restock" && "[stroke-width:2.25]")} />}
             active={rootTab === "restock"}
             badge={restockGroups?.order_now.length ?? 0}
             onClick={() => selectRootTab("restock")}
@@ -1243,7 +1245,7 @@ function LoadFailed({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-white" onClick={onErase}>
+            <AlertDialogAction className="bg-destructive text-primary-foreground" onClick={onErase}>
               {t("settings.eraseConfirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1286,7 +1288,7 @@ function NavButton({
       <span className="relative">
         {icon}
         {badge ? (
-          <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-signal px-1 ui-caption font-semibold num text-white">
+          <span className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 ui-caption font-semibold num text-primary-foreground">
             {badge}
           </span>
         ) : null}

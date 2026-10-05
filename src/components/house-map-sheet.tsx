@@ -21,10 +21,11 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { suggestionsForAsset, suggestionsForRoom } from "@/lib/catalog";
 import {
+  installedAtFor,
   isOverdueFor,
   matchesAudience,
+  nextDueDate,
   sortDuties,
-  todaysOpenDuties,
   wasCompletedToday,
 } from "@/lib/duties";
 import { addDays, formatWeekdayDate, toISODate } from "@/lib/dates";
@@ -32,9 +33,10 @@ import { ASSET_TYPES, roomById } from "@/lib/home-model";
 import { assetLabel, catalogLabel } from "@/lib/asset-catalog";
 import { lastDoneInRoom } from "@/lib/duties";
 import type { IllustrationName } from "@/lib/illustrations";
-import { nodeStatus } from "@/lib/node-status";
+import { nodeStatus, roomLeftDuties } from "@/lib/node-status";
 import { warrantyBadgeLabel } from "@/lib/warranty";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
+import { hapticComplete } from "@/lib/native/haptics";
 import { ItemName } from "@/components/item-name";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { restockPlacement, type RestockFlowHandlers } from "@/lib/restock";
@@ -123,12 +125,18 @@ export function HouseMapSheet({
     window.setTimeout(() => openDutyEditor(() => setEditing(duty)), 350);
   }
 
+  // One tap on the row's circle finishes the chore; the row itself still
+  // opens the detail sheet.
+  function finishDuty(duty: Duty) {
+    void hapticComplete();
+    onToggle(duty, false);
+  }
+
   function snoozeDuty(duty: Duty) {
     onSaveDuty({ ...duty, snoozedUntil: toISODate(addDays(now, 7)) });
     toast(t("chore.snoozedToast"));
   }
 
-  const openDuties = todaysOpenDuties(household, now, filter);
   const done = household.duties.filter((duty) =>
     wasCompletedToday(duty, household.completions, now),
   );
@@ -137,14 +145,30 @@ export function HouseMapSheet({
     household.duties.filter((duty) => duty.room === selected && !duty.archived),
     household,
   );
-  const roomOpen = openDuties.filter((duty) => duty.room === selected);
+  // Most urgent first: late chores, then by the day each is next due. The
+  // room's own order (big jobs first) only breaks ties.
+  const urgency = (duty: Duty) => {
+    const late = isOverdueFor(duty, household, now);
+    const next = nextDueDate(duty, household.completions, now, installedAtFor(household, duty.id));
+    return { late, time: next ? next.getTime() : Number.MAX_SAFE_INTEGER };
+  };
+  const byUrgency = (a: Duty, b: Duty) => {
+    const x = urgency(a);
+    const y = urgency(b);
+    if (x.late !== y.late) return x.late ? -1 : 1;
+    return x.time - y.time;
+  };
+  // The same chores the Home row counts as "left" (late, due today or this week).
+  const roomOpen = (selected ? roomLeftDuties(household, selected, now) : []).sort(byUrgency);
   const roomDone = done.filter(
     (duty) => duty.room === selected && matchesAudience(duty, filter === "all" ? "all" : filter),
   );
-  const roomUpcoming = roomAll.filter(
-    (duty) =>
-      !roomOpen.some((item) => item.id === duty.id) && !roomDone.some((item) => item.id === duty.id),
-  );
+  const roomUpcoming = roomAll
+    .filter(
+      (duty) =>
+        !roomOpen.some((item) => item.id === duty.id) && !roomDone.some((item) => item.id === duty.id),
+    )
+    .sort(byUrgency);
   const hints = selectedRoom ? suggestionsForRoom(selectedRoom.type) : [];
   const roomAssets = selected
     ? household.assets.filter((asset) => asset.roomId === selected)
@@ -200,6 +224,7 @@ export function HouseMapSheet({
                       const caption = roomCaption(
                         nodeStatus(household, selectedRoom.id, "room", now),
                         false,
+                        roomOpen.length,
                         lastDoneInRoom(household, selectedRoom.id),
                         now,
                       );
@@ -220,11 +245,17 @@ export function HouseMapSheet({
                           household={household}
                           now={now}
                           overdue={isOverdueFor(duty, household, now)}
-                          onToggle={() => onToggle(duty, false)}
+                          inRoom
+                          onToggle={() => finishDuty(duty)}
                           onOpen={() => openDutyDetail(duty)}
                         />
                       </div>
                     ))}
+                    {roomUpcoming.length > 0 ? (
+                      <p className="ui-group-row px-4 pt-3 pb-1 ui-caption font-medium text-muted-foreground">
+                        {t("map.later")}
+                      </p>
+                    ) : null}
                     {roomUpcoming.map((duty) => (
                       <div key={duty.id} className="ui-group-row">
                         <DutyRow
@@ -232,7 +263,8 @@ export function HouseMapSheet({
                           household={household}
                           now={now}
                           upcoming
-                          onToggle={() => onToggle(duty, false)}
+                          inRoom
+                          onToggle={() => finishDuty(duty)}
                           onOpen={() => openDutyDetail(duty)}
                         />
                       </div>
@@ -244,6 +276,7 @@ export function HouseMapSheet({
                           household={household}
                           now={now}
                           done
+                          inRoom
                           onToggle={() => onToggle(duty, true)}
                           onOpen={() => openDutyDetail(duty)}
                         />
@@ -265,7 +298,7 @@ export function HouseMapSheet({
                           <p className="mt-0.5 ui-caption text-muted-foreground">
                             {placement.bucket === "ordered" && item.expectedArrivalDate
                               ? t("home.arrivingApprox", { date: formatWeekdayDate(item.expectedArrivalDate) })
-                              : t("home.onHandLead", { onHand: item.onHand, lead: item.leadTimeDays })}
+                              : t("map.suppliesOnHand", { onHand: item.onHand })}
                           </p>
                           {placement.bucket === "order_now" ? (
                             <div className="mt-2">

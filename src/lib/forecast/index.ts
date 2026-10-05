@@ -383,15 +383,20 @@ export function buildForecast(
   };
 }
 
-export function next90DaysSpend(household: Household, now = new Date()): number {
-  return buildForecast(household, 3, now).totals.total;
+/** Spend in the first three months of a forecast. One definition, shared by Home and Budget. */
+export function nextThreeMonthsTotal(forecast: ForecastResult): number {
+  return forecast.monthly.slice(0, 3).reduce((sum, month) => sum + month.total, 0);
+}
+
+export function nextThreeMonthsSpend(household: Household, now = new Date()): number {
+  return nextThreeMonthsTotal(buildForecast(household, 12, now));
 }
 
 export type ForecastCardSummary =
   | { empty: true }
   | {
       empty: false;
-      next90: number;
+      next3: number;
       nextBigTicket: { label: string; month: string; mid: number } | null;
     };
 
@@ -407,7 +412,7 @@ export function forecastCardSummary(household: Household, now = new Date()): For
   const nextBig = forecast.bigTicket[0] ?? null;
   return {
     empty: false,
-    next90: next90DaysSpend(household, now),
+    next3: nextThreeMonthsSpend(household, now),
     nextBigTicket: nextBig
       ? { label: nextBig.label, month: nextBig.month, mid: nextBig.cost.mid }
       : null,
