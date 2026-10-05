@@ -1,0 +1,14 @@
+"What's left today" = "What's left today";
+"Hear what is left to do today." = "Hear what is left to do today.";
+"Scan a label" = "Scan a label";
+"Open Cuidala and scan the sticker on an appliance." = "Open Cuidala and scan the sticker on an appliance.";
+"Appliance" = "Appliance";
+"Open appliance" = "Open appliance";
+"intent.left.stale" = "Open Cuidala once to see what's left today.";
+"intent.left.none" = "Nothing left today. You're all done.";
+"intent.left.one" = "1 thing left today: %@.";
+"intent.left.many" = "%lld things left today: %@.";
+"intent.left.one.bare" = "1 thing left today.";
+"intent.left.many.bare" = "%lld things left today.";
+"appliance.subtitle.one" = "1 year old · %@";
+"appliance.subtitle.many" = "%lld years old · %@";

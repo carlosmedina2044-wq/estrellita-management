@@ -417,3 +417,21 @@ test("momentum careHistory round-trips and drops malformed entries", () => {
   const none = parseStored(JSON.stringify({ onboarded: true, momentum: { enabled: true, bestRun: 0 } }));
   assert.equal(none.momentum.careHistory, undefined);
 });
+
+test("the pick-up list survives a reload and junk entries are dropped", () => {
+  const household = parseStored(
+    JSON.stringify({
+      onboarded: true,
+      haulItems: [
+        { id: "haul-0001", name: "  Milk  ", addedAt: "2026-10-04T10:00:00.000Z" },
+        { id: "", name: "No id" },
+        { id: "haul-0002", name: "" },
+        "not an object",
+      ],
+    }),
+  );
+  assert.deepEqual(
+    household.haulItems?.map((item) => item.name),
+    ["Milk"],
+  );
+});

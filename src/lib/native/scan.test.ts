@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { installScanPluginForTests, scanLabel, scanSupported } from "@/lib/native/scan";
+import { installScanPluginForTests, readPhoto, scanAny, scanLabel, scanSupported } from "@/lib/native/scan";
 
 test.afterEach(() => installScanPluginForTests(null));
 
@@ -32,4 +32,30 @@ test("known rejection codes map to reasons, others to unavailable", async () => 
   });
   assert.deepEqual(await scanLabel(), { ok: false, reason: "unavailable" });
   assert.equal(await scanSupported(), false);
+});
+
+test("scanAny and readPhoto return lines and barcodes, off native they are unavailable", async () => {
+  assert.deepEqual(await scanAny(), { ok: false, reason: "unavailable" });
+  assert.deepEqual(await readPhoto(), { ok: false, reason: "unavailable" });
+  const payload = { lines: ["BOX", 5 as unknown as string], barcodes: [{ value: "0123", symbology: "EAN13" }, { value: "" }] as never };
+  installScanPluginForTests({
+    isSupported: async () => ({ supported: true }),
+    scanLabel: async () => ({ lines: [] }),
+    scanAny: async () => payload,
+    readPhoto: async () => payload,
+  });
+  const expected = { ok: true, lines: ["BOX"], barcodes: [{ value: "0123", symbology: "EAN13" }] };
+  assert.deepEqual(await scanAny(), expected);
+  assert.deepEqual(await readPhoto(), expected);
+});
+
+test("scanAny and readPhoto map rejection codes and never throw", async () => {
+  for (const code of ["cancelled", "denied", "unsupported"] as const) {
+    const reject = async () => Promise.reject(Object.assign(new Error("x"), { code }));
+    installScanPluginForTests({ isSupported: async () => ({ supported: true }), scanLabel: reject, scanAny: reject, readPhoto: reject });
+    assert.deepEqual(await scanAny(), { ok: false, reason: code });
+    assert.deepEqual(await readPhoto(), { ok: false, reason: code });
+  }
+  installScanPluginForTests({ isSupported: async () => ({ supported: true }), scanLabel: async () => ({ lines: [] }) });
+  assert.deepEqual(await readPhoto(), { ok: false, reason: "unavailable" });
 });

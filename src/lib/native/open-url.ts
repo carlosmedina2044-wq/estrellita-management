@@ -16,3 +16,14 @@ export async function openExternalUrl(url: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Opens this app's own page in the iPhone's Settings app. The same route the lock
+ * screen uses: a custom scheme only opens through a top-level navigation. Apple
+ * does not allow linking to any deeper pane, so callers spell out the steps.
+ */
+export function openAppSettings(): boolean {
+  if (!isNative()) return false;
+  window.location.href = "app-settings:";
+  return true;
+}

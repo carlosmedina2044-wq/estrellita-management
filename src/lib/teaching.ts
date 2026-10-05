@@ -12,6 +12,13 @@ export const TIP_SCAN_PROMPT = "scan-label-prompt";
 /** At least one appliance was added from a scanned or typed label. */
 export const TIP_SCANNED = "scan-label-used";
 
+/**
+ * The Apple Intelligence invitation was waved away. One entry that is replaced
+ * rather than added to: `ai-invite:<times>:<YYYY-MM-DD of the last time>`.
+ * Older saves have no such entry, which reads as "never dismissed".
+ */
+export const TIP_AI_INVITE_PREFIX = "ai-invite:";
+
 const TEACHING_DAYS = 7;
 
 export function teachingCardVisible(household: Household, now = new Date()): boolean {

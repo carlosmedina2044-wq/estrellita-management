@@ -1,0 +1,14 @@
+"What's left today" = "O que falta hoje";
+"Hear what is left to do today." = "Ouça o que falta fazer hoje.";
+"Scan a label" = "Escanear uma etiqueta";
+"Open Cuidala and scan the sticker on an appliance." = "Abra o Cuidala e escaneie a etiqueta de um eletrodoméstico.";
+"Appliance" = "Eletrodoméstico";
+"Open appliance" = "Abrir eletrodoméstico";
+"intent.left.stale" = "Abra o Cuidala uma vez para ver o que falta hoje.";
+"intent.left.none" = "Não falta nada hoje. Você já terminou tudo.";
+"intent.left.one" = "Falta 1 coisa hoje: %@.";
+"intent.left.many" = "Faltam %lld coisas hoje: %@.";
+"intent.left.one.bare" = "Falta 1 coisa hoje.";
+"intent.left.many.bare" = "Faltam %lld coisas hoje.";
+"appliance.subtitle.one" = "1 ano · %@";
+"appliance.subtitle.many" = "%lld anos · %@";

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
-import { ChevronDown, Package, Plus } from "lucide-react";
+import { ChevronDown, Package, Plus, ScanLine } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
 import { PageHeader } from "@/components/page-header";
 import { ItemName } from "@/components/item-name";
 import { ConsumableForm } from "@/components/consumable-form";
 import { RestockWalkAddSheet } from "@/components/restock-walk-add-sheet";
+import { ScanLabelSheet } from "@/components/scan-label-sheet";
 import { RestockWalkPicker } from "@/components/restock-walk-picker";
 import { RestockOrderButton, restockButtonProps } from "@/components/restock-order-flow";
 import { SupplyCheckinSheet } from "@/components/supply-checkin-sheet";
@@ -38,6 +39,7 @@ import {
   usedWhere,
   type RestockFlowHandlers,
 } from "@/lib/restock";
+import { rememberBarcode } from "@/lib/scan/barcode";
 import { useSheetOpenGuard } from "@/lib/sheet-guard";
 import { hasSeenTip, isAfterFirstDay, TIP_WALK_AFTER_DAY_ONE } from "@/lib/teaching";
 import type { AppNavigateTarget, Duty, DutyDraft, Household, SupplyAutomation } from "@/lib/types";
@@ -48,6 +50,7 @@ export function RestockView({
   onSaveDuty,
   onDeleteDuty,
   onWalkHouse,
+  onApplyHousehold,
   focus,
   onFocusHandled,
   ...restock
@@ -56,6 +59,8 @@ export function RestockView({
   onSaveDuty: (duty: DutyDraft) => void;
   onDeleteDuty: (id: string) => void;
   onWalkHouse?: (picks: RestockPick[]) => void;
+  /** Saves by building the next household from the latest one. Needed for "Scan a receipt". */
+  onApplyHousehold?: (build: (current: Household) => Household) => void;
   focus?: AppNavigateTarget | null;
   onFocusHandled?: () => void;
 } & RestockFlowHandlers) {
@@ -87,6 +92,10 @@ export function RestockView({
     setHaulDraft("");
   }
   const [quickAdd, setQuickAdd] = useState(false);
+  const [scanOpen, setScanOpen] = useState(false);
+  // A scanned box with no supply yet: once the new supply exists, the code is taught to it.
+  const [pendingBarcode, setPendingBarcode] = useState<string | null>(null);
+  const knownSupplyIds = useRef<Set<string>>(new Set(household.supplyAutomations.map((item) => item.id)));
   const [focusSize, setFocusSize] = useState(false);
   const [checkinItem, setCheckinItem] = useState<SupplyAutomation | null>(null);
   const createGuard = useSheetOpenGuard();
@@ -117,6 +126,17 @@ export function RestockView({
     if (duty) setEditingDuty(duty);
     else setCreating(true);
   }
+
+  useEffect(() => {
+    const before = knownSupplyIds.current;
+    const fresh = household.supplyAutomations.filter((item) => !before.has(item.id));
+    knownSupplyIds.current = new Set(household.supplyAutomations.map((item) => item.id));
+    if (!pendingBarcode || fresh.length === 0 || !onApplyHousehold) return;
+    const target = fresh[fresh.length - 1].id;
+    const code = pendingBarcode;
+    setPendingBarcode(null);
+    onApplyHousehold((current) => rememberBarcode(current, target, code));
+  }, [household.supplyAutomations, pendingBarcode, onApplyHousehold]);
 
   function openQuickAdd() {
     createGuard.tryOpen(() => {
@@ -153,6 +173,16 @@ export function RestockView({
                 onClick={startWalk}
               >
                 {t("restock.walkHouseShort")}
+              </button>
+            ) : null}
+            {onApplyHousehold ? (
+              <button
+                type="button"
+                aria-label={t("restock.scanReceipt")}
+                className="inline-flex size-11 items-center justify-center rounded-full bg-secondary text-primary ui-press"
+                onClick={() => setScanOpen(true)}
+              >
+                <ScanLine className="size-5" aria-hidden />
               </button>
             ) : null}
             <button
@@ -419,6 +449,20 @@ export function RestockView({
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {onApplyHousehold ? (
+        <ScanLabelSheet
+          open={scanOpen}
+          onOpenChange={setScanOpen}
+          household={household}
+          onApply={onApplyHousehold}
+          intent="receipt"
+          onNewSupply={(barcode) => {
+            setPendingBarcode(barcode);
+            window.setTimeout(openQuickAdd, 350);
+          }}
+        />
       ) : null}
 
       <RestockWalkAddSheet

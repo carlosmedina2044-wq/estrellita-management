@@ -1,0 +1,16 @@
+{
+  "name": "cuidala-intelligence",
+  "version": "1.0.0",
+  "description": "On-device Apple Intelligence (Foundation Models) helpers for Cuidala. Proposes structure for scanned text; the app validates everything.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "files": ["src", "ios", "Package.swift"],
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=8.0.0"
+  }
+}

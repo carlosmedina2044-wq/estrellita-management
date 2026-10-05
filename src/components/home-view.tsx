@@ -41,6 +41,7 @@ import {
   ToggleRow,
 } from "@/components/settings-rows";
 import { BackupPanel } from "@/components/backup-panel";
+import { HouseNotesSection, SmartReadingSection } from "@/components/settings-smart";
 import { ZipSheet } from "@/components/zip-prompt";
 import { LegalDocSheet, type LegalDocId } from "@/components/legal/legal-doc-sheet";
 import { tActive, type AppLocale } from "@/i18n";
@@ -485,6 +486,10 @@ export function HomeView({
           onFocusHandled={onFocusHandled}
         />
       ) : null}
+
+      <SmartReadingSection />
+
+      {onChangeTree ? <HouseNotesSection household={household} onChange={onChangeTree} /> : null}
 
       {restockDigest && onUpdateDigest ? (
         <SettingsSection

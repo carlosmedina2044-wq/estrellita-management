@@ -29,6 +29,8 @@ import {
   type HomeFloor,
   type HomeLocation,
   type HomeRoom,
+  type HaulItem,
+  type HouseNote,
   type Household,
   type LaborKind,
   type LifespanUnit,
@@ -83,6 +85,8 @@ export const COLLECTION_LIMITS = {
   consumables: 2_000,
   playbookDecisions: 500,
   weatherFires: 2_000,
+  houseNotes: 200,
+  haulItems: 100,
   savedRetailerLinks: MAX_SAVED_RETAILER_LINKS,
   linkedDutyIds: 50,
   declinedTaskKeys: 200,
@@ -310,6 +314,7 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
     nodeType,
     itemName: sanitizeText(raw.itemName, TEXT_LIMITS.title) || duty?.title || "Supply",
     sku: sanitizeText(raw.sku, TEXT_LIMITS.sku),
+    barcodes: asBarcodes(raw.barcodes),
     sizeSpec: sanitizeText(raw.sizeSpec, TEXT_LIMITS.sizeSpec) || undefined,
     retailerUrl,
     quantity,
@@ -350,6 +355,15 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
         ? raw.observedRatePerDay
         : undefined,
   };
+}
+
+/** Learned barcodes: digit strings of 8 to 14, at most 8 of them. Anything else is dropped. */
+function asBarcodes(value: unknown): string[] | undefined {
+  const codes = take(value, 8)
+    .filter((item): item is string => typeof item === "string" && /^\d{8,14}$/.test(item.trim()))
+    .map((item) => item.trim())
+    .filter((item, index, all) => all.indexOf(item) === index);
+  return codes.length > 0 ? codes : undefined;
 }
 
 function asPreferredRetailer(value: unknown): RetailerId | string | undefined {
@@ -759,6 +773,8 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
       .slice(0, 32),
     milestones: migrateMilestones(raw.milestones),
     ...migrateCheckIns(raw.checkIns),
+    ...migrateHouseNotes(raw.houseNotes),
+    ...migrateHaulItems(raw.haulItems),
     ...migrateEveningNudge(raw.eveningNudge),
     momentum: isPlainObject(raw.momentum)
       ? {
@@ -775,6 +791,45 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
 function migrateEveningNudge(raw: unknown): { eveningNudge?: { enabled: boolean; hour: number } } {
   if (!isPlainObject(raw)) return {};
   return { eveningNudge: { enabled: raw.enabled === true, hour: asInt(raw.hour, 19, 0, 23) } };
+}
+
+export const HOUSE_NOTE_LIMITS = { title: 80, body: 2_000 } as const;
+
+function migrateHouseNote(raw: unknown): HouseNote | null {
+  if (!isPlainObject(raw)) return null;
+  const id = asId(raw.id);
+  const title = sanitizeText(raw.title, HOUSE_NOTE_LIMITS.title);
+  const body = sanitizeText(raw.body, HOUSE_NOTE_LIMITS.body);
+  if (!id || (!title && !body)) return null;
+  const roomId = typeof raw.roomId === "string" ? asSlugId(raw.roomId, "") : "";
+  return {
+    id,
+    ...(roomId ? { roomId } : {}),
+    title,
+    body,
+    kind: asEnum(raw.kind, ["breaker", "shutoff", "paint", "other"] as const, "other"),
+    createdAt: asIsoDateTime(raw.createdAt, new Date().toISOString()),
+  };
+}
+
+function migrateHouseNotes(raw: unknown): { houseNotes?: HouseNote[] } {
+  const notes = take(raw, COLLECTION_LIMITS.houseNotes)
+    .map(migrateHouseNote)
+    .filter((item): item is HouseNote => Boolean(item));
+  return notes.length > 0 ? { houseNotes: notes } : {};
+}
+
+function migrateHaulItems(raw: unknown): { haulItems?: HaulItem[] } {
+  const items = take(raw, COLLECTION_LIMITS.haulItems)
+    .map((item): HaulItem | null => {
+      if (!isPlainObject(item)) return null;
+      const id = typeof item.id === "string" && item.id.length > 0 && item.id.length < 80 ? item.id : null;
+      const name = typeof item.name === "string" ? item.name.trim().slice(0, 120) : "";
+      if (!id || !name) return null;
+      return { id, name, addedAt: asIsoDateTime(item.addedAt, new Date().toISOString()) };
+    })
+    .filter((item): item is HaulItem => Boolean(item));
+  return items.length > 0 ? { haulItems: items } : {};
 }
 
 function migrateCheckIns(raw: unknown): { checkIns?: string[] } {

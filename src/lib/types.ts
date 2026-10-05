@@ -225,6 +225,12 @@ export type SupplyAutomation = {
   nodeType: NodeType;
   itemName: string;
   sku: string;
+  /**
+   * Barcodes (UPC/EAN digits) learned by scanning the box, kept when `sku`
+   * already holds something else (a retailer SKU or a size). Optional so every
+   * older saved household and backup still loads; see src/lib/scan/barcode.ts.
+   */
+  barcodes?: string[];
   sizeSpec?: string;
   retailerUrl: string;
   quantity: number;
@@ -478,6 +484,21 @@ export type Household = {
    * supply is flagged low there instead (see flaggedLowAt) and never becomes
    * a haul item. */
   haulItems?: HaulItem[];
+  /** Per-room facts worth keeping (breaker directory, shut-off valves, paint
+   * colours). Optional so every older saved household and backup still loads;
+   * see src/lib/house-notes.ts. Contents are never logged. */
+  houseNotes?: HouseNote[];
+};
+
+export type HouseNoteKind = "breaker" | "shutoff" | "paint" | "other";
+
+export type HouseNote = {
+  id: string;
+  roomId?: string;
+  title: string;
+  body: string;
+  kind: HouseNoteKind;
+  createdAt: string;
 };
 
 export type HaulItem = {
@@ -516,4 +537,6 @@ export type AppNavigateTarget = {
   playbookId?: string;
   /** Home tab: open this room's sheet on arrival (a window tap on Today). */
   roomId?: string;
+  /** Home tab: open the Scan a label sheet on arrival (the `cuidala://scan` link). */
+  scan?: boolean;
 };

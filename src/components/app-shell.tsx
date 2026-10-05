@@ -13,6 +13,8 @@ import { BudgetView } from "@/components/budget-view";
 import { CleanerVisit } from "@/components/cleaner-visit";
 import { FaceLock } from "@/components/face-lock";
 import { HomeMapView } from "@/components/home-map-view";
+import { HouseNotesEntry } from "@/components/house-notes-sheet";
+import { TellCuidala } from "@/components/tell-cuidala";
 import { HomeView } from "@/components/home-view";
 import { HouseMapSheet } from "@/components/house-map-sheet";
 import { preloadSparkleBurst } from "@/components/illustrated-moment";
@@ -48,7 +50,7 @@ import { ForecastCard } from "@/components/forecast-card";
 import { homeSummary } from "@/lib/node-status";
 import { detectLockMethod, isOwnerPromptInFlight, verifyDeviceOwner, type LockMethod } from "@/lib/native/biometrics";
 import { isNative } from "@/lib/native/platform";
-import { isCuidalaTodayUrl } from "@/lib/widget-url";
+import { parseCuidalaUrl } from "@/lib/widget-url";
 import { hideLaunchSplash } from "@/lib/native/splash";
 import { motion } from "motion/react";
 import { DUR_SCREEN, EASE_OUT, prefersReducedMotion, scrollBehavior } from "@/lib/motion";
@@ -401,6 +403,10 @@ export function AppShell() {
     updateTree((current) => recordCheckIn(current, now));
   }, [hydrated, sessionUnlocked, pendingUnlock, onboarded, household, now, updateTree]);
   const tRef = useRef(t);
+  const householdRef = useRef(household);
+  useEffect(() => {
+    householdRef.current = household;
+  }, [household]);
 
   useEffect(() => {
     tRef.current = t;
@@ -638,7 +644,15 @@ export function AppShell() {
     let remove: (() => void) | undefined;
     void import("@capacitor/app").then(async ({ App }) => {
       const openToday = (url: string) => {
-        if (isCuidalaTodayUrl(url)) navigate({ tab: "today" });
+        const route = parseCuidalaUrl(url);
+        if (!route) return;
+        if (route.kind === "today") navigate({ tab: "today" });
+        if (route.kind === "scan") navigate({ tab: "home", scan: true });
+        if (route.kind === "room") navigate({ tab: "home", roomId: route.id });
+        if (route.kind === "appliance") {
+          const asset = householdRef.current.assets.find((item) => item.id === route.id);
+          navigate({ tab: "home", roomId: asset?.roomId, assetId: asset?.id });
+        }
       };
       const launch = await App.getLaunchUrl();
       if (cancelled) return;
@@ -993,12 +1007,17 @@ export function AppShell() {
                 setRoomOpen(first?.roomId ?? "whole-home");
               }}
             />
+            <div className="flex flex-col gap-2">
+              <TellCuidala household={household} onApply={(build) => updateTree(build)} onComplete={completeDuty} />
+              <HouseNotesEntry household={household} onApply={(build) => updateTree(build)} />
+            </div>
             <HomeMapView
               key={homeVisit}
               household={household}
               now={now}
               replacementRooms={nearReplacement}
               onApply={(build) => updateTree(build)}
+              openScan={homeActive && nav?.scan === true ? nav : null}
               onSelectRoom={(roomId) => {
                 setRoomReturnTab(null);
                 setRoomOpen(roomId);
@@ -1046,6 +1065,7 @@ export function AppShell() {
             onDeleteDuty={deleteDuty}
             {...restockHandlers}
             onWalkHouse={applyRestockWalk}
+            onApplyHousehold={(build) => updateTree(build)}
             focus={restockActive ? nav : null}
             onFocusHandled={handleFocusHandled}
           />

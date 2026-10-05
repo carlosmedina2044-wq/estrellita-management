@@ -1,6 +1,7 @@
 import type { MessageKey } from "@/i18n";
 import { tActive } from "@/i18n";
 import { tDutyTitle } from "@/i18n/content";
+import { intentsSnapshotFor, type IntentsSnapshot } from "@/lib/intents-snapshot";
 import { doneToday, todaysOpenDuties } from "@/lib/duties";
 import { keptRooms } from "@/lib/kept-rooms";
 import { closedDayRun, dayArc } from "@/lib/momentum";
@@ -43,6 +44,8 @@ export type WidgetSnapshot = {
   /** Minutes of the day at which the sky changes phase, so the widget's
    * timeline paints the right sky without knowing where the home is. */
   phaseTimes: number[];
+  /** Appliances and today's list for Siri and Visual Intelligence. Plaintext, privacy-minimal. */
+  intents: IntentsSnapshot;
 };
 
 export function widgetSnapshotFor(household: Household, now = new Date()): WidgetSnapshot {
@@ -82,6 +85,7 @@ export function widgetSnapshotFor(household: Household, now = new Date()): Widge
     dueLabel: tActive("widget.due", { count: open.length }),
     doneLabel: tActive("widget.done", { count: done.length }),
     emptyLabel: tActive("widget.empty"),
+    intents: intentsSnapshotFor(household, now),
     runLength,
     dayFraction,
     careLabel,

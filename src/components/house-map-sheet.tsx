@@ -8,6 +8,7 @@ import { DutyDetailSheet } from "@/components/duty-detail-sheet";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { Illustration } from "@/components/illustration";
+import { HouseNotesSheet } from "@/components/house-notes-sheet";
 import { ScanLabelSheet } from "@/components/scan-label-sheet";
 import { roomCaption } from "@/components/home-map-view";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import { addDays, formatWeekdayDate, toISODate } from "@/lib/dates";
 import { ASSET_TYPES, roomById } from "@/lib/home-model";
 import { assetLabel, catalogLabel } from "@/lib/asset-catalog";
 import { lastDoneInRoom } from "@/lib/duties";
+import { notesInRoom } from "@/lib/house-notes";
 import type { IllustrationName } from "@/lib/illustrations";
 import { nodeStatus, roomLeftDuties } from "@/lib/node-status";
 import { warrantyBadgeLabel } from "@/lib/warranty";
@@ -103,6 +105,7 @@ export function HouseMapSheet({
   const [creating, setCreating] = useState(false);
   const [formRoom, setFormRoom] = useState<string | null>(null);
   const [scanRoom, setScanRoom] = useState<string | null>(null);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [assetName, setAssetName] = useState("");
   const [assetType, setAssetType] = useState<AssetType>("other");
   const createGuard = useSheetOpenGuard();
@@ -378,6 +381,19 @@ export function HouseMapSheet({
                     </div>
                   ) : null}
                 </section>
+                {onChangeTree && selected ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="h-auto min-h-11 w-full justify-between whitespace-normal py-2.5"
+                    onClick={() => setNotesOpen(true)}
+                  >
+                    <span>{t("notes.title")}</span>
+                    {notesInRoom(household, selected).length > 0 ? (
+                      <span className="num text-muted-foreground">{notesInRoom(household, selected).length}</span>
+                    ) : null}
+                  </Button>
+                ) : null}
                 {hints.length > 0 ? (
                   <p className="text-xs text-muted-foreground">
                     {t("map.suggestedReorder", {
@@ -432,6 +448,16 @@ export function HouseMapSheet({
         onDelete={onDeleteDuty}
         {...restock}
       />
+
+      {onChangeTree && selected ? (
+        <HouseNotesSheet
+          open={notesOpen}
+          onOpenChange={setNotesOpen}
+          household={household}
+          roomId={selected}
+          onApply={(build) => onChangeTree(build(household))}
+        />
+      ) : null}
 
       <ScanLabelSheet
         open={scanRoom !== null}

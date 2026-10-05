@@ -32,8 +32,10 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
     private static let windowStatesKey = "windowStates"
     private static let layerFilesKey = "layerFiles"
     private static let phaseTimesKey = "phaseTimes"
+    // Appliances and today's list for Siri / Visual Intelligence, as one JSON blob.
+    private static let intentsKey = "intentsSnapshot"
     private static let allKeys = [
-        dueCountKey, doneCountKey, updatedAtKey, titlesKey, dueLabelKey, doneLabelKey, emptyLabelKey,
+        intentsKey, dueCountKey, doneCountKey, updatedAtKey, titlesKey, dueLabelKey, doneLabelKey, emptyLabelKey,
         runLengthKey, dayFractionKey, careLabelKey, runLabelKey,
         kitTypeKey, paletteKey, seasonKey, windowStatesKey, layerFilesKey, phaseTimesKey
     ]
@@ -67,6 +69,13 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         defaults.set(phaseTimes, forKey: Self.phaseTimesKey)
         let layerFiles = (call.getArray("layerFiles") ?? []).compactMap { $0 as? String }
         defaults.set(Self.syncPortraits(layerFiles), forKey: Self.layerFilesKey)
+
+        if let intents = call.getObject("intents"), JSONSerialization.isValidJSONObject(intents),
+           let data = try? JSONSerialization.data(withJSONObject: intents) {
+            defaults.set(data, forKey: Self.intentsKey)
+        } else {
+            defaults.removeObject(forKey: Self.intentsKey)
+        }
 
         WidgetCenter.shared.reloadAllTimelines()
         call.resolve()

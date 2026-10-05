@@ -1,0 +1,7 @@
+"What's left in ${applicationName}" = "O que falta no ${applicationName}";
+"What's left today in ${applicationName}" = "O que falta hoje no ${applicationName}";
+"What's left to do in ${applicationName}" = "O que falta fazer no ${applicationName}";
+"Ask ${applicationName} what's left" = "Pergunte ao ${applicationName} o que falta";
+"Scan a label in ${applicationName}" = "Escanear uma etiqueta no ${applicationName}";
+"Scan a sticker in ${applicationName}" = "Escanear um adesivo no ${applicationName}";
+"Scan an appliance with ${applicationName}" = "Escanear um eletrodoméstico com o ${applicationName}";

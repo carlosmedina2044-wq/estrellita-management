@@ -3,6 +3,7 @@ import { toISODate } from "@/lib/dates";
 import { tActive } from "@/i18n";
 import { hasSeenTip, markTipSeen, TIP_SCANNED, TIP_SCAN_PROMPT } from "@/lib/teaching";
 import type { AssetType, Consumable, HomeAsset, Household } from "@/lib/types";
+import { filterNameWithSize, isFilterName } from "./filter";
 import type { LabelReading } from "./index";
 
 /** Furnace and central-air filters come in printed sizes; other consumables do not. */
@@ -109,13 +110,13 @@ export function addFromLabel(input: AddFromLabelInput): AddFromLabelResult {
 
   const size = SIZED_FILTER_TYPES.includes(catalog.type) ? reading.filterSize?.value : undefined;
   const consumables: Consumable[] = catalog.defaultConsumables.map((item, index) => {
-    const sized = size && /filter/i.test(item.name);
+    const sized = size && isFilterName(item.name);
     return {
       id: `${idBase}-c${index}`,
       assetId: asset.id,
       nodeId: asset.id,
       nodeType: "asset",
-      name: sized ? `${item.name} ${size.text}` : item.name,
+      name: sized ? filterNameWithSize(item.name, size.text) : item.name,
       intervalDays: item.intervalDays,
       unitCost: item.unitCost,
       sizeSpec: sized ? size.text : undefined,

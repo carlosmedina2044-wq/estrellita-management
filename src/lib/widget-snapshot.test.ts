@@ -183,3 +183,26 @@ test("widgetSnapshotFor carries the house: kit, palette, season, window paint, l
   for (let i = 1; i < snapshot.phaseTimes.length; i += 1) assert.ok(snapshot.phaseTimes[i] >= snapshot.phaseTimes[i - 1]);
 });
 
+
+test("widgetSnapshotFor carries a privacy-minimal intents snapshot", () => {
+  const home = household({
+    rooms: [{ id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 0 }],
+    assets: [
+      { id: "a1", roomId: "kitchen", name: "Rheem water heater", type: "water_heater", installDate: "2014-07-01", notes: "secret" },
+      { id: "a2", roomId: "kitchen", name: "Fridge", type: "fridge" },
+    ],
+    duties: [duty({ id: "d1", title: "Wipe counters" })],
+  });
+  const snap = widgetSnapshotFor(home, new Date(2026, 8, 13, 10));
+  assert.equal(snap.intents.today.day, "2026-09-13");
+  assert.equal(snap.intents.today.left, 1);
+  assert.deepEqual(snap.intents.today.items, [{ id: "d1", title: "Wipe counters" }]);
+  const [heater, fridge] = snap.intents.appliances;
+  assert.equal(heater.roomName, "Kitchen");
+  assert.equal(heater.type, "water_heater");
+  assert.equal(heater.ageYears, 12);
+  assert.ok(heater.status);
+  assert.equal(fridge.type, "refrigerator");
+  assert.equal(fridge.ageYears, undefined);
+  assert.equal(JSON.stringify(snap.intents).includes("secret"), false);
+});

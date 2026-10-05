@@ -27,6 +27,8 @@ let package = Package(
             ],
             linkerSettings: [
                 .linkedFramework("VisionKit"),
+                .linkedFramework("Vision"),
+                .linkedFramework("PhotosUI"),
                 .linkedFramework("AVFoundation"),
             ]
         )

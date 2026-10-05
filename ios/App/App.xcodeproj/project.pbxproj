@@ -27,6 +27,11 @@
 		C01DA1A00000000000000012 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = C01DA1A00000000000000010 /* InfoPlist.strings */; };
 		D6B6C9C7CC41746BF940612A /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A393081D5274444C37580C10 /* Foundation.framework */; };
 		F800D5262DC4DDAAB0582753 /* CuidalaWidgetSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBDF9A571E2CFEEAB23E9E19 /* CuidalaWidgetSnapshot.swift */; };
+		D0C1A1000000000000000065 /* CuidalaIntentsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000000001 /* CuidalaIntentsStore.swift */; };
+		D0C1A1000000000000000066 /* CuidalaIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000000002 /* CuidalaIntents.swift */; };
+		D0C1A1000000000000000067 /* CuidalaVisualIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000000003 /* CuidalaVisualIntelligence.swift */; };
+		D0C1A100000000000000006E /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0C1A100000000000000000A /* Localizable.strings */; };
+		D0C1A1000000000000000078 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000000014 /* AppShortcuts.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -82,6 +87,15 @@
 		C01DA1A00000000000000013 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		E8A11C1A2FE9B0010072D4E9 /* App.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = App.entitlements; sourceTree = "<group>"; };
 		FDFC9CF3950439D0EA40C84F /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
+		D0C1A1000000000000000001 /* CuidalaIntentsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaIntentsStore.swift; sourceTree = "<group>"; };
+		D0C1A1000000000000000002 /* CuidalaIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaIntents.swift; sourceTree = "<group>"; };
+		D0C1A1000000000000000003 /* CuidalaVisualIntelligence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaVisualIntelligence.swift; sourceTree = "<group>"; };
+		D0C1A100000000000000000B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0C1A100000000000000000C /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0C1A100000000000000000D /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = pt-BR.lproj/Localizable.strings; sourceTree = "<group>"; };
+		D0C1A1000000000000000015 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		D0C1A1000000000000000016 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		D0C1A1000000000000000017 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = pt-BR.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -160,6 +174,11 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				85CDEA54DD19AC0BE534D256 /* WeatherRefresh.swift */,
+				D0C1A1000000000000000001 /* CuidalaIntentsStore.swift */,
+				D0C1A1000000000000000002 /* CuidalaIntents.swift */,
+				D0C1A1000000000000000003 /* CuidalaVisualIntelligence.swift */,
+				D0C1A100000000000000000A /* Localizable.strings */,
+				D0C1A1000000000000000014 /* AppShortcuts.strings */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -277,6 +296,8 @@
 				2FAD9763203C412B000D30F8 /* config.xml in Resources */,
 				C01DA1A00000000000000002 /* PrivacyInfo.xcprivacy in Resources */,
 				C01DA1A00000000000000012 /* InfoPlist.strings in Resources */,
+				D0C1A100000000000000006E /* Localizable.strings in Resources */,
+				D0C1A1000000000000000078 /* AppShortcuts.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -300,6 +321,9 @@
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				54A74BB0A676422FAB8A9421 /* CuidalaBridgeViewController.swift in Sources */,
 				16771EAE2C1E506AB89DDBDA /* WeatherRefresh.swift in Sources */,
+				D0C1A1000000000000000065 /* CuidalaIntentsStore.swift in Sources */,
+				D0C1A1000000000000000066 /* CuidalaIntents.swift in Sources */,
+				D0C1A1000000000000000067 /* CuidalaVisualIntelligence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -349,6 +373,26 @@
 				7DE30E35BF8697B596E9EEBE /* pt-BR */,
 			);
 			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		D0C1A100000000000000000A /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D0C1A100000000000000000B /* en */,
+				D0C1A100000000000000000C /* es */,
+				D0C1A100000000000000000D /* pt-BR */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		D0C1A1000000000000000014 /* AppShortcuts.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D0C1A1000000000000000015 /* en */,
+				D0C1A1000000000000000016 /* es */,
+				D0C1A1000000000000000017 /* pt-BR */,
+			);
+			name = AppShortcuts.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

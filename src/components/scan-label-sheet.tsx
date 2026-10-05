@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
+import { AiInviteCard } from "@/components/ai-invite-card";
+import { useAiAvailability } from "@/hooks/use-ai-availability";
+import { recordAiInviteDismissal, shouldShowAiInvite } from "@/lib/ai-invite";
+import { FilterCard, ProductCard, ReceiptCard, WarrantyCard, AiBadge, BIG } from "@/components/scan-cards";
 import { RollingNumber } from "@/components/today/rolling-number";
 import { SettingsGroup, SelectRow, TextRow } from "@/components/settings-rows";
 import { Button } from "@/components/ui/button";
@@ -18,13 +22,25 @@ import { ASSET_TYPES } from "@/lib/home-model";
 import { DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 import { hapticPress, hapticSuccess } from "@/lib/native/haptics";
 import { isNative } from "@/lib/native/platform";
-import { scanLabel, scanSupported } from "@/lib/native/scan";
+import { readPhoto, scanAny, scanSupported, type ScanAnyResult } from "@/lib/native/scan";
 import { addFromLabel, assetNameFor, defaultRoomFor, typeFor } from "@/lib/scan/add-from-label";
-import { appraise, readLabel, type LabelReading } from "@/lib/scan";
+import { appraise, type LabelReading } from "@/lib/scan";
+import {
+  decideKind,
+  enrichWithAi,
+  linesOfText,
+  makeCapture,
+  needsHelp,
+  readAs,
+  type Capture,
+  type LabelRead,
+  type Read,
+  type ReadKind,
+} from "@/lib/scan/reader";
 import type { AssetType, Household } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Phase = "intro" | "scanning" | "denied" | "typed" | "unread" | "confirm";
+type Phase = "intro" | "scanning" | "denied" | "typed" | "unread" | "ask" | "reading" | "confirm";
 
 type Typed = { brand: string; model: string; serial: string; date: string; more: string };
 const EMPTY_TYPED: Typed = { brand: "", model: "", serial: "", date: "", more: "" };
@@ -40,9 +56,13 @@ export function linesFromTyped(typed: Typed): string[] {
   return lines;
 }
 
-function hasAnything(reading: LabelReading): boolean {
-  return Boolean(reading.brand || reading.model || reading.serial || reading.type || reading.manufactured);
-}
+const KIND_LABEL: Record<ReadKind, MessageKey> = {
+  label: "scan.kindLabel",
+  receipt: "scan.kindReceipt",
+  filter: "scan.kindFilter",
+  product: "scan.kindProduct",
+  warranty: "scan.kindWarranty",
+};
 
 /** A sentence with one changing number that rolls (a plain figure under Reduce Motion). */
 function RollingSentence({
@@ -71,12 +91,15 @@ function RollingSentence({
   );
 }
 
+/** One reader for the house: stickers, receipts, filters, boxes and warranties. */
 export function ScanLabelSheet({
   open,
   onOpenChange,
   household,
   roomId,
   onApply,
+  intent,
+  onNewSupply,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -85,13 +108,26 @@ export function ScanLabelSheet({
   roomId?: string;
   /** Saves by building the next household from the latest one. */
   onApply: (build: (current: Household) => Household) => void;
+  /** "receipt" when opened from Restock: the words lean to receipts, and an unclear read is tried as one. */
+  intent?: "receipt";
+  /** Opens the add-supply flow for a box that isn't tracked yet. */
+  onNewSupply?: (barcode: string) => void;
 }) {
+  const { t } = useLocale();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
         {/* Mounted only while open, so every visit starts fresh at the intro. */}
         {open ? (
-          <ScanBody household={household} roomId={roomId} onApply={onApply} onClose={() => onOpenChange(false)} />
+          <ScanBody
+            household={household}
+            roomId={roomId}
+            onApply={onApply}
+            onClose={() => onOpenChange(false)}
+            intent={intent}
+            onNewSupply={onNewSupply}
+            title={intent === "receipt" ? t("scan.receiptTitle") : t("scan.title")}
+          />
         ) : null}
       </SheetContent>
     </Sheet>
@@ -103,11 +139,17 @@ function ScanBody({
   roomId,
   onApply,
   onClose,
+  intent,
+  onNewSupply,
+  title,
 }: {
   household: Household;
   roomId?: string;
   onApply: (build: (current: Household) => Household) => void;
   onClose: () => void;
+  intent?: "receipt";
+  onNewSupply?: (barcode: string) => void;
+  title: string;
 }) {
   const { t, locale } = useLocale();
   const reduceMotion = useReducedMotion();
@@ -115,11 +157,16 @@ function ScanBody({
   const [canScan, setCanScan] = useState(false);
   const [note, setNote] = useState<MessageKey | null>(null);
   const [typed, setTyped] = useState<Typed>(EMPTY_TYPED);
-  const [reading, setReading] = useState<LabelReading | null>(null);
+  const [capture, setCapture] = useState<Capture>({ lines: [], barcodes: [] });
+  const [choices, setChoices] = useState<ReadKind[]>([]);
+  const [read, setRead] = useState<Read | null>(null);
+  const [helped, setHelped] = useState(false);
   const [editing, setEditing] = useState(false);
   const [typeOverride, setTypeOverride] = useState<AssetType | undefined>();
   const [dateOverride, setDateOverride] = useState("");
   const [roomPick, setRoomPick] = useState<string | undefined>(roomId);
+  const busy = useRef(false);
+  const [stampedAt, setStampedAt] = useState(() => new Date());
 
   useEffect(() => {
     let alive = true;
@@ -131,27 +178,59 @@ function ScanBody({
     };
   }, []);
 
-  function show(lines: string[]) {
-    const next = readLabel(lines, new Date());
-    if (!hasAnything(next)) {
+  /** Reads the capture as one kind, asks the model for help only if the plain read is shaky, then shows the card. */
+  async function proceed(kind: ReadKind, taken: Capture) {
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      const stamp = new Date();
+      setStampedAt(stamp);
+      const plain = readAs(kind, taken, household, stamp);
+      if (!plain) {
+        setPhase("unread");
+        return;
+      }
+      const wasShaky = needsHelp(plain);
+      // Only show "taking a closer look" if the model really takes a moment.
+      const timer = wasShaky ? setTimeout(() => setPhase("reading"), 350) : undefined;
+      const final = wasShaky ? await enrichWithAi(plain, taken, household, stamp) : plain;
+      if (timer) clearTimeout(timer);
+      setHelped(wasShaky);
+      setRead(final);
+      setTypeOverride(undefined);
+      setDateOverride("");
+      setEditing(false);
+      setRoomPick(roomId);
+      setPhase("confirm");
+      void hapticPress();
+    } finally {
+      busy.current = false;
+    }
+  }
+
+  /** Works out what was captured. `forced` skips the question (typed sticker fields). */
+  async function handleCapture(taken: Capture, forced?: ReadKind) {
+    setCapture(taken);
+    const decision = forced ? { kind: forced, confident: true } : decideKind(taken);
+    if (decision.kind === "ask") {
+      setChoices(decision.candidates);
+      setPhase("ask");
+      return;
+    }
+    if (decision.kind === "none") {
+      if (intent === "receipt" && taken.lines.length > 0) {
+        await proceed("receipt", taken);
+        return;
+      }
       setPhase("unread");
       return;
     }
-    setReading(next);
-    setTypeOverride(undefined);
-    setDateOverride("");
-    setEditing(false);
-    setRoomPick(roomId);
-    setPhase("confirm");
-    void hapticPress();
+    await proceed(decision.kind, taken);
   }
 
-  async function startScan() {
-    setNote(null);
-    setPhase("scanning");
-    const result = await scanLabel();
+  function onCaptured(result: ScanAnyResult) {
     if (result.ok) {
-      show(result.lines);
+      void handleCapture(makeCapture(result.lines, result.barcodes.map((b) => b.value)));
       return;
     }
     if (result.reason === "cancelled") setPhase("intro");
@@ -160,6 +239,18 @@ function ScanBody({
       setNote("scan.unavailable");
       setPhase("typed");
     }
+  }
+
+  async function startScan() {
+    setNote(null);
+    setPhase("scanning");
+    onCaptured(await scanAny());
+  }
+
+  async function startPhoto() {
+    setNote(null);
+    setPhase("scanning");
+    onCaptured(await readPhoto());
   }
 
   function openSettings() {
@@ -174,47 +265,101 @@ function ScanBody({
       setTyped((current) => ({ ...current, [key]: event.target.value })),
   });
 
+  const ai = useAiAvailability();
+  const footer =
+    helped && shouldShowAiInvite(household, ai.state, new Date()) ? (
+      <AiInviteCard context="scan" onDismiss={() => onApply((current) => recordAiInviteDismissal(current))} />
+    ) : null;
+  const cardProps = {
+    household,
+    locale,
+    reduceMotion: Boolean(reduceMotion),
+    onApply,
+    onClose,
+    footer,
+  };
+
   let body: React.ReactNode;
 
-  if (phase === "confirm" && reading) {
+  if (phase === "confirm" && read) {
+    if (read.kind === "label") {
+      body = (
+        <LabelCard
+          household={household}
+          read={read}
+          locale={locale}
+          reduceMotion={Boolean(reduceMotion)}
+          editing={editing}
+          setEditing={setEditing}
+          typeOverride={typeOverride}
+          setTypeOverride={setTypeOverride}
+          dateOverride={dateOverride}
+          setDateOverride={setDateOverride}
+          roomPick={roomPick}
+          setRoomPick={setRoomPick}
+          onApply={onApply}
+          onClose={onClose}
+          footer={footer}
+        />
+      );
+    } else if (read.kind === "receipt") {
+      body = <ReceiptCard {...cardProps} read={read} />;
+    } else if (read.kind === "filter") {
+      body = <FilterCard {...cardProps} read={read} />;
+    } else if (read.kind === "product") {
+      body = <ProductCard {...cardProps} read={read} onNewSupply={onNewSupply} />;
+    } else {
+      body = <WarrantyCard {...cardProps} read={read} capture={capture} now={stampedAt} />;
+    }
+  } else if (phase === "reading") {
     body = (
-      <ConfirmCard
-        household={household}
-        reading={reading}
-        locale={locale}
-        reduceMotion={Boolean(reduceMotion)}
-        editing={editing}
-        onEdit={() => setEditing((current) => !current)}
-        typeOverride={typeOverride}
-        onType={setTypeOverride}
-        dateOverride={dateOverride}
-        onDate={setDateOverride}
-        room={roomPick ?? defaultRoomFor(household, typeFor(reading, { type: typeOverride }))}
-        onRoom={setRoomPick}
-        onAdd={() => {
-          const idBase = crypto.randomUUID();
-          const room = roomPick ?? defaultRoomFor(household, typeFor(reading, { type: typeOverride }));
-          onApply((current) =>
-            addFromLabel({
-              household: current,
-              reading,
-              roomId: room,
-              overrides: { type: typeOverride, installDate: dateOverride || undefined },
-              idBase,
-            }).household,
-          );
-          void hapticSuccess();
-          toast.success(t("scan.added"));
-          onClose();
-        }}
-      />
+      <>
+        <h2 className="ui-page-title ui-display pr-10 font-semibold">{t("scan.reading")}</h2>
+        <p role="status" className="sr-only">
+          {t("scan.reading")}
+        </p>
+      </>
+    );
+  } else if (phase === "ask") {
+    body = (
+      <>
+        <h2 className="ui-page-title ui-display pr-10 font-semibold">{t("scan.askTitle")}</h2>
+        <p className="ui-body text-muted-foreground">{t("scan.askBody")}</p>
+        <div className="grid gap-2">
+          {choices.map((kind, index) => (
+            <Button
+              key={kind}
+              type="button"
+              variant={index === 0 ? "default" : "secondary"}
+              className={BIG}
+              onClick={() => void proceed(kind, capture)}
+            >
+              {t(KIND_LABEL[kind])}
+            </Button>
+          ))}
+          <Button type="button" variant="ghost" className={BIG} onClick={() => setPhase("intro")}>
+            {t("scan.tryAgain")}
+          </Button>
+        </div>
+      </>
     );
   } else if (phase === "typed") {
     const empty = Object.values(typed).every((value) => !value.trim());
+    const pasted = typed.more.trim().length > 0;
     body = (
       <>
         <h2 className="ui-page-title ui-display pr-10 font-semibold">{t("scan.typedTitle")}</h2>
         {note ? <p className="ui-body text-muted-foreground">{t(note)}</p> : null}
+        <LabelField label={t("scan.fieldMore")}>
+          <Textarea
+            {...field("more")}
+            placeholder={t("scan.fieldMorePlaceholder")}
+            autoCapitalize="none"
+            autoCorrect="off"
+            className="min-h-24 ui-body"
+          />
+        </LabelField>
+        <p className="px-1 ui-caption font-medium text-muted-foreground">{t("scan.fieldsHint")}</p>
         <div className="grid gap-3">
           <LabelField label={t("scan.fieldBrand")}>
             <Input {...field("brand")} autoCapitalize="words" className={TONAL} />
@@ -229,11 +374,19 @@ function ScanBody({
             <Input {...field("date")} placeholder={t("scan.fieldDatePlaceholder")} inputMode="numeric" className={TONAL} />
           </LabelField>
         </div>
-        <LabelField label={t("scan.fieldMore")}>
-          <Textarea {...field("more")} placeholder={t("scan.fieldMorePlaceholder")} className="min-h-20 ui-body" />
-        </LabelField>
         <div className="grid gap-2">
-          <Button type="button" className={BIG} disabled={empty} onClick={() => show(linesFromTyped(typed))}>
+          <Button
+            type="button"
+            className={BIG}
+            disabled={empty}
+            onClick={() =>
+              // Only the sticker boxes filled in means "this is a sticker"; pasted text is classified.
+              void handleCapture(
+                makeCapture([...linesOfText(typed.more), ...linesFromTyped({ ...typed, more: "" })]),
+                pasted ? undefined : "label",
+              )
+            }
+          >
             {t("scan.readIt")}
           </Button>
           <Button type="button" variant="secondary" className={BIG} onClick={() => setPhase("intro")}>
@@ -275,23 +428,36 @@ function ScanBody({
       </>
     );
   } else {
+    const scanning = phase === "scanning";
+    const canPhoto = isNative();
     body = (
       <>
-        <h2 className="ui-page-title ui-display pr-10 font-semibold">{t("scan.title")}</h2>
+        <h2 className="ui-page-title ui-display pr-10 font-semibold">{title}</h2>
         <p className="ui-body text-muted-foreground">
-          {phase === "scanning" ? t("scan.opening") : t("scan.intro")}
+          {scanning ? t("scan.opening") : intent === "receipt" ? t("scan.receiptIntro") : t("scan.intro")}
         </p>
         <div className="grid gap-2">
           {canScan ? (
-            <Button type="button" className={BIG} disabled={phase === "scanning"} onClick={() => void startScan()}>
+            <Button type="button" className={BIG} disabled={scanning} onClick={() => void startScan()}>
               {t("scan.scanCta")}
+            </Button>
+          ) : null}
+          {canPhoto ? (
+            <Button
+              type="button"
+              variant={canScan ? "secondary" : "default"}
+              className={BIG}
+              disabled={scanning}
+              onClick={() => void startPhoto()}
+            >
+              {t("scan.photoCta")}
             </Button>
           ) : null}
           <Button
             type="button"
-            variant={canScan ? "ghost" : "default"}
+            variant={canScan || canPhoto ? "ghost" : "default"}
             className={BIG}
-            disabled={phase === "scanning"}
+            disabled={scanning}
             onClick={() => {
               setNote(null);
               setPhase("typed");
@@ -307,7 +473,7 @@ function ScanBody({
   return (
     <>
       <SheetHeader className="shrink-0 pb-2">
-        <SheetTitle className="sr-only">{t("scan.title")}</SheetTitle>
+        <SheetTitle className="sr-only">{title}</SheetTitle>
       </SheetHeader>
       <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 [&>*]:shrink-0">
         {body}
@@ -316,9 +482,80 @@ function ScanBody({
   );
 }
 
-/** Tall, wrapping buttons: Dynamic Type can make a label two lines. */
-const BIG = "h-auto min-h-12 w-full whitespace-normal py-3 text-center";
 const TONAL = "h-11 rounded-lg bg-secondary px-3 ui-body dark:bg-secondary";
+
+/** The appliance card: saves a new appliance from the sticker. */
+function LabelCard({
+  household,
+  read,
+  locale,
+  reduceMotion,
+  editing,
+  setEditing,
+  typeOverride,
+  setTypeOverride,
+  dateOverride,
+  setDateOverride,
+  roomPick,
+  setRoomPick,
+  onApply,
+  onClose,
+  footer,
+}: {
+  household: Household;
+  read: LabelRead;
+  locale: "en" | "es" | "pt-BR";
+  reduceMotion: boolean;
+  editing: boolean;
+  setEditing: (updater: (current: boolean) => boolean) => void;
+  typeOverride?: AssetType;
+  setTypeOverride: (type: AssetType) => void;
+  dateOverride: string;
+  setDateOverride: (iso: string) => void;
+  roomPick?: string;
+  setRoomPick: (id: string) => void;
+  onApply: (build: (current: Household) => Household) => void;
+  onClose: () => void;
+  footer?: React.ReactNode;
+}) {
+  const { t } = useLocale();
+  const reading = read.reading;
+  return (
+    <ConfirmCard
+      household={household}
+      reading={reading}
+      locale={locale}
+      reduceMotion={reduceMotion}
+      editing={editing}
+      onEdit={() => setEditing((current) => !current)}
+      typeOverride={typeOverride}
+      onType={setTypeOverride}
+      dateOverride={dateOverride}
+      onDate={setDateOverride}
+      room={roomPick ?? defaultRoomFor(household, typeFor(reading, { type: typeOverride }))}
+      onRoom={setRoomPick}
+      aiFilled={read.aiFilled.length > 0}
+      footer={footer}
+      onAdd={() => {
+        const idBase = crypto.randomUUID();
+        const room = roomPick ?? defaultRoomFor(household, typeFor(reading, { type: typeOverride }));
+        onApply((current) =>
+          addFromLabel({
+            household: current,
+            reading,
+            roomId: room,
+            overrides: { type: typeOverride, installDate: dateOverride || undefined },
+            idBase,
+          }).household,
+        );
+        void hapticSuccess();
+        toast.success(t("scan.added"));
+        onClose();
+      }}
+    />
+  );
+}
+
 
 function LabelField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -344,6 +581,8 @@ function ConfirmCard({
   room,
   onRoom,
   onAdd,
+  aiFilled,
+  footer,
 }: {
   household: Household;
   reading: LabelReading;
@@ -358,6 +597,8 @@ function ConfirmCard({
   room: string;
   onRoom: (id: string) => void;
   onAdd: () => void;
+  aiFilled?: boolean;
+  footer?: React.ReactNode;
 }) {
   const { t } = useLocale();
   const type = typeFor(reading, { type: typeOverride });
@@ -415,6 +656,7 @@ function ConfirmCard({
       className="flex flex-col gap-4 [&>*]:shrink-0"
     >
       <h2 className="ui-page-title text-balance break-words pr-10 text-[1.75rem] font-semibold leading-tight">{headline}</h2>
+      <AiBadge show={Boolean(aiFilled)} />
 
       {appraisal ? (
         <div className="grid gap-1.5 rounded-[var(--r-container)] bg-card px-4 py-3">
@@ -509,6 +751,7 @@ function ConfirmCard({
           {editing ? t("common.done") : t("scan.edit")}
         </Button>
       </div>
+      {footer}
     </motion.div>
   );
 }

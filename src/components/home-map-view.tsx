@@ -71,6 +71,7 @@ export function HomeMapView({
   replacementRooms,
   onSelectRoom,
   onApply,
+  openScan,
 }: {
   household: Household;
   now: Date;
@@ -79,11 +80,19 @@ export function HomeMapView({
   onSelectRoom: (roomId: string) => void;
   /** Present on the real Home: lets the one-time "scan a label" card save. */
   onApply?: (build: (current: Household) => Household) => void;
+  /** A new object each time the `cuidala://scan` link asks for the scan sheet. */
+  openScan?: object | null;
   /** Kept so callers need not change; the list is ordered by need, not by hand. */
   onReorder?: (floorId: string | null, orderedIds: string[]) => void;
 }) {
   const { t } = useLocale();
   const [scanOpen, setScanOpen] = useState(false);
+  // Open once per request from the `cuidala://scan` link (adjusting state while rendering, not in an effect).
+  const [handledScan, setHandledScan] = useState<object | null>(null);
+  if (openScan && openScan !== handledScan) {
+    setHandledScan(openScan);
+    if (onApply) setScanOpen(true);
+  }
   const offerScan = Boolean(onApply) && shouldOfferScan(household);
   const seen = new Set<string>();
   const ordered: HomeRoom[] = [];

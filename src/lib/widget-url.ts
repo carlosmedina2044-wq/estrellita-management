@@ -10,3 +10,33 @@ export function isCuidalaTodayUrl(url: string): boolean {
     return /^cuidala:\/\/today\/?$/i.test(url.trim());
   }
 }
+
+export type CuidalaRoute =
+  | { kind: "today" }
+  | { kind: "scan" }
+  | { kind: "room"; id: string }
+  | { kind: "appliance"; id: string };
+
+/**
+ * Parses the app's own deep links: `cuidala://today`, `cuidala://scan`,
+ * `cuidala://room/<id>` and `cuidala://appliance/<id>` (Siri, widgets and
+ * Visual Intelligence). Anything else is null.
+ */
+export function parseCuidalaUrl(url: string): CuidalaRoute | null {
+  const match = /^cuidala:\/\/([^/?#]+)(?:\/([^?#]*))?(?:[?#].*)?$/i.exec(url.trim());
+  if (!match) return null;
+  const host = match[1].toLowerCase();
+  let rest = match[2] ?? "";
+  try {
+    rest = decodeURIComponent(rest);
+  } catch {
+    return null;
+  }
+  rest = rest.replace(/\/+$/, "");
+  if (host === "today" && !rest) return { kind: "today" };
+  if (host === "scan" && !rest) return { kind: "scan" };
+  if ((host === "room" || host === "appliance") && rest && !rest.includes("/")) {
+    return { kind: host, id: rest };
+  }
+  return null;
+}
