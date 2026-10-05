@@ -3,7 +3,8 @@
 import { motion, useReducedMotion } from "motion/react";
 import type { MessageKey } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
-import { careLevelIndex } from "@/lib/care-level";
+import { careLevelIndex, type NextLookHint } from "@/lib/care-level";
+import { nextLookLine } from "@/components/today/next-look";
 import { DUR_NONE, DUR_SCREEN, EASE_OUT } from "@/lib/motion";
 import { CARE_DECOR_AT } from "@/lib/scene/care-decor";
 import { CARE_LEVELS, type CareLevelId } from "@/lib/types";
@@ -18,16 +19,20 @@ export function CareLadder({
   level,
   next,
   fraction,
+  hint = null,
 }: {
   level: CareLevelId;
   next: CareLevelId | null;
   fraction: number;
+  /** Days still to go, when it can be worked out; replaces the generic line. */
+  hint?: NextLookHint | null;
 }) {
   const { t } = useLocale();
   // A width tween is not covered by `reducedMotion="user"`.
   const reduce = useReducedMotion();
   const reached = careLevelIndex(level);
   const decor = next ? CARE_DECOR_AT[next] : null;
+  const hintLine = nextLookLine(hint, next, t);
 
   return (
     <div className="flex flex-col gap-2">
@@ -67,7 +72,7 @@ export function CareLadder({
       </ol>
       {next ? (
         <p className="ui-caption text-muted-foreground">
-          {decor
+          {hintLine ? hintLine : decor
             ? t("care.nextAdds", {
                 level: t(`care.level.${next}` as MessageKey),
                 thing: t(`care.decor.${decor}` as MessageKey),

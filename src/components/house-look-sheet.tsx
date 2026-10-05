@@ -33,11 +33,11 @@ export function HouseLookSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <SheetContent side="bottom" className="max-h-[92dvh] gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
         <SheetHeader className="shrink-0 pb-2">
           <SheetTitle>{t("settings.houseLook")}</SheetTitle>
         </SheetHeader>
-        <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-5 px-4 pb-4">
+        <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 pb-4">
           <HouseLookPicker
             kitType={kitType}
             palette={palette}

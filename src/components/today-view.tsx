@@ -42,7 +42,9 @@ import { dismissGetAhead, getAheadCandidate, isGetAheadDismissed } from "@/lib/g
 import { houseLine } from "@/lib/house-line";
 import { weeklyQuest } from "@/lib/quest";
 import { visitorFor } from "@/lib/scene/visitor";
-import { careLevelIndex, currentCareState } from "@/lib/care-level";
+import { currentCareState } from "@/lib/care-level";
+import { useAnswerPlayback } from "@/hooks/use-house-answer";
+import type { HouseAnswer } from "@/lib/scene/house-answer";
 import { dayOpacityForPhase, portraitLayerUrls, resolveHomeSpec } from "@/lib/scene/portrait";
 import { seasonFor } from "@/lib/scene/season";
 import { closedDayCardModel, yearCardModel, type ShareCardModel, type ShareCardScene } from "@/lib/share-card";
@@ -70,8 +72,6 @@ import {
 import { closedDayRun, dayArc, dismissWeekWrapped, dismissYearWrapped, roomsTouchedInRange, runStripDays, shouldShowWeekWrapped, shouldShowYearWrapped, todayEffort, weekProgress, yearWrap, yearWrappedYear } from "@/lib/momentum";
 import { sceneCssVars } from "@/lib/scene/css";
 import { skyGradient, warmedStops } from "@/lib/scene/sky";
-import { skyPhase, sunTimes } from "@/lib/scene/sun";
-import { sceneWeather } from "@/lib/scene/weather";
 import { tDutyTitle } from "@/i18n/content";
 import { todayGreeting } from "@/lib/greeting";
 import { homeSummary } from "@/lib/node-status";
@@ -83,11 +83,12 @@ import type { AppNavigateTarget, Audience, Duty, DutyDraft, Household } from "@/
 import type { WeatherForecast } from "@/lib/weather/provider";
 import { cn } from "@/lib/utils";
 import { CEREMONY_BEAT, CEREMONY_MS, DUR_QUICK, EASE_OUT, SPRING_SETTLE, STAGGER_CHILD, prefersReducedMotion, scrollBehavior } from "@/lib/motion";
-import { hapticClose, hapticComplete, hapticLevelUp, hapticSuccess, hapticTab } from "@/lib/native/haptics";
+import { hapticClose, hapticComplete, hapticSuccess, hapticTab } from "@/lib/native/haptics";
 import { AppleWeatherAttribution } from "@/components/apple-weather-attribution";
 import { useLocale } from "@/i18n/locale-provider";
 import { requestTilt } from "@/lib/native/orientation";
-import { useClock } from "@/hooks/use-clock";
+import { useSceneScroll } from "@/hooks/use-scene-scroll";
+import { useSceneSky } from "@/hooks/use-scene-sky";
 import { useNow } from "@/hooks/use-now";
 import { useSessionArrival } from "@/hooks/use-session-arrival";
 
@@ -115,6 +116,9 @@ export function TodayView({
   onUpdateTree,
   focus,
   onFocusHandled,
+  houseAnswer,
+  levelUp = 0,
+  active,
   ...restockHandlers
 }: {
   household: Household;
@@ -129,6 +133,12 @@ export function TodayView({
   onUndo: (dutyId: string) => void;
   onSaveDuty: (duty: DutyDraft) => void;
   onDeleteDuty: (id: string) => void;
+  /** The house's latest answer to a finished chore, from any screen. */
+  houseAnswer?: HouseAnswer | null;
+  /** Non-zero while the house is blooming for a care level it just reached. */
+  levelUp?: number;
+  /** This tab is the one showing. A hidden Today consumes answers unseen. */
+  active?: boolean;
   onStartCleanerVisit: () => void;
   onOpenHome?: () => void;
   onOpenSettings?: () => void;
@@ -159,8 +169,11 @@ export function TodayView({
   // Calendar day (`now`) and wall clock (`clock`) are separate on purpose:
   // `now` stays pinned to local midnight so date maths and the duty list are
   // stable, while anything that tracks the hour reads `clock`.
-  const clock = useClock();
-  const clockMs = clock.getTime();
+  const { clock, clockMs, scenePhase, scenePhaseEffective, weather: sceneWx, todayIso } = useSceneSky(
+    household,
+    forecast,
+    now,
+  );
   // True only for the very first paint of Today this app launch — never on a
   // tab switch back to it (the pane stays mounted, just hidden). Reduce
   // Motion still gets the flag (so nothing downstream needs to know why),
@@ -197,7 +210,6 @@ export function TodayView({
   const [payoffDuty, setPayoffDuty] = useState<Duty | null>(null);
   const [dismissedCareKeys, setDismissedCareKeys] = useState<Set<string>>(() => new Set());
   const [showWholeHouseCard, setShowWholeHouseCard] = useState(false);
-  const [compactBar, setCompactBar] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [prevFocus, setPrevFocus] = useState(focus);
   if (focus !== prevFocus) {
@@ -264,12 +276,6 @@ export function TodayView({
   const weatherListed = listed.filter((duty) => Boolean(duty.weatherTriggerId));
   const regularListed = listed.filter((duty) => !duty.weatherTriggerId);
 
-  // The house's answer to one completed chore: which room, and a key that
-  // rises per completion so two chores in the same room each get a flare.
-  // Cleared on a timer, because this is a moment rather than a state — a
-  // flare left mounted would replay on the next unrelated re-render.
-  const [houseAnswer, setHouseAnswer] = useState<{ roomId: string | null; key: number } | null>(null);
-  const houseAnswerKey = useRef(0);
   const tiltAsked = useRef(false);
   // The pane of light that carries a window tap into that room's sheet.
   const [windowZoom, setWindowZoom] = useState<WindowZoom | null>(null);
@@ -279,13 +285,9 @@ export function TodayView({
     const timer = window.setTimeout(() => setWindowZoom(null), 520);
     return () => window.clearTimeout(timer);
   }, [windowZoom]);
-  useEffect(() => {
-    if (!houseAnswer) return;
-    // Longer than the flare itself (DUR_AMBIENT), so Today never unmounts
-    // it mid-fall; short enough that it is gone well before anything else.
-    const timer = window.setTimeout(() => setHouseAnswer(null), 900);
-    return () => window.clearTimeout(timer);
-  }, [houseAnswer]);
+  // The house's answer to a finished chore comes from above (`useHouseAnswer`
+  // in the shell), so a chore ticked in a room sheet answers too, once.
+  const answerShown = useAnswerPlayback(houseAnswer ?? null, active === false ? "skip" : "play");
 
   const completion = useCompletionFlow({
     open,
@@ -306,19 +308,6 @@ export function TodayView({
           )
         : null,
     onCommitted: (duty, remaining) => {
-      // On commit rather than on press: an undo during the hold must not have
-      // to take a lit window back off the house.
-      if (household.momentum.enabled && !viewingCalendar) {
-        houseAnswerKey.current += 1;
-        // The same rule `keptRooms` uses to decide which room a chore belongs
-        // to, so the flare lands on exactly the window that is about to light
-        // rather than on a near-miss. Resolved against the real room list, so
-        // a `nodeId` pointing at an asset or the whole home falls through to
-        // the house-wide wash instead of anchoring nowhere.
-        const answeredRoom =
-          household.rooms.find((room) => duty.room === room.id || duty.nodeId === room.id)?.id ?? null;
-        setHouseAnswer({ roomId: answeredRoom, key: houseAnswerKey.current });
-      }
       if (payoffKeyFor(duty)) {
         setPayoffDuty(duty);
       } else {
@@ -494,32 +483,8 @@ export function TodayView({
   // One sentence a day from the house (E2-01): the forecast, a seasonal
   // window opening, what was done a year ago, the month's ledger, or a
   // seasonal fact. Deterministic per day, never the same two days running.
-  const todayIso = toISODate(now);
-  // The sky reads `clock`, never `now`. `now` is local midnight by design (see
-  // `useNow`), and `skyPhase` reads `getHours()` — feeding it `now` pinned every
-  // user's sky to "night" at every hour of the day. Computed up here because
-  // the day's visitor and the day's line both read from it.
-  const sceneWx = sceneWeather(forecast, todayIso);
-  const { lat, lng } = household.location;
-  const sceneTimes = useMemo(
-    () => (lat != null && lng != null ? sunTimes(lat, lng, new Date(clockMs)) : null),
-    [lat, lng, clockMs],
-  );
-  const scenePhase = useMemo(() => skyPhase(new Date(clockMs), sceneTimes), [clockMs, sceneTimes]);
-  // Settings promises a fixed appearance "stays put" (Always light / Always
-  // dark / Match iPhone). `nightFollowsSky === false` means the user picked
-  // one of those, so the scene itself — not just the chrome — has to stop
-  // reading the real sun position. Without this, the sky/moon kept following
-  // real dusk/night under "Always light," producing a lit cream sheet under a
-  // night sky with no way to tell the setting was doing anything at all.
+  const { lat } = household.location;
   const { resolvedTheme } = useTheme();
-  const scenePhaseEffective = useMemo(
-    () =>
-      household.momentum.nightFollowsSky === false
-        ? { phase: (resolvedTheme === "dark" ? "night" : "day") as typeof scenePhase.phase, t: 0.5 }
-        : scenePhase,
-    [household.momentum.nightFollowsSky, resolvedTheme, scenePhase],
-  );
 
   // Today computes the visitor itself so the day's line and the picture agree;
   // the scene derives the same answer from the same signals.
@@ -756,34 +721,6 @@ export function TodayView({
   const careNotice =
     careKey && careState && !dismissedCareKeys.has(careKey) ? careState : null;
 
-  // The ladder paying out. The words for this already existed (the care notice
-  // card says "your house is now Kept"); what was missing was the house doing
-  // anything about it, so the one visible reward in the app arrived as a
-  // silent re-render.
-  //
-  // Seeded from the stored state so a level earned between sessions still gets
-  // its moment on the next open, and bumped during render when the level rises
-  // while the app is open. Adjusting state during render is the sanctioned way
-  // to react to a changed value without waiting a frame, the same pattern
-  // RollingNumber uses for its direction.
-  const careLevelNow = careState?.level ?? "settling-in";
-  const [levelUpKey, setLevelUpKey] = useState(() =>
-    careState?.direction === "up" && careState.since === todayIso ? 1 : 0,
-  );
-  const [seenLevel, setSeenLevel] = useState(careLevelNow);
-  if (careLevelNow !== seenLevel) {
-    setSeenLevel(careLevelNow);
-    if (careLevelIndex(careLevelNow) > careLevelIndex(seenLevel)) {
-      setLevelUpKey((key) => key + 1);
-    }
-  }
-  useEffect(() => {
-    if (levelUpKey === 0) return;
-    void hapticLevelUp();
-    const timer = window.setTimeout(() => setLevelUpKey(0), CEREMONY_MS);
-    return () => window.clearTimeout(timer);
-  }, [levelUpKey]);
-
   // On a day that just finished, the milestone is part of the all-done card
   // (one message, one Share) rather than a second card saying the same thing.
   const mergedMilestone =
@@ -942,53 +879,7 @@ export function TodayView({
     return () => el.classList.remove("today-night");
   }, [nightFollows]);
 
-  useEffect(() => {
-    if (!sceneMode) return;
-    const pane = rootRef.current?.closest(".app-keep-alive");
-    if (!(pane instanceof HTMLElement)) return;
-    // Queried once per mount, not once per scroll frame: the node this
-    // selector finds does not change while the scene is up.
-    const blur = rootRef.current?.querySelector("[data-scene-blur]");
-    const blurEl = blur instanceof HTMLElement ? blur : null;
-    let frame = 0;
-    // `backdrop-filter` is the most expensive property in this scroll: every
-    // distinct blur radius forces the browser to re-sample and re-composite
-    // whatever sits behind the scene, every frame, for the whole first 120px
-    // of scroll — exactly the moment someone is judging how the app feels.
-    // Snapping to a handful of steps reads as continuous (a new level every
-    // 24px of scroll) while cutting DOM writes by well over 90%.
-    const BLUR_STEPS = 5;
-    const MAX_BLUR_PX = 12;
-    let lastStep = -1;
-    const onScroll = () => {
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        // Clamp against iOS rubber-band overscroll: .app-keep-alive can report a
-        // momentary negative scrollTop while it elastically bounces at the top,
-        // which previously fed straight into the scene's transform and made the
-        // art visibly bounce. The scene itself no longer transforms on scroll —
-        // it is `position: sticky` (see the wrapper below) so the browser pins it
-        // natively and the sheet slides up to cover it with no seam, instead of
-        // two independently JS-driven layers racing at different speeds.
-        const y = Math.max(0, pane.scrollTop);
-        const step = Math.round(Math.min(y / 120, 1) * BLUR_STEPS);
-        if (step !== lastStep) {
-          lastStep = step;
-          if (blurEl) {
-            const amount = (step / BLUR_STEPS) * MAX_BLUR_PX;
-            blurEl.style.backdropFilter = `blur(${amount}px)`;
-            blurEl.style.setProperty("-webkit-backdrop-filter", `blur(${amount}px)`);
-          }
-        }
-        setCompactBar(y > 120);
-      });
-    };
-    pane.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      pane.removeEventListener("scroll", onScroll);
-      window.cancelAnimationFrame(frame);
-    };
-  }, [sceneMode]);
+  const compactBar = useSceneScroll(rootRef, sceneMode);
 
   return (
     <div
@@ -1119,11 +1010,24 @@ export function TodayView({
                     }
                   : undefined
               }
-              paused={compactBar || sceneCovered}
-              answer={houseAnswer}
+              onOpenDelivery={
+                onNavigate
+                  ? (itemId) =>
+                      onNavigate(
+                        itemId
+                          ? { tab: "restock", itemId, action: "receive", section: "ordered" }
+                          : { tab: "restock", section: "ordered" },
+                      )
+                  : undefined
+              }
+              // A Today that is not the tab on screen stills itself, as Home's
+              // scene does: nothing back there is being looked at, and a
+              // delivery walk must not play (and be used up) where nobody is.
+              paused={compactBar || sceneCovered || active === false}
+              answer={answerShown}
               hearth={arc.state === "closed"}
               warm={ceremonyPlaying ? 1 : 0}
-              levelUp={levelUpKey}
+              levelUp={levelUp}
               onSkipCeremony={ceremonyPlaying ? () => setCeremonyPlaying(false) : undefined}
               questDone={Boolean(quest?.done)}
             />

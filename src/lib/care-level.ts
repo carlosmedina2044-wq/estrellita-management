@@ -269,3 +269,92 @@ export function careProgress(household: Household, now = new Date()): CareProgre
 export function houseMomentFor(level: CareLevelId): "living-house" | "breathing-loop" {
   return level === "loved" ? "breathing-loop" : "living-house";
 }
+
+/** The window `careSignals` reads: yesterday and the 29 days before it. */
+const CARE_WINDOW_DAYS = 30;
+
+/** Whether each day in the care window was finished, oldest first. */
+export function closedHistory(household: Household, now = new Date()): boolean[] {
+  const yesterday = addDays(now, -1);
+  const floor = historyFloorDate(household);
+  const windowEnd = startOfDay(yesterday);
+  const windowStart = Math.max(startOfDay(addDays(yesterday, -(CARE_WINDOW_DAYS - 1))), startOfDay(floor));
+  const out: boolean[] = [];
+  if (windowStart <= windowEnd) {
+    const cursor = new Date(windowStart);
+    while (startOfDay(cursor) <= windowEnd) {
+      out.push(outcomeForDay(household, cursor) !== "open");
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+  return out;
+}
+
+/**
+ * How many more finished days it takes for `rawCareLevel` to pass `current`,
+ * if every day from here on is finished. 0 means it already would; null means
+ * it cannot happen inside a window (the seasonal chore is what is missing).
+ * Pure, so the thresholds in `rawCareLevel` stay the one source of truth.
+ */
+export function finishedDaysToNextLevel(
+  history: readonly boolean[],
+  current: CareLevelId,
+  seasonalOk: boolean,
+): number | null {
+  const days = [...history];
+  for (let step = 0; step <= CARE_WINDOW_DAYS; step += 1) {
+    if (step > 0) {
+      days.push(true);
+      if (days.length > CARE_WINDOW_DAYS) days.shift();
+    }
+    const closed = days.filter(Boolean).length;
+    const raw = rawCareLevel({
+      windowDays: days.length,
+      closedRatio: days.length ? closed / days.length : 0,
+      seasonalOk,
+      openLast7: 0,
+      openPrev7: 0,
+    });
+    if (careLevelIndex(raw) > careLevelIndex(current)) return step;
+  }
+  return null;
+}
+
+export type NextLookHint =
+  /** `days` is how many more days of finishing the list it takes; 0 means the
+   * next look arrives tomorrow with no more to do today. */
+  | { kind: "days"; days: number }
+  /** Finished days are not what is missing; a seasonal chore is. */
+  | { kind: "seasonal" };
+
+/**
+ * The quiet "how far to the next look" line for Home and the House sheet.
+ * Counts days, not ratios: a person can act on "2 more days", not on 0.74.
+ * `todayClosed` matters because the care window stops at yesterday, so a day
+ * finished today is already counted toward tomorrow.
+ */
+export function nextLookHint(
+  household: Household,
+  now: Date,
+  todayClosed: boolean,
+): NextLookHint | null {
+  const state = currentCareState(household, now);
+  if (careLevelIndex(state.level) >= CARE_LEVELS.length - 1) return null;
+  const signals = careSignals(household, now);
+  const history = closedHistory(household, now);
+  let steps = finishedDaysToNextLevel(history, state.level, signals.seasonalOk);
+  if (steps == null) {
+    if (!signals.seasonalOk && finishedDaysToNextLevel(history, state.level, true) != null) {
+      return { kind: "seasonal" };
+    }
+    return null;
+  }
+  const sinceMs = startOfDay(new Date(`${state.since}T12:00:00`));
+  const daysSince = Math.floor((startOfDay(now) - sinceMs) / 86_400_000);
+  const cooldownLeft = Math.max(0, CARE_CHANGE_COOLDOWN_DAYS - daysSince);
+  steps = Math.max(steps, cooldownLeft);
+  // Today, once finished, is the first of those days; it only counts from
+  // tomorrow, but there is nothing left to do for it.
+  const days = Math.max(0, steps - (todayClosed ? 1 : 0));
+  return { kind: "days", days };
+}

@@ -9,7 +9,7 @@ import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/com
 import type { MessageKey } from "@/i18n";
 import { tPlaybookName } from "@/i18n/content";
 import { useLocale } from "@/i18n/locale-provider";
-import { careProgress, currentCareState } from "@/lib/care-level";
+import { careProgress, currentCareState, nextLookHint } from "@/lib/care-level";
 import { formatLongDate, parseISODate } from "@/lib/dates";
 import { closedDayRun, nextMilestone, type DayArc } from "@/lib/momentum";
 import { weeklyQuest } from "@/lib/quest";
@@ -81,6 +81,7 @@ export function HouseSheet({
         : t("today.runStart");
   const next = nextSeasonal(household, now);
   const ladder = careProgress(household, now);
+  const ladderHint = nextLookHint(household, now, arc.state === "closed");
   const quest = weeklyQuest(household, now);
   const questLine = quest
     ? `${t(`quest.${quest.id}.title` as MessageKey)} · ${t(`quest.${quest.id}.count` as MessageKey, {
@@ -113,7 +114,7 @@ export function HouseSheet({
               <p className="mt-2 ui-caption text-muted-foreground num">{t("today.dayArcAria", { done: arc.done, total: arc.total })}</p>
             </div>
           </div>
-          <CareLadder level={ladder.level} next={ladder.next} fraction={ladder.fraction} />
+          <CareLadder level={ladder.level} next={ladder.next} fraction={ladder.fraction} hint={ladderHint} />
           <KeptRoomsRow household={household} now={now} />
           <NextMilestone item={milestone} />
           <div className="ui-group">

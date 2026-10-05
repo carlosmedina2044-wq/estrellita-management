@@ -7,6 +7,10 @@ export const TIP_LOCK_KEEP_PRIVATE = "lock-keep-private";
 export const TIP_WALK_AFTER_DAY_ONE = "walk-after-day-one";
 export const TIP_HOUSE_REVEAL = "house-reveal";
 export const TIP_YEAR_INTRO = "year-intro";
+/** The Home "scan a label" card was waved away. */
+export const TIP_SCAN_PROMPT = "scan-label-prompt";
+/** At least one appliance was added from a scanned or typed label. */
+export const TIP_SCANNED = "scan-label-used";
 
 const TEACHING_DAYS = 7;
 

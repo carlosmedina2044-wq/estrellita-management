@@ -1030,6 +1030,22 @@ html.keyboard-open [data-slot="sheet-footer"] {
 }
 
 /*
+ * The delivery courier's walk. The path and the turn are motion/react; this is
+ * only the step, a small bob, so it reads as walking and not as sliding.
+ * Stilled with the scene and by the global reduce-motion rule.
+ */
+.scene-delivery[data-paused="true"] * {
+  animation-play-state: paused;
+}
+.delivery-step {
+  animation: delivery-step 420ms ease-in-out infinite;
+}
+@keyframes delivery-step {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px); }
+}
+
+/*
  * Evening look for Today. This must stay a complete mirror of `.dark`, not a
  * subset: any token left out keeps its light-theme value against a dark
  * surface. The first version omitted the status and brand colours, so due /

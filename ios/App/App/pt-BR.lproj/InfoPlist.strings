@@ -1,2 +1,3 @@
+"NSCameraUsageDescription" = "O Cuidala lê a etiqueta do seu eletrodoméstico para calcular quantos anos ele tem. A imagem da câmera nunca é salva nem enviada a lugar nenhum.";
 "NSFaceIDUsageDescription" = "O Cuidala usa o Face ID para proteger sua casa. Só você pode abrir.";
 "NSLocationWhenInUseUsageDescription" = "O Cuidala usa sua localização na configuração para escolher tarefas sazonais e obter a previsão. Seu CEP ou localização é enviado à Apple para buscar coordenadas e o clima. O Cuidala não tem servidor.";

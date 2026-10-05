@@ -16,6 +16,7 @@ import { PortraitStack } from "@/components/today/portrait-stack";
 import { SkyDisc } from "@/components/today/sky-disc";
 import { SceneDetails } from "@/components/today/scene-details";
 import { CareDecorLayer } from "@/components/today/care-decor-layer";
+import { DeliveryLayer } from "@/components/today/delivery-layer";
 import { VisitorLayer } from "@/components/today/visitor-layer";
 import { StatusGlyphs } from "@/components/today/status-glyphs";
 import { WeatherLayer } from "@/components/today/weather-layer";
@@ -26,6 +27,7 @@ import { dutyTopic } from "@/lib/duty-topics";
 import { keptRooms } from "@/lib/kept-rooms";
 import { detailsFor, sceneDetails, type SceneDetailKind } from "@/lib/scene/details";
 import { CARE_DECOR_AT, careDecor, decorFor, type CareDecorKind } from "@/lib/scene/care-decor";
+import { deliveriesAtDoor } from "@/lib/scene/delivery";
 import { visitorFor, type VisitorKind } from "@/lib/scene/visitor";
 import { sceneCssVars } from "@/lib/scene/css";
 import { assignWindowRooms, litWindowCount, windowStates, type WindowState } from "@/lib/scene/window-rooms";
@@ -117,6 +119,9 @@ type PortraitSceneProps = {
    * `from` is the window's own box on screen, so the caller can carry the
    * transition out of that exact window rather than from nowhere. */
   onOpenRoom?: (roomId: string, from: DOMRect) => void;
+  /** Tapping the box a delivery left on the porch: the item that came, or
+   * null when more than one is waiting. Without it the box is just a picture. */
+  onOpenDelivery?: (itemId: string | null) => void;
   /** Stills the detail animations (Today passes its compact-bar state). */
   paused?: boolean;
   /** One chore just committed: the house answers at that room's window (or
@@ -277,6 +282,7 @@ export function PortraitScene({
   onOpenSettings,
   onOpenHouse,
   onOpenRoom,
+  onOpenDelivery,
   paused,
   answer,
   hearth,
@@ -433,6 +439,12 @@ export function PortraitScene({
   });
 
   const door = doorAnchor(kit);
+  // Supplies marked on the way whose day has come: a box on the porch, and on
+  // the day itself a courier who brings it.
+  const deliveries = useMemo(
+    () => deliveriesAtDoor(household.supplyAutomations, minuteNow),
+    [household.supplyAutomations, minuteNow],
+  );
 
   // Under the house's own footprint, a little wider than the house and half
   // as tall, so it reads as light spilling onto the ground.
@@ -729,8 +741,11 @@ export function PortraitScene({
             // eye reaches the house. Rising fast and falling slowly is what
             // makes it read as a light coming on rather than a flash.
             transition={{
-              duration: DUR_AMBIENT,
-              times: [0, 0.22, 1],
+              // About a second and a half in all: quick to come on, slow to
+              // settle. The old 0.6s run was over before a thumb had left the
+              // glass, so the answer was missed on a real phone.
+              duration: DUR_AMBIENT * 2.4,
+              times: [0, 0.2, 1],
               ease: [EASE_OUT, "easeInOut"],
             }}
           />
@@ -783,6 +798,17 @@ export function PortraitScene({
           arrivalKey={levelUp}
         />
         <VisitorLayer visitor={visitor} paused={paused} />
+        <DeliveryLayer
+          deliveries={deliveries}
+          door={{
+            x: (door.x / kit.frame.w) * 100,
+            y: ((door.y + door.h * 0.32) / kit.frame.h) * 100,
+            w: (door.w / kit.frame.w) * 100,
+          }}
+          now={minuteNow}
+          paused={paused}
+          onOpen={onOpenDelivery}
+        />
         <SceneDetails
           details={details}
           paused={paused}
@@ -843,7 +869,7 @@ export function PortraitScene({
         >
           {/* Over the art, so the type grows with Dynamic Type only up to a
               cap: past it the greeting would land on the roof. */}
-          <p className="ui-title text-[min(1.35rem,26px)] font-semibold tracking-tight">{greeting}</p>
+          <p className="ui-display ui-page-title text-[min(1.647rem,32px)]">{greeting}</p>
           <p className="ui-caption mt-0.5 text-[min(0.8rem,14px)] opacity-80">{secondaryLine}</p>
         </motion.div>
         <div className="flex shrink-0 gap-2">

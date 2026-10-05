@@ -1,9 +1,17 @@
 "use client";
 
 import { ChevronRight, Package } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
+import { RollingNumber } from "@/components/today/rolling-number";
+import { DUR_QUICK, EASE_OUT, STAGGER_CHILD } from "@/lib/motion";
+import type { MessageKey } from "@/i18n";
 import { tActive } from "@/i18n";
 import { useLocale } from "@/i18n/locale-provider";
 import { RoomTypeIcon } from "@/components/room-type-icon";
+import { ScanLabelSheet } from "@/components/scan-label-sheet";
+import { shouldOfferScan } from "@/lib/scan/add-from-label";
+import { markTipSeen, TIP_SCAN_PROMPT } from "@/lib/teaching";
+import { useState } from "react";
 import { floorsInOrder, roomsOnFloor, systemRoomList } from "@/lib/home-model";
 import { nodeStatus, type NodeStatus } from "@/lib/node-status";
 import type { Completion, HomeRoom, Household } from "@/lib/types";
@@ -22,6 +30,35 @@ function roomHasExtras(entry: RoomEntry): boolean {
   return entry.status.reorderPending > 0 || entry.nearReplacement;
 }
 
+/** The sentence for `key`, with its one changing number set to roll. Under
+ * Reduce Motion the number component is a plain figure, so nothing else
+ * needs to know. */
+function SentenceWithNumber({
+  id,
+  name,
+  value,
+  params,
+}: {
+  id: MessageKey;
+  name: string;
+  value: number;
+  params?: Record<string, string | number>;
+}) {
+  const { t } = useLocale();
+  const marker = "\u0001";
+  const [before = "", after = ""] = t(id, { ...params, [name]: marker }).split(marker);
+  return (
+    <>
+      {before}
+      <RollingNumber value={value} />
+      {after}
+    </>
+  );
+}
+
+/** Rows past this many arrive with the rest: a long stagger is a delay. */
+const STAGGER_ROWS = 8;
+
 /**
  * Every room in one group, ordered by what is left: overdue first, then the
  * rooms with the most waiting, finished rooms last. Within a tie the home's own
@@ -33,16 +70,21 @@ export function HomeMapView({
   selectedId,
   replacementRooms,
   onSelectRoom,
+  onApply,
 }: {
   household: Household;
   now: Date;
   selectedId?: string | null;
   replacementRooms?: Set<string>;
   onSelectRoom: (roomId: string) => void;
+  /** Present on the real Home: lets the one-time "scan a label" card save. */
+  onApply?: (build: (current: Household) => Household) => void;
   /** Kept so callers need not change; the list is ordered by need, not by hand. */
   onReorder?: (floorId: string | null, orderedIds: string[]) => void;
 }) {
   const { t } = useLocale();
+  const [scanOpen, setScanOpen] = useState(false);
+  const offerScan = Boolean(onApply) && shouldOfferScan(household);
   const seen = new Set<string>();
   const ordered: HomeRoom[] = [];
   const push = (room: HomeRoom) => {
@@ -77,28 +119,53 @@ export function HomeMapView({
         <h2 className="ui-heading ui-card font-semibold">{t("map.rooms")}</h2>
         {entries.length > 0 ? (
           <p className="ui-caption num text-muted-foreground">
-            {done === entries.length
-              ? t("map.roomsEvery")
-              : t("map.roomsAllDone", { done, total: entries.length })}
+            {done === entries.length ? (
+              t("map.roomsEvery")
+            ) : (
+              <SentenceWithNumber id="map.roomsAllDone" name="done" value={done} params={{ total: entries.length }} />
+            )}
           </p>
         ) : null}
       </div>
+      {offerScan && onApply ? (
+        <div className="mb-3 rounded-[var(--r-container)] bg-secondary px-4 py-3">
+          <p className="ui-body text-foreground">{t("scan.cardBody")}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4">
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center ui-body font-semibold text-primary"
+              onClick={() => setScanOpen(true)}
+            >
+              {t("scan.cardScan")}
+            </button>
+            <button
+              type="button"
+              className="inline-flex min-h-11 items-center ui-body text-muted-foreground"
+              onClick={() => onApply((current) => markTipSeen(current, TIP_SCAN_PROMPT))}
+            >
+              {t("scan.cardDismiss")}
+            </button>
+          </div>
+        </div>
+      ) : null}
       {entries.length === 0 ? (
         <p className="rounded-[var(--r-container)] bg-card px-4 py-6 text-center ui-body text-muted-foreground">
           {t("map.noRoomsOnFloor")}
         </p>
       ) : (
         <div className="ui-group">
-          {entries.map((entry) => (
+          {entries.map((entry, index) => (
             <RoomRow
               key={entry.room.id}
               entry={entry}
+              index={index}
               selected={selectedId === entry.room.id}
               onSelect={() => onSelectRoom(entry.room.id)}
             />
           ))}
         </div>
       )}
+      {onApply ? <ScanLabelSheet open={scanOpen} onOpenChange={setScanOpen} household={household} onApply={onApply} /> : null}
     </section>
   );
 }
@@ -136,10 +203,12 @@ export function roomCaption(
 
 function RoomRow({
   entry,
+  index,
   selected,
   onSelect,
 }: {
   entry: RoomEntry;
+  index: number;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -147,10 +216,16 @@ function RoomRow({
   const { room, status, nearReplacement, left } = entry;
   const finished = left === 0 && !roomHasExtras(entry);
   const late = status.overdue > 0;
+  // Once per visit (the shell remounts the list when the tab is opened): a
+  // short rise, in order, then still. Skipped entirely under Reduce Motion.
+  const reduce = useReducedMotion();
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onSelect}
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: DUR_QUICK, ease: EASE_OUT, delay: Math.min(index, STAGGER_ROWS) * STAGGER_CHILD * 0.6 }}
       className={cn(
         "ui-group-row flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-2 text-left transition-colors active:bg-foreground/6",
         selected && "bg-foreground/5",
@@ -182,9 +257,15 @@ function RoomRow({
           late ? "text-overdue" : !finished && "text-foreground",
         )}
       >
-        {finished ? t("map.roomAllDone") : left > 0 ? t("map.leftCount", { count: left }) : ""}
+        {finished ? (
+          t("map.roomAllDone")
+        ) : left > 0 ? (
+          <SentenceWithNumber id="map.leftCount" name="count" value={left} />
+        ) : (
+          ""
+        )}
       </span>
       <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" aria-hidden />
-    </button>
+    </motion.button>
   );
 }

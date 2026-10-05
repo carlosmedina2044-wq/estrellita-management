@@ -59,6 +59,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Cuidala reads the sticker on your appliance to work out how old it is. The camera image is never saved or sent anywhere.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Cuidala uses Face ID to lock your home’s chores and restock list so only you can open them.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

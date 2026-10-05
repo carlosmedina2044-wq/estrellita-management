@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { addDays, toISODate } from "@/lib/dates";
 import { withHouseholdDefaults } from "@/lib/household-defaults";
 import {
+  finishedDaysToNextLevel,
   careProgress,
   careSignals,
   houseMomentFor,
@@ -205,4 +206,29 @@ test("careProgress names the next level and measures the climb", () => {
   assert.equal(done.level, "loved");
   assert.equal(done.next, null);
   assert.equal(done.fraction, 1);
+});
+
+test("finishedDaysToNextLevel counts the days a young home still needs", () => {
+  // Three finished days of history: under a week, so the level is pinned at
+  // settling-in until seven days exist.
+  assert.equal(finishedDaysToNextLevel([true, true, true], "settling-in", true), 4);
+});
+
+test("finishedDaysToNextLevel counts finished days to climb a ratio", () => {
+  // 30 days with the six oldest open: 24 of 30 is 0.8 (cared-for). Each new
+  // finished day pushes one open day out of the window, so loved (0.9, 27 of
+  // 30) is three finished days away.
+  const history = [...Array(6).fill(false), ...Array(24).fill(true)];
+  assert.equal(finishedDaysToNextLevel(history, "cared-for", true), 3);
+});
+
+test("finishedDaysToNextLevel is 0 when the level is only waiting on the cooldown", () => {
+  const history = Array(30).fill(true);
+  assert.equal(finishedDaysToNextLevel(history, "kept", true), 0);
+});
+
+test("finishedDaysToNextLevel says null when only a seasonal chore is missing", () => {
+  const history = Array(30).fill(true);
+  assert.equal(finishedDaysToNextLevel(history, "well-kept", false), null);
+  assert.equal(finishedDaysToNextLevel(history, "well-kept", true), 0);
 });

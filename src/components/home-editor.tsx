@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/i18n/locale-provider";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ScanLabelSheet } from "@/components/scan-label-sheet";
 import {
   INLINE_INPUT,
+  NavRow,
   SelectRow,
   SettingsGroup,
   SettingsRow,
@@ -64,6 +66,7 @@ export function HomeEditor({
   const [assetName, setAssetName] = useState("");
   const [assetInstall, setAssetInstall] = useState("");
   const [assetWarranty, setAssetWarranty] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
   const roomHints = suggestionsForRoom(roomType);
   const assetHints = suggestionsForAsset(assetType);
   const changeTimer = useRef<number | null>(null);
@@ -368,6 +371,7 @@ export function HomeEditor({
         }
       >
         <SettingsGroup>
+          <NavRow title={t("scan.title")} help={t("scan.rowHelp")} onClick={() => setScanOpen(true)} />
           <SelectRow
             label={t("home.roomPlaceholder")}
             value={assetRoom}
@@ -466,6 +470,14 @@ export function HomeEditor({
           </SettingsRow>
         </SettingsGroup>
       </SettingsSection>
+
+      <ScanLabelSheet
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        household={household}
+        roomId={assetRoom || undefined}
+        onApply={(build) => flushChange(build)}
+      />
 
       {household.assets.length > 0 ? (
         <SettingsSection title={t("home.assets")}>

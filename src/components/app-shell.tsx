@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as
 import { Capacitor } from "@capacitor/core";
 import { dayOutcome } from "@/lib/momentum";
 import { Dialog } from "@capacitor/dialog";
-import { Home, Package, Settings, Sun } from "lucide-react";
+import { Home, Package, Sun } from "lucide-react";
 import { BrandMark } from "@/components/brand-logo";
-import { HomeHouse } from "@/components/home-house";
-import { BackTitleContext, PageHeader } from "@/components/page-header";
+import { HomeScene } from "@/components/home-scene";
+import { BackTitleContext } from "@/components/page-header";
 import { BackupPanel } from "@/components/backup-panel";
 import { BudgetView } from "@/components/budget-view";
 import { CleanerVisit } from "@/components/cleaner-visit";
@@ -33,6 +33,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useHousehold } from "@/hooks/use-household";
+import type { MessageKey } from "@/i18n";
+import { toISODate } from "@/lib/dates";
+import { useCareRise } from "@/hooks/use-care-rise";
+import { useHouseAnswer } from "@/hooks/use-house-answer";
 import { useNow } from "@/hooks/use-now";
 import { useLocale } from "@/i18n/locale-provider";
 import { digestPayload } from "@/lib/digest";
@@ -137,6 +141,15 @@ export function AppShell() {
   // the two "is this tab showing" conditions rather than reusing the ones
   // further down.
   const homeFirstReveal = useFirstReveal("home", stack.length === 0 && rootTab === "home");
+  const homeShowing = stack.length === 0 && rootTab === "home";
+  // The rooms list arrives row by row once per visit to the tab, not once per
+  // launch: remounting it when the tab comes back is what replays the entrance.
+  const [homeVisit, setHomeVisit] = useState(0);
+  const [wasHomeActive, setWasHomeActive] = useState(homeShowing);
+  if (homeShowing !== wasHomeActive) {
+    setWasHomeActive(homeShowing);
+    if (homeShowing) setHomeVisit((count) => count + 1);
+  }
   const restockFirstReveal = useFirstReveal("restock", stack.length === 0 && rootTab === "restock");
   const [leavingPush, setLeavingPush] = useState<AppNavigateTarget | null>(null);
   const leaveTimerRef = useRef<number | null>(null);
@@ -367,6 +380,18 @@ export function AppShell() {
   }
   const now = useNow();
   const nowMs = now.getTime();
+  // The house answers a finished chore and a new care level once, from here,
+  // whichever screen caused it; Today and Home each draw the result.
+  const houseAnswer = useHouseAnswer(household, household.momentum.enabled, now);
+  const careRise = useCareRise(household.momentum.care, toISODate(now));
+  // Today says it with its care card; Home has no card, so one calm line.
+  const riseToasted = useRef(0);
+  useEffect(() => {
+    if (careRise.key === 0 || careRise.key === riseToasted.current) return;
+    if (rootTab !== "home" || stack.length > 0) return;
+    riseToasted.current = careRise.key;
+    toast(t(`care.rise.${careRise.level}` as MessageKey));
+  }, [careRise.key, careRise.level, rootTab, stack.length, t]);
   // Once a day, note that the house was opened. On device only; it is the
   // owner's own "days you opened the house" number on the year view.
   useEffect(() => {
@@ -813,6 +838,14 @@ export function AppShell() {
     );
   }
 
+  // The box on the porch is the way into "it came": the one item opens its
+  // arrived flow, several open the on-the-way list.
+  const openDelivery = (itemId: string | null) =>
+    navigate(
+      itemId
+        ? { tab: "restock", itemId, action: "receive", section: "ordered" }
+        : { tab: "restock", section: "ordered" },
+    );
   const weather = weatherCaption(forecast, household.location);
   const weatherLoading = Boolean(
     household.onboarded &&
@@ -921,6 +954,9 @@ export function AppShell() {
             onFocusHandled={handleFocusHandled}
             onChangeTree={(next) => updateTree(() => next)}
             onUpdateTree={updateTree}
+            houseAnswer={houseAnswer}
+            levelUp={careRise.key}
+            active={todayActive}
           />
         </div>
         <div
@@ -932,24 +968,22 @@ export function AppShell() {
             tabPaneRefs.current.home = node;
           }}
         >
-          <HomeHouse household={household} now={now} />
-          <div
-            className="relative z-10 -mx-4 -mt-7 flex flex-col gap-4 rounded-t-[28px] bg-background px-4 pt-5"
+          <HomeScene
+            household={household}
+            forecast={forecast}
+            now={now}
+            summary={summary}
+            active={homeActive}
+            paused={roomOpen !== null}
+            answer={houseAnswer}
+            levelUp={careRise.key}
+            onOpenDelivery={openDelivery}
+            onOpenSettings={() => navigate({ tab: "settings" })}
+            onOpenRoom={(roomId) => {
+              setRoomReturnTab(null);
+              setRoomOpen(roomId);
+            }}
           >
-            <PageHeader
-              title={household.householdName}
-              subtitle={<HomeStatusLine summary={summary} />}
-              action={
-                <button
-                  type="button"
-                  aria-label={t("common.settings")}
-                  onClick={() => navigate({ tab: "settings" })}
-                  className="flex size-11 items-center justify-center rounded-full bg-secondary text-muted-foreground ui-press"
-                >
-                  <Settings className="size-5" />
-                </button>
-              }
-            />
             <ForecastCard
               household={household}
               onNavigate={navigate}
@@ -960,9 +994,11 @@ export function AppShell() {
               }}
             />
             <HomeMapView
+              key={homeVisit}
               household={household}
               now={now}
               replacementRooms={nearReplacement}
+              onApply={(build) => updateTree(build)}
               onSelectRoom={(roomId) => {
                 setRoomReturnTab(null);
                 setRoomOpen(roomId);
@@ -993,7 +1029,7 @@ export function AppShell() {
               onChangeTree={(next) => updateTree(() => next)}
               {...restockHandlers}
             />
-          </div>
+          </HomeScene>
         </div>
         <div
           hidden={!restockActive}
@@ -1295,32 +1331,5 @@ function NavButton({
       </span>
       {label}
     </button>
-  );
-}
-
-function HomeStatusLine({ summary }: { summary: ReturnType<typeof homeSummary> | null }) {
-  const { t } = useLocale();
-  if (!summary || (summary.total === 0 && summary.reorderPending === 0)) {
-    return <span>{t("home.allCaughtUp")}</span>;
-  }
-  const parts: Array<{ key: string; text: string; urgent?: boolean }> = [];
-  if (summary.overdue) {
-    parts.push({ key: "overdue", text: t("home.overdueCount", { count: summary.overdue }), urgent: true });
-  }
-  if (summary.dueSoon) {
-    parts.push({ key: "soon", text: t("home.dueSoonCount", { count: summary.dueSoon }) });
-  }
-  if (summary.reorderPending) {
-    parts.push({ key: "reorder", text: t("home.toReorderCount", { count: summary.reorderPending }) });
-  }
-  return (
-    <span>
-      {parts.map((part, index) => (
-        <span key={part.key}>
-          {index > 0 ? " · " : null}
-          <span className={part.urgent ? "font-semibold text-foreground" : undefined}>{part.text}</span>
-        </span>
-      ))}
-    </span>
   );
 }

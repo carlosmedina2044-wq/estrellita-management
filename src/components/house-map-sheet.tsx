@@ -8,6 +8,7 @@ import { DutyDetailSheet } from "@/components/duty-detail-sheet";
 import { DutyForm } from "@/components/duty-form";
 import { DutyRow } from "@/components/duty-row";
 import { Illustration } from "@/components/illustration";
+import { ScanLabelSheet } from "@/components/scan-label-sheet";
 import { roomCaption } from "@/components/home-map-view";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -101,6 +102,7 @@ export function HouseMapSheet({
   const [detail, setDetail] = useState<Duty | null>(null);
   const [creating, setCreating] = useState(false);
   const [formRoom, setFormRoom] = useState<string | null>(null);
+  const [scanRoom, setScanRoom] = useState<string | null>(null);
   const [assetName, setAssetName] = useState("");
   const [assetType, setAssetType] = useState<AssetType>("other");
   const createGuard = useSheetOpenGuard();
@@ -337,6 +339,19 @@ export function HouseMapSheet({
                   )}
                   {onChangeTree ? (
                     <div className="mt-2 grid gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-auto min-h-11 w-full whitespace-normal py-2.5"
+                        onClick={() =>
+                          createGuard.tryOpen(() => {
+                            setScanRoom(selected || null);
+                            onOpenChange(false);
+                          })
+                        }
+                      >
+                        {t("scan.title")}
+                      </Button>
                       <Select value={assetType} onValueChange={(value) => setAssetType(value as AssetType)}>
                         <SelectTrigger className="h-11 w-full">
                           <SelectValue />
@@ -418,6 +433,19 @@ export function HouseMapSheet({
         {...restock}
       />
 
+      <ScanLabelSheet
+        open={scanRoom !== null}
+        onOpenChange={(openSheet) => {
+          if (!openSheet) {
+            createGuard.markClosed();
+            setScanRoom(null);
+          }
+        }}
+        household={household}
+        roomId={scanRoom ?? undefined}
+        onApply={(build) => onChangeTree?.(build(household))}
+      />
+
       <DutyDetailSheet
         open={Boolean(detail)}
         duty={detail}
@@ -426,12 +454,16 @@ export function HouseMapSheet({
         onOpenChange={(openSheet) => {
           if (!openSheet) setDetail(null);
         }}
+        // `onToggle` takes the chore's current state: false completes it, true
+        // undoes it. These two were crossed, so "Complete" in the detail sheet
+        // undid a chore that was not done and "Undo" finished it.
         onComplete={(target) => {
-          onToggle(target, true);
+          void hapticComplete();
+          onToggle(target, false);
           setDetail(null);
         }}
         onUndo={(target) => {
-          onToggle(target, false);
+          onToggle(target, true);
           setDetail(null);
         }}
         onSnooze={(target) => {
