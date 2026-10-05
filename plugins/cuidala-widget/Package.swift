@@ -26,7 +26,8 @@ let package = Package(
                 .enableExperimentalFeature("StrictConcurrency")
             ],
             linkerSettings: [
-                .linkedFramework("WidgetKit")
+                .linkedFramework("WidgetKit"),
+                .linkedFramework("ActivityKit")
             ]
         )
     ]

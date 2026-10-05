@@ -305,7 +305,7 @@ function ScanBody({
     } else if (read.kind === "receipt") {
       body = <ReceiptCard {...cardProps} read={read} />;
     } else if (read.kind === "filter") {
-      body = <FilterCard {...cardProps} read={read} />;
+      body = <FilterCard {...cardProps} read={read} barcode={capture.barcodes[0]} />;
     } else if (read.kind === "product") {
       body = <ProductCard {...cardProps} read={read} onNewSupply={onNewSupply} />;
     } else {
@@ -472,7 +472,8 @@ function ScanBody({
 
   return (
     <>
-      <SheetHeader className="shrink-0 pb-2">
+      {/* The title is spoken, not shown, but the strip stays: it is the room the close button sits in, so scrolled content never passes under it. */}
+      <SheetHeader className="min-h-12 shrink-0 pb-2">
         <SheetTitle className="sr-only">{title}</SheetTitle>
       </SheetHeader>
       <div data-keyboard-scroll className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 [&>*]:shrink-0">

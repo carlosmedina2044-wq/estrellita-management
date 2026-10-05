@@ -25,6 +25,9 @@ import { PortraitScene } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { GetAheadCard } from "@/components/today/get-ahead-card";
 import { QuestCard } from "@/components/today/quest-card";
+import { PowerHourEntry } from "@/components/power-hour";
+import type { PowerHourPlan } from "@/lib/power-hour";
+import { TellCuidala } from "@/components/tell-cuidala";
 import { HouseSheet } from "@/components/today/house-sheet";
 import { ShareCardSheet } from "@/components/today/share-card-sheet";
 import { TodayHero } from "@/components/today/today-hero";
@@ -119,6 +122,7 @@ export function TodayView({
   houseAnswer,
   levelUp = 0,
   active,
+  powerHour,
   ...restockHandlers
 }: {
   household: Household;
@@ -139,6 +143,8 @@ export function TodayView({
   levelUp?: number;
   /** This tab is the one showing. A hidden Today consumes answers unseen. */
   active?: boolean;
+  /** The quiet "Start a power hour" row; absent when it should not show. */
+  powerHour?: { plan: PowerHourPlan; onOpen: () => void };
   onStartCleanerVisit: () => void;
   onOpenHome?: () => void;
   onOpenSettings?: () => void;
@@ -1198,6 +1204,10 @@ export function TodayView({
       </motion.div>
       ) : null}
 
+      {powerHour && momentumOn && scope === "daily" && !viewingCalendar && arc.state === "open" ? (
+        <PowerHourEntry plan={powerHour.plan} onOpen={powerHour.onOpen} />
+      ) : null}
+
       <div className="flex flex-wrap items-center justify-between gap-2">
         <SegmentedControl
           label={t("today.scopeList")}
@@ -1519,6 +1529,16 @@ export function TodayView({
         </button>
         {moreOptionsOpen ? (
           <div className="grid gap-2 px-4 pb-4">
+            {/* Shows only when Apple Intelligence is on; renders nothing otherwise. */}
+            <TellCuidala
+              household={household}
+              onApply={(build) => {
+                if (onUpdateTree) onUpdateTree(build);
+                else onChangeTree?.(build(household));
+              }}
+              onComplete={(dutyId) => onComplete(dutyId)}
+              pill
+            />
             <Button variant="secondary" className="h-12 rounded-full" onClick={share}>
               <Share2 className="size-4" />
               {t("today.shareList")}

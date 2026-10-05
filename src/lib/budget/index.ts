@@ -3,7 +3,6 @@ export {
   applyLogPurchase,
   applyReplaceAsset,
   applySetBigTicketThreshold,
-  applySetHomeValue,
   applySetMaintenanceFund,
   parseBudgetMoney,
   replacementDueDate,

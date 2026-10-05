@@ -20,12 +20,12 @@ export function SmartReadingSection() {
   return (
     <SettingsSection>
       <SettingsGroup>
-        <SettingsRow className="flex items-center justify-between gap-3">
+        <SettingsRow className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           <RowText
             title={t("ai.settingsTitle")}
             help={state === "available" ? t("ai.settingsOnHelp") : undefined}
           />
-          <span className="ui-body text-muted-foreground">{value}</span>
+          <span className="ml-auto ui-body text-muted-foreground">{value}</span>
         </SettingsRow>
       </SettingsGroup>
       {state !== "available" ? <AiInviteCard context="settings" /> : null}

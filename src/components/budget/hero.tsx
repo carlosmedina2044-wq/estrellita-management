@@ -38,9 +38,6 @@ export function FundHero({
         >
           {t("budget.alreadySaved")}
         </button>
-        {health.onePercentCopy ? (
-          <p className="mt-1 ui-caption leading-5 text-muted-foreground">{health.onePercentCopy}</p>
-        ) : null}
       </section>
     );
   }
@@ -67,9 +64,6 @@ export function FundHero({
       <p className="mt-3 text-sm leading-5 text-muted-foreground">
         {t("budget.suggestedPace", { amount: formatMoney(health.suggestedMonthly) })}
       </p>
-      {health.onePercentCopy ? (
-        <p className="mt-2 ui-caption leading-5 text-muted-foreground">{health.onePercentCopy}</p>
-      ) : null}
       <button type="button" className="mt-3 inline-flex min-h-11 items-center ui-body font-medium text-primary" onClick={onEditFund}>
         {t("budget.updateBalance")}
       </button>

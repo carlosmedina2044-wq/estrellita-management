@@ -39,6 +39,8 @@ import type { MessageKey } from "@/i18n";
 import { toISODate } from "@/lib/dates";
 import { useCareRise } from "@/hooks/use-care-rise";
 import { useHouseAnswer } from "@/hooks/use-house-answer";
+import { usePowerHour } from "@/hooks/use-power-hour";
+import { PowerHourOverlay } from "@/components/power-hour";
 import { useNow } from "@/hooks/use-now";
 import { useLocale } from "@/i18n/locale-provider";
 import { digestPayload } from "@/lib/digest";
@@ -385,6 +387,17 @@ export function AppShell() {
   // The house answers a finished chore and a new care level once, from here,
   // whichever screen caused it; Today and Home each draw the result.
   const houseAnswer = useHouseAnswer(household, household.momentum.enabled, now);
+  // Power hour: a timed run at today's list. Held here so a deep link or a
+  // relaunch can open it from any tab, and so the shell's own completion is
+  // the one that answers (house window, streak).
+  const [powerHourAsk, setPowerHourAsk] = useState(0);
+  const powerHour = usePowerHour({
+    household,
+    now,
+    enabled: hydrated && sessionUnlocked && !pendingUnlock && onboarded && household.mode === "owner",
+    onComplete: completeDuty,
+    request: powerHourAsk,
+  });
   const careRise = useCareRise(household.momentum.care, toISODate(now));
   // Today says it with its care card; Home has no card, so one calm line.
   const riseToasted = useRef(0);
@@ -647,6 +660,10 @@ export function AppShell() {
         const route = parseCuidalaUrl(url);
         if (!route) return;
         if (route.kind === "today") navigate({ tab: "today" });
+        if (route.kind === "power-hour") {
+          navigate({ tab: "today" });
+          setPowerHourAsk((count) => count + 1);
+        }
         if (route.kind === "scan") navigate({ tab: "home", scan: true });
         if (route.kind === "room") navigate({ tab: "home", roomId: route.id });
         if (route.kind === "appliance") {
@@ -927,6 +944,7 @@ export function AppShell() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <PowerHourOverlay hour={powerHour} household={household} />
       <main className="app-shell-main relative min-w-0">
         <div
           ref={rootsLayerRef}
@@ -971,6 +989,11 @@ export function AppShell() {
             houseAnswer={houseAnswer}
             levelUp={careRise.key}
             active={todayActive}
+            powerHour={
+              onboarded && household.mode === "owner"
+                ? { plan: powerHour.defaultPlan, onOpen: powerHour.openChooser }
+                : undefined
+            }
           />
         </div>
         <div
@@ -992,6 +1015,7 @@ export function AppShell() {
             answer={houseAnswer}
             levelUp={careRise.key}
             onOpenDelivery={openDelivery}
+            onSeeYear={() => navigate({ tab: "year" })}
             onOpenSettings={() => navigate({ tab: "settings" })}
             onOpenRoom={(roomId) => {
               setRoomReturnTab(null);

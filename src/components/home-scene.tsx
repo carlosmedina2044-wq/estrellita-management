@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useEffect, type ReactNode } from "react";
 import { useTheme } from "next-themes";
 import { Settings } from "lucide-react";
 import { SceneBoundary } from "@/components/scene-boundary";
+import { HouseSheet } from "@/components/today/house-sheet";
 import { PortraitScene } from "@/components/today/portrait-scene";
 import { NextLookNote } from "@/components/today/next-look";
 import { WindowZoomLayer, type WindowZoom } from "@/components/today/window-zoom";
@@ -15,6 +16,7 @@ import { careProgress, nextLookHint } from "@/lib/care-level";
 import { CEREMONY_MS } from "@/lib/motion";
 import { dayArc } from "@/lib/momentum";
 import { hapticClose, hapticPress } from "@/lib/native/haptics";
+import { requestTilt } from "@/lib/native/orientation";
 import type { HouseAnswer } from "@/lib/scene/house-answer";
 import type { homeSummary } from "@/lib/node-status";
 import type { Household } from "@/lib/types";
@@ -57,6 +59,7 @@ export function HomeScene({
   onOpenSettings,
   onOpenRoom,
   onOpenDelivery,
+  onSeeYear,
   answer = null,
   levelUp = 0,
   children,
@@ -73,6 +76,8 @@ export function HomeScene({
   onOpenRoom: (roomId: string) => void;
   /** Tapping the box left on the porch: the item that came, or null for several. */
   onOpenDelivery?: (itemId: string | null) => void;
+  /** "See the year" inside the house sheet. */
+  onSeeYear?: () => void;
   /** The house's latest answer to a finished chore, from any screen. */
   answer?: HouseAnswer | null;
   /** Non-zero while the house blooms for a care level it just reached. */
@@ -113,6 +118,10 @@ export function HomeScene({
     [momentumOn, household, now, arc.state],
   );
   const careNext = useMemo(() => (momentumOn ? careProgress(household, now) : null), [momentumOn, household, now]);
+
+  // Tapping the house opens the same sheet Today opens.
+  const [houseOpen, setHouseOpen] = useState(false);
+  const tiltAsked = useRef(false);
 
   const [windowZoom, setWindowZoom] = useState<WindowZoom | null>(null);
   const zoomKey = useRef(0);
@@ -156,7 +165,8 @@ export function HomeScene({
             aria-label={t("common.settings")}
             tabIndex={compactBar ? 0 : -1}
             onClick={onOpenSettings}
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-secondary"
+            // Fixed 44pt: a rem size grew to ~90pt at accessibility text sizes and rode up into the status bar.
+            className="flex size-[44px] shrink-0 items-center justify-center rounded-full bg-secondary"
           >
             <Settings className="size-5" />
           </button>
@@ -181,6 +191,16 @@ export function HomeScene({
             greeting={household.householdName}
             secondaryLine={statusText}
             onOpenSettings={onOpenSettings}
+            onOpenHouse={() => {
+              // Same as Today: WebKit hands out no tilt events until this is
+              // asked for from inside a tap. Declined just means no lean.
+              if (!tiltAsked.current) {
+                tiltAsked.current = true;
+                void requestTilt();
+              }
+              void hapticPress();
+              setHouseOpen(true);
+            }}
             onOpenRoom={(roomId, from) => {
               void hapticPress();
               zoomKey.current += 1;
@@ -190,7 +210,7 @@ export function HomeScene({
             onOpenDelivery={onOpenDelivery}
             answer={answerShown}
             levelUp={levelUp}
-            paused={!active || paused || compactBar}
+            paused={!active || paused || compactBar || houseOpen}
             hearth={arc.state === "closed"}
           />
         </SceneBoundary>
@@ -206,6 +226,17 @@ export function HomeScene({
         ) : null}
         {children}
       </div>
+      <HouseSheet
+        open={houseOpen}
+        onOpenChange={setHouseOpen}
+        household={household}
+        now={now}
+        arc={arc}
+        onSeeYear={() => {
+          setHouseOpen(false);
+          if (onSeeYear) window.setTimeout(onSeeYear, 350);
+        }}
+      />
     </div>
   );
 }

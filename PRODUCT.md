@@ -17,7 +17,7 @@ Cuidala (repo folder `estrellita-management`, bundle id `com.cuidala.app`) helps
 a household keep up with home maintenance: chores by room, seasonal jobs,
 restock reminders, and a forecast of repair costs. Success is a person finishing
 the day's short list and trusting that nothing slipped, without having to think
-about it. Goal as of 2026-09: a first App Store submission, v1.0, free, US.
+about it. Goal as of 2026-09: a first App Store submission, v1.0, $3.99 paid download, US.
 
 ## Positioning
 - **Private and on-device.** No account, no Cuidala server. Data stays on the

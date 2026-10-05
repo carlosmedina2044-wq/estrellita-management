@@ -457,7 +457,6 @@ export type Household = {
   purchases: Purchase[];
   visits: Visit[];
   maintenanceFund?: MaintenanceFund;
-  homeValueEstimate?: number;
   bigTicketThreshold?: number;
   supplyAutomations: SupplyAutomation[];
   savedRetailerLinks: SavedRetailerLink[];

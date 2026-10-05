@@ -1,7 +1,6 @@
 import SwiftUI
 import WidgetKit
 
-@main
 struct CuidalaWidget: Widget {
     let kind = "CuidalaToday"
 

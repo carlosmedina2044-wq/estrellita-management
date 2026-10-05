@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { useAiAvailability } from "@/hooks/use-ai-availability";
 import { useLocale } from "@/i18n/locale-provider";
 import { formatMoney } from "@/lib/forecast";
@@ -26,12 +27,15 @@ export function TellCuidala({
   household,
   onApply,
   onComplete,
+  pill = false,
 }: {
   household: Household;
   /** Saves by building the next household from the latest one. */
   onApply: (build: (current: Household) => Household) => void;
   /** The app's normal "mark done", so the house answers. */
   onComplete: (dutyId: string) => void;
+  /** Pill shape, to sit among the round buttons in Today's More. */
+  pill?: boolean;
 }) {
   const { t } = useLocale();
   const { state } = useAiAvailability();
@@ -41,14 +45,17 @@ export function TellCuidala({
     <>
       <button
         type="button"
-        className="inline-flex min-h-11 w-full items-center gap-2.5 rounded-[var(--r-container)] bg-secondary px-4 ui-body font-medium text-primary"
+        className={cn(
+          "inline-flex min-h-11 w-full items-center gap-2.5 py-2 text-left ui-body font-medium text-primary",
+          pill ? "justify-center rounded-full bg-secondary px-4 min-h-12" : "rounded-[var(--r-container)] bg-secondary px-4",
+        )}
         onClick={() => {
           void hapticPress();
           setOpen(true);
         }}
       >
         <MessageSquareText className="size-5 shrink-0" aria-hidden />
-        {t("tell.entry")}
+        <span className="min-w-0">{t("tell.entry")}</span>
       </button>
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="bottom" size="form" className="gap-0 rounded-t-3xl pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -168,17 +175,17 @@ function TellBody({
       <div className="flex shrink-0 flex-col gap-2 px-4 pt-2">
         {phase === "review" ? (
           <>
-            <Button type="button" className="h-12 rounded-full ui-body font-semibold" disabled={count === 0} onClick={add}>
+            <Button type="button" className="h-auto min-h-12 whitespace-normal rounded-full py-3 ui-body font-semibold" disabled={count === 0} onClick={add}>
               {count > 0 ? t("tell.addCount", { count }) : t("tell.add")}
             </Button>
-            <Button type="button" variant="ghost" className="h-11" onClick={() => setPhase("ask")}>
+            <Button type="button" variant="ghost" className="h-auto min-h-11 whitespace-normal py-2" onClick={() => setPhase("ask")}>
               {t("tell.change")}
             </Button>
           </>
         ) : (
           <Button
             type="button"
-            className="h-12 rounded-full ui-body font-semibold"
+            className="h-auto min-h-12 whitespace-normal rounded-full py-3 ui-body font-semibold"
             disabled={!text.trim() || phase === "thinking"}
             onClick={() => void submit()}
           >

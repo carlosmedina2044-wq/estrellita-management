@@ -3,18 +3,28 @@ import { isNative } from "@/lib/native/platform";
 import type { Household } from "@/lib/types";
 import { widgetSnapshotFor, type WidgetSnapshot } from "@/lib/widget-snapshot";
 
-type NativeWidget = {
+export type NativeWidget = {
   updateSnapshot(options: WidgetSnapshot): Promise<void>;
   clearSnapshot(): Promise<void>;
+  startPowerHour(options: {
+    title: string;
+    total: number;
+    left: number;
+    nextTitle?: string;
+    endsAtMs: number;
+  }): Promise<{ started: boolean; reason?: "disabled" | "unsupported" | "failed" }>;
+  updatePowerHour(options: { left: number; nextTitle?: string; endsAtMs?: number }): Promise<void>;
+  endPowerHour(options: { finished: boolean }): Promise<void>;
 };
 
-const plugin = registerPlugin<NativeWidget>("CuidalaWidget");
+/** One registration of the plugin, shared with `power-hour.ts`. */
+export const cuidalaWidgetPlugin = registerPlugin<NativeWidget>("CuidalaWidget");
 
 /** Writes today's due/done glance to the App Group. No-op off native. Never sends the vault key. */
 export async function syncWidgetSnapshot(household: Household, now = new Date()): Promise<void> {
   if (!isNative()) return;
   try {
-    await plugin.updateSnapshot(widgetSnapshotFor(household, now));
+    await cuidalaWidgetPlugin.updateSnapshot(widgetSnapshotFor(household, now));
   } catch {
     // Missing App Group or unsigned build must never break persist.
   }
@@ -24,7 +34,7 @@ export async function syncWidgetSnapshot(household: Household, now = new Date())
 export async function clearWidgetSnapshot(): Promise<void> {
   if (!isNative()) return;
   try {
-    await plugin.clearSnapshot();
+    await cuidalaWidgetPlugin.clearSnapshot();
   } catch {
     // Same as sync — wipe must still succeed if the extension is not installed yet.
   }

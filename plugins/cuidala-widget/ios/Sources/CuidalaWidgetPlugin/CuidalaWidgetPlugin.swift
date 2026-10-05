@@ -1,6 +1,7 @@
 import Foundation
 import Capacitor
 import WidgetKit
+import ActivityKit
 
 /// Writes the lock-screen glance to App Group UserDefaults.
 /// The vault key stays in Keychain ThisDeviceOnly + biometry ACL and is never copied here.
@@ -10,7 +11,10 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
     public let jsName = "CuidalaWidget"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "updateSnapshot", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "clearSnapshot", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "clearSnapshot", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "startPowerHour", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "updatePowerHour", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "endPowerHour", returnType: CAPPluginReturnPromise)
     ]
 
     private static let suiteName = "group.com.cuidala.app"
@@ -94,6 +98,94 @@ public class CuidalaWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         }
         WidgetCenter.shared.reloadAllTimelines()
         call.resolve()
+    }
+
+    // MARK: - Power hour Live Activity
+
+    /// Once the app is killed nothing can update the activity, so it goes stale
+    /// five minutes after the timer ends and the system removes it.
+    private static let staleGrace: TimeInterval = 5 * 60
+
+    @objc func startPowerHour(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else {
+            call.resolve(["started": false, "reason": "unsupported"])
+            return
+        }
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            call.resolve(["started": false, "reason": "disabled"])
+            return
+        }
+        guard let title = call.getString("title"), let total = call.getInt("total"),
+              let left = call.getInt("left"), let endsAtMs = call.getDouble("endsAtMs") else {
+            call.resolve(["started": false, "reason": "failed"])
+            return
+        }
+        let endsAt = Date(timeIntervalSince1970: endsAtMs / 1000)
+        let state = PowerHourAttributes.ContentState(
+            left: left, nextTitle: call.getString("nextTitle"), endsAt: endsAt, finished: false
+        )
+        Task {
+            // One session at a time: a stale one from before a relaunch goes first.
+            for old in Activity<PowerHourAttributes>.activities {
+                await old.end(nil, dismissalPolicy: .immediate)
+            }
+            do {
+                _ = try Activity.request(
+                    attributes: PowerHourAttributes(title: title, total: total),
+                    content: ActivityContent(state: state, staleDate: endsAt.addingTimeInterval(Self.staleGrace)),
+                    pushType: nil
+                )
+                call.resolve(["started": true])
+            } catch {
+                call.resolve(["started": false, "reason": "failed"])
+            }
+        }
+    }
+
+    @objc func updatePowerHour(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else {
+            call.resolve()
+            return
+        }
+        let left = call.getInt("left")
+        let nextTitle = call.getString("nextTitle")
+        let endsAtMs = call.getDouble("endsAtMs")
+        Task {
+            for activity in Activity<PowerHourAttributes>.activities {
+                var state = activity.content.state
+                if let left { state.left = left }
+                state.nextTitle = nextTitle
+                if let endsAtMs { state.endsAt = Date(timeIntervalSince1970: endsAtMs / 1000) }
+                await activity.update(
+                    ActivityContent(state: state, staleDate: state.endsAt.addingTimeInterval(Self.staleGrace))
+                )
+            }
+            call.resolve()
+        }
+    }
+
+    @objc func endPowerHour(_ call: CAPPluginCall) {
+        guard #available(iOS 16.2, *) else {
+            call.resolve()
+            return
+        }
+        let finished = call.getBool("finished") ?? false
+        Task {
+            for activity in Activity<PowerHourAttributes>.activities {
+                var state = activity.content.state
+                if finished {
+                    state.left = 0
+                    state.nextTitle = nil
+                    state.finished = true
+                    // Leave "All done" on the Lock Screen for five minutes.
+                    let end = Date().addingTimeInterval(Self.staleGrace)
+                    await activity.end(ActivityContent(state: state, staleDate: nil), dismissalPolicy: .after(end))
+                } else {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                }
+            }
+            call.resolve()
+        }
     }
 
     // MARK: - Portrait layers for the extension

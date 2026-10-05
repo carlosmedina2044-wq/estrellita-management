@@ -1,2 +1,10 @@
 "widget.galleryName" = "Cuidala";
 "widget.galleryDescription" = "O que vence hoje";
+"powerHour.left" = "%lld a fazer";
+"powerHour.allDone" = "Tudo feito";
+"powerHour.next" = "Próxima: %@";
+"powerHour.progress" = "Progresso";
+"control.scan.label" = "Escanear algo";
+"control.scan.description" = "Aponte a câmera para uma etiqueta ou adesivo.";
+"control.powerHour.label" = "Começar uma hora de limpeza";
+"control.powerHour.description" = "Comece uma sessão de limpeza com tempo.";

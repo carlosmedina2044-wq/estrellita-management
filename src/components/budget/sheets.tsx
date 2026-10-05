@@ -284,32 +284,26 @@ export function ViewOptionsSheet({
   open,
   horizon,
   threshold,
-  homeValue,
   onOpenChange,
   onHorizon,
   onThreshold,
-  onHomeValue,
   onShare,
 }: {
   open: boolean;
   horizon: 12 | 24 | 36;
   threshold: number;
-  homeValue?: number;
   onOpenChange: (open: boolean) => void;
   onHorizon: (value: 12 | 24 | 36) => void;
   onThreshold: (value: number) => void;
-  onHomeValue: (value: number | null) => void;
   onShare: () => void;
 }) {
   const { t } = useLocale();
   const [thresholdText, setThresholdText] = useState(String(threshold));
-  const [homeText, setHomeText] = useState(homeValue != null ? String(homeValue) : "");
   const [prev, setPrev] = useState(false);
   if (open !== prev) {
     setPrev(open);
     if (open) {
       setThresholdText(String(threshold));
-      setHomeText(homeValue != null ? String(homeValue) : "");
     }
   }
 
@@ -351,25 +345,6 @@ export function ViewOptionsSheet({
                 const parsed = parseCostInput(thresholdText);
                 if (parsed != null && parsed >= 50) onThreshold(parsed);
               }}
-            />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="home-value">{t("budget.homeValue1pct")}</Label>
-            <Input
-              id="home-value"
-              inputMode="decimal"
-              className="h-12"
-              value={homeText}
-              onChange={(event) => setHomeText(event.target.value)}
-              onBlur={() => {
-                if (!homeText.trim()) {
-                  onHomeValue(null);
-                  return;
-                }
-                const parsed = parseBudgetMoney(homeText, 100_000_000);
-                if (parsed != null && parsed > 0) onHomeValue(parsed);
-              }}
-              placeholder="425000"
             />
           </div>
           <button type="button" className="h-11 text-left ui-body font-medium text-primary" onClick={onShare}>

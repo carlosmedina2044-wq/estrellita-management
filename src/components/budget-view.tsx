@@ -16,7 +16,6 @@ import {
   applyDeferAsset,
   applyLogPurchase,
   applySetBigTicketThreshold,
-  applySetHomeValue,
   applySetMaintenanceFund,
   budgetInsights,
   fundHealth,
@@ -270,11 +269,9 @@ export function BudgetView({
         open={optionsOpen}
         horizon={horizon}
         threshold={threshold}
-        homeValue={household.homeValueEstimate}
         onOpenChange={setOptionsOpen}
         onHorizon={setHorizon}
         onThreshold={(value) => onChange((current) => applySetBigTicketThreshold(current, value))}
-        onHomeValue={(value) => onChange((current) => applySetHomeValue(current, value))}
         onShare={() => {
           void shareSummary();
         }}

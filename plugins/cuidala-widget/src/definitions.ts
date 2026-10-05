@@ -31,7 +31,23 @@ export type WidgetSnapshotPayload = {
   };
 };
 
+export type PowerHourStartOptions = {
+  title: string;
+  total: number;
+  left: number;
+  nextTitle?: string;
+  endsAtMs: number;
+};
+
+export type PowerHourStartResult = {
+  started: boolean;
+  reason?: "disabled" | "unsupported" | "failed";
+};
+
 export interface CuidalaWidgetPlugin {
   updateSnapshot(options: WidgetSnapshotPayload): Promise<void>;
   clearSnapshot(): Promise<void>;
+  startPowerHour(options: PowerHourStartOptions): Promise<PowerHourStartResult>;
+  updatePowerHour(options: { left: number; nextTitle?: string; endsAtMs?: number }): Promise<void>;
+  endPowerHour(options: { finished: boolean }): Promise<void>;
 }

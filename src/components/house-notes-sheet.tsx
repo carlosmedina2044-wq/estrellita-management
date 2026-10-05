@@ -215,7 +215,7 @@ function NotesBody({
       <div className="flex shrink-0 flex-col gap-2 px-4 pt-2">
         <Button
           type="button"
-          className="h-12 rounded-full ui-body font-semibold"
+          className="h-auto min-h-12 whitespace-normal rounded-full py-3 ui-body font-semibold"
           onClick={() => {
             void hapticPress();
             setDraft(blank);
@@ -225,11 +225,11 @@ function NotesBody({
           {t("notes.add")}
         </Button>
         {!roomId ? (
-          <Button type="button" variant="ghost" className="h-11" onClick={() => void share()}>
+          <Button type="button" variant="ghost" className="h-auto min-h-11 whitespace-normal py-2" onClick={() => void share()}>
             {t("notes.handbook")}
           </Button>
         ) : null}
-        <Button type="button" variant="ghost" className="h-11 text-muted-foreground" onClick={onClose}>
+        <Button type="button" variant="ghost" className="h-auto min-h-11 whitespace-normal py-2 text-muted-foreground" onClick={onClose}>
           {t("common.close")}
         </Button>
       </div>
@@ -304,7 +304,7 @@ function NoteEditor({
               role="radio"
               aria-checked={draft.kind === kind}
               className={cn(
-                "h-11 rounded-full px-3.5 ui-caption font-medium",
+                "min-h-11 rounded-full px-3.5 py-2 ui-caption font-medium",
                 draft.kind === kind ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
               )}
               onClick={() => setDraft({ ...draft, kind })}
@@ -348,7 +348,7 @@ function NoteEditor({
           className="min-h-32 rounded-2xl px-4 py-3 ui-body"
           onChange={(event) => setDraft({ ...draft, body: event.target.value })}
         />
-        <Button type="button" variant="ghost" className="h-11 w-fit px-0 text-primary" disabled={scanning} onClick={() => void scanIt()}>
+        <Button type="button" variant="ghost" className="h-auto min-h-11 w-fit max-w-full justify-start whitespace-normal px-0 py-2 text-left text-primary" disabled={scanning} onClick={() => void scanIt()}>
           <ScanText className="size-4" aria-hidden />
           {scanning ? t("notes.scanning") : t("notes.scanIt")}
         </Button>
@@ -358,16 +358,16 @@ function NoteEditor({
           </p>
         ) : null}
         {onDelete ? (
-          <Button type="button" variant="ghost" className="h-11 w-fit px-0 text-destructive" onClick={() => setConfirmDelete(true)}>
+          <Button type="button" variant="ghost" className="h-auto min-h-11 w-fit max-w-full justify-start whitespace-normal px-0 py-2 text-left text-destructive" onClick={() => setConfirmDelete(true)}>
             {t("notes.delete")}
           </Button>
         ) : null}
       </div>
       <div className="flex shrink-0 flex-col gap-2 px-4 pt-2">
-        <Button type="button" className="h-12 rounded-full ui-body font-semibold" disabled={!canSave} onClick={onSave}>
+        <Button type="button" className="h-auto min-h-12 whitespace-normal rounded-full py-3 ui-body font-semibold" disabled={!canSave} onClick={onSave}>
           {t("notes.save")}
         </Button>
-        <Button type="button" variant="ghost" className="h-11 text-muted-foreground" onClick={onCancel}>
+        <Button type="button" variant="ghost" className="h-auto min-h-11 whitespace-normal py-2 text-muted-foreground" onClick={onCancel}>
           {t("common.cancel")}
         </Button>
       </div>
@@ -404,14 +404,14 @@ export function HouseNotesEntry({
     <>
       <button
         type="button"
-        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-[var(--r-container)] bg-secondary px-4 ui-body font-medium"
+        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-[var(--r-container)] bg-secondary px-4 py-2 text-left ui-body font-medium"
         onClick={() => {
           void hapticPress();
           setOpen(true);
         }}
       >
-        <span>{t("notes.homeEntry")}</span>
-        <span className="flex items-center gap-1.5 text-muted-foreground">
+        <span className="min-w-0">{t("notes.homeEntry")}</span>
+        <span className="flex shrink-0 items-center gap-1.5 text-muted-foreground">
           {count > 0 ? <span className="num">{count}</span> : null}
           <ChevronRight className="size-4" aria-hidden />
         </span>

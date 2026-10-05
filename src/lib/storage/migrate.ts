@@ -347,6 +347,10 @@ function migrateAutomation(raw: unknown, duties: Duty[]): SupplyAutomation | nul
         ? raw.lastConfirmedLevel
         : undefined,
     lastConfirmedAt: asIsoDate(raw.lastConfirmedAt) ?? undefined,
+    flaggedLowAt:
+      typeof raw.flaggedLowAt === "string" && Number.isFinite(Date.parse(raw.flaggedLowAt))
+        ? new Date(raw.flaggedLowAt).toISOString()
+        : undefined,
     observedRatePerDay:
       typeof raw.observedRatePerDay === "number" &&
       Number.isFinite(raw.observedRatePerDay) &&
@@ -716,10 +720,6 @@ export function migrateHousehold(raw: Record<string, unknown>): Household {
     purchases,
     visits,
     maintenanceFund: migrateMaintenanceFund(raw.maintenanceFund),
-    homeValueEstimate:
-      typeof raw.homeValueEstimate === "number" && Number.isFinite(raw.homeValueEstimate) && raw.homeValueEstimate > 0
-        ? Math.min(100_000_000, Math.round(raw.homeValueEstimate))
-        : undefined,
     bigTicketThreshold:
       typeof raw.bigTicketThreshold === "number" && Number.isFinite(raw.bigTicketThreshold) && raw.bigTicketThreshold > 0
         ? Math.min(50_000, Math.max(50, Math.round(raw.bigTicketThreshold)))

@@ -57,7 +57,7 @@ VERIFIED means there is a test, a build check, or a committed configuration you 
 
 ## Not implemented (by design for v1)
 
-Accounts, cross-device sync, household invites, server-side anything, in-app purchase / StoreKit (v1 is free; the Pro card is not shown in the shipped UI), iPad split view, and a share extension. One home, one phone. See `docs/RESIDUAL_RISKS.md` for what that leaves open.
+Accounts, cross-device sync, household invites, server-side anything, in-app purchase / StoreKit (v1 is a $3.99 paid download with no IAP; the Pro card is not shown in the shipped UI), iPad split view, and a share extension. One home, one phone. See `docs/RESIDUAL_RISKS.md` for what that leaves open.
 
 ## 1.1 follow-ups
 

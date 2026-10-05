@@ -74,7 +74,7 @@ export function DeliveryLayer({
   const startX = Math.max(2, door.x - 34);
   const stopX = boxX - door.w * 0.9;
   const shown = deliveries.slice(0, MAX_PORCH_BOXES);
-  const walkingNow = walking != null && shown.some((entry) => arrivalKey(entry) === walking);
+  const walkingNow = !reduce && walking != null && shown.some((entry) => arrivalKey(entry) === walking);
   const label =
     deliveries.length === 1
       ? t("scene.delivery", { item: deliveries[0].itemName })

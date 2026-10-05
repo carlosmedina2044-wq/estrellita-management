@@ -32,6 +32,13 @@
 		D0C1A1000000000000000067 /* CuidalaVisualIntelligence.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000000003 /* CuidalaVisualIntelligence.swift */; };
 		D0C1A100000000000000006E /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0C1A100000000000000000A /* Localizable.strings */; };
 		D0C1A1000000000000000078 /* AppShortcuts.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000000014 /* AppShortcuts.strings */; };
+		D0C1A1000000000000001002 /* CuidalaPalette.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000001001 /* CuidalaPalette.swift */; };
+		D0C1A1000000000000001004 /* PowerHourAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000001003 /* PowerHourAttributes.swift */; };
+		D0C1A1000000000000001006 /* PowerHourLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000001005 /* PowerHourLiveActivity.swift */; };
+		D0C1A1000000000000001008 /* CuidalaControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000001007 /* CuidalaControls.swift */; };
+		D0C1A1000000000000001010 /* CuidalaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000001009 /* CuidalaWidgetBundle.swift */; };
+		D0C1A1000000000000001012 /* CuidalaControlIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000001011 /* CuidalaControlIntents.swift */; };
+		D0C1A1000000000000001905 /* CuidalaControlIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C1A1000000000000001011 /* CuidalaControlIntents.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -96,6 +103,12 @@
 		D0C1A1000000000000000015 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
 		D0C1A1000000000000000016 /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
 		D0C1A1000000000000000017 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = pt-BR.lproj/AppShortcuts.strings; sourceTree = "<group>"; };
+		D0C1A1000000000000001001 /* CuidalaPalette.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaPalette.swift; sourceTree = "<group>"; };
+		D0C1A1000000000000001003 /* PowerHourAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerHourAttributes.swift; sourceTree = "<group>"; };
+		D0C1A1000000000000001005 /* PowerHourLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerHourLiveActivity.swift; sourceTree = "<group>"; };
+		D0C1A1000000000000001007 /* CuidalaControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaControls.swift; sourceTree = "<group>"; };
+		D0C1A1000000000000001009 /* CuidalaWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaWidgetBundle.swift; sourceTree = "<group>"; };
+		D0C1A1000000000000001011 /* CuidalaControlIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CuidalaControlIntents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -187,6 +200,12 @@
 			isa = PBXGroup;
 			children = (
 				79F998B6E0B3ECCB3A04847E /* CuidalaWidget.swift */,
+				D0C1A1000000000000001001 /* CuidalaPalette.swift */,
+				D0C1A1000000000000001003 /* PowerHourAttributes.swift */,
+				D0C1A1000000000000001005 /* PowerHourLiveActivity.swift */,
+				D0C1A1000000000000001007 /* CuidalaControls.swift */,
+				D0C1A1000000000000001009 /* CuidalaWidgetBundle.swift */,
+				D0C1A1000000000000001011 /* CuidalaControlIntents.swift */,
 				BBDF9A571E2CFEEAB23E9E19 /* CuidalaWidgetSnapshot.swift */,
 				7CC669CDB1277EAB54BE9BA1 /* PrivacyInfo.xcprivacy */,
 				E54FB144CEEABB7508986506 /* Localizable.strings */,
@@ -324,6 +343,7 @@
 				D0C1A1000000000000000065 /* CuidalaIntentsStore.swift in Sources */,
 				D0C1A1000000000000000066 /* CuidalaIntents.swift in Sources */,
 				D0C1A1000000000000000067 /* CuidalaVisualIntelligence.swift in Sources */,
+				D0C1A1000000000000001905 /* CuidalaControlIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -333,6 +353,12 @@
 			files = (
 				9990B0C77AD96FD3FFB95D24 /* CuidalaWidget.swift in Sources */,
 				F800D5262DC4DDAAB0582753 /* CuidalaWidgetSnapshot.swift in Sources */,
+				D0C1A1000000000000001002 /* CuidalaPalette.swift in Sources */,
+				D0C1A1000000000000001004 /* PowerHourAttributes.swift in Sources */,
+				D0C1A1000000000000001006 /* PowerHourLiveActivity.swift in Sources */,
+				D0C1A1000000000000001008 /* CuidalaControls.swift in Sources */,
+				D0C1A1000000000000001010 /* CuidalaWidgetBundle.swift in Sources */,
+				D0C1A1000000000000001012 /* CuidalaControlIntents.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -584,6 +610,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) CUIDALA_EXTENSION";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -612,6 +639,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) CUIDALA_EXTENSION";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;

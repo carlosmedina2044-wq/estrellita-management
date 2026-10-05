@@ -59,13 +59,6 @@ export function applySetMaintenanceFund(
   };
 }
 
-export function applySetHomeValue(household: Household, value: number | null): Household {
-  if (value == null || !Number.isFinite(value) || value <= 0) {
-    return { ...household, homeValueEstimate: undefined };
-  }
-  return { ...household, homeValueEstimate: Math.round(value) };
-}
-
 export function applySetBigTicketThreshold(household: Household, value: number): Household {
   if (!Number.isFinite(value) || value < 50) return household;
   return { ...household, bigTicketThreshold: Math.min(50_000, Math.round(value)) };

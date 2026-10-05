@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { CircleCheck } from "@/components/circle-check";
-import { SettingsGroup, SelectRow, TextRow } from "@/components/settings-rows";
+import { SettingsGroup, SelectRow, TextRow, ToggleRow } from "@/components/settings-rows";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SelectContent, SelectItem } from "@/components/ui/select";
@@ -18,6 +18,7 @@ import { hapticPress, hapticSuccess } from "@/lib/native/haptics";
 import { applyReceipt } from "@/lib/scan/apply-receipt";
 import { rememberBarcode } from "@/lib/scan/barcode";
 import { applyFilterSize, type FilterTarget } from "@/lib/scan/filter";
+import { addFilterToRestock, planFilterRestock } from "@/lib/scan/filter-restock";
 import {
   confirmedLines,
   isTickable,
@@ -306,7 +307,15 @@ export function ReceiptCard({
 const DEPTHS = [1, 2, 4, 5];
 const inches = (n: number) => `${n}"`;
 
-export function FilterCard({ read, household, reduceMotion, onApply, onClose, footer }: CardProps & { read: FilterRead }) {
+export function FilterCard({
+  read,
+  household,
+  reduceMotion,
+  onApply,
+  onClose,
+  footer,
+  barcode,
+}: CardProps & { read: FilterRead; barcode?: string }) {
   const { t } = useLocale();
   const [editing, setEditing] = useState(false);
   const [depth, setDepth] = useState<number | undefined>(read.size.depth);
@@ -341,12 +350,26 @@ export function FilterCard({ read, household, reduceMotion, onApply, onClose, fo
   const chosen = targets.find((target) => target.key === pick) ?? targets[0];
   const sizeText = size.merv ? `${size.text} MERV ${size.merv}` : size.text;
   const askDepth = read.size.depth === undefined || editing;
+  // A furnace or air filter you track but have never put in Restock: offer to add it.
+  const restockPlan = useMemo(
+    () => (chosen ? planFilterRestock(household, chosen.target, size) : undefined),
+    [household, chosen, size],
+  );
+  const [remind, setRemind] = useState(true);
 
   function save() {
     if (!chosen || depth === undefined) return;
-    onApply((current) => applyFilterSize(current, chosen.target, size).household);
+    const addToRestock = Boolean(restockPlan) && remind;
+    onApply((current) => {
+      let next = applyFilterSize(current, chosen.target, size).household;
+      if (addToRestock) {
+        const plan = planFilterRestock(current, chosen.target, size);
+        if (plan) next = addFilterToRestock(next, plan, size, barcode);
+      }
+      return next;
+    });
     void hapticSuccess();
-    toast.success(t("scan.filterSaved", { size: size.text }));
+    toast.success(t(addToRestock ? "scan.filterSavedRestock" : "scan.filterSaved", { size: size.text }));
     onClose();
   }
 
@@ -390,6 +413,14 @@ export function FilterCard({ read, household, reduceMotion, onApply, onClose, fo
                 ))}
               </SelectContent>
             </SelectRow>
+          ) : null}
+          {restockPlan ? (
+            <ToggleRow
+              title={t("scan.filterRemind")}
+              help={t("scan.filterRemindHelp", { item: restockPlan.itemName })}
+              checked={remind}
+              onCheckedChange={setRemind}
+            />
           ) : null}
         </SettingsGroup>
       )}

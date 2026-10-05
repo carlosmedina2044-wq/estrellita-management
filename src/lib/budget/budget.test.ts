@@ -4,7 +4,6 @@ import {
   applyDeferAsset,
   applyLogPurchase,
   applyReplaceAsset,
-  applySetHomeValue,
   applySetMaintenanceFund,
   budgetInsights,
   fundHealth,
@@ -150,9 +149,8 @@ test("logging a duty purchase writes a completion with actualCost", () => {
   assert.equal(next.consumables[0]?.lastPaidPrice, 18.5);
 });
 
-test("fund health reports coverage and the 1% rule", () => {
-  const home = applySetHomeValue(
-    applySetMaintenanceFund(
+test("fund health reports coverage", () => {
+  const home = applySetMaintenanceFund(
       household({
         assets: [
           asset({
@@ -166,15 +164,12 @@ test("fund health reports coverage and the 1% rule", () => {
       }),
       { balance: 2400 },
       now,
-    ),
-    250000,
-  );
+    );
   const forecast = buildForecast(home, 12, now);
   const health = fundHealth(home, forecast);
   assert.equal(health.saved, 2400);
   assert.ok(health.needed12 > 0);
   assert.ok(health.coveragePct != null && health.coveragePct >= 0);
-  assert.ok(health.onePercentCopy && /1.3%/.test(health.onePercentCopy));
 });
 
 test("spending summary compares plan to actual and groups categories", () => {
@@ -314,7 +309,6 @@ test("migrates purchases and a maintenance fund from stored JSON", () => {
       rooms: [{ id: "kitchen", floorId: "main", name: "Kitchen", type: "kitchen", sortOrder: 1 }],
       duties: [{ id: "duty-0008", title: "Sweep", room: "kitchen", createdAt: "2026-01-01T00:00:00.000Z" }],
       maintenanceFund: { balance: 2400, updatedAt: "2026-08-01T00:00:00.000Z", monthlyContribution: 200 },
-      homeValueEstimate: 425000,
       bigTicketThreshold: 750,
       purchases: [
         {
@@ -338,7 +332,6 @@ test("migrates purchases and a maintenance fund from stored JSON", () => {
     }),
   );
   assert.equal(householdData.maintenanceFund?.balance, 2400);
-  assert.equal(householdData.homeValueEstimate, 425000);
   assert.equal(householdData.bigTicketThreshold, 750);
   assert.equal(householdData.purchases[0]?.actualCost, 18.5);
   assert.equal(householdData.assets[0]?.deferredUntil, "2027-03-01");

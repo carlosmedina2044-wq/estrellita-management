@@ -172,7 +172,7 @@ Capture on **6.9"** and **6.7"** (and any other required sizes ASC lists for iPh
 | 4 | Home | Grouped room list / forecast card |
 | 5 | Optional | Lock screen or Settings privacy line — only if needed for Guideline 4.2 |
 
-Storefront: **United States** for v1. Price: **Free**. Devices: **iPhone only**.
+Storefront: **United States** for v1. Price: **$3.99 (paid download, Tier set in App Store Connect)**. Devices: **iPhone only**.
 
 ---
 
