@@ -168,13 +168,15 @@ function Detail({ kind, asleep, night }: { kind: SceneDetail["kind"]; asleep?: b
       );
     case "companion":
       return (
-        <svg viewBox="0 0 24 16" className={asleep ? "detail-cat h-3 w-6" : "detail-cat h-4 w-6"} fill="currentColor">
-          {asleep ? (
-            <path d="M2 12c0-3 3-5 7-5h6c3 0 6 1.5 6 4v1H2z" />
-          ) : (
-            <path d="M4 15v-6l-1-5 3 2h4l3-2-1 5v1h4c3 0 5 2 5 4v1H4z" />
-          )}
-        </svg>
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={asleep ? "/props/cat-asleep.webp" : "/props/cat-awake.webp"}
+          alt=""
+          draggable={false}
+          width={asleep ? 40 : 36}
+          height={asleep ? 40 : 36}
+          className="detail-cat block max-w-none"
+        />
       );
     case "leaves":
       return <SpriteLoop src="/fx/leaves.webp" frames={36} frameWidth={34} frameHeight={45} seconds={7.2} />;

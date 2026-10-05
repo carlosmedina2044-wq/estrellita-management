@@ -21,19 +21,19 @@ GRASS = {
     "spring": ("#6fa04a", "#9bc965"),
     "summer": ("#4c8a3a", "#74b04e"),
     "autumn": ("#6f8a3a", "#a0a745"),
-    "winter": ("#dfe8ef", "#f6f9fc"),
+    "winter": ("#cfdeec", "#fcfeff"),
 }
 CANOPY = {
     "spring": ("#7db24a", "#b0dc6a"),
     "summer": ("#3f7a33", "#6aa648"),
     "autumn": ("#c0601f", "#ec9a3c"),
-    "winter": ("#aebfb8", "#e9f1f0"),
+    "winter": ("#5f7f7a", "#eef5f5"),
 }
 BUSH = {
     "spring": ("#5f9a40", "#8fc45a"),
     "summer": ("#3b7230", "#5f9a40"),
     "autumn": ("#7c6a24", "#c08a2c"),
-    "winter": ("#9fb2ab", "#e2ecea"),
+    "winter": ("#587872", "#eaf2f1"),
 }
 SOIL = ("#4a3324", "#7a5236")
 TRUNK = ("#4a3426", "#6e4e36")
@@ -114,7 +114,7 @@ def noise_mix_material(name, shade, light, scale=9.0, rough=0.85, bump=0.25, ver
 def slab_material(season: str):
     """Grass on top, soil on the sides, split by face normal."""
     g_shade, g_light = GRASS[season]
-    grass = noise_mix_material(f"Grass_{season}", g_shade, g_light, scale=5.0, bump=0.35, rough=0.92, ramp_lo=0.25, ramp_hi=0.85)
+    grass = noise_mix_material(f"Grass_{season}", g_shade, g_light, scale=4.0 if season == "winter" else 5.0, bump=0.9 if season == "winter" else 0.35, rough=0.92, ramp_lo=0.3 if season == "winter" else 0.25, ramp_hi=0.8 if season == "winter" else 0.85)
     soil = noise_mix_material("Soil", *SOIL, scale=14.0, bump=0.4, rough=0.95)
     return grass, soil
 
@@ -222,6 +222,10 @@ def build_tree(x, y, height, season: str, seed: int, hidden_from_render=False):
         objs.append(
             _sphere((x + dx, y + dy, dz), (sc, sc, sc * 0.92), cm, seed * 10 + i, jitter=0.35 * sc / r * 0.5)
         )
+    if season == "winter":
+        snow = noise_mix_material("TreeCap", *SNOW, scale=4.0, bump=0.4, ramp_lo=0.3, ramp_hi=0.8)
+        objs.append(_sphere((x, y, trunk_h + r * 1.62), (r * 0.78, r * 0.74, r * 0.34), snow, seed * 11, 0.06))
+        objs.append(_sphere((x - r * 0.72, y + r * 0.18, trunk_h + r * 1.05), (r * 0.5, r * 0.48, r * 0.22), snow, seed * 12, 0.05))
     for o in objs:
         o.hide_render = hidden_from_render
     return objs
@@ -235,6 +239,9 @@ def build_bush(x, y, size, season: str, seed: int):
     for i, (dx, dy, s) in enumerate([(0, 0, 1.0), (size * 0.8, size * 0.1, 0.72), (-size * 0.65, size * 0.15, 0.66)]):
         sc = size * s
         objs.append(_sphere((x + dx, y + dy, sc * 0.78), (sc, sc * 0.95, sc * 0.82), m, seed * 7 + i, 0.12))
+    if season == "winter":
+        snow = noise_mix_material("Cap", *SNOW, scale=4.0, bump=0.4, ramp_lo=0.3, ramp_hi=0.8)
+        objs.append(_sphere((x, y, size * 1.18), (size * 0.8, size * 0.72, size * 0.34), snow, seed * 3, 0.05))
     return objs
 
 
@@ -259,3 +266,12 @@ def build_stone_path(x, y_start, y_end, seed=1):
         y -= 0.15
         i += 1
     return objs
+
+
+SNOW = ("#e6eef7", "#ffffff")
+
+
+def build_snow_mound(x, y, size, seed):
+    """A soft drift: a low, wide white lump."""
+    m = noise_mix_material("Drift", *SNOW, scale=4.0, bump=0.5, rough=0.9, ramp_lo=0.3, ramp_hi=0.8)
+    return _sphere((x, y, size * 0.12), (size * 1.5, size * 1.05, size * 0.3), m, seed, 0.04)

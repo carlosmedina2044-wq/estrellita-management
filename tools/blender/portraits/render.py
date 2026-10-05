@@ -273,7 +273,7 @@ def setup_lights(phase: str):
     if phase == "night":
         moon = bpy.data.lights.new("Moon", "SUN")
         moon.color = hex_rgb("#9fb4ff")
-        moon.energy = 0.45
+        moon.energy = 1.1
         moon.angle = math.radians(4)
         mo = bpy.data.objects.new("Moon", moon)
         bpy.context.collection.objects.link(mo)
@@ -286,7 +286,7 @@ def setup_lights(phase: str):
     bounce_data.size = 9.0
     bounce_data.size_y = 4.5
     bounce_data.color = hex_rgb("#ffd9ae" if phase == "day" else "#8fa6d8")
-    bounce_data.energy = 26.0 if phase == "day" else 5.0
+    bounce_data.energy = 26.0 if phase == "day" else 10.0
     bounce = bpy.data.objects.new("Bounce", bounce_data)
     bpy.context.collection.objects.link(bounce)
     bounce.location = (1.7, -3.6, 0.5)
@@ -297,7 +297,7 @@ def setup_lights(phase: str):
     rim_data = bpy.data.lights.new("Rim", "AREA")
     rim_data.size = 5.5
     rim_data.color = hex_rgb("#cfe0ff")
-    rim_data.energy = 30.0 if phase == "day" else 16.0
+    rim_data.energy = 30.0 if phase == "day" else 26.0
     rim = bpy.data.objects.new("Rim", rim_data)
     bpy.context.collection.objects.link(rim)
     rim.location = (-2.9, 2.7, 2.9)
@@ -930,7 +930,7 @@ def build_and_render(
         sky_phase = phase
     else:
         sky_phase = "day"
-    setup_world(sky_phase, strength=0.26 if sky_phase == "night" else 0.38)
+    setup_world(sky_phase, strength=0.40 if sky_phase == "night" else 0.38)
     setup_lights(sky_phase)
 
     house_col, house_objs = import_glb(KIT_ROOT / f"building-type-{kit_type}.glb", "House")
@@ -1100,11 +1100,15 @@ def build_and_render(
         # being invisible), but let it receive their shadows via the ground layer.
         for i, t in enumerate(trees_info):
             diorama.build_tree(t["x"], t["y"], t["h"], season, seed=i + 1)
+            if season == "winter":
+                diorama.build_snow_mound(t["x"], t["y"] - 0.02, t["h"] * 0.13, seed=80 + i)
         # Outer corners only: a bush in front of a window hides the window the
         # lit layer is about to light.
         foundation = [hmin.x - 0.06, hmax.x + 0.06]
         for i, bx in enumerate(foundation):
             diorama.build_bush(bx, hmin.y + 0.05, 0.11 + 0.015 * (i % 2), season, seed=40 + i)
+            if season == "winter":
+                diorama.build_snow_mound(bx + (0.12 if i else -0.12), hmin.y - 0.03, 0.1, seed=90 + i)
         # Slab as holdout so bushes/trunks sitting under the lawn plane clip.
         if planter_spec:
             diorama.build_bush(planter_spec["x"], planter_spec["y"], 0.1, season, seed=60)

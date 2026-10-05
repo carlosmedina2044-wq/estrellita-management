@@ -24,6 +24,7 @@ def parse():
     p.add_argument("--out", required=True)
     p.add_argument("--size", type=int, default=192)
     p.add_argument("--samples", type=int, default=96)
+    p.add_argument("--only", default="")
     return p.parse_args(a)
 
 
@@ -120,7 +121,48 @@ def wreath():
     blob((0, -0.055, 0.035), (0.014, 0.012, 0.014), bow, 73, 0.01)
 
 
-BUILD = {"planter": planter, "window-box": window_box, "bench": bench, "wreath": wreath}
+def cblob(loc, scale, m, seed, jitter=0.0):
+    """Like blob() but unrotated, so a flattened ellipsoid stays flat."""
+    o = blob(loc, scale, m, seed, jitter)
+    o.rotation_euler = (0, 0, 0)
+    return o
+
+
+def cat_asleep():
+    fur = mat("Fur", "#3b3430", "#5a4d44", scale=30, bump=0.25, rough=0.95, ramp_lo=0.3, ramp_hi=0.8)
+    pale = mat("Pale", "#d9cfc2", "#f0e8dc", scale=20, bump=0.2, rough=0.95)
+    cblob((0.02, 0.01, 0.045), (0.15, 0.09, 0.048), fur, 100, 0.02)  # curled body, low
+    cblob((-0.115, -0.045, 0.045), (0.052, 0.05, 0.045), fur, 101, 0.01)  # head resting
+    for sx in (-1, 1):
+        bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.02, radius2=0.002, depth=0.035, location=(-0.115 + sx * 0.026, -0.045, 0.095))
+        bpy.context.active_object.data.materials.append(fur)
+    cblob((0.1, -0.07, 0.03), (0.075, 0.03, 0.026), fur, 102, 0.01)  # tail curled in front
+    cblob((-0.13, -0.09, 0.022), (0.028, 0.018, 0.016), pale, 103, 0.01)  # paw
+
+
+def cat_awake():
+    fur = mat("Fur", "#3b3430", "#5a4d44", scale=30, bump=0.25, rough=0.95, ramp_lo=0.3, ramp_hi=0.8)
+    pale = mat("Pale", "#d9cfc2", "#f0e8dc", scale=20, bump=0.2, rough=0.95)
+    eye = mat("Eye", "#e8c75a", rough=0.3, bump=0)
+    cblob((0, 0.02, 0.07), (0.07, 0.085, 0.085), fur, 110, 0.02)  # body
+    cblob((0, -0.03, 0.17), (0.058, 0.056, 0.055), fur, 111, 0.01)  # head
+    for sx in (-1, 1):
+        bpy.ops.mesh.primitive_cone_add(vertices=4, radius1=0.026, radius2=0.002, depth=0.05, location=(sx * 0.036, -0.03, 0.225))
+        e = bpy.context.active_object
+        e.data.materials.append(fur)
+        cblob((sx * 0.02, -0.075, 0.18), (0.009, 0.006, 0.011), eye, 112 + sx, 0.0)
+        cblob((sx * 0.025, -0.06, 0.02), (0.02, 0.03, 0.018), pale, 114 + sx, 0.01)
+    cblob((0.075, 0.08, 0.04), (0.02, 0.07, 0.02), fur, 116, 0.01)  # tail on the ground
+
+
+BUILD = {
+    "planter": planter,
+    "window-box": window_box,
+    "bench": bench,
+    "wreath": wreath,
+    "cat-asleep": cat_asleep,
+    "cat-awake": cat_awake,
+}
 
 
 def render_one(name, out, size, samples):
@@ -156,10 +198,10 @@ def render_one(name, out, size, samples):
     plane.is_shadow_catcher = True
     elev, azim = math.radians(22), math.radians(22)
     d = Vector((-math.cos(elev) * math.sin(azim), -math.cos(elev) * math.cos(azim), math.sin(elev)))
-    target = Vector((0, 0, 0.17 if name != "wreath" else 0.12))
+    target = Vector((0, 0, {"wreath": 0.12, "cat-asleep": 0.06, "cat-awake": 0.11}.get(name, 0.17)))
     cam_data = bpy.data.cameras.new("C")
     cam_data.type = "ORTHO"
-    cam_data.ortho_scale = {"planter": 0.56, "window-box": 0.62, "bench": 0.78, "wreath": 0.34}[name]
+    cam_data.ortho_scale = {"planter": 0.56, "window-box": 0.62, "bench": 0.78, "wreath": 0.34, "cat-asleep": 0.34, "cat-awake": 0.42}[name]
     cam = bpy.data.objects.new("C", cam_data)
     scene.collection.objects.link(cam)
     cam.location = target + d * 4
@@ -173,6 +215,6 @@ if __name__ == "__main__":
     bpy.ops.wm.read_factory_settings(use_empty=True)
     a = parse()
     Path(a.out).mkdir(parents=True, exist_ok=True)
-    for n in BUILD:
+    for n in (sys.argv[sys.argv.index("--only") + 1].split(",") if "--only" in sys.argv else BUILD):
         render_one(n, a.out, a.size, a.samples)
         print("rendered", n)

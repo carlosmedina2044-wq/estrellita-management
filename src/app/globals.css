@@ -957,9 +957,6 @@ html.keyboard-open [data-slot="sheet-footer"] {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
-.detail-cat {
-  color: #2a2622;
-}
 .detail-leaf {
   background: #c8863f;
   animation: detail-drift 6s ease-in-out infinite;
