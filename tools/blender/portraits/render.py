@@ -5,7 +5,7 @@ Renders with Cycles on the GPU (Metal/OPTIX/CUDA/HIP), falling back to CPU.
 
 Usage:
   /Applications/Blender.app/Contents/MacOS/Blender -b -noaudio -P tools/blender/portraits/render.py -- \\
-    --type a|all --palette classic|terracotta|slate|all --layer day|night|lit|shadow|foliage|snow|all \\
+    --type a|all --palette classic|terracotta|slate|all --layer day|night|lit|ground|foliage|snow|all \\
     --season spring|summer|autumn|winter --only-missing 1 --samples 192 --scale 1.2 --device GPU
 
 Full set (273 frames, ~15 min on an M2 Pro; the first frame pays a one-off
@@ -27,6 +27,9 @@ from pathlib import Path
 
 import bpy
 from mathutils import Vector
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import diorama  # noqa: E402
 
 REPO = Path(__file__).resolve().parents[3]
 KIT_ROOT = REPO / "tools/blender/vendor/kenney-city-kit-suburban/Models/GLB format"
@@ -782,7 +785,9 @@ def place_props(kit_entry, props_col_name="Props"):
     bpy.context.scene.collection.children.link(col)
     placed = []
 
-    def place(model, x, y, rot_deg):
+    trees_info = []
+
+    def place(model, x, y, rot_deg, role="prop"):
         path = KIT_ROOT / f"{model}.glb"
         if not path.exists():
             print("missing prop", path)
@@ -796,16 +801,23 @@ def place_props(kit_entry, props_col_name="Props"):
             col.objects.link(o)
             o.location = (x, y, 0)
             o.rotation_euler[2] = math.radians(rot_deg)
+            o["role"] = role
             placed.append(o)
+        if role == "tree":
+            bpy.context.view_layer.update()
+            meshes = [o for o in imported if o.type == "MESH"]
+            if meshes:
+                lo, hi = world_bounds(meshes)
+                trees_info.append({"x": x, "y": y, "h": hi.z - lo.z, "r": max(hi.x - lo.x, hi.y - lo.y) / 2})
 
     for key in ("fence", "path", "driveway", "planter"):
         spec = props.get(key)
         if not spec:
             continue
-        place(spec["model"], spec["x"], spec["y"], spec.get("rot", 0))
+        place(spec["model"], spec["x"], spec["y"], spec.get("rot", 0), role=key)
     for tree in props.get("trees") or []:
-        place(tree["model"], tree["x"], tree["y"], tree.get("rot", 0))
-    return col, placed
+        place(tree["model"], tree["x"], tree["y"], tree.get("rot", 0), role="tree")
+    return col, placed, trees_info
 
 
 def find_chimney_top(house_objects):
@@ -827,17 +839,81 @@ def find_chimney_top(house_objects):
     return best
 
 
+ELEV_DEG = 22  # a little higher than the old 16 so the lawn reads as ground
+AZIM_DEG = 22
+FILL_W = 0.95  # fraction of the frame the diorama may occupy
+FILL_H = 0.93
+
+
+def project_points(cam, pts):
+    from bpy_extras.object_utils import world_to_camera_view
+
+    scene = bpy.context.scene
+    xs, ys = [], []
+    for p in pts:
+        co = world_to_camera_view(scene, cam, p)
+        xs.append(co.x)
+        ys.append(co.y)
+    return min(xs), max(xs), min(ys), max(ys)
+
+
+def setup_camera_fit(target: Vector, fit_points):
+    """Frame everything in `fit_points` (slab, house, tree tops) with a fixed
+    margin. The house is the aim but the diorama sets the distance, so a wide
+    kit and a narrow one both fill the frame the same way."""
+    elev = math.radians(ELEV_DEG)
+    azim = math.radians(AZIM_DEG)
+    cam_data = bpy.data.cameras.new("PortraitCam")
+    cam_data.lens = 50
+    cam_data.sensor_width = 36
+    cam = bpy.data.objects.new("PortraitCam", cam_data)
+    bpy.context.collection.objects.link(cam)
+    bpy.context.scene.camera = cam
+    direction = Vector(
+        (-math.cos(elev) * math.sin(azim), -math.cos(elev) * math.cos(azim), math.sin(elev))
+    )
+    dist = 12.0
+    for _ in range(8):
+        cam.location = target + direction * dist
+        cam.rotation_euler = (target - cam.location).to_track_quat("-Z", "Y").to_euler()
+        cam_data.shift_x = 0.0
+        cam_data.shift_y = 0.0
+        bpy.context.view_layer.update()
+        x0, x1, y0, y1 = project_points(cam, fit_points)
+        ratio = max((x1 - x0) / FILL_W, (y1 - y0) / FILL_H)
+        dist *= ratio
+    cam.location = target + direction * dist
+    cam.rotation_euler = (target - cam.location).to_track_quat("-Z", "Y").to_euler()
+    # Centre the diorama with lens shift, measured rather than derived: shift is
+    # in units of the frame's larger side and its sign is easy to get wrong.
+    for _ in range(4):
+        bpy.context.view_layer.update()
+        x0, x1, y0, y1 = project_points(cam, fit_points)
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        cam_data.shift_x += (cx - 0.5)
+        cam_data.shift_y += (cy - 0.5) * FRAME_W / FRAME_H * (FRAME_H / FRAME_W)
+    bpy.context.view_layer.update()
+    x0, x1, y0, y1 = project_points(cam, fit_points)
+    print(f"fit extents x {x0:.3f}-{x1:.3f} y {y0:.3f}-{y1:.3f}")
+    return cam
+
+
+def corners_of(minc, maxc):
+    return [Vector((x, y, z)) for x in (minc.x, maxc.x) for y in (minc.y, maxc.y) for z in (minc.z, maxc.z)]
+
+
 def build_and_render(
     kit_type: str, palette: str, layer: str, season: str, samples: int, only_missing: bool, phase: str = "day"
 ):
     kit = load_kit()
     entry = kit[kit_type]
 
-    if layer == "foliage":
-        # Foliage is rendered once per phase. Sharing one day-lit tree across both
-        # left the trees reading as daylight cutouts pasted on the night sky.
-        out_name = f"{kit_type}-{season}-{phase}.png"
-    elif layer in ("lit", "shadow", "snow"):
+    if layer in ("foliage", "ground"):
+        # Trees/bushes and the lawn are rendered per season and per phase.
+        # Sharing one day-lit tree across both left the trees reading as
+        # daylight cutouts pasted on the night sky.
+        out_name = f"{kit_type}-{season}-{phase}.png" if layer == "foliage" else f"{kit_type}-ground-{season}-{phase}.png"
+    elif layer in ("lit", "snow"):
         out_name = f"{kit_type}-{layer}.png"
     else:
         out_name = f"{kit_type}-{palette}-{layer}.png"
@@ -850,7 +926,7 @@ def build_and_render(
     configure_cycles(samples, DEVICE)
     if layer == "night":
         sky_phase = "night"
-    elif layer == "foliage":
+    elif layer in ("foliage", "ground"):
         sky_phase = phase
     else:
         sky_phase = "day"
@@ -861,14 +937,53 @@ def build_and_render(
     house_meshes = mesh_objects(house_col)
     apply_clay_colormap(house_meshes, palette)
 
-    props_col, prop_objs = place_props(entry)
+    props_col, prop_objs, trees_info = place_props(entry)
     prop_meshes = [o for o in prop_objs if o.type == "MESH"]
     apply_clay_colormap(prop_meshes, palette)
 
-    tree_objs = [o for o in prop_meshes if "tree" in o.name.lower()]
-    non_tree_props = [o for o in prop_meshes if o not in tree_objs]
+    # The Kenney fence reads as floating brick walls and its cone trees as ghosts
+    # at night. Both are replaced by the diorama pieces; the kit models stay in
+    # the scene only so their bounds are available, and never render.
+    tree_objs = [o for o in prop_meshes if o.get("role") == "tree"]
+    fence_objs = [o for o in prop_meshes if o.get("role") in ("fence", "planter")]
+    planter_spec = (entry.get("props") or {}).get("planter")
+    for o in tree_objs + fence_objs:
+        o.hide_render = True
+    ground_props = [o for o in prop_meshes if o not in tree_objs and o not in fence_objs]
 
-    cam = setup_camera(house_meshes, house_meshes + non_tree_props)
+    # Lawn slab bounds: house plus what stands on the lawn, with room at the
+    # front for the path and a margin all round.
+    hmin, hmax = world_bounds(house_meshes)
+    xs = [hmin.x, hmax.x]
+    ys = [hmin.y, hmax.y]
+    for t in trees_info:
+        xs += [t["x"] - t["r"] * 0.6, t["x"] + t["r"] * 0.6]
+    if ground_props:
+        pmin, pmax = world_bounds(ground_props)
+        xs += [pmin.x, pmax.x]
+        ys += [pmin.y]
+    x0, x1 = min(xs) - 0.38, max(xs) + 0.38
+    y0, y1 = min(ys) - 0.42, hmax.y + 0.36
+    slab = diorama.build_slab(x0, x1, y0, y1, season if layer in ("ground", "foliage") else "summer")
+
+    fit = corners_of(hmin, hmax) + [
+        Vector((x0, y0, -0.16)),
+        Vector((x1, y0, -0.16)),
+        Vector((x0, y1, -0.16)),
+        Vector((x1, y1, -0.16)),
+        Vector((x0, y0, 0)),
+        Vector((x1, y0, 0)),
+        Vector((x0, y1, 0)),
+        Vector((x1, y1, 0)),
+    ]
+    for t in trees_info:
+        top = t["h"] * 1.05
+        fit.append(Vector((t["x"], t["y"], top)))
+        fit.append(Vector((t["x"] - t["h"] * 0.4, t["y"], t["h"] * 0.6)))
+        fit.append(Vector((t["x"] + t["h"] * 0.4, t["y"], t["h"] * 0.6)))
+    target = Vector(((x0 + x1) / 2, (y0 + y1) / 2, (hmax.z - hmin.z) * 0.32))
+    cam = setup_camera_fit(target, fit)
+
     glass, foliage, door, _ = classify_faces(house_meshes, palette)
     clusters = cluster_windows(glass)
     windows = refine_window_rects(cam, clusters)
@@ -878,9 +993,9 @@ def build_and_render(
     # into the middle of the house, and the projection of that lands on the
     # roof. Six anchors hang off the threshold (porch lantern, string lights,
     # wreath, doormat, cat, closing sparkle), so all six were misplaced. Same
-    # facing test the window pass has always used. Renders shipped before this
-    # fix were corrected in place by scripts/derive-door-anchors.mjs.
+    # facing test the window pass has always used.
     door_anchor = None
+    door_world = None
     if door:
         cam_loc = cam.matrix_world.translation
         facing = []
@@ -895,8 +1010,7 @@ def build_and_render(
         for o, pi in facing:
             pts.extend(window_world_points(o, [pi]))
         if pts:
-            from bpy_extras.object_utils import world_to_camera_view
-
+            door_world = sum(pts, Vector()) / len(pts)
             # Centre and size, so anchors can be placed off the door's own
             # height instead of a guessed fraction of the frame.
             rect = project_rect(cam, pts)
@@ -916,16 +1030,40 @@ def build_and_render(
         co = world_to_camera_view(bpy.context.scene, cam, chimney)
         chimney_anchor = {"x": round(co.x * FRAME_W, 1), "y": round((1 - co.y) * FRAME_H, 1)}
 
+    def casts_only(objs):
+        """Invisible to the camera, still blocks the sun: shadows without the
+        object."""
+        for o in objs:
+            o.visible_camera = False
+            o.visible_glossy = False
+            o.visible_transmission = False
+            o.visible_volume_scatter = False
+
     # Layer-specific visibility / materials.
+    slab.hide_render = layer not in ("ground", "foliage")
     if layer in ("day", "night"):
-        for o in tree_objs:
-            o.hide_render = True
         glass_mat = make_glass_material(layer)
         by_obj = defaultdict(list)
         for o, pi in glass:
             by_obj[o].append(pi)
         for o, polys in by_obj.items():
             assign_poly_material(o, polys, glass_mat)
+        # The kit paints its built-in planters and hedges mint; give them the
+        # same green as the diorama's own bushes so the two read as one set.
+        shade, light = diorama.BUSH["summer"]
+        green = diorama.noise_mix_material("HouseFoliage", shade, light, scale=9.0, bump=0.3, ramp_lo=0.25, ramp_hi=0.85)
+        by_obj = defaultdict(list)
+        for o, pi in foliage:
+            by_obj[o].append(pi)
+        for o, polys in by_obj.items():
+            assign_poly_material(o, polys, green)
+        # Driveways come out of the colormap as a rust-red rectangle; make them
+        # concrete.
+        concrete = diorama.noise_mix_material("Concrete", "#a9a49c", "#c4bfb6", scale=6.0, bump=0.15, rough=0.9, ramp_lo=0.3, ramp_hi=0.8)
+        for o in prop_meshes:
+            if o.get("role") == "driveway":
+                o.data.materials.clear()
+                o.data.materials.append(concrete)
     elif layer == "lit":
         # Emission on glass only; everything else holdout; no lights so nothing
         # but the emission reaches the film.
@@ -941,55 +1079,37 @@ def build_and_render(
         for light in bpy.data.lights:
             light.energy = 0.0
         bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.0
-    elif layer == "shadow":
-        # Render a white ground plane with the house and props held out, then
-        # scripts/prepare-portraits.mjs turns the plane's darkening into a shadow
-        # alpha (black, alpha = 1 - L/L_ref). Cycles does have a real shadow
-        # catcher now, but this keeps the contract prepare-portraits.mjs reads.
-        for o in tree_objs:
-            o.hide_render = True
-        set_holdout(house_meshes + [o for o in prop_meshes if o not in tree_objs], True)
-        bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, -0.002))
-        plane = bpy.context.active_object
-        ground = bpy.data.materials.new("ShadowGround")
-        ground.use_nodes = True
-        gnt = ground.node_tree
-        gb = next(n for n in gnt.nodes if n.type == "BSDF_PRINCIPLED")
-        gb.inputs["Base Color"].default_value = (1.0, 1.0, 1.0, 1.0)
-        gb.inputs["Roughness"].default_value = 1.0
-        plane.data.materials.append(ground)
-        for light in bpy.data.lights:
-            if light.type == "SUN":
-                light.energy = max(light.energy, 3.0)
-            else:
-                # prepare-portraits.mjs measures the plane's darkening against an
-                # unshadowed reference along the bottom edge. Fill and rim would
-                # lift the shadowed pixels and wash the result out.
-                light.energy = 0.0
-        # Same reason: sky ambient is the floor on how dark the shadow can get.
-        bpy.context.scene.world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.18
+    elif layer == "ground":
+        # The lawn, opaque, under the house. The house, path and trees are
+        # invisible to the camera but still throw their shadows onto it.
+        casts_only(house_meshes + ground_props)
+        slab.hide_render = False
+        pieces = []
+        for i, t in enumerate(trees_info):
+            pieces += diorama.build_tree(t["x"], t["y"], t["h"], season, seed=i + 1)
+        casts_only(pieces)
+        if door_world is not None:
+            diorama.build_stone_path(door_world.x, door_world.y - 0.17, y0 + 0.1, seed=3)
     elif layer == "foliage":
-        for o in house_meshes + non_tree_props:
-            o.hide_render = True
-        # Trees only; retint leaves on house bushes too if any foliage faces on house.
-        retint_foliage(foliage, season)
-        # Also retint tree materials roughly by replacing principled base.
-        if SEASONS[season] is None:
-            for o in tree_objs:
-                o.hide_render = True
-        else:
-            color = SEASONS[season]
-            for o in tree_objs:
-                for slot in o.material_slots:
-                    mat = slot.material
-                    if not mat or not mat.use_nodes:
-                        continue
-                    for n in mat.node_tree.nodes:
-                        if n.type == "BSDF_PRINCIPLED":
-                            # Only shift greener materials.
-                            bc = n.inputs["Base Color"].default_value
-                            if bc[1] > bc[0] and bc[1] > bc[2]:
-                                n.inputs["Base Color"].default_value = color
+        # Trees and bushes, composited above the house. The house and path are
+        # held out so a tree behind the house stays behind it; the lawn is in
+        # the ground layer, not here.
+        slab.hide_render = True
+        set_holdout(house_meshes + ground_props, True)
+        # Hold the slab out too (it hides trees' lower trunks otherwise only by
+        # being invisible), but let it receive their shadows via the ground layer.
+        for i, t in enumerate(trees_info):
+            diorama.build_tree(t["x"], t["y"], t["h"], season, seed=i + 1)
+        # Outer corners only: a bush in front of a window hides the window the
+        # lit layer is about to light.
+        foundation = [hmin.x - 0.06, hmax.x + 0.06]
+        for i, bx in enumerate(foundation):
+            diorama.build_bush(bx, hmin.y + 0.05, 0.11 + 0.015 * (i % 2), season, seed=40 + i)
+        # Slab as holdout so bushes/trunks sitting under the lawn plane clip.
+        if planter_spec:
+            diorama.build_bush(planter_spec["x"], planter_spec["y"], 0.1, season, seed=60)
+        slab.hide_render = False
+        set_holdout([slab], True)
     elif layer == "snow":
         # White caps on upward faces; every other face held out.
         for o in prop_meshes:
@@ -1000,14 +1120,8 @@ def build_and_render(
     render_to(out_path)
     print("wrote", out_path)
 
-    minc, maxc = world_bounds(house_meshes)
     # Project house bbox to frame.
-    corners = []
-    for x in (minc.x, maxc.x):
-        for y in (minc.y, maxc.y):
-            for z in (minc.z, maxc.z):
-                corners.append(Vector((x, y, z)))
-    bbox = project_rect(cam, corners)
+    bbox = project_rect(cam, corners_of(hmin, hmax))
 
     return {
         "kitType": kit_type,
@@ -1061,10 +1175,13 @@ def main():
     parser.add_argument("--only-missing", default="0")
     parser.add_argument("--samples", type=int, default=192)
     parser.add_argument("--scale", type=float, default=1.2)
+    parser.add_argument("--out", default="")
     parser.add_argument("--device", default="GPU", choices=["GPU", "CPU", "gpu", "cpu"])
     args = parser.parse_args(argv_after_double_dash())
 
-    global FRAME_W, FRAME_H, DEVICE
+    global FRAME_W, FRAME_H, DEVICE, PNG_OUT
+    if args.out:
+        PNG_OUT = Path(args.out)
     # Even dimensions keep the webp encoder off half-pixel chroma edges.
     FRAME_W = int(round(BASE_W * args.scale / 2) * 2)
     FRAME_H = int(round(BASE_H * args.scale / 2) * 2)
@@ -1072,7 +1189,7 @@ def main():
 
     types = list("abcdefghijklmnopqrstu") if args.type == "all" else [args.type]
     palettes = ["classic", "terracotta", "slate"] if args.palette == "all" else [args.palette]
-    layers = ["day", "night", "lit", "shadow", "foliage", "snow"] if args.layer == "all" else [args.layer]
+    layers = ["day", "night", "lit", "ground", "foliage", "snow"] if args.layer == "all" else [args.layer]
     seasons = ["spring", "summer", "autumn", "winter"] if args.season == "all" else [args.season]
     only_missing = args.only_missing in ("1", "true", "yes")
 
@@ -1086,7 +1203,7 @@ def main():
                     m = build_and_render(kt, pal, layer, "summer", args.samples, only_missing)
                     if m:
                         meta = m
-            elif layer == "foliage":
+            elif layer in ("foliage", "ground"):
                 for season in seasons:
                     for ph in ("day", "night"):
                         m = build_and_render(kt, "terracotta", layer, season, args.samples, only_missing, ph)
@@ -1098,7 +1215,8 @@ def main():
                     meta = m or meta
         if meta:
             metas.append(meta)
-    merge_manifest(metas)
+    if not args.out:
+        merge_manifest(metas)
 
 
 if __name__ == "__main__":

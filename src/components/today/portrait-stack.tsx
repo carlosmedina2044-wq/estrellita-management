@@ -113,13 +113,36 @@ export function PortraitStack({
       className={cn("relative overflow-visible", className)}
       style={{ width: widthPx, aspectRatio: aspect, ...style }}
     >
+      {/* The lawn. Not palette-dependent, so it sits outside the repaint
+          reveal; dressed per season, so a season change crossfades it the way
+          the foliage does. The outgoing lawn stays fully opaque underneath
+          until the new one is in, so the sky never shows through. */}
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={season}
+          className="pointer-events-none absolute inset-0"
+          initial={reduce ? false : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 1 }}
+          transition={{ duration: reduce ? 0 : DUR_AMBIENT }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={layers.groundNight} alt="" draggable={false} className="absolute inset-0 h-full w-full object-contain" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={layers.groundDay}
+            alt=""
+            draggable={false}
+            className="absolute inset-0 h-full w-full object-contain"
+            style={{ opacity: dayOpacity }}
+          />
+        </motion.div>
+      </AnimatePresence>
       {under ? (
         // Only the opaque body of the house: the windows, foliage and snow
         // above carry no palette, so duplicating them would just double the
         // paint cost for no visible difference.
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={under.shadow} alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={under.night} alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full object-contain" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -140,13 +163,6 @@ export function PortraitStack({
             : undefined
         }
       >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={layers.shadow}
-        alt=""
-        draggable={false}
-        className="pointer-events-none absolute inset-0 h-full w-full object-contain"
-      />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={layers.night}

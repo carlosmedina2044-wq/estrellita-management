@@ -168,7 +168,7 @@ struct SkyGradient: View {
 // MARK: - The house
 
 /// The layered portrait from the App Group container, lit by the current
-/// phase: shadow, night, day (crossfaded), the lit windows, and the foliage.
+/// phase: the lawn, night, day (crossfaded), the lit windows, and the foliage.
 struct HouseStack: View {
     let snapshot: CuidalaWidgetSnapshot
     let dayOpacity: Double
@@ -176,14 +176,15 @@ struct HouseStack: View {
     var body: some View {
         ZStack {
             layer(0)
-            layer(1)
-            layer(2).opacity(dayOpacity)
-            layer(3).opacity(snapshot.litFraction).blendMode(.screen)
-            layer(4)
-            layer(5).opacity(dayOpacity)
+            layer(1).opacity(dayOpacity)
+            layer(2)
+            layer(3).opacity(dayOpacity)
+            layer(4).opacity(snapshot.litFraction).blendMode(.screen)
+            layer(5)
+            layer(6).opacity(dayOpacity)
         }
-        // Six decorative composite layers; VoiceOver should not read "image"
-        // six times. The surrounding labels carry the meaning.
+        // Seven decorative composite layers; VoiceOver should not read "image"
+        // seven times. The surrounding labels carry the meaning.
         .accessibilityHidden(true)
     }
 

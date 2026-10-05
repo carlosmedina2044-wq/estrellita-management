@@ -14,43 +14,43 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 235.3,
-      "y": 154.8,
-      "w": 491.1,
-      "h": 371.9
+      "x": 210.2,
+      "y": 76.8,
+      "w": 431.4,
+      "h": 340.2
     },
     "windows": [
       {
         "id": "w0",
-        "x": 366.4,
-        "y": 421.1,
-        "w": 63.8,
-        "h": 40.6
+        "x": 326.7,
+        "y": 325.4,
+        "w": 55.5,
+        "h": 35.4
       },
       {
         "id": "w1",
-        "x": 506.7,
-        "y": 322.4,
-        "w": 30.3,
-        "h": 16.4
+        "x": 448.5,
+        "y": 239.4,
+        "w": 26.5,
+        "h": 14.6
       },
       {
         "id": "w2",
-        "x": 606.1,
-        "y": 386.4,
-        "w": 56.1,
-        "h": 37.5
+        "x": 536.5,
+        "y": 291.9,
+        "w": 49.6,
+        "h": 33.1
       }
     ],
     "door": {
-      "x": 524.5,
-      "y": 443.5,
-      "w": 39,
-      "h": 79
+      "x": 464.5,
+      "y": 343.5,
+      "w": 33,
+      "h": 67
     },
     "chimney": {
-      "x": 400.9,
-      "y": 204.2
+      "x": 356.5,
+      "y": 133.6
     },
     "windowCount": 3,
     "files": {
@@ -83,8 +83,37 @@
         "terracotta": "/portraits/a-terracotta-night.webp"
       },
       "lit": "/portraits/a-lit.webp",
-      "shadow": "/portraits/a-shadow.webp",
-      "snow": "/portraits/a-snow.webp"
+      "snow": "/portraits/a-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/a-ground-autumn-day.webp",
+          "night": "/portraits/a-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/a-ground-spring-day.webp",
+          "night": "/portraits/a-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/a-ground-summer-day.webp",
+          "night": "/portraits/a-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/a-ground-winter-day.webp",
+          "night": "/portraits/a-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 33,
+      "y": 222,
+      "w": 839,
+      "h": 351
+    },
+    "bounds": {
+      "x": 33,
+      "y": 86,
+      "w": 839,
+      "h": 487
     }
   },
   "b": {
@@ -102,43 +131,43 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 230.1,
-      "y": 154.7,
-      "w": 491.2,
-      "h": 364.6
+      "x": 184.4,
+      "y": 63,
+      "w": 490,
+      "h": 373.1
     },
     "windows": [
       {
         "id": "w0",
-        "x": 459.1,
-        "y": 415.3,
+        "x": 412.9,
+        "y": 330.6,
         "w": 21.8,
-        "h": 25.2
+        "h": 24.8
       },
       {
         "id": "w1",
-        "x": 544.4,
-        "y": 402.6,
-        "w": 21.2,
-        "h": 24.5
+        "x": 497.9,
+        "y": 316.8,
+        "w": 21.1,
+        "h": 24.2
       },
       {
         "id": "w2",
-        "x": 546.2,
-        "y": 315.1,
-        "w": 21.7,
-        "h": 25
+        "x": 499.4,
+        "y": 231.3,
+        "w": 21.6,
+        "h": 24.9
       }
     ],
     "door": {
-      "x": 383,
-      "y": 459.5,
-      "w": 30,
-      "h": 61
+      "x": 337.5,
+      "y": 375,
+      "w": 31,
+      "h": 60
     },
     "chimney": {
-      "x": 610.7,
-      "y": 203.4
+      "x": 563.6,
+      "y": 121.2
     },
     "windowCount": 3,
     "files": {
@@ -171,8 +200,37 @@
         "terracotta": "/portraits/b-terracotta-night.webp"
       },
       "lit": "/portraits/b-lit.webp",
-      "shadow": "/portraits/b-shadow.webp",
-      "snow": "/portraits/b-snow.webp"
+      "snow": "/portraits/b-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/b-ground-autumn-day.webp",
+          "night": "/portraits/b-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/b-ground-spring-day.webp",
+          "night": "/portraits/b-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/b-ground-summer-day.webp",
+          "night": "/portraits/b-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/b-ground-winter-day.webp",
+          "night": "/portraits/b-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 31,
+      "y": 243,
+      "w": 847,
+      "h": 347
+    },
+    "bounds": {
+      "x": 31,
+      "y": 76,
+      "w": 847,
+      "h": 514
     }
   },
   "c": {
@@ -190,36 +248,36 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 241.8,
-      "y": 129.2,
-      "w": 477.1,
-      "h": 416.3
+      "x": 240.4,
+      "y": 25.1,
+      "w": 431.8,
+      "h": 379.8
     },
     "windows": [
       {
         "id": "w0",
-        "x": 383.6,
-        "y": 446.3,
-        "w": 30.9,
-        "h": 34.4
+        "x": 373.3,
+        "y": 317.9,
+        "w": 26.9,
+        "h": 30.3
       },
       {
         "id": "w1",
-        "x": 503.4,
-        "y": 309.3,
-        "w": 29.6,
-        "h": 34.1
+        "x": 479,
+        "y": 196.5,
+        "w": 26.4,
+        "h": 30.4
       }
     ],
     "door": {
-      "x": 520.5,
-      "y": 466.5,
-      "w": 37,
-      "h": 79
+      "x": 493.5,
+      "y": 335.5,
+      "w": 33,
+      "h": 69
     },
     "chimney": {
-      "x": 541.7,
-      "y": 162.1
+      "x": 512.7,
+      "y": 61.4
     },
     "windowCount": 2,
     "files": {
@@ -252,8 +310,37 @@
         "terracotta": "/portraits/c-terracotta-night.webp"
       },
       "lit": "/portraits/c-lit.webp",
-      "shadow": "/portraits/c-shadow.webp",
-      "snow": "/portraits/c-snow.webp"
+      "snow": "/portraits/c-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/c-ground-autumn-day.webp",
+          "night": "/portraits/c-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/c-ground-spring-day.webp",
+          "night": "/portraits/c-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/c-ground-summer-day.webp",
+          "night": "/portraits/c-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/c-ground-winter-day.webp",
+          "night": "/portraits/c-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 40,
+      "y": 226,
+      "w": 823,
+      "h": 395
+    },
+    "bounds": {
+      "x": 40,
+      "y": 61,
+      "w": 823,
+      "h": 560
     }
   },
   "d": {
@@ -271,50 +358,50 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 230.8,
-      "y": 138.1,
-      "w": 487.1,
-      "h": 392
+      "x": 195.7,
+      "y": 55.8,
+      "w": 445.6,
+      "h": 365.5
     },
     "windows": [
       {
         "id": "w0",
-        "x": 440.5,
-        "y": 342.7,
-        "w": 23.8,
-        "h": 27.2
+        "x": 387.2,
+        "y": 252.4,
+        "w": 21.9,
+        "h": 24.6
       },
       {
         "id": "w1",
-        "x": 441.2,
-        "y": 436.8,
-        "w": 23.2,
-        "h": 26.6
+        "x": 388.6,
+        "y": 336.5,
+        "w": 21.3,
+        "h": 23.9
       },
       {
         "id": "w2",
-        "x": 533.3,
-        "y": 330.8,
-        "w": 22.9,
-        "h": 26.4
+        "x": 472.2,
+        "y": 240.6,
+        "w": 20.9,
+        "h": 24
       },
       {
         "id": "w3",
-        "x": 621,
-        "y": 319.6,
-        "w": 22.2,
-        "h": 25.7
+        "x": 552.9,
+        "y": 229.3,
+        "w": 20.4,
+        "h": 23.5
       }
     ],
     "door": {
-      "x": 546,
-      "y": 452.5,
-      "w": 28,
-      "h": 61
+      "x": 484,
+      "y": 350.5,
+      "w": 26,
+      "h": 55
     },
     "chimney": {
-      "x": 651.5,
-      "y": 156.7
+      "x": 584,
+      "y": 76.9
     },
     "windowCount": 4,
     "files": {
@@ -347,8 +434,37 @@
         "terracotta": "/portraits/d-terracotta-night.webp"
       },
       "lit": "/portraits/d-lit.webp",
-      "shadow": "/portraits/d-shadow.webp",
-      "snow": "/portraits/d-snow.webp"
+      "snow": "/portraits/d-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/d-ground-autumn-day.webp",
+          "night": "/portraits/d-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/d-ground-spring-day.webp",
+          "night": "/portraits/d-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/d-ground-summer-day.webp",
+          "night": "/portraits/d-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/d-ground-winter-day.webp",
+          "night": "/portraits/d-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 31,
+      "y": 246,
+      "w": 848,
+      "h": 351
+    },
+    "bounds": {
+      "x": 31,
+      "y": 76,
+      "w": 848,
+      "h": 521
     }
   },
   "e": {
@@ -366,57 +482,57 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 239,
-      "y": 113.2,
-      "w": 482.8,
-      "h": 445.7
+      "x": 210.4,
+      "y": 41,
+      "w": 422,
+      "h": 399.4
     },
     "windows": [
       {
         "id": "w0",
-        "x": 367.6,
-        "y": 335.8,
-        "w": 63,
-        "h": 39.3
+        "x": 323.6,
+        "y": 249.9,
+        "w": 54.8,
+        "h": 34.3
       },
       {
         "id": "w1",
-        "x": 370.7,
-        "y": 456.7,
-        "w": 61,
-        "h": 39.3
+        "x": 327.2,
+        "y": 352.7,
+        "w": 53,
+        "h": 33.9
       },
       {
         "id": "w2",
-        "x": 490.6,
-        "y": 320.9,
-        "w": 58.6,
-        "h": 37.8
+        "x": 430.6,
+        "y": 235.4,
+        "w": 51.1,
+        "h": 33.1
       },
       {
         "id": "w3",
-        "x": 600.6,
-        "y": 420.7,
-        "w": 54,
-        "h": 36.4
+        "x": 527.9,
+        "y": 319.7,
+        "w": 47.5,
+        "h": 31.8
       },
       {
         "id": "w4",
-        "x": 604.6,
-        "y": 306.9,
-        "w": 55.6,
-        "h": 36.4
+        "x": 530.6,
+        "y": 221.7,
+        "w": 49,
+        "h": 32.1
       }
     ],
     "door": {
-      "x": 522.5,
-      "y": 477,
-      "w": 37,
-      "h": 74
+      "x": 459,
+      "y": 369.5,
+      "w": 32,
+      "h": 63
     },
     "chimney": {
-      "x": 416.8,
-      "y": 153.4
+      "x": 366.6,
+      "y": 87.9
     },
     "windowCount": 5,
     "files": {
@@ -449,8 +565,37 @@
         "terracotta": "/portraits/e-terracotta-night.webp"
       },
       "lit": "/portraits/e-lit.webp",
-      "shadow": "/portraits/e-shadow.webp",
-      "snow": "/portraits/e-snow.webp"
+      "snow": "/portraits/e-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/e-ground-autumn-day.webp",
+          "night": "/portraits/e-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/e-ground-spring-day.webp",
+          "night": "/portraits/e-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/e-ground-summer-day.webp",
+          "night": "/portraits/e-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/e-ground-winter-day.webp",
+          "night": "/portraits/e-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 32,
+      "y": 246,
+      "w": 841,
+      "h": 362
+    },
+    "bounds": {
+      "x": 32,
+      "y": 68,
+      "w": 841,
+      "h": 540
     }
   },
   "l": {
@@ -468,36 +613,36 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 266,
-      "y": 117.7,
-      "w": 432.2,
-      "h": 435.9
+      "x": 291.8,
+      "y": 24.8,
+      "w": 425.2,
+      "h": 427.7
     },
     "windows": [
       {
         "id": "w0",
-        "x": 426.9,
-        "y": 319.3,
-        "w": 32.9,
-        "h": 37.4
+        "x": 456.9,
+        "y": 231.3,
+        "w": 31,
+        "h": 35.7
       },
       {
         "id": "w1",
-        "x": 553.9,
-        "y": 304.1,
-        "w": 31.2,
-        "h": 36
+        "x": 575.7,
+        "y": 215.1,
+        "w": 30,
+        "h": 34.5
       }
     ],
     "door": {
-      "x": 570.5,
-      "y": 470,
-      "w": 39,
-      "h": 82
+      "x": 588.5,
+      "y": 371.5,
+      "w": 37,
+      "h": 77
     },
     "chimney": {
-      "x": 449.7,
-      "y": 155.4
+      "x": 474.7,
+      "y": 69.9
     },
     "windowCount": 2,
     "files": {
@@ -530,8 +675,37 @@
         "terracotta": "/portraits/l-terracotta-night.webp"
       },
       "lit": "/portraits/l-lit.webp",
-      "shadow": "/portraits/l-shadow.webp",
-      "snow": "/portraits/l-snow.webp"
+      "snow": "/portraits/l-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/l-ground-autumn-day.webp",
+          "night": "/portraits/l-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/l-ground-spring-day.webp",
+          "night": "/portraits/l-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/l-ground-summer-day.webp",
+          "night": "/portraits/l-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/l-ground-winter-day.webp",
+          "night": "/portraits/l-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 73,
+      "y": 257,
+      "w": 756,
+      "h": 363
+    },
+    "bounds": {
+      "x": 73,
+      "y": 45,
+      "w": 756,
+      "h": 575
     }
   },
   "m": {
@@ -549,36 +723,36 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 235.5,
-      "y": 178.1,
-      "w": 504.2,
-      "h": 339.1
+      "x": 222.4,
+      "y": 102.1,
+      "w": 426.8,
+      "h": 305.5
     },
     "windows": [
       {
         "id": "w0",
-        "x": 429.3,
-        "y": 418.2,
-        "w": 28.4,
-        "h": 32.3
+        "x": 388.7,
+        "y": 324.9,
+        "w": 23.7,
+        "h": 26.7
       },
       {
         "id": "w1",
-        "x": 642.2,
-        "y": 387,
-        "w": 26.1,
-        "h": 30.3
+        "x": 567.5,
+        "y": 295.5,
+        "w": 22.1,
+        "h": 25.3
       }
     ],
     "door": {
-      "x": 556.5,
-      "y": 437,
-      "w": 35,
-      "h": 72
+      "x": 494.5,
+      "y": 339,
+      "w": 29,
+      "h": 58
     },
     "chimney": {
-      "x": 515.3,
-      "y": 212.8
+      "x": 463.1,
+      "y": 141.5
     },
     "windowCount": 2,
     "files": {
@@ -611,8 +785,37 @@
         "terracotta": "/portraits/m-terracotta-night.webp"
       },
       "lit": "/portraits/m-lit.webp",
-      "shadow": "/portraits/m-shadow.webp",
-      "snow": "/portraits/m-snow.webp"
+      "snow": "/portraits/m-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/m-ground-autumn-day.webp",
+          "night": "/portraits/m-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/m-ground-spring-day.webp",
+          "night": "/portraits/m-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/m-ground-summer-day.webp",
+          "night": "/portraits/m-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/m-ground-winter-day.webp",
+          "night": "/portraits/m-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 31,
+      "y": 203,
+      "w": 846,
+      "h": 348
+    },
+    "bounds": {
+      "x": 31,
+      "y": 95,
+      "w": 846,
+      "h": 456
     }
   },
   "n": {
@@ -630,50 +833,50 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 223.6,
-      "y": 147,
-      "w": 516.1,
-      "h": 389.6
+      "x": 199.4,
+      "y": 70.5,
+      "w": 473.1,
+      "h": 369.4
     },
     "windows": [
       {
         "id": "w0",
-        "x": 325.2,
-        "y": 427.2,
-        "w": 14.9,
-        "h": 41.2
+        "x": 294.8,
+        "y": 338.9,
+        "w": 13.6,
+        "h": 38.3
       },
       {
         "id": "w1",
-        "x": 362.3,
-        "y": 346.4,
-        "w": 49.9,
-        "h": 31
+        "x": 327.7,
+        "y": 268.4,
+        "w": 45.4,
+        "h": 28.4
       },
       {
         "id": "w2",
-        "x": 460,
-        "y": 334.2,
-        "w": 46.8,
-        "h": 30.1
+        "x": 416.5,
+        "y": 255.9,
+        "w": 42.8,
+        "h": 27.7
       },
       {
         "id": "w3",
-        "x": 560.8,
-        "y": 415.7,
-        "w": 22.2,
-        "h": 25.7
+        "x": 509,
+        "y": 327.5,
+        "w": 20.3,
+        "h": 23.3
       }
     ],
     "door": {
-      "x": 486,
-      "y": 460,
-      "w": 30,
-      "h": 62
+      "x": 440.5,
+      "y": 370,
+      "w": 27,
+      "h": 54
     },
     "chimney": {
-      "x": 401.9,
-      "y": 200.7
+      "x": 363.5,
+      "y": 132.9
     },
     "windowCount": 4,
     "files": {
@@ -706,8 +909,37 @@
         "terracotta": "/portraits/n-terracotta-night.webp"
       },
       "lit": "/portraits/n-lit.webp",
-      "shadow": "/portraits/n-shadow.webp",
-      "snow": "/portraits/n-snow.webp"
+      "snow": "/portraits/n-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/n-ground-autumn-day.webp",
+          "night": "/portraits/n-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/n-ground-spring-day.webp",
+          "night": "/portraits/n-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/n-ground-summer-day.webp",
+          "night": "/portraits/n-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/n-ground-winter-day.webp",
+          "night": "/portraits/n-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 31,
+      "y": 236,
+      "w": 849,
+      "h": 348
+    },
+    "bounds": {
+      "x": 31,
+      "y": 122,
+      "w": 849,
+      "h": 462
     }
   },
   "o": {
@@ -725,29 +957,29 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 243.3,
-      "y": 113.4,
-      "w": 474.5,
-      "h": 444.5
+      "x": 217.1,
+      "y": 42.7,
+      "w": 422.1,
+      "h": 405.6
     },
     "windows": [
       {
         "id": "w0",
-        "x": 499.7,
-        "y": 441,
-        "w": 28.8,
-        "h": 55.7
+        "x": 446.4,
+        "y": 344.9,
+        "w": 25.3,
+        "h": 48.6
       }
     ],
     "door": {
-      "x": 628,
-      "y": 443.5,
-      "w": 34,
-      "h": 41
+      "x": 560,
+      "y": 361,
+      "w": 32,
+      "h": 66
     },
     "chimney": {
-      "x": 526.1,
-      "y": 145.5
+      "x": 470.5,
+      "y": 80.9
     },
     "windowCount": 1,
     "files": {
@@ -780,8 +1012,37 @@
         "terracotta": "/portraits/o-terracotta-night.webp"
       },
       "lit": "/portraits/o-lit.webp",
-      "shadow": "/portraits/o-shadow.webp",
-      "snow": "/portraits/o-snow.webp"
+      "snow": "/portraits/o-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/o-ground-autumn-day.webp",
+          "night": "/portraits/o-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/o-ground-spring-day.webp",
+          "night": "/portraits/o-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/o-ground-summer-day.webp",
+          "night": "/portraits/o-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/o-ground-winter-day.webp",
+          "night": "/portraits/o-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 32,
+      "y": 250,
+      "w": 841,
+      "h": 356
+    },
+    "bounds": {
+      "x": 32,
+      "y": 70,
+      "w": 841,
+      "h": 536
     }
   },
   "p": {
@@ -799,38 +1060,38 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 242.1,
-      "y": 141.2,
-      "w": 476.5,
-      "h": 394.5
+      "x": 246.4,
+      "y": 26.9,
+      "w": 486.5,
+      "h": 406
     },
     "windows": [
       {
         "id": "w0",
-        "x": 493.5,
-        "y": 416.8,
-        "w": 60,
-        "h": 39.7
+        "x": 504.3,
+        "y": 312.8,
+        "w": 59.5,
+        "h": 39.8
       },
       {
         "id": "w1",
-        "x": 494.4,
-        "y": 285.6,
-        "w": 61.9,
-        "h": 33.2
+        "x": 507.6,
+        "y": 183,
+        "w": 61.8,
+        "h": 33.9
       },
       {
         "id": "w2",
-        "x": 615,
-        "y": 272.2,
+        "x": 626.8,
+        "y": 167.8,
         "w": 58.4,
-        "h": 31.8
+        "h": 32.6
       }
     ],
     "door": null,
     "chimney": {
-      "x": 582,
-      "y": 158.5
+      "x": 589.1,
+      "y": 47.5
     },
     "windowCount": 3,
     "files": {
@@ -863,8 +1124,37 @@
         "terracotta": "/portraits/p-terracotta-night.webp"
       },
       "lit": "/portraits/p-lit.webp",
-      "shadow": "/portraits/p-shadow.webp",
-      "snow": "/portraits/p-snow.webp"
+      "snow": "/portraits/p-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/p-ground-autumn-day.webp",
+          "night": "/portraits/p-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/p-ground-spring-day.webp",
+          "night": "/portraits/p-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/p-ground-summer-day.webp",
+          "night": "/portraits/p-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/p-ground-winter-day.webp",
+          "night": "/portraits/p-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 35,
+      "y": 230,
+      "w": 829,
+      "h": 386
+    },
+    "bounds": {
+      "x": 35,
+      "y": 46,
+      "w": 829,
+      "h": 570
     }
   },
   "q": {
@@ -882,36 +1172,36 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 228.8,
-      "y": 130,
-      "w": 500.3,
-      "h": 415
+      "x": 240.7,
+      "y": 25.3,
+      "w": 491.2,
+      "h": 410.7
     },
     "windows": [
       {
         "id": "w0",
-        "x": 483,
-        "y": 279.9,
-        "w": 65.7,
-        "h": 41.9
+        "x": 493,
+        "y": 180.9,
+        "w": 63.2,
+        "h": 41.1
       },
       {
         "id": "w1",
-        "x": 610.6,
-        "y": 265.9,
-        "w": 61.9,
-        "h": 40.2
+        "x": 614.7,
+        "y": 165.6,
+        "w": 60,
+        "h": 39.5
       }
     ],
     "door": {
-      "x": 640,
-      "y": 437.5,
-      "w": 40,
-      "h": 85
+      "x": 640.5,
+      "y": 330,
+      "w": 39,
+      "h": 80
     },
     "chimney": {
-      "x": 484.3,
-      "y": 185
+      "x": 495,
+      "y": 89.4
     },
     "windowCount": 2,
     "files": {
@@ -944,8 +1234,37 @@
         "terracotta": "/portraits/q-terracotta-night.webp"
       },
       "lit": "/portraits/q-lit.webp",
-      "shadow": "/portraits/q-shadow.webp",
-      "snow": "/portraits/q-snow.webp"
+      "snow": "/portraits/q-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/q-ground-autumn-day.webp",
+          "night": "/portraits/q-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/q-ground-spring-day.webp",
+          "night": "/portraits/q-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/q-ground-summer-day.webp",
+          "night": "/portraits/q-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/q-ground-winter-day.webp",
+          "night": "/portraits/q-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 35,
+      "y": 236,
+      "w": 828,
+      "h": 381
+    },
+    "bounds": {
+      "x": 35,
+      "y": 45,
+      "w": 828,
+      "h": 572
     }
   },
   "r": {
@@ -963,26 +1282,33 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 271.8,
-      "y": 108.7,
-      "w": 419.2,
-      "h": 449.5
+      "x": 294.1,
+      "y": 24.7,
+      "w": 393.4,
+      "h": 420.7
     },
     "windows": [
       {
         "id": "w0",
-        "x": 565.7,
-        "y": 303.1,
-        "w": 29,
-        "h": 33.5
+        "x": 402.2,
+        "y": 214.3,
+        "w": 10.7,
+        "h": 36.5
+      },
+      {
+        "id": "w1",
+        "x": 568.9,
+        "y": 212.2,
+        "w": 26.8,
+        "h": 30.8
       }
     ],
     "door": null,
     "chimney": {
-      "x": 461.4,
-      "y": 142.1
+      "x": 473.8,
+      "y": 63.4
     },
-    "windowCount": 1,
+    "windowCount": 2,
     "files": {
       "foliage": {
         "autumn": {
@@ -1013,8 +1339,37 @@
         "terracotta": "/portraits/r-terracotta-night.webp"
       },
       "lit": "/portraits/r-lit.webp",
-      "shadow": "/portraits/r-shadow.webp",
-      "snow": "/portraits/r-snow.webp"
+      "snow": "/portraits/r-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/r-ground-autumn-day.webp",
+          "night": "/portraits/r-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/r-ground-spring-day.webp",
+          "night": "/portraits/r-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/r-ground-summer-day.webp",
+          "night": "/portraits/r-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/r-ground-winter-day.webp",
+          "night": "/portraits/r-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 90,
+      "y": 264,
+      "w": 725,
+      "h": 358
+    },
+    "bounds": {
+      "x": 90,
+      "y": 34,
+      "w": 725,
+      "h": 588
     }
   },
   "s": {
@@ -1032,31 +1387,31 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 236.9,
-      "y": 123.6,
-      "w": 486.5,
-      "h": 426.8
+      "x": 221.8,
+      "y": 51.4,
+      "w": 423.8,
+      "h": 380.8
     },
     "windows": [
       {
         "id": "w0",
-        "x": 481,
-        "y": 326.4,
-        "w": 55.4,
-        "h": 35.7
+        "x": 435.1,
+        "y": 240.5,
+        "w": 47.9,
+        "h": 31.1
       },
       {
         "id": "w1",
-        "x": 589.1,
-        "y": 313.1,
-        "w": 52.7,
-        "h": 34.5
+        "x": 529,
+        "y": 227.6,
+        "w": 46,
+        "h": 30.2
       }
     ],
     "door": null,
     "chimney": {
-      "x": 470.7,
-      "y": 139.5
+      "x": 428,
+      "y": 69.8
     },
     "windowCount": 2,
     "files": {
@@ -1089,8 +1444,37 @@
         "terracotta": "/portraits/s-terracotta-night.webp"
       },
       "lit": "/portraits/s-lit.webp",
-      "shadow": "/portraits/s-shadow.webp",
-      "snow": "/portraits/s-snow.webp"
+      "snow": "/portraits/s-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/s-ground-autumn-day.webp",
+          "night": "/portraits/s-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/s-ground-spring-day.webp",
+          "night": "/portraits/s-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/s-ground-summer-day.webp",
+          "night": "/portraits/s-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/s-ground-winter-day.webp",
+          "night": "/portraits/s-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 32,
+      "y": 243,
+      "w": 844,
+      "h": 357
+    },
+    "bounds": {
+      "x": 32,
+      "y": 70,
+      "w": 844,
+      "h": 530
     }
   },
   "t": {
@@ -1108,64 +1492,64 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 252.7,
-      "y": 127.9,
-      "w": 467.6,
-      "h": 427.9
+      "x": 219,
+      "y": 45.4,
+      "w": 447,
+      "h": 422.3
     },
     "windows": [
       {
         "id": "w0",
-        "x": 397.5,
-        "y": 339.9,
-        "w": 27.5,
-        "h": 30.7
+        "x": 358.3,
+        "y": 263.8,
+        "w": 26.2,
+        "h": 29.1
       },
       {
         "id": "w1",
-        "x": 418.6,
-        "y": 467.2,
-        "w": 27.5,
-        "h": 31.2
+        "x": 378.6,
+        "y": 384.3,
+        "w": 26.1,
+        "h": 29.1
       },
       {
         "id": "w2",
-        "x": 494.4,
-        "y": 239.1,
-        "w": 40.8,
-        "h": 18.3
+        "x": 450.4,
+        "y": 167.3,
+        "w": 39.1,
+        "h": 17.7
       },
       {
         "id": "w3",
-        "x": 503.5,
-        "y": 326.7,
-        "w": 25.8,
-        "h": 29.7
+        "x": 459.3,
+        "y": 249.4,
+        "w": 24.6,
+        "h": 28.3
       },
       {
         "id": "w4",
-        "x": 602.8,
-        "y": 314.3,
-        "w": 24.9,
-        "h": 28.9
+        "x": 554.1,
+        "y": 235.9,
+        "w": 23.9,
+        "h": 27.5
       },
       {
         "id": "w5",
-        "x": 624.8,
-        "y": 433.8,
-        "w": 25.2,
-        "h": 29.3
+        "x": 574,
+        "y": 349.5,
+        "w": 24.1,
+        "h": 27.6
       }
     ],
     "door": {
-      "x": 541.5,
-      "y": 485.5,
-      "w": 33,
-      "h": 71
+      "x": 495,
+      "y": 399,
+      "w": 32,
+      "h": 66
     },
     "chimney": {
-      "x": 352.1,
-      "y": 173.2
+      "x": 314.6,
+      "y": 101.2
     },
     "windowCount": 6,
     "files": {
@@ -1198,8 +1582,37 @@
         "terracotta": "/portraits/t-terracotta-night.webp"
       },
       "lit": "/portraits/t-lit.webp",
-      "shadow": "/portraits/t-shadow.webp",
-      "snow": "/portraits/t-snow.webp"
+      "snow": "/portraits/t-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/t-ground-autumn-day.webp",
+          "night": "/portraits/t-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/t-ground-spring-day.webp",
+          "night": "/portraits/t-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/t-ground-summer-day.webp",
+          "night": "/portraits/t-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/t-ground-winter-day.webp",
+          "night": "/portraits/t-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 32,
+      "y": 241,
+      "w": 843,
+      "h": 364
+    },
+    "bounds": {
+      "x": 32,
+      "y": 86,
+      "w": 843,
+      "h": 519
     }
   },
   "u": {
@@ -1217,36 +1630,36 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 222,
-      "y": 113.4,
-      "w": 518.8,
-      "h": 450.6
+      "x": 222.2,
+      "y": 57.4,
+      "w": 437,
+      "h": 389.7
     },
     "windows": [
       {
         "id": "w0",
-        "x": 392.9,
-        "y": 457,
-        "w": 59.8,
-        "h": 38.9
+        "x": 368.8,
+        "y": 359,
+        "w": 49.6,
+        "h": 32.2
       },
       {
         "id": "w1",
-        "x": 623.4,
-        "y": 308.6,
-        "w": 54.8,
-        "h": 36.1
+        "x": 561.1,
+        "y": 234.4,
+        "w": 46.4,
+        "h": 30.6
       }
     ],
     "door": {
-      "x": 542,
-      "y": 477,
-      "w": 36,
-      "h": 74
+      "x": 493,
+      "y": 375,
+      "w": 30,
+      "h": 60
     },
     "chimney": {
-      "x": 549.2,
-      "y": 148.5
+      "x": 500.2,
+      "y": 98.1
     },
     "windowCount": 2,
     "files": {
@@ -1279,8 +1692,37 @@
         "terracotta": "/portraits/u-terracotta-night.webp"
       },
       "lit": "/portraits/u-lit.webp",
-      "shadow": "/portraits/u-shadow.webp",
-      "snow": "/portraits/u-snow.webp"
+      "snow": "/portraits/u-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/u-ground-autumn-day.webp",
+          "night": "/portraits/u-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/u-ground-spring-day.webp",
+          "night": "/portraits/u-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/u-ground-summer-day.webp",
+          "night": "/portraits/u-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/u-ground-winter-day.webp",
+          "night": "/portraits/u-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 32,
+      "y": 251,
+      "w": 844,
+      "h": 343
+    },
+    "bounds": {
+      "x": 32,
+      "y": 74,
+      "w": 844,
+      "h": 520
     }
   },
   "f": {
@@ -1298,57 +1740,57 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 252.7,
-      "y": 141.4,
-      "w": 463,
-      "h": 399.1
+      "x": 238.5,
+      "y": 25,
+      "w": 469.4,
+      "h": 407.1
     },
     "windows": [
       {
         "id": "w0",
-        "x": 342.2,
-        "y": 306.5,
-        "w": 15.5,
-        "h": 38.1
+        "x": 331.6,
+        "y": 197.1,
+        "w": 16.7,
+        "h": 39.1
       },
       {
         "id": "w1",
-        "x": 373,
-        "y": 335.1,
-        "w": 17.6,
-        "h": 41.9
+        "x": 365.1,
+        "y": 228.4,
+        "w": 18.9,
+        "h": 42.8
       },
       {
         "id": "w2",
-        "x": 419.8,
-        "y": 449.6,
-        "w": 50.3,
-        "h": 32.9
+        "x": 412.4,
+        "y": 341.9,
+        "w": 49.1,
+        "h": 32.6
       },
       {
         "id": "w3",
-        "x": 611.7,
-        "y": 419.8,
-        "w": 45.7,
-        "h": 30.8
+        "x": 599.6,
+        "y": 310.2,
+        "w": 45.3,
+        "h": 30.6
       },
       {
         "id": "w4",
-        "x": 615.3,
-        "y": 323.4,
-        "w": 46.8,
-        "h": 30.8
+        "x": 604.9,
+        "y": 215.7,
+        "w": 46.6,
+        "h": 30.9
       }
     ],
     "door": {
-      "x": 545.5,
-      "y": 469,
+      "x": 535.5,
+      "y": 360,
       "w": 31,
-      "h": 66
+      "h": 64
     },
     "chimney": {
-      "x": 457,
-      "y": 194.3
+      "x": 448.2,
+      "y": 86.8
     },
     "windowCount": 5,
     "files": {
@@ -1381,8 +1823,37 @@
         "terracotta": "/portraits/f-terracotta-night.webp"
       },
       "lit": "/portraits/f-lit.webp",
-      "shadow": "/portraits/f-shadow.webp",
-      "snow": "/portraits/f-snow.webp"
+      "snow": "/portraits/f-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/f-ground-autumn-day.webp",
+          "night": "/portraits/f-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/f-ground-spring-day.webp",
+          "night": "/portraits/f-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/f-ground-summer-day.webp",
+          "night": "/portraits/f-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/f-ground-winter-day.webp",
+          "night": "/portraits/f-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 53,
+      "y": 228,
+      "w": 799,
+      "h": 396
+    },
+    "bounds": {
+      "x": 53,
+      "y": 36,
+      "w": 799,
+      "h": 588
     }
   },
   "g": {
@@ -1400,36 +1871,36 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 232.4,
-      "y": 174.3,
-      "w": 499.2,
-      "h": 338.2
+      "x": 206.4,
+      "y": 94,
+      "w": 456.1,
+      "h": 325.7
     },
     "windows": [
       {
         "id": "w0",
-        "x": 490.5,
-        "y": 401.1,
-        "w": 27.6,
-        "h": 31.9
+        "x": 442.4,
+        "y": 317,
+        "w": 25,
+        "h": 28.7
       },
       {
         "id": "w1",
-        "x": 596.9,
-        "y": 385.7,
-        "w": 26.6,
-        "h": 30.8
+        "x": 539.3,
+        "y": 301.1,
+        "w": 24.3,
+        "h": 27.9
       }
     ],
     "door": {
-      "x": 394.5,
-      "y": 448,
-      "w": 39,
-      "h": 64
+      "x": 355.5,
+      "y": 368.5,
+      "w": 35,
+      "h": 69
     },
     "chimney": {
-      "x": 334.6,
-      "y": 245.9
+      "x": 300.3,
+      "y": 178
     },
     "windowCount": 2,
     "files": {
@@ -1462,8 +1933,37 @@
         "terracotta": "/portraits/g-terracotta-night.webp"
       },
       "lit": "/portraits/g-lit.webp",
-      "shadow": "/portraits/g-shadow.webp",
-      "snow": "/portraits/g-snow.webp"
+      "snow": "/portraits/g-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/g-ground-autumn-day.webp",
+          "night": "/portraits/g-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/g-ground-spring-day.webp",
+          "night": "/portraits/g-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/g-ground-summer-day.webp",
+          "night": "/portraits/g-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/g-ground-winter-day.webp",
+          "night": "/portraits/g-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 32,
+      "y": 215,
+      "w": 842,
+      "h": 342
+    },
+    "bounds": {
+      "x": 32,
+      "y": 91,
+      "w": 842,
+      "h": 466
     }
   },
   "h": {
@@ -1481,36 +1981,36 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 232.4,
-      "y": 167.3,
-      "w": 491.9,
-      "h": 345.4
+      "x": 251.9,
+      "y": 61.6,
+      "w": 474.2,
+      "h": 340.1
     },
     "windows": [
       {
         "id": "w0",
-        "x": 372.9,
-        "y": 407,
-        "w": 33.6,
-        "h": 61.9
+        "x": 393.7,
+        "y": 301.8,
+        "w": 30.4,
+        "h": 57.8
       },
       {
         "id": "w1",
-        "x": 616.1,
-        "y": 372.3,
-        "w": 30.3,
-        "h": 57.8
+        "x": 619.4,
+        "y": 265.7,
+        "w": 29.5,
+        "h": 54.3
       }
     ],
     "door": {
-      "x": 519,
-      "y": 428.5,
-      "w": 40,
-      "h": 81
+      "x": 529.5,
+      "y": 320,
+      "w": 37,
+      "h": 76
     },
     "chimney": {
-      "x": 408.2,
-      "y": 212.3
+      "x": 423.4,
+      "y": 113.7
     },
     "windowCount": 2,
     "files": {
@@ -1543,8 +2043,37 @@
         "terracotta": "/portraits/h-terracotta-night.webp"
       },
       "lit": "/portraits/h-lit.webp",
-      "shadow": "/portraits/h-shadow.webp",
-      "snow": "/portraits/h-snow.webp"
+      "snow": "/portraits/h-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/h-ground-autumn-day.webp",
+          "night": "/portraits/h-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/h-ground-spring-day.webp",
+          "night": "/portraits/h-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/h-ground-summer-day.webp",
+          "night": "/portraits/h-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/h-ground-winter-day.webp",
+          "night": "/portraits/h-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 34,
+      "y": 215,
+      "w": 831,
+      "h": 368
+    },
+    "bounds": {
+      "x": 34,
+      "y": 84,
+      "w": 831,
+      "h": 499
     }
   },
   "i": {
@@ -1562,29 +2091,29 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 223.2,
-      "y": 159.7,
-      "w": 518.8,
-      "h": 367.9
+      "x": 233.1,
+      "y": 54.3,
+      "w": 439.7,
+      "h": 318.1
     },
     "windows": [
       {
         "id": "w0",
-        "x": 629,
-        "y": 379.8,
-        "w": 30.8,
-        "h": 35.7
+        "x": 577.1,
+        "y": 249.2,
+        "w": 25.9,
+        "h": 29.8
       }
     ],
     "door": {
-      "x": 526.5,
-      "y": 441,
-      "w": 41,
-      "h": 88
+      "x": 492.5,
+      "y": 301,
+      "w": 35,
+      "h": 72
     },
     "chimney": {
-      "x": 533.3,
-      "y": 201.4
+      "x": 497.7,
+      "y": 98.1
     },
     "windowCount": 1,
     "files": {
@@ -1617,8 +2146,37 @@
         "terracotta": "/portraits/i-terracotta-night.webp"
       },
       "lit": "/portraits/i-lit.webp",
-      "shadow": "/portraits/i-shadow.webp",
-      "snow": "/portraits/i-snow.webp"
+      "snow": "/portraits/i-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/i-ground-autumn-day.webp",
+          "night": "/portraits/i-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/i-ground-spring-day.webp",
+          "night": "/portraits/i-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/i-ground-summer-day.webp",
+          "night": "/portraits/i-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/i-ground-winter-day.webp",
+          "night": "/portraits/i-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 34,
+      "y": 194,
+      "w": 832,
+      "h": 398
+    },
+    "bounds": {
+      "x": 34,
+      "y": 82,
+      "w": 832,
+      "h": 510
     }
   },
   "j": {
@@ -1636,29 +2194,29 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 226.5,
-      "y": 124.3,
-      "w": 502.2,
-      "h": 423.2
+      "x": 217.2,
+      "y": 54.2,
+      "w": 423.3,
+      "h": 364.8
     },
     "windows": [
       {
         "id": "w0",
-        "x": 301.3,
-        "y": 433.6,
-        "w": 15,
-        "h": 32
+        "x": 283.1,
+        "y": 324.3,
+        "w": 12.9,
+        "h": 27.2
       }
     ],
     "door": {
-      "x": 507,
-      "y": 466,
-      "w": 38,
-      "h": 80
+      "x": 454,
+      "y": 351.5,
+      "w": 32,
+      "h": 65
     },
     "chimney": {
-      "x": 643.2,
-      "y": 141.9
+      "x": 572.9,
+      "y": 74
     },
     "windowCount": 1,
     "files": {
@@ -1691,8 +2249,37 @@
         "terracotta": "/portraits/j-terracotta-night.webp"
       },
       "lit": "/portraits/j-lit.webp",
-      "shadow": "/portraits/j-shadow.webp",
-      "snow": "/portraits/j-snow.webp"
+      "snow": "/portraits/j-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/j-ground-autumn-day.webp",
+          "night": "/portraits/j-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/j-ground-spring-day.webp",
+          "night": "/portraits/j-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/j-ground-summer-day.webp",
+          "night": "/portraits/j-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/j-ground-winter-day.webp",
+          "night": "/portraits/j-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 32,
+      "y": 240,
+      "w": 841,
+      "h": 355
+    },
+    "bounds": {
+      "x": 32,
+      "y": 73,
+      "w": 841,
+      "h": 522
     }
   },
   "k": {
@@ -1710,31 +2297,38 @@
       "h": 672
     },
     "houseBounds": {
-      "x": 282,
-      "y": 102,
-      "w": 400.4,
-      "h": 461.4
+      "x": 313.7,
+      "y": 24.5,
+      "w": 382.5,
+      "h": 437
     },
     "windows": [
       {
         "id": "w0",
-        "x": 570.5,
-        "y": 316,
-        "w": 30.8,
-        "h": 35.6
+        "x": 410.1,
+        "y": 236.3,
+        "w": 11.5,
+        "h": 39.4
+      },
+      {
+        "id": "w1",
+        "x": 588.8,
+        "y": 234,
+        "w": 28.8,
+        "h": 33
       }
     ],
     "door": {
-      "x": 586.5,
-      "y": 479.5,
-      "w": 39,
-      "h": 81
+      "x": 601,
+      "y": 384,
+      "w": 36,
+      "h": 74
     },
     "chimney": {
-      "x": 300.2,
-      "y": 124.3
+      "x": 333.1,
+      "y": 51
     },
-    "windowCount": 1,
+    "windowCount": 2,
     "files": {
       "foliage": {
         "autumn": {
@@ -1765,8 +2359,37 @@
         "terracotta": "/portraits/k-terracotta-night.webp"
       },
       "lit": "/portraits/k-lit.webp",
-      "shadow": "/portraits/k-shadow.webp",
-      "snow": "/portraits/k-snow.webp"
+      "snow": "/portraits/k-snow.webp",
+      "ground": {
+        "autumn": {
+          "day": "/portraits/k-ground-autumn-day.webp",
+          "night": "/portraits/k-ground-autumn-night.webp"
+        },
+        "spring": {
+          "day": "/portraits/k-ground-spring-day.webp",
+          "night": "/portraits/k-ground-spring-night.webp"
+        },
+        "summer": {
+          "day": "/portraits/k-ground-summer-day.webp",
+          "night": "/portraits/k-ground-summer-night.webp"
+        },
+        "winter": {
+          "day": "/portraits/k-ground-winter-day.webp",
+          "night": "/portraits/k-ground-winter-night.webp"
+        }
+      }
+    },
+    "groundBounds": {
+      "x": 101,
+      "y": 275,
+      "w": 703,
+      "h": 346
+    },
+    "bounds": {
+      "x": 101,
+      "y": 50,
+      "w": 703,
+      "h": 571
     }
   }
 }

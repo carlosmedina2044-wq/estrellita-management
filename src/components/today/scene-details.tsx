@@ -16,11 +16,14 @@ export function SceneDetails({
   details,
   paused,
   asleep,
+  night,
   wind = 0,
 }: {
   details: SceneDetail[];
   paused?: boolean;
   asleep?: boolean;
+  /** The sky is dark: smoke takes its cool, moonlit tint. */
+  night?: boolean;
   /** 0-1 from the day's forecast. The laundry and the sprinkler read it, so a
    * blustery day looks like one instead of everything swaying on the same
    * fixed period whatever the weather line above it says. */
@@ -48,7 +51,7 @@ export function SceneDetails({
           className="absolute -translate-x-1/2 -translate-y-1/2"
           style={{ left: `${detail.x}%`, top: `${detail.y}%` }}
         >
-          <Detail kind={detail.kind} asleep={asleep} />
+          <Detail kind={detail.kind} asleep={asleep} night={night} />
         </div>
       ))}
     </div>
@@ -93,21 +96,62 @@ function PorchLight() {
   );
 }
 
-function Detail({ kind, asleep }: { kind: SceneDetail["kind"]; asleep?: boolean }) {
+const SMOKE_FRAMES = 36;
+
+/**
+ * A rendered loop played from a horizontal sprite strip: one image, N frames
+ * side by side, stepped with CSS so it pauses and stills with every other
+ * detail through the shared animation rules. Frame 0 is the still shown under
+ * Reduce Motion.
+ */
+function SpriteLoop({
+  src,
+  frames,
+  frameWidth,
+  frameHeight,
+  seconds,
+  anchor = "center",
+}: {
+  src: string;
+  frames: number;
+  frameWidth: number;
+  frameHeight: number;
+  seconds: number;
+  anchor?: "center" | "bottom";
+}) {
+  return (
+    <span
+      className="sprite-loop block"
+      style={
+        {
+          width: frameWidth,
+          height: frameHeight,
+          marginTop: anchor === "bottom" ? -frameHeight / 2 : 0,
+          backgroundImage: `url(${src})`,
+          "--sprite-frames": frames,
+          "--sprite-width": `${frameWidth}px`,
+          "--sprite-seconds": `${seconds}s`,
+        } as React.CSSProperties
+      }
+    />
+  );
+}
+
+function Detail({ kind, asleep, night }: { kind: SceneDetail["kind"]; asleep?: boolean; night?: boolean }) {
   switch (kind) {
     case "lantern":
       return <PorchLight />;
     case "smoke":
       return (
-        <span className="relative block h-10 w-6">
-          {[0, 1, 2].map((index) => (
-            <span
-              key={index}
-              className="detail-puff absolute bottom-0 left-1/2 block size-2.5 rounded-full"
-              style={{ animationDelay: `${index * 1.3}s` }}
-            />
-          ))}
-        </span>
+        <SpriteLoop
+          src={night ? "/fx/smoke-night.webp" : "/fx/smoke-day.webp"}
+          frames={SMOKE_FRAMES}
+          frameWidth={42}
+          frameHeight={84}
+          seconds={3.6}
+          // The sprite's base sits on the chimney top, not its middle.
+          anchor="bottom"
+        />
       );
     case "string-lights":
       return (
@@ -133,17 +177,7 @@ function Detail({ kind, asleep }: { kind: SceneDetail["kind"]; asleep?: boolean 
         </svg>
       );
     case "leaves":
-      return (
-        <span className="relative block h-3 w-10">
-          {[0, 1, 2, 3].map((index) => (
-            <span
-              key={index}
-              className="detail-leaf absolute block h-1.5 w-2.5 rounded-full"
-              style={{ left: `${index * 22}%`, top: `${(index % 2) * 40}%`, transform: `rotate(${index * 35 - 20}deg)` }}
-            />
-          ))}
-        </span>
-      );
+      return <SpriteLoop src="/fx/leaves.webp" frames={36} frameWidth={34} frameHeight={45} seconds={7.2} />;
     case "laundry":
       return (
         <svg viewBox="0 0 40 16" className="detail-laundry h-4 w-10" fill="none">
@@ -155,13 +189,15 @@ function Detail({ kind, asleep }: { kind: SceneDetail["kind"]; asleep?: boolean 
       );
     case "sprinkler":
       return (
-        <svg viewBox="0 0 24 12" className="detail-sprinkler h-3 w-6" fill="#9fc5ea">
-          {[0, 1, 2, 3, 4].map((index) => {
-            const angle = (Math.PI * (index + 1)) / 6;
-            return <circle key={index} cx={12 + Math.cos(angle) * 10} cy={11 - Math.sin(angle) * 10} r="1.1" />;
-          })}
-          <rect x="11" y="9" width="2" height="3" fill="#6b5a48" />
-        </svg>
+        <SpriteLoop
+          src="/fx/sprinkler.webp"
+          frames={36}
+          frameWidth={60}
+          frameHeight={36}
+          seconds={3.6}
+          // The nozzle is the sprite's bottom edge; it stands on the lawn.
+          anchor="bottom"
+        />
       );
   }
 }

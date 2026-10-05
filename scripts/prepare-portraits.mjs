@@ -46,8 +46,12 @@ function layerKey(basename) {
   const name = basename.replace(/\.webp$/, "");
   const parts = name.split("-");
   const type = parts[0];
-  if (parts[1] === "lit" || parts[1] === "shadow" || parts[1] === "snow") {
+  if (parts[1] === "lit" || parts[1] === "snow") {
     return { type, path: ["files", parts[1]] };
+  }
+  if (parts[1] === "ground") {
+    // a-ground-summer-day.webp → files.ground.summer.day
+    return { type, path: ["files", "ground", parts[2], parts[3]] };
   }
   if (["spring", "summer", "autumn", "winter"].includes(parts[1])) {
     // parts[2] is the phase: foliage is lit per phase, not shared.
@@ -70,41 +74,6 @@ if (fs.existsSync(MANIFEST)) {
 let totalBytes = 0;
 const sizes = [];
 
-/**
- * The shadow layer is rendered as a white ground plane with the house held out.
- * Convert it to a soft black shadow whose alpha is
- * the plane's darkening relative to its unshadowed brightness, sampled along the
- * bottom edge. Pixels the house occupied stay fully transparent.
- */
-function shadowToAlpha(data, info) {
-  const { width, height, channels } = info;
-  const lum = (i) => 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-  const refs = [];
-  for (let x = 0; x < width; x += 4) {
-    const i = ((height - 3) * width + x) * channels;
-    if (data[i + 3] > 200) refs.push(lum(i));
-  }
-  refs.sort((p, q) => p - q);
-  const ref = refs.length ? refs[Math.floor(refs.length * 0.9)] : 255;
-  const out = Buffer.alloc(width * height * 4);
-  for (let p = 0; p < width * height; p++) {
-    const i = p * channels;
-    const o = p * 4;
-    // Feather by the plane's own coverage rather than a hard alpha > 200 cut.
-    // The house is held out of this layer, so its antialiased silhouette lands
-    // between 0 and 200, and the hard cut left a light 1px halo tracing the
-    // house and planter wherever the shadow should have met them.
-    const coverage = data[i + 3] / 255;
-    const dark = coverage > 0 ? Math.max(0, 1 - lum(i) / ref) : 0;
-    const alpha = Math.min(1, dark * 1.3) * 0.6 * coverage;
-    out[o] = 42;
-    out[o + 1] = 36;
-    out[o + 2] = 30;
-    out[o + 3] = Math.round(alpha * 255);
-  }
-  return out;
-}
-
 async function convertOne(file) {
   const src = path.join(PNG_ROOT, file);
   const destName = file.replace(/\.png$/, ".webp");
@@ -112,11 +81,6 @@ async function convertOne(file) {
   const img = sharp(src);
   let { data, info } = await img.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   let source = sharp(src);
-  if (/-shadow\.png$/.test(file)) {
-    data = shadowToAlpha(data, info);
-    info = { ...info, channels: 4 };
-    source = sharp(data, { raw: { width: info.width, height: info.height, channels: 4 } });
-  }
   warnHalo(data, info.width, info.height, destName);
   let buf = await source.webp({ quality }).toBuffer();
   fs.writeFileSync(dest, buf);
@@ -147,12 +111,53 @@ if (totalBytes > 6 * 1024 * 1024 && quality > 76) {
   }
 }
 
+// Where the lawn sits in each frame, in frame pixels. The scene anchors the
+// house by the base of its lawn, not by the base of the house, because the
+// lawn is the lowest thing drawn.
+for (const type of Object.keys(manifest)) {
+  const png = path.join(PNG_ROOT, `${type}-ground-summer-day.png`);
+  if (!fs.existsSync(png)) continue;
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let minX = info.width, minY = info.height, maxX = 0, maxY = 0;
+  for (let y = 0; y < info.height; y++) {
+    for (let x = 0; x < info.width; x++) {
+      if (data[(y * info.width + x) * 4 + 3] > 24) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+  manifest[type].groundBounds = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+
+  // Everything drawn, lawn to treetop to roof. The scene sizes the portrait so
+  // this whole box fits the sky, which keeps a tall house out from under the
+  // greeting without shrinking a low one.
+  for (const name of [`${type}-classic-day.png`, `${type}-summer-day.png`]) {
+    const f = path.join(PNG_ROOT, name);
+    if (!fs.existsSync(f)) continue;
+    const raw = await sharp(f).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    for (let y = 0; y < raw.info.height; y++) {
+      for (let x = 0; x < raw.info.width; x++) {
+        if (raw.data[(y * raw.info.width + x) * 4 + 3] > 24) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+  }
+  manifest[type].bounds = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
 fs.writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + "\n");
 console.log(
   `portraits: ${sizes.length} files, ${(totalBytes / 1024 / 1024).toFixed(2)} MB, q${quality}`,
 );
 
-// Contact sheet: terracotta day+lit+foliage summer+shadow for all 21, plus house.webp first cell.
+// Contact sheet: terracotta day+lit+foliage summer+ground for all 21, plus house.webp first cell.
 async function contactSheet() {
   const cellW = 260;
   const cellH = Math.round((cellW * 560) / 780);
@@ -170,7 +175,7 @@ async function contactSheet() {
 
   async function compositeStack(kitType) {
     const layers = [
-      path.join(OUT_ROOT, `${kitType}-shadow.webp`),
+      path.join(OUT_ROOT, `${kitType}-ground-summer-day.webp`),
       path.join(OUT_ROOT, `${kitType}-terracotta-day.webp`),
       path.join(OUT_ROOT, `${kitType}-lit.webp`),
       path.join(OUT_ROOT, `${kitType}-summer-day.webp`),

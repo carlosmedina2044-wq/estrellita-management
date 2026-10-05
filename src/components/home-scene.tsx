@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { Settings } from "lucide-react";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { HouseSheet } from "@/components/today/house-sheet";
-import { PortraitScene } from "@/components/today/portrait-scene";
+import { PortraitScene, SCENE_HEIGHT } from "@/components/today/portrait-scene";
 import { NextLookNote } from "@/components/today/next-look";
 import { WindowZoomLayer, type WindowZoom } from "@/components/today/window-zoom";
 import { useAnswerPlayback, type AnswerReadiness } from "@/hooks/use-house-answer";
@@ -177,7 +177,7 @@ export function HomeScene({
           fallback={
             <div
               aria-hidden
-              style={{ height: "calc(env(safe-area-inset-top) + min(clamp(232px, 13.65rem, 340px), 34dvh))" }}
+              style={{ height: `calc(env(safe-area-inset-top) + ${SCENE_HEIGHT})` }}
             />
           }
         >

@@ -175,7 +175,7 @@ test("widgetSnapshotFor carries the house: kit, palette, season, window paint, l
   assert.equal(snapshot.season, "autumn");
   assert.equal(snapshot.windowStates.split(",").length, 3);
   assert.ok(snapshot.windowStates.split(",").every((state) => ["lit", "dim", "off"].includes(state)));
-  assert.equal(snapshot.layerFiles.length, 7);
+  assert.equal(snapshot.layerFiles.length, 8);
   assert.ok(snapshot.layerFiles.every((file) => file.startsWith("/portraits/") && file.endsWith(".webp")));
   assert.equal(snapshot.phaseTimes.length, 6);
   // Fallback sun (no coordinates): dawn starts 40 minutes before a 06:30 sunrise.

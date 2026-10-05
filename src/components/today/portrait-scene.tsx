@@ -269,6 +269,9 @@ function useGyroOffset(enabled: boolean) {
   return { x, y };
 }
 
+/** The scene's height, shared by every screen that reserves room for it. */
+export const SCENE_HEIGHT = "min(clamp(264px, 16.5rem, 360px), 36dvh)";
+
 export function PortraitScene({
   household,
   arc,
@@ -486,14 +489,20 @@ export function PortraitScene({
     };
   }, [answer, homeSpec.windows, kit]);
 
-  const stackWidthPct = 62;
+  // The portrait is now a diorama that fills its frame, so the box can be much
+  // wider than the old 62% without the house itself growing past the sky.
+  const stackWidthPct = 84;
+  // ...but never so wide that a tall house climbs into the greeting: fit
+  // everything the portrait draws into the sky above the sheet, less the
+  // 44px the base sits above the bottom and ~68px of title row.
+  const content = kit.bounds ?? kit.groundBounds ?? kit.houseBounds;
+  const fitK = kit.frame.w / kit.frame.h / (content.h / kit.frame.h);
+  const stackWidth = `min(${stackWidthPct}vw, calc((${SCENE_HEIGHT} - 112px) * ${fitK.toFixed(4)}))`;
   // Transparent padding beneath the house inside its own render, as a fraction
   // of the image box, converted to viewport width so it can offset the box.
-  const houseBelowFrac = Math.max(
-    0,
-    1 - (kit.houseBounds.y + kit.houseBounds.h) / kit.frame.h,
-  );
-  const belowVw = houseBelowFrac * stackWidthPct * (kit.frame.h / kit.frame.w);
+  const baseBounds = kit.groundBounds ?? kit.houseBounds;
+  const houseBelowFrac = Math.max(0, 1 - (baseBounds.y + baseBounds.h) / kit.frame.h);
+  const belowRatio = houseBelowFrac * (kit.frame.h / kit.frame.w);
 
   // The phase grading has to be masked to the artwork. Painted as a plain
   // rectangle it tints the portrait's whole bounding box — including all the
@@ -536,8 +545,8 @@ export function PortraitScene({
         // to a cap, so a larger greeting has sky of its own instead of
         // landing on the roof.
         height: insetTop
-          ? "calc(env(safe-area-inset-top) + min(clamp(232px, 13.65rem, 340px), 34dvh))"
-          : "min(clamp(232px, 13.65rem, 340px), 34dvh)",
+          ? `calc(env(safe-area-inset-top) + ${SCENE_HEIGHT})`
+          : SCENE_HEIGHT,
         background:
           "linear-gradient(var(--sky-top), var(--sky-mid) 55%, var(--sky-horizon))",
       }}
@@ -577,7 +586,8 @@ export function PortraitScene({
         data-house-stack
         className="pointer-events-none absolute left-1/2"
         style={{
-          width: `${stackWidthPct}%`,
+          ...({ "--stack-w": stackWidth } as Record<string, string>),
+          width: "var(--stack-w)",
           // Anchored by the house's visible bounds rather than its image box.
           // Each render carries transparent padding below the house for the
           // shadow, and that padding differs by house type (16%-24% of the
@@ -587,7 +597,7 @@ export function PortraitScene({
           // width, so the visible base of the house lands a consistent 44px
           // above the scene's bottom edge whatever the home or screen size,
           // just clear of the 40px the sheet covers.
-          bottom: `calc(44px - ${belowVw.toFixed(2)}vw)`,
+          bottom: `calc(44px - var(--stack-w) * ${belowRatio.toFixed(4)})`,
           x: gyro.x,
           y: gyro.y,
           translateX: "-50%",
@@ -813,6 +823,7 @@ export function PortraitScene({
           details={details}
           paused={paused}
           asleep={light.companion === "asleep"}
+          night={dayOpacity < 0.5}
           wind={weather.wind}
         />
         </motion.div>

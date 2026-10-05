@@ -110,7 +110,7 @@ struct CuidalaWidgetSnapshot: TimelineEntry {
     }
 
     var houseAvailable: Bool {
-        layerFiles.count >= 7 && CuidalaWidgetStore.portraitsDirectory != nil
+        layerFiles.count >= 8 && CuidalaWidgetStore.portraitsDirectory != nil
     }
 
     /// Longest edge of a decoded portrait layer. The source art is 936x672 and
@@ -119,7 +119,8 @@ struct CuidalaWidgetSnapshot: TimelineEntry {
     /// (full-size RGBA would be ~2.5 MB each, ~15 MB per entry).
     static let maxLayerPixelSize = 512
 
-    /// 0 shadow, 1 night, 2 day, 3 lit, 4 foliage night, 5 foliage day, 6 snow.
+    /// 0 ground night, 1 ground day, 2 night, 3 day, 4 lit, 5 foliage night,
+    /// 6 foliage day, 7 snow.
     func layerImage(_ index: Int) -> UIImage? {
         guard index < layerFiles.count, let directory = CuidalaWidgetStore.portraitsDirectory else { return nil }
         return Self.downsampledImage(

@@ -21,7 +21,7 @@ import { AttentionTiles } from "@/components/today/attention-tiles";
 import { DayRunCard } from "@/components/today/day-run-card";
 import { ParticleLayer, type ParticleLayerHandle } from "@/components/today/particle-layer";
 import { WindowZoomLayer, type WindowZoom } from "@/components/today/window-zoom";
-import { PortraitScene } from "@/components/today/portrait-scene";
+import { PortraitScene, SCENE_HEIGHT } from "@/components/today/portrait-scene";
 import { SceneBoundary } from "@/components/scene-boundary";
 import { GetAheadCard } from "@/components/today/get-ahead-card";
 import { QuestCard } from "@/components/today/quest-card";
@@ -973,7 +973,7 @@ export function TodayView({
           <SceneBoundary
             // Same box the scene would have filled, so the sheet's negative
             // margin and the compact bar keep their geometry if the art fails.
-            fallback={<div aria-hidden style={{ height: "calc(env(safe-area-inset-top) + min(clamp(232px, 13.65rem, 340px), 34dvh))" }} />}
+            fallback={<div aria-hidden style={{ height: `calc(env(safe-area-inset-top) + ${SCENE_HEIGHT})` }} />}
           >
             <PortraitScene
               household={household}

@@ -22,6 +22,10 @@ export type PortraitKitEntry = {
   };
   frame: { w: number; h: number };
   houseBounds: PortraitWindowRect | { x: number; y: number; w: number; h: number };
+  /** The lawn's extent in frame pixels; the lowest thing the portrait draws. */
+  /** Everything the portrait draws, lawn to treetop to roof, in frame pixels. */
+  bounds?: { x: number; y: number; w: number; h: number };
+  groundBounds?: { x: number; y: number; w: number; h: number };
   windows: PortraitWindowRect[];
   /** Centre and size of the visible front door; `null` when the camera cannot
    * see one (kits `p`, `r`, `s` hide theirs). See `doorAnchor`. */
@@ -32,8 +36,10 @@ export type PortraitKitEntry = {
     day: Record<string, string>;
     night: Record<string, string>;
     lit: string;
-    shadow: string;
     snow: string;
+    /** The lawn the house stands on, opaque, lit per phase and dressed per
+     * season (snow in winter). It sits under the house layers. */
+    ground: Record<string, { day: string; night: string }>;
     /** season -> phase -> url. Foliage is lit per phase; legacy manifests stored
      * one shared url per season, which portraitLayerUrls still tolerates. */
     foliage: Record<string, { day: string; night: string } | string>;
@@ -174,6 +180,11 @@ function foliageUrls(kit: PortraitKitEntry, season: string) {
   return { foliageDay: entry.day, foliageNight: entry.night ?? entry.day };
 }
 
+function groundUrls(kit: PortraitKitEntry, season: string) {
+  const entry = kit.files.ground[season] ?? kit.files.ground.summer;
+  return { groundDay: entry.day, groundNight: entry.night ?? entry.day };
+}
+
 export function portraitLayerUrls(
   kitType: KitType,
   palette: PaletteId,
@@ -184,8 +195,8 @@ export function portraitLayerUrls(
     day: kit.files.day[palette] ?? kit.files.day.classic,
     night: kit.files.night[palette] ?? kit.files.night.classic,
     lit: kit.files.lit,
-    shadow: kit.files.shadow,
     snow: kit.files.snow,
+    ...groundUrls(kit, season),
     ...foliageUrls(kit, season),
     frame: kit.frame,
     windows: kit.windows,

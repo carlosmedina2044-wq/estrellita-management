@@ -12,7 +12,8 @@ export type ShareCardModel = {
 };
 
 export type ShareCardLayers = {
-  shadow: string;
+  groundDay: string;
+  groundNight: string;
   night: string;
   day: string;
   lit: string;
@@ -162,8 +163,9 @@ export async function renderShareCard(scene: ShareCardScene, model: ShareCardMod
   // House
   const { layers } = scene;
   const box = stackBox(layers.frame);
-  const [shadow, night, day, lit, foliageDay, foliageNight, snow] = await Promise.all([
-    loadImage(layers.shadow),
+  const [groundNight, groundDay, night, day, lit, foliageDay, foliageNight, snow] = await Promise.all([
+    loadImage(layers.groundNight),
+    loadImage(layers.groundDay),
     loadImage(layers.night),
     loadImage(layers.day),
     loadImage(layers.lit),
@@ -177,7 +179,8 @@ export async function renderShareCard(scene: ShareCardScene, model: ShareCardMod
     ctx.drawImage(img, box.x, box.y, box.w, box.h);
     ctx.globalAlpha = 1;
   };
-  draw(shadow);
+  draw(groundNight);
+  draw(groundDay, scene.dayOpacity);
   draw(night);
   draw(day, scene.dayOpacity);
   layers.windows.forEach((rect, index) => {

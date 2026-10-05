@@ -1,5 +1,14 @@
 # Scene details: asset brief (E4-02)
 
+> **Status 2026-10-04.** Smoke, leaves and sprinkler are now rendered loops
+> (`tools/blender/fx/`, sprite strips in `public/fx/`, played by `SpriteLoop`
+> in `scene-details.tsx`). The planter, window box, bench and wreath are 3D
+> renders in `public/props/`. The porch light, string lights, cat and laundry
+> line are still CSS/SVG. The houses themselves are now a Blender diorama
+> (lawn slab, clay trees and bushes, stone path; `tools/blender/portraits/
+> diorama.py`) with a new `ground` layer replacing `shadow`. The Lottie plan
+> below is superseded for the seven moments above.
+
 Seven small looping moments for the living house on Today. Each is a Lottie
 file, 512 by 512, transparent, in warm neutral greys and the brand cream so
 one file works on the classic, terracotta and slate palettes. The engine and
